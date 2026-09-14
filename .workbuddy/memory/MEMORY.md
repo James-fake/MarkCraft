@@ -49,6 +49,17 @@ Vite5+React18+TS；编辑内核 CodeMirror6+TipTap3；白板 Excalidraw(canvas-v
 `/c/Users/HJN/.workbuddy/binaries/PortableGit/versions/1.2.0/{cmd,usr/bin,mingw64/bin}`。
 bash 每条命令内联 `export PATH="<PortableGit版本目录>/{cmd,usr/bin,mingw64/bin}:/c/Users/HJN/.workbuddy/binaries/node/versions/22.22.2-3:/c/Windows/System32"`。
 
+### 🚨 git 操作铁律（2026-09-14 事故后新增）
+- **绝对禁止在单条 bash 里跑 `git stash`**（含 `stash` + `stash pop` 组合）。SIGTERM 会让对象库处于半写状态，
+  沙箱下损坏面极大（本次丢了几乎全部 `.pack`，832 缺失 blob）。要暂存改动 → `git diff > x.patch` 或复制文件。
+- **robocopy 在 Git Bash 下必须 `MSYS_NO_PATHCONV=1` + 反斜杠 Windows 目标路径**，否则 exit 16（fatal）。
+  exit 0–7 都算成功（1=有复制 2=有删除 3=1+2）。
+- **对象库诊断顺序**：`ls .git/refs/` → `git cat-file -t <commit>` → `ls .git/objects/pack/`（**有没有 .idx 却无 .pack**）
+  → 逐层 `ls-tree <commit>:<path>` 定位缺失树。
+- **远端 master 可能远落后本地**（本次落后 40+ 提交，只有 3 个初始提交）——不能假定远端有近期工作。
+  重建法：备份损坏 `.git` → robocopy 清空 → `git init` → `core.autocrlf=false` → `add -A` → commit（以工作树为准）。
+  提交对象常可读 → 先跑父链回溯落盘历史备查（本次抢救 43 条 → `.workbuddy/artifacts/git-history-salvage.txt`）。
+
 ## 视觉/审计方法论（2026-09 起）
 - 布局类故障判定靠**几何**不靠印象：CDP 读 `getBoundingClientRect` + `elementFromPoint`（命中测试前先清残留弹层）。
 - CSS 双 token 源冲突：让 tokens.css 接管基础变量、退役冲突文件。**注意第二形态：dev server 模块缓存**——
@@ -159,6 +170,24 @@ bash 每条命令内联 `export PATH="<PortableGit版本目录>/{cmd,usr/bin,min
   ⚠️ CDP 断言时序必须与真机等价：click 后零延迟注入滚动会插队 React passive effect → 假失败。
   契约测试共 27 例；全量 848/3/2。⚠️ 用户语境「列表往上滑动」= scrollTop 减小（回滚）。
 - macOS 从容丝滑动效方案六批次 + 第二轮收口批全部落地，CDP 30/30。视图切换 = 仅内容区 opacity 420ms 淡入。
-- 待用户决策：`--mc-dur-lazy` 删除或消费；3 项预存测试失败是否排查；defaultDocsZh 帮助文档旧名跟随。
+- **需求 N：顶栏功能切换 Tab 支持左右滑动（四面板全量）**（2026-09-14/15 定稿，HEAD `1fe58b8`）：
+  共享手势层 = `src/aurora/hooks/swipeTabsCore.ts`（纯逻辑）+ `useSwipeTabs.ts`（React 壳），
+  契约测试 `useSwipeTabs.test.ts` **56 例**。四面板：设置（7 tab 内容区）/ 知识库详情（7 tab 内容区）/
+  博客浮层（**组内子面板**，不跨组 + `enabled:panelOpen` + 避开 iframe/表头）/ 白板左栏（6 tab **tab 行**，
+  避开 Excalidraw 绘图区）。CDP 全通过：设置 7/7 · 知识库 6/6 · 白板 6/6 · 博客 8/8。
+  - 手势参数：SLOP 8px / 主副轴比 1.2 / 吸附 32% / 甩掷 0.3px·ms⁻¹ + 最小 20px / 边界阻尼 0.28 /
+    **末段速度采样窗 80ms**（`computeEndVelocity`）/ wheel 阈值 60 冷却 400 静默 120。
+  - **视觉钳制 `VISUAL_CLAMP=18px`**（远小于 40px 内容内边距，首字永不贴边）+ `::before/::after` 边缘渐变遮罩
+    + 顶栏指示器按 `--swipe-progress` 联动。1:1 跟手会推飞内容、72px 会裁字，**18px 是三轮迭代结论**。
+  - **甩掷禁用全程均速**（200px/500ms=0.4 会误判）→ 必须末段瞬时速度，已补回归护栏测试。
+  - **CDP 探针坐标必须落 tab 中心，不能取 tab 行中心**（6 等分行中心恰在 #2/#3 交界 → mouseup 的
+    `click` 会误切 tab = 假失败）。
+  - `--swipe-progress` 挂**面板根**（挂 nav-tabs 兄弟层继承不到）；BlogPanel swipe 块必须在 `rootRef` 之后（TDZ）。
+- ⚠️ **2026-09-14 仓库重建**：git stash 半途 SIGTERM → 对象库大面积损坏（832 缺失 blob + 多缺失 tree）。
+  工作树完好故以工作树为准重建（HEAD `1fe58b8`，956 文件，`git fsck` 零错误）。旧 .git 备份
+  `D:/_mc_git_damaged_backup/dot-git`；旧提交历史 `.workbuddy/artifacts/git-history-salvage.txt`（43 条）。
+  **远端 master 仅 3 个初始提交，远落后本地**（近期工作从未推送）。铁律见「git」节。
+- 待用户决策：`--mc-dur-lazy` 删除或消费；3 项预存测试失败是否排查；defaultDocsZh 帮助文档旧名跟随；
+  **是否将重建快照推送远端**（本地领先远端 40+ 提交，推送需令牌）。
 - 设计审计 v2（2026-09-09）12 项优化路线（P0×2/P1×2/P2×3/P3×5）；两决策已拍板：完整 HIG 三菜单 + 自定义退出弹窗。
 - 战略：网页 UI → 桌面端软件范式（窗口 chrome/命令面板/右键菜单/密度/键盘优先）。
