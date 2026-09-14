@@ -1,0 +1,571 @@
+/* ============================================================
+ * Aurora Design System · Tokens v2.0
+ * 设计语言：极光（Aurora）— 精致材质 · 通透层次 · 桌面原生
+ * ========================================================== */
+
+:root {
+  /* ==========================================================
+   * 1. 背景层级（从深到浅）
+   * ========================================================== */
+  --mc-bg-window:      #0A0B0F;    /* 窗口最底层 */
+  --mc-bg-sidebar:     #0D0F15;    /* 侧栏基础色 */
+  --mc-bg-content:     #101218;    /* 内容区实色 */
+  --mc-bg-elevated:    #151821;    /* 浮层面板/卡片 */
+  --mc-bg-hover:       #1A1D28;    /* 悬停态 */
+  --mc-bg-pressed:     #1F2330;    /* 按下态 */
+  --mc-bg-selected:    #252A38;    /* 选中行背景（非accent） */
+
+  /* ==========================================================
+   * 2. 文本层级
+   * ========================================================== */
+  --mc-text-primary:    #E8ECF4;   /* 主文本（偏冷白） */
+  --mc-text-secondary:  #9AA3B5;   /* 次级文本 */
+  --mc-text-tertiary:   #6B7280;   /* 三级文本/占位符 */
+  --mc-text-disabled:   #4A5060;   /* 禁用态 */
+  --mc-text-inverse:    #FFFFFF;   /* 反色文本（accent 底色上） */
+
+  /* ==========================================================
+   * 3. 图标层级
+   * ========================================================== */
+  --mc-icon:            #C8CFDD;   /* 主图标 */
+  --mc-icon-strong:     #E8ECF4;   /* 强调/激活图标 */
+  --mc-icon-muted:      #6B7280;   /* 弱化/禁用图标 */
+  --mc-icon-active:     #7C8CFF;   /* accent色图标（选中） */
+
+  /* ==========================================================
+   * 4. 边框层级
+   * ========================================================== */
+  --mc-border-subtle:   #1A1D26;   /* 细微分隔线 */
+  --mc-border-medium:   #262B3B;   /* 常规边框 */
+  --mc-border-strong:   #3A4055;   /* 强调边框（聚焦） */
+  --mc-border-outline:  #0D0F15;   /* 外描边（立体感） */
+
+  /* ==========================================================
+   * 5. 强调色：极光蓝紫
+   * ========================================================== */
+  --mc-accent:          #7C8CFF;   /* 主色 */
+  --mc-accent-hover:    #9AA7FF;   /* 悬停 */
+  --mc-accent-pressed:  #6B7CE6;   /* 按下 */
+  --mc-accent-soft:     rgba(124, 140, 255, 0.18);  /* 选中背景 */
+  --mc-accent-glow:     rgba(124, 140, 255, 0.40);  /* 聚焦光晕 */
+  --mc-accent-text:     #A5B4FF;   /* 文字形式强调色 */
+  --mc-accent-bg:       var(--mc-accent-soft);      /* 激活态背景/焦点环（见 00 §8 待办已解决） */
+
+  /* ==========================================================
+   * 6. 语义色
+   * ========================================================== */
+  --mc-success:         #4ADE80;
+  --mc-success-soft:    rgba(74, 222, 128, 0.15);
+  --mc-success-text:    #86EFAC;
+
+  --mc-warning:         #FBBF24;
+  --mc-warning-soft:    rgba(251, 191, 36, 0.15);
+  --mc-warning-text:    #FCD34D;
+
+  --mc-danger:          #F87171;
+  --mc-danger-soft:     rgba(248, 113, 113, 0.15);
+  --mc-danger-text:     #FCA5A5;
+
+  /* Windows 关闭钮惯例红（OS 惯例色，入 token 统一引用） */
+  --mc-danger-winclose:        #E81123;
+  --mc-danger-winclose-pressed: #C4101D;
+
+  --mc-info:            #60A5FA;
+  --mc-info-soft:       rgba(96, 165, 250, 0.15);
+  --mc-info-text:       #93C5FD;
+
+  /* 行内 code / 标记语义色（§6.4：替代旧禁粉 #F472B6；与 accent 区分，暖金方向） */
+  --mc-code:            #F0A868;   /* code 本体 */
+  --mc-code-soft:       rgba(240, 168, 104, 0.14);  /* code 背景 */
+  --mc-code-text:       #F5C089;   /* code 文字形式强调 */
+
+  /* ==========================================================
+   * 6.1 知识图谱语义色（替代 GraphPanel.tsx / graph.css 散落硬编码，审计 P1-4）
+   * ========================================================== */
+  --mc-graph-file:            rgba(124, 140, 255, 0.6);
+  --mc-graph-file-stroke:     var(--mc-accent);
+  --mc-graph-tag:             #e6b450;
+  --mc-graph-tag-stroke:      #f0c674;
+  --mc-graph-folder:          #f0c674;
+  --mc-graph-folder-stroke:   #fbbf24;
+  --mc-graph-orphan:          rgba(107, 114, 128, 0.45);
+  --mc-graph-orphan-stroke:   rgba(107, 114, 128, 0.6);
+  --mc-graph-edge:            var(--mc-text-tertiary);
+  --mc-graph-edge-tag:        #e6b450;
+  --mc-graph-edge-folder:     #f0c674;
+  --mc-graph-current-stroke:  #ffffff;
+  --mc-graph-pulse-weak:      rgba(124, 140, 255, 0.55);
+  --mc-graph-pulse-strong:    rgba(124, 140, 255, 0.9);
+
+  /* ==========================================================
+   * 7. 字体系统
+   * ========================================================== */
+  --mc-font-sans:  'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --mc-font-mono:  'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+
+  --mc-font-xs:    11px;     /* 快捷键/角标/时间戳 */
+  --mc-font-sm:    12px;     /* 次级标签/辅助说明 */
+  --mc-font-base:  13px;     /* 正文/菜单项/输入框 */
+  --mc-font-md:    14px;     /* 重要文本/按钮/列表主项 */
+  --mc-font-lg:    16px;     /* 面板标题/区块标题 */
+  --mc-font-xl:    20px;     /* 页面主标题 */
+  --mc-font-2xl:   28px;     /* 欢迎页大标题 */
+  --mc-font-display: 32px;   /* 展示级：头像大字首字母（设置 about/user） */
+  --mc-font-hero:    34px;   /* 品牌欢迎语（welcome 首屏） */
+
+  --mc-line-height-xs:   16px;
+  --mc-line-height-sm:   18px;
+  --mc-line-height-base: 20px;
+  --mc-line-height-md:   22px;
+  --mc-line-height-lg:   24px;
+  --mc-line-height-xl:   28px;
+  --mc-line-height-2xl:  36px;
+
+  /* ==========================================================
+   * 8. 间距系统（8px基准）
+   * ========================================================== */
+  --mc-space-1:   2px;
+  --mc-space-2:   4px;
+  --mc-space-3:   6px;
+  --mc-space-4:   8px;    /* 基准 */
+  --mc-space-5:  12px;
+  --mc-space-6:  16px;
+  --mc-space-8:  24px;
+  --mc-space-10: 32px;
+  --mc-space-12: 48px;
+
+  /* ==========================================================
+   * 9. 圆角三档（★单来源权威：全站仅此处定义 --mc-radius-*）
+   *   其它文件（src/styles/tokens.css、src/components/ui/ui.css）
+   *   仅可引用，不得另起同名/异名半径（如 --mc-radius:8px）。
+   *   纪律：控件≤sm(4) / 容器≤md(8) / 窗口·弹层≤lg(12)；
+   *        仅胶囊走 pill(999)；禁止 6px 以上非窗口裸圆角（AI-slop）。
+   * ========================================================== */
+  --mc-radius-sm:   4px;     /* 按钮/输入框/小元素 */
+  --mc-radius-md:   8px;     /* 面板/卡片/弹出层 */
+  --mc-radius-lg:  12px;     /* 窗口/对话框/大卡片 */
+  --mc-radius-pill: 999px;   /* 胶囊按钮/标签 */
+
+  /* ==========================================================
+   * 10. 阴影（三层结构）
+   * ========================================================== */
+  --mc-shadow-panel:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 12px 32px rgba(0, 0, 0, 0.2);
+
+  --mc-shadow-popover:
+    0 1px 3px rgba(0, 0, 0, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    0 24px 48px rgba(0, 0, 0, 0.3);
+
+  --mc-shadow-inset:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  /* ==========================================================
+   * 11. 动效系统（快慢分层：即时层 100-160ms / 标准层 150-250ms / 从容层 320-500ms）
+   * ========================================================== */
+  --mc-dur-micro:  100ms;   /* 微反馈：hover/图标变色 */
+  --mc-dur-fast:   180ms;   /* 快速过渡：按钮按下/展开收起 */
+  --mc-dur-base:   280ms;   /* 标准过渡：面板切换/侧栏收起 */
+  --mc-dur-slow:   420ms;   /* 从容层标准：modal/视图切换 */
+  --mc-dur-lazy:   500ms;   /* 从容层上限（预留）：drawer/大 sheet 级表面，当前无消费者 */
+
+  --mc-ease-spring:  cubic-bezier(0.22, 1, 0.36, 1);   /* 标准弹性 */
+  --mc-ease-in:      cubic-bezier(0.32, 0, 0.67, 0);   /* 退出/离场（加速离场） */
+  --mc-ease-out:     cubic-bezier(0.23, 1, 0.32, 1);   /* 进入/悬停（强减速入场，Apple 丝滑总开关） */
+  --mc-ease-mac:     cubic-bezier(0.32, 0.72, 0, 1);   /* Apple 从容曲线：大浮层/视图过渡（iOS sheet 官方抽屉曲线） */
+  --mc-ease-in-out:  cubic-bezier(0.4, 0, 0.2, 1);     /* 标准进出 */
+  --mc-ease-linear:  linear;
+
+  /* ==========================================================
+   * 12. 外壳尺寸（桌面chrome固定值）
+   * ========================================================== */
+  --mc-titlebar-h:          48px;
+  --mc-statusbar-h:         28px;
+  --mc-sidebar-w:          200px;
+  --mc-sidebar-collapsed-w: 60px;
+  --mc-inspector-w:        280px;
+  --mc-wincontrol-w:        46px;
+  --mc-toolbar-h:           36px;
+
+  /* ==========================================================
+   * 12.1 列表/导航项高度（密度核心维度，P1-3）
+   * 基准值 = 舒适（comfortable），[data-density='compact'] 块重定义为更紧值；
+   * 全部走 token，shell.css / components.css 引用 var(--mc-xxx-h)，
+   * 避免硬编码散落。
+   * ========================================================== */
+  --mc-sidebar-item-h:      32px;   /* 侧栏图标/导航项 */
+  --mc-list-item-h:         28px;   /* 通用 ListItem 紧凑档 */
+  --mc-list-item-cozy-h:    40px;   /* 带副标题的 ListItem 舒适档 */
+  --mc-filetree-item-h:     24px;   /* 文件树行高 */
+  --mc-inspector-tab-h:     28px;   /* Tab / segmented 行高（检查器 Tab、面板子栏分组/视图切换） */
+  --mc-toolbar-btn-h:       24px;   /* 工具栏按钮行高 */
+
+  /* ==========================================================
+   * 12.2 分类色板（categorical · 单源对应 src/aurora/themes/categoricalColors.ts）
+   * 八类文件色 + 六分组色；dark/light 双档，跨模式联动。
+   * 纪律同源文件：桌面原生可读色相，禁 AI 紫/粉味；改色前确认互异性。
+   * ========================================================== */
+  --mc-cat-folder:          #FBBF24;
+  --mc-cat-markdown:        #3B82F6;
+  --mc-cat-canvas:          #14B8A6;
+  --mc-cat-image:           #4ADE80;
+  --mc-cat-pdf:             #F87171;
+  --mc-cat-template:        #22D3EE;
+  --mc-cat-daily:           #FB923C;
+  --mc-cat-unknown:         #6B7280;
+  --mc-cat-group-1:         #EF4444;
+  --mc-cat-group-2:         #F59E0B;
+  --mc-cat-group-3:         #22C55E;
+  --mc-cat-group-4:         #06B6D4;
+  --mc-cat-group-5:         #3B82F6;
+  --mc-cat-group-6:         #14B8A6;
+
+  /* ==========================================================
+   * 13. 材质（通过class应用，不是变量）
+   * 见下方 .material-* 类定义
+   * ========================================================== */
+}
+
+/* ============================================================
+ * 14. 全局浮层层级带（z-index · 唯一文档源 / P2-3 收敛）
+ * 生效范围：仅「根上下文表面」（fixed + Portal 到 body 的浮层）；
+ *           容器内局部层级（graph/canvas/editor 内部 5-60 等）不在此表，
+ *           它们被父级堆叠上下文包含，与全局带互不竞争。
+ * 纪律：同语义同值、异语义必异值；新增/调整强制浮层前先查本表取带，
+ *       禁止随手写 9999/10000 之类的魔数。
+ *   10060  CrashRecovery 崩溃恢复（全局兜底，须盖过一切含 ctxmenu）
+ *   10050  Onboarding 首启引导（首次启动全屏）
+ *   10030  ContextMenu 瞬态右键菜单（editor filetree/outline ctxmenu）
+ *   10001  画布 ctxmenu / dock 更多菜单（canvas 内联 zIndex，见 tsx；保留画布局部原序）
+ *   10000  ——（预留）
+ *    9999  画布 dock 上下文浮层（dock float：画笔菜单/橡皮滑条/模板列表）
+ *    9998  画布 dock 遮罩（dock mask，随浮层低一档）
+ *    9990  Toast 轻提示（半透明不阻断；盖过模态遮罩与命令层，低于菜单类）
+ *    9980  Modal 阻断模态（filetree 删除确认 · 画布列表管理 overlay）
+ *    9000  Command 命令/搜索浮层（shell command overlay · canvas cmdk overlay）
+ *    3000  Aurora 共享 Modal 遮罩（aurora-modal-overlay，含 Confirm 宿主）
+ *    2000  Tooltip 提示带（aurora-tooltip；mc-tooltip 平行遗留无消费方）
+ *    1500  编辑器 kb-menu 浮层（mask 1499 配套）
+ *    1000  锚定浮层带（dropdown / lint panel / tabs ctxmenu / 滚动按钮等局部）
+ * ========================================================== */
+
+/* ============================================================
+ * 材质类 · Material Classes
+ * ========================================================== */
+
+/* solid — 内容区、编辑器（实色，无模糊） */
+.material-solid {
+  background-color: var(--mc-bg-content);
+}
+
+/* sidebar — 侧栏、导航区（半透明 + 轻模糊） */
+.material-sidebar {
+  background-color: rgba(13, 15, 21, 0.72);
+  backdrop-filter: blur(24px) saturate(105%);
+  -webkit-backdrop-filter: blur(24px) saturate(105%);
+}
+
+/* popover — 右键菜单、下拉、tooltip、命令面板（更不透明 + 强模糊） */
+.material-popover {
+  background-color: rgba(21, 24, 33, 0.80);
+  backdrop-filter: blur(36px) saturate(115%);
+  -webkit-backdrop-filter: blur(36px) saturate(115%);
+}
+
+/* hud — 浮动工具、状态提示、Toast（最通透） */
+.material-hud {
+  background-color: rgba(13, 15, 21, 0.65);
+  backdrop-filter: blur(48px) saturate(110%);
+  -webkit-backdrop-filter: blur(48px) saturate(110%);
+}
+
+/* ============================================================
+ * 密度切换 · Compact Density
+ * ========================================================== */
+[data-density='compact'] {
+  --mc-titlebar-h:          42px;
+  --mc-statusbar-h:         24px;
+  --mc-sidebar-w:          180px;
+  --mc-font-base:           12px;
+  --mc-line-height-base:    18px;
+  --mc-space-4:             6px;
+  --mc-space-5:             8px;
+  --mc-space-6:            12px;
+}
+
+/* ============================================================
+ * 密度切换 · Comfortable Density（用户主动切换时显式放大）
+ * 默认 :root 已是紧凑基准（densityStore 启动即广播 compact），本块在
+ * 用户主动切到舒适时反向放大 chrome 与列表项维度。
+ * 节奏比 :root 基准大一档（≈VS Code「默认密度」与「舒适密度」之差）。
+ * ========================================================== */
+html[data-density='comfortable'] {
+  --mc-titlebar-h:          48px;
+  --mc-statusbar-h:         28px;
+  --mc-sidebar-w:          200px;
+  --mc-sidebar-collapsed-w: 60px;
+  --mc-inspector-w:        280px;
+  --mc-toolbar-h:           36px;
+  --mc-font-base:           13px;
+  --mc-font-md:             14px;
+  --mc-line-height-base:    20px;
+  --mc-line-height-md:      22px;
+  --mc-space-4:             8px;
+  --mc-space-5:            12px;
+  --mc-space-6:            16px;
+  --mc-space-8:            24px;
+  --mc-sidebar-item-h:      40px;
+  --mc-list-item-h:         32px;
+  --mc-list-item-cozy-h:    48px;
+  --mc-filetree-item-h:     28px;
+  --mc-inspector-tab-h:     32px;
+  --mc-toolbar-btn-h:       28px;
+}
+/* ============================================================
+ * 指针类型门控 · 触屏假 hover 抑制（MOTION-AUDIT 2026-09-14 §6）
+ * - 桌面（hover:hover + pointer:fine）= 完整 hover 体验，本块不生效
+ * - 触屏 / 粗糙指针 = 悬停位移归零，避免点击后残留 scale/translate
+ * - 只中和「纯位移/缩放型」假 hover；颜色/背景/边框类 hover 无害，保留
+ *
+ * ⚠️ 仅列入 transform 完全由 hover 提供的选择器。
+ *    凡 transform 与状态复合（如 switch 打开态 translateX(16px)、
+ *    katex tooltip 的 translateX(-50%) 居中）一律不得归零，
+ *    否则会破坏状态定位 —— 本块显式排除。
+ * ⚠️ 仅列 TSX 真实在用的选择器；已退役/死 CSS
+ *    （aurora-card--hoverable / aurora-sticky / aurora-kanban__card /
+ *    aurora-mindmap__node / kb-stat / kb-tpl-card）不予收录——
+ *    门槛只应约束真实界面，避免给「已死规则」制造维护假象。
+ * ========================================================== */
+@media (hover: none), (pointer: coarse) {
+  /* 卡片 / 磁贴 / 列表项：悬停轻微上浮（仅列真实在用的选择器） */
+  .aurora-blog-theme:hover,
+  .aurora-blog-color:hover,
+  .aurora-welcome__tile:hover,
+  .kb-kbcard:hover,
+  .kb-note:hover {
+    transform: none;
+  }
+
+  /* 色板 / 滚动按钮：悬停放大（纯装饰） */
+  .aurora-cip__swatch:hover,
+  .scroll-btn:hover {
+    transform: none;
+  }
+
+  /* 开关拇指：OFF 态悬停只是放大 → 归零；
+     ON 态悬停是「位移 + 放大」复合 → 必须保留位移，仅去掉放大 */
+  .aurora-switch:hover .aurora-switch__thumb {
+    transform: none;
+  }
+  .aurora-switch--on:hover .aurora-switch__thumb {
+    transform: translateX(16px);
+  }
+}
+/* ============================================================
+ * 可达性 · prefers-reduced-motion（Apple 三信号：更少更柔，非归零）
+ * - 从容层时长减半；micro/fast 保留（即时反馈仍需即时）
+ * - 位移/缩放型入场降级为纯 opacity crossfade（!important 压过各文件动画简写）
+ * - 无限装饰脉冲（kg-node-pulse/timeline-pulse/cursor-blink/spin）停闪：
+ *   静态高亮与可见态由各元素基础样式保留
+ * ========================================================== */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --mc-dur-base: 140ms;  /* 280ms → 减半 */
+    --mc-dur-slow: 210ms;  /* 420ms → 减半 */
+    --mc-dur-lazy: 250ms;  /* 500ms → 减半 */
+  }
+  @keyframes mc-rm-fade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+  /* 退场专用交叉淡化：入场才用 mc-rm-fade；退场若沿用它会「淡入再消失」（视觉闪跳） */
+  @keyframes mc-rm-fade-out {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+  }
+  .aurora-modal,
+  .aurora-modal-overlay,
+  .aurora-dropdown,
+  .aurora-tooltip,
+  .mc-tooltip,
+  .aurora-editor__overlay,
+  .aurora-canvas__overlay,
+  .aurora-graph__overlay,
+  .aurora-content__body,
+  .aurora-toast,
+  .aurora-welcome__tile,
+  .aurora-canvas-ctxmenu,
+  .aurora-filetree__ctxmenu,
+  .aurora-outline__ctxmenu,
+  .aurora-cip__menu,
+  .aurora-dock__float,
+  .aurora-filetree__confirm-backdrop,
+  .aurora-filetree__confirm {
+    animation-name: mc-rm-fade !important;
+  }
+  .aurora-modal-overlay[data-exiting='true'],
+  .aurora-modal-overlay[data-exiting='true'] .aurora-modal,
+  .aurora-filetree__confirm-backdrop[data-exiting='true'],
+  .aurora-filetree__confirm-backdrop[data-exiting='true'] .aurora-filetree__confirm {
+    animation-name: mc-rm-fade-out !important;
+  }
+  /* 降级后不应再有入场延迟：welcome tile 的 stagger 一并归零（内容立即可见） */
+  .aurora-welcome__tile {
+    animation-delay: 0s !important;
+  }
+  * {
+    animation-iteration-count: 1 !important;
+  }
+}
+
+/* ============================================================
+ * 滚动条 · Aurora 风格
+ * ========================================================== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--mc-border-strong);
+  border-radius: var(--mc-radius-sm);
+  opacity: 0.5;
+  transition: background-color var(--mc-dur-fast) ease-out;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--mc-text-tertiary);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: var(--mc-text-secondary);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mc-border-strong) transparent;
+}
+
+/* ============================================================
+ * Aurora 根作用域 · base.css 蓝系变量重映射
+ * --------------------------------------------------------------
+ * 问题：src/styles/base.css 默认深色 palette 全部基于 Tailwind slate
+ *       蓝灰（#0f172a/#1e293b/#334155…），与 Aurora 中性近黑 token
+ *       (#0A0B0F/#0D0F15/#101218) 色相不同，导致底栏/侧栏/状态栏/
+ *       编辑器未覆盖层映射到的内层等「aurora 没显式接管」的元素
+ *       仍残留蓝色（旧版视觉）。
+ * 策略：在 #aurora-root 作用域（aurora-main 挂载点，向下继承覆盖所有
+ *       aurora 子树）把 base.css 关键蓝系变量重映射为 aurora token 值。
+ * 原则：零 features/* 改动；零 base.css 改动；不破坏 [data-theme=light]
+ *       机制（仅 #aurora-root 作用域重写，aurora 外区域不变）。
+ * 注：.aurora-editor 内同名变量映射（editor.css §1）会再次覆盖，
+ *     此层为兜底，确保任何 base.css var 消费都进 aurora 体系。
+ * ========================================================== */
+#aurora-root {
+  --app-bg:            var(--mc-bg-window);
+  --sidebar-bg:        var(--mc-bg-sidebar);
+  --tab-bg:            var(--mc-bg-sidebar);
+  --tab-active-bg:     var(--mc-bg-window);
+  --toolbar-bg:        var(--mc-bg-content);
+  --editor-bg:         var(--mc-bg-content);
+  --editor-text:       var(--mc-text-primary);
+  --editor-border:     var(--mc-border-subtle);
+  --preview-bg:        var(--mc-bg-content);
+  --preview-text:      var(--mc-text-primary);
+  --preview-border:    var(--mc-border-subtle);
+  --line-number-bg:    var(--mc-bg-content);
+  --line-number-color: var(--mc-text-tertiary);
+  --line-number-border: var(--mc-border-subtle);
+  --code-block-bg:     var(--mc-bg-elevated);
+  --code-block-text:   var(--mc-text-primary);
+  --code-bg:           var(--mc-bg-elevated);
+  --katex-background:  var(--mc-bg-elevated);
+  --katex-color:       var(--mc-text-primary);
+  --blockquote-bg:     var(--mc-bg-elevated);
+  --titlebar-bg:       var(--mc-bg-window);
+}
+
+/* ============================================================
+ * Aurora 根作用域 · 背景兜底（修 base.css var(--mc-bg-app) 未定义）
+ * --------------------------------------------------------------
+ * 源：src/styles/base.css:179 body { background-color: var(--mc-bg-app) }
+ *     tokens.css 未定义 --mc-bg-app，var 解析失败 → body 透明 →
+ *     浏览器默认白底透出，导致 chrome/titlebar/sidebar 等
+ *     渲染成浅色（base.css [data-theme="light"] 默认 theme='light'）。
+ * 修：给 #aurora-root 显式 background 与 min-height，覆盖 body 的
+ *     透明底；并把关键 chrome 类（顶栏/侧栏/状态栏/crash backdrop）
+ *     强制背景接管为 aurora 深色 token，确保无论 base.css 主题
+ *     palette 如何切换，aurora 区域内均为中性近黑。
+ * ========================================================== */
+#aurora-root {
+  background-color: var(--mc-bg-window);
+  min-height: 100vh;
+}
+#aurora-root .aurora-titlebar,
+#aurora-root .aurora-sidebar,
+#aurora-root .aurora-crash__backdrop {
+  background-color: var(--mc-bg-window);
+}
+/* P2-B：状态栏实底 = bg-content（比 bg-window 亮一档），与内容区同层、靠上边发丝分隔 */
+#aurora-root .aurora-statusbar {
+  background-color: var(--mc-bg-content);
+}
+
+/* ============================================================
+ * 15. 分类色板 · light 覆盖（批次⑩ P3-C）
+ * [data-theme='light'] 与 :root 同特异性（0,1,0），靠后序覆盖；
+ * light 用同色相 600 档，保证白底可读与互异性。
+ * ========================================================== */
+[data-theme='light'] {
+  --mc-cat-folder:          #D97706;
+  --mc-cat-markdown:        #2563EB;
+  --mc-cat-canvas:          #0D9488;
+  --mc-cat-image:           #16A34A;
+  --mc-cat-pdf:             #DC2626;
+  --mc-cat-template:        #0891B2;
+  --mc-cat-daily:           #EA580C;
+  --mc-cat-unknown:         #4B5563;
+  --mc-cat-group-1:         #DC2626;
+  --mc-cat-group-2:         #D97706;
+  --mc-cat-group-3:         #16A34A;
+  --mc-cat-group-4:         #0891B2;
+  --mc-cat-group-5:         #2563EB;
+  --mc-cat-group-6:         #0D9488;
+}
+
+/* ============================================================
+ * 16. 高对比度备选（批次⑫ P3-E · a11y / HIG §11.7 Increase Contrast）
+ * html[data-contrast='high']（0,1,1）压过 :root / desktop-chrome 同名变量（0,1,0）；
+ * light 档 html[data-theme][data-contrast]（0,2,1）再压 dark 档。
+ * 提亮文本/图标、加粗发丝、收紧图谱半透明节点；开关回退 = 显式写 'normal'。
+ * ========================================================== */
+html[data-contrast='high'] {
+  --mc-text-primary:    #F7F9FE;
+  --mc-text-secondary:  #C6CDDD;
+  --mc-text-tertiary:   #A8B0C0;
+  --mc-icon:            #E8ECF4;
+  --mc-icon-muted:      #A8B0C0;
+  --mc-border-subtle:   #4A5164;
+  --mc-border-strong:   #6A7288;
+  --mc-graph-file:      rgba(140, 155, 255, 0.85);
+  --mc-graph-orphan:    rgba(150, 158, 175, 0.75);
+  --mc-graph-orphan-stroke: rgba(170, 178, 195, 0.9);
+}
+html[data-theme='light'][data-contrast='high'] {
+  --mc-text-primary:    #000000;
+  --mc-text-secondary:  #3A4150;
+  --mc-text-tertiary:   #5A606E;
+  --mc-border-subtle:   #9AA0AC;
+  --mc-border-strong:   #5A606E;
+}

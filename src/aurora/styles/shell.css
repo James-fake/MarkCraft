@@ -1,0 +1,1221 @@
+/* ============================================================
+ * Aurora Design System · Shell Styles v2.0
+ * 桌面外壳：标题栏 + 可收起侧栏 + 右栏 + 状态栏
+ * ========================================================== */
+
+/* ============================================================
+ * PageFrame · 整体框架
+ * ========================================================== */
+.aurora-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  background-color: var(--mc-bg-window);
+  color: var(--mc-text-primary);
+  font-family: var(--mc-font-sans);
+  font-size: var(--mc-font-base);
+  line-height: var(--mc-line-height-base);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================================
+ * TitleBar · 标题栏
+ * ========================================================== */
+.aurora-titlebar {
+  display: flex;
+  align-items: center;
+  height: var(--mc-titlebar-h);
+  flex-shrink: 0;
+  background-color: rgba(13, 15, 21, 0.72);
+  backdrop-filter: blur(24px) saturate(105%);
+  -webkit-backdrop-filter: blur(24px) saturate(105%);
+  border-bottom: 1px solid var(--mc-border-subtle);
+  position: relative;
+  z-index: 100;
+  user-select: none;
+}
+
+.aurora-titlebar__left {
+  display: flex;
+  align-items: center;
+  padding-left: 16px;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.aurora-titlebar__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--mc-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--mc-accent) 0%, var(--mc-accent-pressed) 100%);
+  color: var(--mc-text-inverse);
+  font-size: var(--mc-font-md);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.aurora-titlebar__app-name {
+  font-size: var(--mc-font-md);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  flex-shrink: 0;
+}
+
+.aurora-titlebar__breadcrumbs {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: var(--mc-font-md);
+  color: var(--mc-text-secondary);
+  flex: 0 1 auto;
+}
+
+/* 菜单组 → 文档上下文的分区发丝线 */
+.aurora-titlebar__ctx-divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 18px;
+  margin: 0 2px 0 4px;
+  background-color: var(--mc-border-subtle);
+}
+
+/* 面包屑分段箭头（仅段间出现） */
+.aurora-titlebar__crumb-sep {
+  color: var(--mc-text-tertiary);
+  font-size: var(--mc-font-xs);
+  flex-shrink: 0;
+}
+
+/* 面包屑段落（祖先 / 当前） */
+.aurora-titlebar__crumb {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.aurora-titlebar__crumb--current {
+  color: var(--mc-text-primary);
+  font-weight: 600;
+  flex-shrink: 1;
+}
+
+/* 未保存更改圆点（HIG §2.4 编辑态；置于当前文档名前） */
+.aurora-titlebar__modified-dot {
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--mc-accent);
+}
+
+/* 可点击面包屑（导航） */
+.aurora-titlebar__crumb-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-size: var(--mc-font-md);
+  color: var(--mc-text-secondary);
+  cursor: pointer;
+  border-radius: var(--mc-radius-sm);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--mc-dur-fast) var(--mc-ease-out), background-color var(--mc-dur-micro) ease-out;
+}
+.aurora-titlebar__crumb-btn:hover {
+  color: var(--mc-text-primary);
+  background-color: var(--mc-bg-hover);
+}
+/* focus-visible 双环统一在 components.css 自建按钮家族组（P0-3 无障碍） */
+
+/* 拖拽区域 */
+.aurora-titlebar__drag {
+  -webkit-app-region: drag;
+  app-region: drag;
+  flex: 1;
+  height: 100%;
+}
+
+.aurora-titlebar__right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 100%;
+}
+
+/* 注：aurora-titlebar--has-center / __center / __right-extra 等旧槽位已废弃删除（KB 面板误用 OS 顶栏的残留） */
+
+/* ============================================================
+ * MenuBar · 应用菜单栏（P1-1 → ㊲ 并入标题栏：品牌名右侧同一行）
+ * ========================================================== */
+/* 内联容器：随标题栏高度伸展，无独立条带 / 背景 / 下边线（由标题栏承载磨砂与发丝） */
+.aurora-menubar {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+/* 品牌区 → 菜单间距：__left 内部 gap(12) + 此处 margin(8) ≈ 20px（不贴不散） */
+.aurora-titlebar__left > .aurora-menubar {
+  margin-left: 8px;
+}
+
+.aurora-menubar__item-wrap {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.aurora-menubar__item {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 10px;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  background: transparent;
+  color: var(--mc-text-primary);
+  font-family: inherit;
+  font-size: var(--mc-font-base);
+  line-height: 1;
+  cursor: pointer;
+  transition: background-color var(--mc-dur-micro) ease-out, color var(--mc-dur-micro) ease-out,
+              transform var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-menubar__item:hover {
+  background-color: var(--mc-bg-hover);
+  color: var(--mc-text-primary);
+}
+
+/* 按压反馈（macOS 动效方案 §3.8，即时层纪律） */
+.aurora-menubar__item:active {
+  transform: scale(0.97);
+}
+
+.aurora-menubar__item:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--mc-accent);
+}
+
+.aurora-menubar__item--open {
+  background-color: var(--mc-bg-pressed);
+  color: var(--mc-text-primary);
+}
+
+/* 下拉面板：复用 .aurora-dropdown 面板基底，锚定到标题栏底边之下 */
+.aurora-menubar__pop {
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 232px;
+}
+
+.aurora-menubar__item-check {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.aurora-menubar__empty {
+  padding: 8px 12px;
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+}
+
+/* ============================================================
+ * WindowControls · 窗口控制按钮（美化 Windows 风）
+ * ========================================================== */
+.aurora-wincontrols {
+  display: flex;
+  height: 100%;
+}
+
+.aurora-wincontrol {
+  width: var(--mc-wincontrol-w);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: var(--mc-icon-muted);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out);
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+.aurora-wincontrol:hover {
+  background-color: var(--mc-bg-hover);
+  color: var(--mc-icon-strong);
+}
+
+.aurora-wincontrol:active {
+  background-color: var(--mc-bg-pressed);
+}
+
+.aurora-wincontrol--close:hover {
+  background-color: var(--mc-danger-winclose);
+  color: var(--mc-text-inverse);
+}
+
+.aurora-wincontrol--close:active {
+  background-color: var(--mc-danger-winclose-pressed);
+}
+
+.aurora-wincontrol__icon {
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================================
+ * Sidebar · 可收起侧栏
+ * ========================================================== */
+.aurora-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.aurora-sidebar {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  background-color: rgba(13, 15, 21, 0.72);
+  backdrop-filter: blur(24px) saturate(105%);
+  -webkit-backdrop-filter: blur(24px) saturate(105%);
+  border-right: 1px solid var(--mc-border-subtle);
+  transition: width var(--mc-dur-slow) var(--mc-ease-mac);
+  position: relative;
+  z-index: 50;
+  overflow: hidden;
+}
+
+/* 展开态 */
+.aurora-sidebar--expanded {
+  width: var(--mc-sidebar-w);
+}
+
+/* 收起态 */
+.aurora-sidebar--collapsed {
+  width: var(--mc-sidebar-collapsed-w);
+}
+
+/* 侧栏品牌区 */
+.aurora-sidebar__brand {
+  display: flex;
+  align-items: center;
+  height: 56px;
+  padding: 0 16px;
+  gap: 12px;
+  border-bottom: 1px solid var(--mc-border-subtle);
+  flex-shrink: 0;
+}
+
+.aurora-sidebar__brand-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--mc-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--mc-accent) 0%, var(--mc-accent-pressed) 100%);
+  color: var(--mc-text-inverse);
+  font-size: var(--mc-font-lg);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.aurora-sidebar__brand-name {
+  font-size: var(--mc-font-lg);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  white-space: nowrap;
+  transition: opacity var(--mc-dur-fast) ease-out;
+}
+
+.aurora-sidebar--collapsed .aurora-sidebar__brand-name {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* 侧栏导航区 */
+.aurora-sidebar__nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px 8px 12px;
+}
+
+.aurora-sidebar__group {
+  margin-bottom: 20px;
+}
+
+.aurora-sidebar__group-title {
+  font-size: var(--mc-font-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mc-text-tertiary);
+  padding: 12px 8px 6px;
+  white-space: nowrap;
+  transition: opacity var(--mc-dur-fast) ease-out;
+}
+
+.aurora-sidebar--collapsed .aurora-sidebar__group-title {
+  opacity: 0;
+  pointer-events: none;
+  height: 0;
+  padding: 0;
+}
+
+/* 可折叠分组标题（按钮态） */
+.aurora-sidebar__group-title--btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  border-radius: var(--mc-radius-sm);
+  transition: color var(--mc-dur-fast) ease-out, background var(--mc-dur-fast) ease-out;
+}
+
+.aurora-sidebar__group-title--btn:hover {
+  color: var(--mc-text-secondary);
+}
+
+.aurora-sidebar__group-caret {
+  flex-shrink: 0;
+  opacity: 0.65;
+  transition: transform var(--mc-dur-fast) ease-out;
+}
+
+.aurora-sidebar__group-title--btn[aria-expanded='false'] .aurora-sidebar__group-caret {
+  transform: rotate(-90deg);
+}
+
+/* 组折叠过渡（macOS 动效方案 §3.10）：grid-rows 0fr→1fr 抽屉语义，
+   内容常驻渲染由 Sidebar.tsx 提供；280ms ease-out，reduced-motion 下自动减半 */
+.aurora-sidebar__group-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition: grid-template-rows var(--mc-dur-base) var(--mc-ease-out),
+              opacity var(--mc-dur-base) var(--mc-ease-out);
+}
+
+.aurora-sidebar__group-body.is-collapsed {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+
+.aurora-sidebar__group-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* 侧栏底部区 */
+.aurora-sidebar__footer {
+  flex-shrink: 0;
+  border-top: 1px solid var(--mc-border-subtle);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.aurora-sidebar__user {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: var(--mc-sidebar-item-h);
+  padding: 0 8px;
+  gap: 12px;
+  border: none;
+  background: transparent;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-micro) ease-out;
+}
+
+.aurora-sidebar__user:focus-visible {
+  outline: 2px solid var(--mc-accent);
+  outline-offset: -2px;
+}
+
+.aurora-sidebar__user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.aurora-sidebar__user:hover {
+  background-color: var(--mc-bg-hover);
+}
+
+.aurora-sidebar__user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--mc-accent) 0%, var(--mc-success) 100%);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mc-text-inverse);
+  font-size: var(--mc-font-base);
+  font-weight: 600;
+}
+
+.aurora-sidebar__user-name {
+  font-size: var(--mc-font-md);
+  color: var(--mc-text-secondary);
+  white-space: nowrap;
+  transition: opacity var(--mc-dur-fast) ease-out;
+}
+
+.aurora-sidebar--collapsed .aurora-sidebar__user-name {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.aurora-sidebar__footer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* 收起/展开切换按钮 */
+.aurora-sidebar__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  border-radius: var(--mc-radius-sm);
+  background: transparent;
+  border: none;
+  color: var(--mc-icon-muted);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-micro) ease-out,
+              color var(--mc-dur-micro) ease-out,
+              transform var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-sidebar__toggle:hover {
+  background-color: var(--mc-bg-hover);
+  color: var(--mc-icon-strong);
+}
+
+/* 按压反馈（macOS 动效方案 §3.8） */
+.aurora-sidebar__toggle:active {
+  transform: scale(0.97);
+}
+
+/* 收起态下的导航项垂直排列 */
+.aurora-sidebar--collapsed .aurora-sidebar__nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+/* 收起态书脊：组与组之间添加桌面范式发丝分隔线（审计 P2-2「三段分组 + 分隔线 + hover tooltip」）。
+   hover tooltip 已由 SidebarItem 原生 title={label} 提供（macOS Safari/Chrome 渲染原生悬浮提示）。 */
+.aurora-sidebar--collapsed .aurora-sidebar__group {
+  margin-bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.aurora-sidebar--collapsed .aurora-sidebar__group + .aurora-sidebar__group {
+  border-top: 1px solid var(--mc-border-subtle);
+}
+
+/* ============================================================
+ * SidebarItem · 侧栏导航项
+ * ========================================================== */
+.aurora-sidebar-item {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 12px;
+  gap: 12px;
+  margin-bottom: 6px;
+  border-radius: var(--mc-radius-sm);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-md);
+  font-family: inherit;
+  text-align: left;
+  width: 100%;
+  position: relative;
+  transition: background-color var(--mc-dur-micro) ease-out,
+              color var(--mc-dur-micro) ease-out;
+}
+
+.aurora-sidebar-item:hover {
+  background-color: var(--mc-bg-hover);
+  color: var(--mc-text-primary);
+}
+
+.aurora-sidebar-item:active {
+  background-color: var(--mc-bg-pressed);
+}
+
+/* 选中/激活态 */
+.aurora-sidebar-item--active {
+  background-color: var(--mc-accent-soft);
+  color: var(--mc-text-primary);
+  font-weight: 500;
+}
+
+.aurora-sidebar-item--active .aurora-sidebar-item__icon {
+  color: var(--mc-accent);
+}
+
+.aurora-sidebar-item--active::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 22px;
+  border-radius: 0 2px 2px 0;
+  background-color: var(--mc-accent);
+}
+
+.aurora-sidebar-item__icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+}
+
+.aurora-sidebar-item__label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity var(--mc-dur-fast) ease-out;
+}
+
+.aurora-sidebar-item__count {
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-tertiary);
+  flex-shrink: 0;
+}
+
+/* 收起态的导航项 */
+.aurora-sidebar--collapsed .aurora-sidebar-item {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  margin-bottom: 0;
+  justify-content: center;
+}
+
+.aurora-sidebar--collapsed .aurora-sidebar-item__label,
+.aurora-sidebar--collapsed .aurora-sidebar-item__count {
+  display: none;
+}
+
+.aurora-sidebar--collapsed .aurora-sidebar-item::before {
+  left: 0;
+  height: 24px;
+}
+
+/* ============================================================
+ * Inspector · 右栏情境面板
+ * ========================================================== */
+.aurora-inspector {
+  width: var(--mc-inspector-w);
+  flex-shrink: 0;
+  background-color: var(--mc-bg-content);
+  border-left: 1px solid var(--mc-border-subtle);
+  display: flex;
+  flex-direction: column;
+  transition: width var(--mc-dur-slow) var(--mc-ease-mac),
+              opacity var(--mc-dur-fast) ease-out;
+  overflow: hidden;
+}
+
+/* 编辑器场景：右栏脱离横向布局流（绝对定位浮层），不再挤压主内容区与顶部工具栏。
+   顶部从「两行工具栏（EditorToolbar + EditorFormatToolbar，各 36px）」底开始，
+   与编辑器内容区等高对齐，不超出上下两栏限定的垂直边界（底部避开今日目标栏）。
+   这样右侧大纲/反链等 Tab 栏不会与工具栏功能图标共处同一水平行。 */
+.aurora-inspector--editor {
+  position: absolute;
+  top: calc(var(--mc-toolbar-h) * 2);
+  right: 0;
+  bottom: 36px;
+}
+
+.aurora-inspector--collapsed {
+  width: 32px;
+  opacity: 1;
+  border-left: 1px solid var(--mc-border-subtle);
+  background-color: var(--mc-bg-elevated);
+}
+
+/* 右栏收起按钮：与左栏「面板」展开按钮完全一致（满高竖排，标签 + 箭头在按钮内垂直居中） */
+.aurora-inspector__collapsed {
+  height: 100%;
+  width: 100%;
+  flex-shrink: 0;
+  align-self: stretch;
+  border: none;
+  background: transparent;
+  color: var(--mc-text-secondary);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out);
+}
+.aurora-inspector__collapsed:hover {
+  background: var(--mc-bg-hover);
+  color: var(--mc-text-primary);
+}
+.aurora-inspector__collapsed-label {
+  font-size: var(--mc-font-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.aurora-inspector__tabs {
+  display: flex;
+  align-items: center;
+  height: var(--mc-inspector-tab-h);
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--mc-border-subtle);
+  padding: 0 8px;
+  gap: 4px;
+}
+
+/* 右栏收起按钮：推到 Tab 栏最右 */
+.aurora-inspector__collapse-btn {
+  margin-left: auto;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: var(--mc-icon-muted);
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out);
+}
+.aurora-inspector__collapse-btn:hover {
+  background: var(--mc-bg-hover);
+  color: var(--mc-text-primary);
+}
+
+.aurora-inspector__tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 100%;
+  padding: 0 6px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-sm);
+  font-family: inherit;
+  white-space: nowrap;          /* 防止窄容器下文字被逐字换行成"竖排" */
+  cursor: pointer;
+  transition: color var(--mc-dur-micro) ease-out,
+              border-color var(--mc-dur-fast) ease-out;
+}
+
+.aurora-inspector__tab:hover {
+  color: var(--mc-text-primary);
+}
+
+.aurora-inspector__tab--active {
+  color: var(--mc-text-primary);
+  font-weight: 500;
+  border-bottom-color: var(--mc-accent);
+}
+
+.aurora-inspector__content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+/* 右栏仅图标模式（白板规范20 §2.2 变体：6 Tab 默认仅图标，悬停 Tooltip） */
+.aurora-inspector--iconmode .aurora-inspector__tabs {
+  gap: 2px;
+  padding: 0 6px;
+}
+.aurora-inspector--iconmode .aurora-inspector__tab {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 28px;
+  padding: 0;
+  border-bottom: none;
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-icon-muted);
+  position: relative;
+  transition: background-color var(--mc-dur-micro) ease-out,
+              color var(--mc-dur-fast) ease-out;
+}
+.aurora-inspector--iconmode .aurora-inspector__tab:hover {
+  background: var(--mc-bg-hover);
+  color: var(--mc-icon-strong);
+}
+.aurora-inspector--iconmode .aurora-inspector__tab--active {
+  background: var(--mc-accent-soft);
+  color: var(--mc-accent);
+}
+.aurora-inspector--iconmode .aurora-inspector__tab--active::before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 16px;
+  border-radius: 2px;
+  background: var(--mc-accent);
+}
+
+/* ============================================================
+ * StatusBar · 状态栏
+ * ========================================================== */
+.aurora-statusbar {
+  display: flex;
+  align-items: center;
+  height: var(--mc-statusbar-h);
+  flex-shrink: 0;
+  background-color: var(--mc-bg-content); /* P2-B 实底：比 bg-window 亮一档，明确与窗口底层分层 */
+  border-top: 1px solid var(--mc-border-subtle);
+  padding: 0 12px;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-tertiary);
+  z-index: 100;
+}
+
+.aurora-statusbar__left,
+.aurora-statusbar__right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aurora-statusbar__left {
+  flex: 1;
+  /* 左侧内容起点对齐书脊右边界，避免「已保存」等信息覆盖到书脊区域 */
+  padding-left: var(--sidebar-current-w, 0px);
+  box-sizing: border-box;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.aurora-statusbar__right {
+  flex-shrink: 0;
+}
+
+.aurora-statusbar__sep {
+  color: var(--mc-border-strong);
+}
+
+.aurora-statusbar__item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.aurora-statusbar__item--clickable {
+  cursor: pointer;
+  transition: color var(--mc-dur-micro) ease-out;
+}
+
+.aurora-statusbar__item--clickable:hover {
+  color: var(--mc-text-secondary);
+}
+
+.aurora-statusbar__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--mc-success);
+}
+
+.aurora-statusbar__dot--unsaved {
+  background-color: var(--mc-warning);
+}
+
+/* ============================================================
+ * 内容区
+ * ========================================================== */
+.aurora-content {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--mc-bg-content);
+}
+
+.aurora-content__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ============================================================
+ * 视图切换 · 内容区从容浮现（macOS 动效方案 §3.1 备选正解）
+ * ------------------------------------------------------------
+ * 背景：整屏版（.aurora-view）已回退——PageFrame 内含 MenuBar/Sidebar，
+ * 包住整屏的入场动画会让外壳一起淡入 =「整体闪一下」。
+ * 本版只作用于内容区，外壳（TitleBar/MenuBar/Sidebar/StatusBar）完全静止。
+ *
+ * 三条设计约束（皆为「不闪」的保证）：
+ * 1. 纯 opacity 交叉淡化，**不动 transform**——避免 transform 建立包含块，
+ *    使面板内 position:fixed 的浮层（右键菜单 / dock 浮层）误定位或被
+ *    .aurora-content 的 overflow:hidden 裁切；
+ * 2. 面板根容器与 .aurora-content 同底色（均为 --mc-bg-content），
+ *    淡化期间露出的底色完全同色 → 无任何底色跳变；
+ * 3. 不走图层提升 → 编辑器小字不发生重栅格化（Chromium 下大子树 transform
+ *    会导致动画期间文字发虚）。
+ *
+ * 触发方式：内容区元素随面板切换自然重挂载 → 动画自动重放，无需 JS key。
+ * 时长/曲线取从容层标准（--mc-dur-slow 420ms + --mc-ease-mac）——前段快、
+ * 后段长尾，即「从容但丝滑」；嫌慢可单点降为 --mc-dur-base（280ms）。
+ * reduced-motion：tokens.css 统一降级为 crossfade 并时长减半。
+ * ========================================================== */
+.aurora-content__body {
+  animation: aurora-content-in var(--mc-dur-slow) var(--mc-ease-mac) both;
+}
+
+@keyframes aurora-content-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* 工具栏（可选） */
+.aurora-toolbar {
+  display: flex;
+  align-items: center;
+  height: var(--mc-toolbar-h);
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--mc-border-subtle);
+  padding: 0 12px;
+  gap: 12px;
+  background-color: var(--mc-bg-content);
+}
+
+.aurora-toolbar__left,
+.aurora-toolbar__right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aurora-toolbar__center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 视图模式分段控件置于顶栏最右 */
+.aurora-toolbar__modes {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+/* 返回按钮图标翻转 */
+.aurora-toolbar__back-btn svg {
+  transform: rotate(180deg);
+}
+
+/* ============================================================
+ * 窗口失焦态
+ * ========================================================== */
+.aurora-page--blurred .aurora-titlebar,
+.aurora-page--blurred .aurora-sidebar,
+.aurora-page--blurred .aurora-statusbar {
+  filter: saturate(0.8) brightness(0.9);
+}
+
+.aurora-page--blurred .aurora-wincontrol {
+  opacity: 0.5;
+}
+
+/* ============================================================
+ * 紧凑密度覆盖
+ * ========================================================== */
+[data-density='compact'] .aurora-sidebar-item {
+  font-size: var(--mc-font-sm);
+}
+
+[data-density='compact'] .aurora-sidebar__brand {
+  height: var(--mc-sidebar-item-h);
+}
+
+[data-density='compact'] .aurora-inspector__tabs {
+  height: var(--mc-inspector-tab-h);
+}
+
+/* ============================================================
+ * 受众首启引导（P1 · 2.3）
+ * ========================================================== */
+.aurora-audience {
+  position: fixed;
+  inset: 0;
+  z-index: 10050; /* 层级带 Onboarding：仅低于崩溃恢复 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aurora-audience__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.aurora-audience__panel {
+  position: relative;
+  width: 440px;
+  max-width: calc(100vw - 48px);
+  box-sizing: border-box;
+  padding: 28px 28px 24px;
+  background: var(--mc-bg-content);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-lg);
+  box-shadow: var(--mc-shadow-popover);
+}
+
+.aurora-audience__title {
+  font-size: var(--mc-font-lg);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  margin-bottom: 6px;
+}
+
+.aurora-audience__desc {
+  font-size: var(--mc-font-sm);
+  line-height: 1.6;
+  color: var(--mc-text-tertiary);
+  margin-bottom: 20px;
+}
+
+.aurora-audience__options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.aurora-audience__option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  width: 100%;
+  padding: 12px;
+  box-sizing: border-box;
+  background: transparent;
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-primary);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--mc-dur-micro) ease-out, border-color var(--mc-dur-micro) ease-out;
+}
+
+.aurora-audience__option:hover {
+  background: var(--mc-bg-hover);
+  border-color: var(--mc-border-medium);
+}
+
+.aurora-audience__option.is-active {
+  background: var(--mc-accent-bg);
+  border-color: var(--mc-accent);
+}
+
+.aurora-audience__option-label {
+  font-size: var(--mc-font-base);
+  font-weight: 600;
+}
+
+.aurora-audience__option-desc {
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-secondary);
+}
+
+.aurora-audience__actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.aurora-audience__btn {
+  height: 28px;
+  padding: 0 20px;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-accent);
+  color: var(--mc-text-inverse);
+  font-size: var(--mc-font-base);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--mc-dur-micro) ease-out;
+}
+
+.aurora-audience__btn:hover {
+  background: var(--mc-accent-pressed);
+}
+
+/* ============================================================
+ * 崩溃恢复模态（P0 · 1.4）
+ * ========================================================== */
+.aurora-crash {
+  position: fixed;
+  inset: 0;
+  z-index: 10060; /* 层级带 CrashRecovery：全局兜底最高（须盖过 ctxmenu/首启引导） */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aurora-crash__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.aurora-crash__panel {
+  position: relative;
+  width: 420px;
+  max-width: calc(100vw - 48px);
+  box-sizing: border-box;
+  padding: 24px;
+  background: var(--mc-bg-content);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-lg);
+  box-shadow: var(--mc-shadow-popover);
+}
+
+.aurora-crash__title {
+  font-size: var(--mc-font-lg);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  margin-bottom: 8px;
+}
+
+.aurora-crash__desc {
+  font-size: var(--mc-font-sm);
+  line-height: 1.7;
+  color: var(--mc-text-secondary);
+  margin-bottom: 20px;
+}
+
+.aurora-crash__desc strong {
+  color: var(--mc-text-primary);
+  font-weight: 600;
+}
+
+.aurora-crash__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.aurora-crash__btn {
+  height: 28px;
+  padding: 0 16px;
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-bg-elevated);
+  color: var(--mc-text-primary);
+  font-size: var(--mc-font-base);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--mc-dur-micro) ease-out, border-color var(--mc-dur-micro) ease-out;
+}
+
+.aurora-crash__btn:hover {
+  background: var(--mc-bg-hover);
+  border-color: var(--mc-border-strong);
+}
+
+.aurora-crash__btn--primary {
+  border: none;
+  background: var(--mc-accent);
+  color: var(--mc-text-inverse);
+  font-weight: 600;
+}
+
+.aurora-crash__btn--primary:hover {
+  background: var(--mc-accent-pressed);
+}
+
+/* 视图切换整屏动效已移除（P1-A 回退，2026-09-11）：
+   .aurora-view 包裹整屏（PageFrame 含 MenuBar/Sidebar），其 420ms opacity 0→1 淡入
+   会让菜单栏/侧栏/内容一起「闪一下」——桌面外壳不应随视图重绘，切换保持瞬时。 */

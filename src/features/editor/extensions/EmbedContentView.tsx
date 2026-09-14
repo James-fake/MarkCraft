@@ -1,0 +1,299 @@
+import React, { useState, useEffect, useCallback } from 'react'
+import { NodeViewWrapper } from '@tiptap/react'
+import { useLinkIndex } from '@stores/LinkIndexStore'
+import { useFileManager } from '@stores/FileStore'
+import { findNode } from '@services/fileService'
+import { markdownToHtml } from '../markdownConvert'
+import { imageStore } from '../../shared/storage/imageStore'
+
+/** Parse target like "笔记#第三章" → { fileName: '笔记', heading: '第三章' }
+ *  Also supports line ranges: "file#L10-L20" or "file#L10"
+ *  And block references: "file#^blockid"
+ */
+const parseTarget = (target: string) => {
+  const hashIdx = target.indexOf('#')
+  if (hashIdx === -1) return { fileName: target, heading: undefined, lineStart: undefined, lineEnd: undefined, blockId: undefined }
+
+  const fileName = target.slice(0, hashIdx)
+  const anchor = target.slice(hashIdx + 1)
+
+  // Check for line range: L10-L20 or L10
+  const lineMatch = anchor.match(/^L(\d+)(?:-L(\d+))?$/i)
+  if (lineMatch) {
+    return {
+      fileName,
+      heading: undefined,
+      lineStart: parseInt(lineMatch[1]),
+      lineEnd: lineMatch[2] ? parseInt(lineMatch[2]) : parseInt(lineMatch[1]),
+      blockId: undefined,
+    }
+  }
+
+  // Check for block reference: ^blockid
+  if (anchor.startsWith('^')) {
+    return {
+      fileName,
+      heading: undefined,
+      lineStart: undefined,
+      lineEnd: undefined,
+      blockId: anchor.slice(1),
+    }
+  }
+
+  // Regular heading
+  return { fileName, heading: anchor, lineStart: undefined, lineEnd: undefined, blockId: undefined }
+}
+
+const EmbedContentView: React.FC<{ node: any; editor: any }> = ({ node }) => {
+  const { target, embedType } = node.attrs
+  const { resolveTarget, indexVersion, onFileUpdate } = useLinkIndex()
+  const { rootFolder, openFile } = useFileManager()
+  const [previewHtml, setPreviewHtml] = useState<string>('')
+  const [expanded, setExpanded] = useState(false)
+  const [totalLines, setTotalLines] = useState(0)
+  const [resolvedFileId, setResolvedFileId] = useState<string | undefined>(undefined)
+
+  // Force re-render when index changes
+  void indexVersion
+
+  const { fileName, heading, lineStart, lineEnd, blockId } = parseTarget(target)
+
+  const loadContent = useCallback(() => {
+    if (embedType === 'image') {
+      return
+    }
+
+    const fileId = resolveTarget(fileName)
+    setResolvedFileId(fileId)
+
+    if (!fileId) {
+      setPreviewHtml('<p style="color:#ef4444;font-size:12px;">⚠ 文件不存在</p>')
+      setTotalLines(0)
+      return
+    }
+
+    const fileNode = findNode(rootFolder, fileId)
+    if (!fileNode || !fileNode.content) {
+      setPreviewHtml('<p style="color:#ef4444;font-size:12px;">⚠ 无法加载内容</p>')
+      setTotalLines(0)
+      return
+    }
+
+    try {
+      let relevantContent: string
+
+      if (lineStart !== undefined) {
+        // F1: Line range embed
+        const lines = fileNode.content.split('\n')
+        const start = Math.max(0, lineStart - 1) // 1-indexed to 0-indexed
+        const end = lineEnd !== undefined ? Math.min(lines.length, lineEnd) : start + 1
+        relevantContent = lines.slice(start, end).join('\n')
+      } else if (blockId !== undefined) {
+        // F2: Block reference embed
+        const lines = fileNode.content.split('\n')
+        let blockStart = -1
+        let blockEnd = -1
+        for (let i = 0; i < lines.length; i++) {
+          if (lines[i].includes(`^${blockId}`)) {
+            blockStart = i
+            // The block extends from the previous blank line to the next blank line
+            for (let j = i - 1; j >= 0; j--) {
+              if (lines[j].trim() === '') { blockStart = j + 1; break; }
+              if (j === 0) blockStart = 0
+            }
+            blockEnd = lines.length
+            for (let j = i + 1; j < lines.length; j++) {
+              if (lines[j].trim() === '') { blockEnd = j; break; }
+            }
+            break
+          }
+        }
+
+        if (blockStart === -1) {
+          relevantContent = `⚠ 块引用 ^${blockId} 未找到`
+        } else {
+          const blockLines = lines.slice(blockStart, blockEnd)
+          relevantContent = blockLines.map(l => l.replace(`^${blockId}`, '').trimEnd()).join('\n')
+        }
+      } else if (heading) {
+        const lines = fileNode.content.split('\n')
+        let headingStart = -1
+        let headingLevel = 0
+
+        for (let i = 0; i < lines.length; i++) {
+          const match = lines[i].match(/^(#{1,6})\s+(.+)$/)
+          if (match && match[2].trim().toLowerCase() === heading.toLowerCase()) {
+            headingStart = i
+            headingLevel = match[1].length
+            break
+          }
+        }
+
+        if (headingStart === -1) {
+          // Heading not found, fallback to full content
+          relevantContent = fileNode.content
+        } else {
+          // Find end of section (next heading of same or higher level)
+          let headingEnd = lines.length
+          for (let i = headingStart + 1; i < lines.length; i++) {
+            const match = lines[i].match(/^(#{1,6})\s+/)
+            if (match && match[1].length <= headingLevel) {
+              headingEnd = i
+              break
+            }
+          }
+          relevantContent = lines.slice(headingStart, headingEnd).join('\n')
+        }
+      } else {
+        relevantContent = fileNode.content
+      }
+
+      const allLines = relevantContent.split('\n')
+      setTotalLines(allLines.length)
+
+      // Render preview: first 5 lines when collapsed, full when expanded
+      const displayContent = expanded
+        ? relevantContent
+        : allLines.slice(0, 5).join('\n') + (allLines.length > 5 ? '\n...' : '')
+      const html = markdownToHtml(displayContent, imageStore)
+      setPreviewHtml(html)
+    } catch {
+      setPreviewHtml('<p style="color:#ef4444;font-size:12px;">⚠ 渲染失败</p>')
+      setTotalLines(0)
+    }
+  }, [fileName, heading, lineStart, lineEnd, blockId, embedType, resolveTarget, rootFolder, expanded])
+
+  useEffect(() => {
+    loadContent()
+  }, [loadContent])
+
+  // F3: Subscribe to file updates for the embedded target
+  useEffect(() => {
+    const unsub = onFileUpdate((updatedFileId) => {
+      const targetFileId = resolveTarget(fileName)
+      if (updatedFileId === targetFileId) {
+        loadContent()
+      }
+    })
+    return unsub
+  }, [fileName, resolveTarget, onFileUpdate, loadContent])
+
+  if (embedType === 'image') {
+    return (
+      <NodeViewWrapper>
+        <div
+          style={{
+            margin: '8px 0',
+            padding: '4px',
+            borderRadius: '6px',
+            border: '1px dashed var(--border-color, #444)',
+            position: 'relative',
+          }}
+          data-embed="true"
+          data-embed-target={target}
+          data-embed-type="image"
+        >
+          <div
+            style={{
+              fontSize: 10,
+              color: 'var(--text-secondary, #888)',
+              marginBottom: 4,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            <span>🖼</span>
+            <span>{target}</span>
+          </div>
+          <img
+            src={target}
+            alt={target}
+            style={{ maxWidth: '100%', borderRadius: 4 }}
+          />
+        </div>
+      </NodeViewWrapper>
+    )
+  }
+
+  const displayLabel = heading
+    ? `${fileName} > ${heading}`
+    : lineStart !== undefined
+      ? `${fileName} : L${lineStart}${lineEnd !== undefined && lineEnd !== lineStart ? `-L${lineEnd}` : ''}`
+      : blockId !== undefined
+        ? `${fileName} > ^${blockId}`
+        : target
+
+  return (
+    <NodeViewWrapper>
+      <div
+        style={{
+          margin: '8px 0',
+          borderRadius: '8px',
+          border: '1px solid var(--border-color, #444)',
+          overflow: 'hidden',
+          position: 'relative',
+        }}
+        data-embed="true"
+        data-embed-target={target}
+        data-embed-type="note"
+      >
+        <div
+          style={{
+            padding: '6px 12px',
+            backgroundColor: 'rgba(59, 130, 246, 0.06)',
+            borderBottom: '1px solid var(--border-color, #444)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 12,
+            color: 'var(--button-primary, #3b82f6)',
+            fontWeight: 500,
+          }}
+        >
+          <span>📄</span>
+          <span>{displayLabel}</span>
+          <span
+            onClick={(e) => {
+              e.stopPropagation()
+              if (resolvedFileId) openFile(resolvedFileId)
+            }}
+            style={{ cursor: 'pointer', opacity: 0.6, marginLeft: 'auto' }}
+            title="在源文件中编辑"
+          >
+            ✏️
+          </span>
+        </div>
+        <div
+          style={{
+            padding: '8px 12px',
+            fontSize: 13,
+            lineHeight: 1.5,
+            ...(expanded ? { maxHeight: '500px', overflow: 'auto' } : {}),
+            opacity: 0.85,
+          }}
+          dangerouslySetInnerHTML={{ __html: previewHtml }}
+        />
+        {totalLines > 5 && (
+          <div
+            onClick={() => setExpanded(prev => !prev)}
+            style={{
+              padding: '4px 12px',
+              borderTop: '1px solid var(--border-color, #444)',
+              textAlign: 'center',
+              fontSize: 11,
+              color: 'var(--button-primary, #3b82f6)',
+              cursor: 'pointer',
+              userSelect: 'none',
+              opacity: 0.7,
+            }}
+          >
+            {expanded ? '折叠' : `展开 (共 ${totalLines} 行)`}
+          </div>
+        )}
+      </div>
+    </NodeViewWrapper>
+  )
+}
+
+export default EmbedContentView

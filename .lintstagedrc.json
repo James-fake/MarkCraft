@@ -1,0 +1,5 @@
+{
+  "src/{features,stores,services}/**/*.{ts,tsx}": [
+    "eslint --no-eslintrc -c .eslintrc.guard.cjs"
+  ]
+}

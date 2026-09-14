@@ -1,0 +1,1849 @@
+/* ============================================================
+ * Aurora · Canvas Panel Styles
+ * 白板视图：命令栏 + Dock + Inspector + 无限画布
+ * ========================================================== */
+
+.aurora-canvas {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: var(--mc-bg-content);
+  background-image:
+    radial-gradient(circle, var(--mc-border-subtle) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* 大网格点（每 5 个小格） */
+.aurora-canvas::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle, var(--mc-border-medium) 1.5px, transparent 1.5px);
+  background-size: 100px 100px;
+  pointer-events: none;
+}
+
+/* 主体区：顶栏（flex 子元素，嵌入内容流）在上方，内部左面板与内容区并排；
+   整体随书脊/右栏伸缩自然让位，不再需要 fixed 与 padding-top 偏移。 */
+.aurora-canvas__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 1;
+}
+
+/* 顶栏作为 body 第一行，撑满内容区宽度（受书脊/右栏 flex 约束） */
+.aurora-canvas__body > .aurora-ctop {
+  flex-shrink: 0;
+}
+
+/* 顶栏下方的 row 容器：左面板 + 内容区 并排 */
+.aurora-canvas__row {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  position: relative;
+}
+
+/* 白板内部左面板（不属于书脊，可折叠） */
+/* 边缘悬停召唤面板（对齐编辑器 v7）：左/右缘 hoverzone + 滑入浮层，不挤压画布重排 */
+.aurora-canvas__hoverzone {
+  position: relative;
+  flex: 0 0 7px;
+  height: 100%;
+  min-height: 0;
+  z-index: 6;
+}
+/* 边缘感应条：常态隐形，鼠标靠上去时微弱亮起，提示可滑入面板 */
+.aurora-canvas__edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 7px;
+  pointer-events: none;
+  background: transparent;
+  transition: background-color var(--mc-dur-fast) ease-out;
+}
+.aurora-canvas__edge--left { left: 0; }
+.aurora-canvas__edge--right { right: 0; }
+.aurora-canvas__hoverzone:hover .aurora-canvas__edge {
+  background: var(--mc-accent-soft);
+}
+/* 钉住态：在缘侧留一道发丝 accent 指示线 */
+.aurora-canvas__hoverzone.is-pinned .aurora-canvas__edge--left {
+  background: linear-gradient(to right, var(--mc-accent) 0, transparent 100%);
+}
+.aurora-canvas__hoverzone.is-pinned .aurora-canvas__edge--right {
+  background: linear-gradient(to left, var(--mc-accent) 0, transparent 100%);
+}
+
+/* 滑入浮层：绝对定位，覆盖画布之上，不挤压主区重排 */
+.aurora-canvas__overlay {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  height: 100%;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  background: var(--mc-bg-elevated);
+  z-index: 7;
+  animation: aurora-overlay-in var(--mc-dur-slow) var(--mc-ease-mac);
+}
+.aurora-canvas__overlay--left {
+  left: 0;
+  border-right: 1px solid var(--mc-border-subtle);
+  box-shadow: var(--mc-shadow-panel);
+}
+.aurora-canvas__overlay--right {
+  right: 0;
+  border-left: 1px solid var(--mc-border-subtle);
+  box-shadow: var(--mc-shadow-panel);
+  animation-name: aurora-overlay-in-right;
+}
+@keyframes aurora-overlay-in {
+  from { opacity: 0; transform: translateX(-10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes aurora-overlay-in-right {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* 浮层头部：标题 + 图钉/收起操作 */
+.aurora-canvas__overlay-head {
+  display: flex;
+  align-items: center;
+  height: 34px;
+  flex-shrink: 0;
+  padding: 0 8px 0 12px;
+  gap: 8px;
+  border-bottom: 1px solid var(--mc-border-subtle);
+  background: var(--mc-bg-elevated);
+}
+.aurora-canvas__overlay-title {
+  font-size: var(--mc-font-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--mc-text-primary);
+}
+.aurora-canvas__overlay-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+}
+.aurora-canvas__overlay-actions--left {
+  margin-left: 0;
+  margin-right: auto;
+}
+.aurora-canvas__overlay-close,
+.aurora-canvas__pin {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--mc-text-secondary);
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) ease-out, color var(--mc-dur-fast) ease-out;
+}
+.aurora-canvas__overlay-close:hover,
+.aurora-canvas__pin:hover {
+  background: var(--mc-bg-hover);
+  color: var(--mc-text-primary);
+}
+.aurora-canvas__pin.is-on {
+  color: var(--mc-accent);
+  background: var(--mc-accent-soft);
+}
+/* 浮层内容区：承载 CanvasSidebarPanel / CanvasInspectorPanel，铺满并可滚动 */
+.aurora-canvas__overlay-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.aurora-canvas__overlay .aurora-csp { width: 100%; }
+
+/* 内容区 */
+.aurora-canvas__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+
+/* 白板内部右栏（检查器）：与左栏完全对称——展开 280px、折叠 40px 竖条按钮。
+   作为 __row 的 in-flow flex 子项（row: 左栏 | 主内容 | 右栏），顶栏是 __row 的兄弟
+   节点不受挤压，主内容区随两侧面板自动让位，无需 margin-right 预留。 */
+/* （右栏折叠竖条 / 边缘胶囊把手已移除：统一改用 .aurora-canvas__hoverzone + .aurora-canvas__overlay 边缘悬停召唤，对齐编辑器 v7） */
+
+/* ============================================================
+ * 底部 Dock
+ * ========================================================== */
+.aurora-dock {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  height: 44px;
+  padding: 6px;
+  gap: 2px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-lg);
+  box-shadow: var(--mc-shadow-popover);
+}
+
+.aurora-dock__divider {
+  width: 1px;
+  height: 24px;
+  background: var(--mc-border-subtle);
+  margin: 0 4px;
+}
+
+.aurora-dock__item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-icon);
+  cursor: pointer;
+  transition:
+    background-color var(--mc-dur-fast) var(--mc-ease-out),
+    color var(--mc-dur-fast) var(--mc-ease-out),
+    transform var(--mc-dur-fast) var(--mc-ease-spring);
+}
+
+.aurora-dock__item:hover {
+  background: var(--mc-bg-hover);
+  color: var(--mc-icon-strong);
+}
+
+.aurora-dock__item:active:not(:disabled) {
+  background: var(--mc-bg-pressed);
+  color: var(--mc-text-primary);
+}
+
+.aurora-dock__item--active {
+  background: var(--mc-accent-soft);
+  color: var(--mc-accent);
+}
+
+.aurora-dock__item-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* ============================================================
+ * 画布内容（示例元素）
+ * ========================================================== */
+.aurora-canvas__content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 400px;
+}
+
+/* 便签 */
+.aurora-sticky {
+  position: absolute;
+  width: 160px;
+  padding: 16px;
+  border-radius: var(--mc-radius-sm);
+  font-size: var(--mc-font-base);
+  line-height: 1.5;
+  color: #1a1a1a;
+  box-shadow: var(--mc-shadow-popover);
+  cursor: move;
+  transition: box-shadow 180ms ease-out, transform var(--mc-dur-fast) var(--mc-ease-spring);
+}
+
+.aurora-sticky:hover {
+  box-shadow: var(--mc-shadow-panel);
+  transform: translateY(-2px);
+}
+
+.aurora-sticky--yellow {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+}
+
+.aurora-sticky--pink {
+  background: linear-gradient(135deg, #FCE7F3 0%, #FBCFE8 100%);
+}
+
+.aurora-sticky--blue {
+  background: linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%);
+}
+
+.aurora-sticky--green {
+  background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
+}
+
+.aurora-sticky__title {
+  font-weight: 600;
+  margin-bottom: 6px;
+  font-size: var(--mc-font-base);
+}
+
+.aurora-sticky__text {
+  font-size: var(--mc-font-sm);
+  color: rgba(0, 0, 0, 0.7);
+}
+
+/* 形状 */
+.aurora-shape {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: move;
+  transition: box-shadow var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-shape--rect {
+  width: 140px;
+  height: 80px;
+  border-radius: var(--mc-radius-md);
+  background: var(--mc-bg-elevated);
+  border: 2px solid var(--mc-accent);
+  color: var(--mc-text-primary);
+  font-size: var(--mc-font-base);
+  font-weight: 500;
+  box-shadow: var(--mc-shadow-panel);
+}
+
+.aurora-shape--circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  background: var(--mc-accent-soft);
+  border: 2px solid var(--mc-accent);
+  color: var(--mc-accent-text);
+  font-size: var(--mc-font-sm);
+}
+
+.aurora-shape--diamond {
+  width: 80px;
+  height: 80px;
+  background: var(--mc-bg-elevated);
+  border: 2px solid var(--mc-success);
+  transform: rotate(45deg);
+  box-shadow: var(--mc-shadow-panel);
+}
+
+.aurora-shape--diamond span {
+  transform: rotate(-45deg);
+  color: var(--mc-success-text);
+  font-size: var(--mc-font-xs);
+}
+
+/* 连线 */
+.aurora-canvas__connections {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.aurora-connection {
+  stroke: var(--mc-text-tertiary);
+  stroke-width: 2;
+  fill: none;
+  stroke-dasharray: 4 3;
+}
+
+/* ============================================================
+ * 右下角缩放控件
+ * ========================================================== */
+.aurora-zoom-controls {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-md);
+  box-shadow: var(--mc-shadow-popover);
+}
+
+.aurora-zoom-controls__row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.aurora-zoom-controls__btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-icon-muted);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-zoom-controls__btn:hover {
+  background: var(--mc-bg-hover);
+  color: var(--mc-icon-strong);
+}
+
+.aurora-zoom-controls__level {
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-secondary);
+  min-width: 40px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+ * 看板视图
+ * ========================================================== */
+.aurora-kanban {
+  position: relative;
+  flex: 1;
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  align-items: stretch;
+}
+
+/* 看板搜索 HUD 浮层（替代原顶部工具栏搜索框） */
+.aurora-kanban__search-hud {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-md);
+  box-shadow: var(--mc-shadow-popover);
+  color: var(--mc-icon-muted);
+}
+.aurora-kanban__search-hud input {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--mc-text-primary);
+  font-size: var(--mc-font-sm);
+  font-family: inherit;
+  width: 150px;
+}
+.aurora-kanban__search-hud input::placeholder { color: var(--mc-icon-muted); }
+
+.aurora-kanban__col {
+  display: flex;
+  flex-direction: column;
+  min-width: 280px;
+  max-width: 320px;
+  width: 280px;
+  background: rgba(13, 15, 21, 0.4);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-md);
+  overflow: hidden;
+}
+
+.aurora-kanban__col-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  background: var(--mc-bg-elevated);
+  border-bottom: 1px solid var(--mc-border-subtle);
+}
+
+.aurora-kanban__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.aurora-kanban__col-title {
+  font-size: var(--mc-font-base);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+}
+
+.aurora-kanban__count {
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+  background: var(--mc-bg-hover);
+  padding: 1px 6px;
+  border-radius: var(--mc-radius-pill);
+}
+
+.aurora-kanban__more {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-icon-muted);
+  cursor: pointer;
+}
+
+.aurora-kanban__more:hover {
+  background: var(--mc-bg-hover);
+  color: var(--mc-icon-strong);
+}
+
+.aurora-kanban__list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  overflow-y: auto;
+}
+
+.aurora-kanban__card {
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-md);
+  padding: 12px;
+  box-shadow: var(--mc-shadow-panel);
+  cursor: pointer;
+  transition: border-color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-spring);
+}
+
+.aurora-kanban__card:hover {
+  border-color: var(--mc-border-strong);
+  box-shadow: var(--mc-shadow-popover);
+  transform: translateY(-2px);
+}
+
+.aurora-kanban__card-title {
+  font-size: var(--mc-font-md);
+  font-weight: 500;
+  color: var(--mc-text-primary);
+  line-height: 20px;
+  margin-bottom: 6px;
+}
+
+.aurora-kanban__card-desc {
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-tertiary);
+  line-height: 18px;
+  margin-bottom: 12px;
+}
+
+.aurora-kanban__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.aurora-kanban__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: var(--mc-radius-pill);
+  font-size: var(--mc-font-xs);
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.aurora-kanban__tag-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.aurora-kanban__meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+}
+
+.aurora-kanban__meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.aurora-kanban__add {
+  height: 32px;
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-tertiary);
+  font-size: var(--mc-font-sm);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-kanban__add:hover {
+  background: var(--mc-bg-hover);
+  color: var(--mc-text-secondary);
+}
+
+/* ============================================================
+ * 思维导图视图
+ * ========================================================== */
+.aurora-mindmap {
+  flex: 1;
+  position: relative;
+  overflow: auto;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+}
+
+.aurora-mindmap__edges {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.aurora-mindmap__edge {
+  fill: none;
+  stroke: var(--mc-border-strong);
+  stroke-width: 2;
+  opacity: 0.7;
+}
+
+.aurora-mindmap__node {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: var(--mc-radius-md);
+  cursor: pointer;
+  color: var(--mc-text-primary);
+  transition: border-color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-spring);
+}
+
+.aurora-mindmap__node--l0 {
+  color: var(--mc-text-inverse);
+  font-size: var(--mc-font-lg);
+  font-weight: 600;
+  border: none;
+  box-shadow: var(--mc-shadow-popover), 0 0 20px color-mix(in srgb, var(--mc-accent) 40%, transparent);
+}
+
+.aurora-mindmap__node--l1 {
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-strong);
+  font-size: var(--mc-font-md);
+  font-weight: 500;
+}
+
+.aurora-mindmap__node--l2 {
+  background: transparent;
+  border: 1px solid var(--mc-border-medium);
+  font-size: var(--mc-font-base);
+  color: var(--mc-text-secondary);
+}
+
+.aurora-mindmap__node:hover {
+  transform: translateY(-2px);
+}
+
+.aurora-mindmap__node--selected {
+  border-color: var(--mc-accent) !important;
+  box-shadow: 0 0 0 2px var(--mc-bg-content), 0 0 0 3px var(--mc-accent);
+}
+
+/* ============================================================
+ * 时间线视图
+ * ========================================================== */
+.aurora-timeline {
+  flex: 1;
+  position: relative;
+  overflow: auto;
+  min-height: 460px;
+  padding: 40px 24px 24px;
+}
+
+.aurora-timeline__scale {
+  position: relative;
+  height: 20px;
+  margin-bottom: 8px;
+}
+
+.aurora-timeline__tick-year {
+  position: absolute;
+  font-size: var(--mc-font-xs);
+  font-weight: 600;
+  color: var(--mc-text-secondary);
+  transform: translateX(-50%);
+}
+
+.aurora-timeline__axis {
+  position: absolute;
+  left: 0;
+  height: 2px;
+  background: var(--mc-accent);
+  border-radius: 2px;
+}
+
+.aurora-timeline__axis::before,
+.aurora-timeline__axis::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 40px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--mc-accent));
+}
+
+.aurora-timeline__axis::before { left: -40px; transform: scaleX(-1); }
+.aurora-timeline__axis::after { right: -40px; }
+
+.aurora-timeline__today {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--mc-success);
+  border: 2px solid #fff;
+  transform: translate(-50%, -50%);
+  box-shadow: none;
+  animation: aurora-timeline-pulse 2s infinite;
+  z-index: 5;
+}
+
+@keyframes aurora-timeline-pulse {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+}
+
+.aurora-timeline__card {
+  position: absolute;
+  width: 200px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-left: 3px solid var(--mc-accent);
+  border-radius: var(--mc-radius-md);
+  padding: 12px;
+  box-shadow: var(--mc-shadow-panel);
+}
+
+.aurora-timeline__card--important {
+  border-color: var(--mc-accent);
+}
+
+.aurora-timeline__card-date {
+  font-size: var(--mc-font-xs);
+  font-weight: 500;
+  color: var(--mc-accent-text);
+  margin-bottom: 4px;
+}
+
+.aurora-timeline__card-title {
+  font-size: var(--mc-font-md);
+  font-weight: 500;
+  color: var(--mc-text-primary);
+  margin-bottom: 6px;
+}
+
+.aurora-timeline__card-desc {
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-tertiary);
+  margin-bottom: 8px;
+}
+
+.aurora-timeline__card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.aurora-timeline__card-tag {
+  font-size: var(--mc-font-xs);
+  color: var(--mc-accent-text);
+  background: var(--mc-accent-soft);
+  padding: 1px 8px;
+  border-radius: var(--mc-radius-pill);
+}
+
+.aurora-timeline__node {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mc-accent);
+  border: 2px solid var(--mc-bg-content);
+  transform: translateX(-50%);
+}
+
+/* ============================================================
+ * 交互增强：自由画布（拖动 / 新增 / 编辑 / 连线 / 画笔）
+ * ========================================================== */
+.aurora-canvas__viewport {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  /* 统一暗色兜底（§18 #0D0F15，与 CANVAS_UNIFIED_BG 一致）：
+     Excalidraw 引擎亮出门闸（booted 前 opacity:0）期间透出此底色，
+     保证从挂载第一帧到 loadDocument 注入暗色之间全程无白色闪帧。 */
+  background: #0D0F15;
+}
+/* 子视图浮层激活时，底层画布仅作背景、不接收交互 */
+.aurora-canvas__viewport--behind {
+  pointer-events: none;
+}
+/* 子视图激活时隐藏底层 Excalidraw 画布的内容层：
+   - .excalidraw__canvas 是图形/网格/连线的绘制面（透明 canvas，叠在 .excalidraw 根 div 之上）；
+   - [data-card-overlay] 是引擎叠加的 HTML 富卡片浮层。
+   二者 opacity:0 后，仅剩 .excalidraw 根 div 背景；该背景由 CanvasPanel 的同步
+   effect 强制设为统一暗色（viewBackgroundColor=#0D0F15，覆盖 Excalidraw 默认白），
+   故子视图背景与画布视图逐像素同色（§18：同色背景、无散落图形/卡片）。 */
+.aurora-canvas__viewport--behind .excalidraw__canvas,
+.aurora-canvas__viewport--behind [data-card-overlay] {
+  opacity: 0 !important;
+}
+
+/* 子视图浮层：画布作为底层背景常驻并直接透出，结构化视图（思维导图/看板/时间轴）以浮层叠在其上。
+   遮罩透明、仅作点击关闭的命中层；面板透明、由发丝边勾勒浮起范围（§18：无阴影、4/8/12 圆角）。 */
+.aurora-canvas__subview-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  background: transparent;
+  display: flex;
+}
+.aurora-canvas__subview-panel {
+  position: absolute;
+  inset: 16px;
+  z-index: 11;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: transparent;
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-lg);
+}
+
+/* 空状态引导（仅自由画布视图、无元素时）：居中卡片，容器 pointer-events:none 不拦截
+   画布绘制，仅卡片按钮可点；z 低于底部 dock（dock z:50）。 */
+.aurora-canvas__empty {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.aurora-canvas__empty-inner {
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 28px 32px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-lg);
+  box-shadow: var(--mc-shadow-popover);
+  text-align: center;
+}
+.aurora-canvas__empty-title { font-size: var(--mc-font-md); font-weight: 600; color: var(--mc-text-primary); }
+.aurora-canvas__empty-sub { font-size: var(--mc-font-sm); color: var(--mc-text-secondary); margin-bottom: 8px; }
+.aurora-canvas__empty-actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.aurora-canvas__empty-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 28px; padding: 0 12px;
+  background: var(--mc-bg-pressed); border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-primary); font-size: var(--mc-font-sm); font-family: inherit; cursor: pointer;
+  transition: background-color var(--mc-dur-micro) ease-out, border-color var(--mc-dur-micro) ease-out;
+}
+.aurora-canvas__empty-btn:hover { background: var(--mc-bg-hover); border-color: var(--mc-border-strong); }
+.aurora-canvas__empty-btn--primary {
+  background: var(--mc-accent); border-color: transparent; color: var(--mc-text-inverse);
+}
+.aurora-canvas__empty-btn--primary:hover { background: var(--mc-accent-hover); border-color: transparent; }
+/* 空态引导「跳过」：卡片底部靠右的弱强调文字按钮，点它解除引导与首启锁定，正常进入白板 */
+.aurora-canvas__empty-skip {
+  align-self: stretch;
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
+  padding: 4px 2px;
+  background: none;
+  border: none;
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition: color var(--mc-dur-micro) ease-out;
+}
+.aurora-canvas__empty-skip:hover { color: var(--mc-accent); }
+
+.aurora-canvas__stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center center;
+  transform: translate(-50%, -50%);
+}
+
+.aurora-canvas__hint {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 30;
+  padding: 6px 16px;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-secondary);
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-md);
+  pointer-events: none;
+}
+
+.aurora-pen-path {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.aurora-element--pending {
+  outline: 2px dashed var(--mc-accent);
+  outline-offset: 3px;
+}
+
+.aurora-sticky__edit,
+.aurora-shape__text,
+.aurora-mindmap__edit,
+.aurora-timeline__card-title-input,
+.aurora-kanban__card-title-input {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  font: inherit;
+  color: inherit;
+}
+
+.aurora-shape__text {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4px;
+  pointer-events: none;
+}
+
+.aurora-mindmap__edit {
+  text-align: center;
+}
+
+/* ============================================================
+ * 看板：拖拽 / 新增 / 编辑 / 删除
+ * ========================================================== */
+.aurora-kanban__col--over .aurora-kanban__list {
+  background: color-mix(in srgb, var(--mc-accent) 10%, transparent);
+  border-radius: var(--mc-radius-md);
+}
+
+.aurora-kanban__card {
+  position: relative;
+}
+
+.aurora-kanban__card-del {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-icon-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--mc-dur-fast) var(--mc-ease-out), background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-kanban__card:hover .aurora-kanban__card-del {
+  opacity: 1;
+}
+
+.aurora-kanban__card-del:hover {
+  background: color-mix(in srgb, var(--mc-danger) 18%, transparent);
+  color: var(--mc-danger);
+}
+
+.aurora-kanban__card-title-input {
+  font-size: var(--mc-font-md);
+  font-weight: 500;
+  line-height: 20px;
+}
+
+/* ============================================================
+ * 思维导图：编辑输入
+ * ========================================================== */
+.aurora-mindmap__node {
+  cursor: grab;
+}
+
+.aurora-mindmap__node:active {
+  cursor: grabbing;
+}
+
+.aurora-mindmap__edit {
+  text-align: center;
+  font-weight: 500;
+}
+
+/* ============================================================
+ * 时间轴：垂直 / 选中 / 编辑 / 删除
+ * ========================================================== */
+.aurora-timeline--vertical {
+  position: relative;
+}
+
+.aurora-timeline__scale--vertical .aurora-timeline__tick-year {
+  transform: translateY(-50%);
+  left: 10px;
+  white-space: nowrap;
+}
+
+.aurora-timeline__axis--vertical {
+  top: 0;
+  width: 2px;
+  height: 100%;
+  background: var(--mc-accent);
+}
+
+.aurora-timeline__today--vertical {
+  top: auto;
+  transform: translate(-50%, -50%);
+}
+
+.aurora-timeline__card {
+  position: relative;
+}
+
+.aurora-timeline__card--selected {
+  border-color: var(--mc-accent);
+  box-shadow: var(--mc-shadow-popover), 0 0 0 2px var(--mc-bg-content), 0 0 0 3px var(--mc-accent);
+}
+
+.aurora-timeline__card-del {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-icon-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--mc-dur-fast) var(--mc-ease-out), background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-timeline__card:hover .aurora-timeline__card-del {
+  opacity: 1;
+}
+
+.aurora-timeline__card-del:hover {
+  background: color-mix(in srgb, var(--mc-danger) 18%, transparent);
+  color: var(--mc-danger);
+}
+
+.aurora-timeline__card-title-input {
+  font-size: var(--mc-font-md);
+  font-weight: 500;
+}
+
+/* ============================================================
+ * 顶部工具栏（白板）：嵌入内容流的 flex 子元素
+ * ========================================================== */
+/* 顶栏改为嵌入 .aurora-canvas__body 的 flex 子元素，随书脊/右栏伸缩让位；
+   不再使用 position:fixed，彻底消除与书脊的 1px 重叠与独立坐标系问题。 */
+.aurora-ctop {
+  position: relative;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 46px; padding: 0 12px;
+  background: var(--mc-bg-elevated);
+  border-bottom: 1px solid var(--mc-border-subtle);
+  flex-shrink: 0; z-index: 60;
+}
+/* 密度对齐（P1-6）：紧凑档与 blog 子栏同为 42px（P1-3 密度体系） */
+[data-density='compact'] .aurora-ctop { height: 42px; }
+.aurora-ctop__left { display: flex; align-items: center; gap: 12px; }
+.aurora-ctop__right { display: flex; align-items: center; gap: 12px; }
+.aurora-ctop__name {
+  display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 12px;
+  background: transparent; border: 1px solid transparent; border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-primary); font-size: var(--mc-font-base); font-weight: 600; font-family: inherit;
+  user-select: none; cursor: pointer; transition: background-color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out);
+}
+.aurora-ctop__name:hover {
+  background: var(--mc-bg-hover); border-color: var(--mc-border-medium);
+}
+.aurora-ctop__name svg:last-child { color: var(--mc-icon-muted); flex-shrink: 0; }
+.aurora-ctop__name span { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aurora-ctop__switcher {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2;
+  display: flex; align-items: center; gap: 2px; padding: 3px;
+  background: var(--mc-bg-pressed); border-radius: var(--mc-radius-md);
+}
+.aurora-ctop__view {
+  display: inline-flex; align-items: center; gap: 6px; height: var(--mc-inspector-tab-h); padding: 0 12px;
+  background: transparent; border: none; border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-secondary); font-size: var(--mc-font-sm); font-family: inherit; cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out);
+}
+.aurora-ctop__view-icon { flex-shrink: 0; }
+.aurora-ctop__view:hover { background: var(--mc-bg-hover); color: var(--mc-text-primary); }
+.aurora-ctop__view--disabled { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
+.aurora-ctop__view--active {
+  background: var(--mc-bg-elevated);
+  color: var(--mc-accent);
+  font-weight: 600;
+  box-shadow: var(--mc-shadow-inset);
+}
+.aurora-ctop__act {
+  display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px;
+  background: transparent; border: 1px solid transparent; border-radius: var(--mc-radius-sm);
+  color: var(--mc-icon-muted); font-size: var(--mc-font-sm); font-family: inherit; cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out);
+}
+.aurora-ctop__act:hover { background: var(--mc-bg-hover); color: var(--mc-icon-strong); }
+.aurora-ctop__act--primary { background: var(--mc-accent); color: var(--mc-text-inverse); }
+.aurora-ctop__act--primary:hover { background: var(--mc-accent-hover); color: var(--mc-text-inverse); }
+.aurora-ctop__act:disabled { opacity: 0.4; cursor: not-allowed; }
+.aurora-ctop__act:disabled:hover { background: transparent; color: var(--mc-icon-muted); }
+
+/* 顶栏内嵌的视图上下文控件（替代原独立工具栏横条） */
+.aurora-ctop__divider { width: 1px; height: 22px; background: var(--mc-border-medium); margin: 0 6px; flex-shrink: 0; }
+.aurora-ctop__select { display: inline-flex; align-items: center; gap: 6px; height: 28px; color: var(--mc-text-secondary); font-size: var(--mc-font-sm); }
+.aurora-ctop__select-label { color: var(--mc-icon-muted); }
+/* 顶栏视图上下文下拉（外观由 .aurora-select 统一规范提供） */
+
+/* 左侧栏面板（5 Tab） */
+.aurora-csp { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+.aurora-csp__head { display: flex; align-items: stretch; border-bottom: 1px solid var(--mc-border-subtle); }
+.aurora-csp__tabs { display: flex; align-items: center; gap: 2px; padding: 8px 8px 0; flex: 1; border-bottom: none; touch-action: pan-y; }
+/* 滑动进度变量（挂侧栏根，供 tab 指示器与内容层边缘遮罩消费） */
+.aurora-csp { --swipe-progress: 0; }
+/* 滑动切换（横滑 tab 行）：位移落在内容区，tab 行只做指示器联动 */
+.aurora-csp__tabs[data-swiping] .aurora-csp__tab--active {
+  transform: translateX(calc(var(--swipe-progress) * 6px));
+  transition: none;
+}
+.aurora-csp__body.is-swiping {
+  transition: none;
+  opacity: 0.96;
+  cursor: grabbing;
+  user-select: none;
+}
+/* 使用优化⑥ · 侧栏面板导航 tab 全站同源基准（编辑器 .aurora-rightbar__tab 与此逐字一致） */
+.aurora-csp__tab {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 0 8px; background: transparent; border: none; border-bottom: 2px solid transparent;
+  color: var(--mc-icon-muted); font-size: var(--mc-font-xs); font-family: inherit; cursor: pointer;
+  transition: color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out), background-color var(--mc-dur-fast) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-out);
+}
+.aurora-csp__tab:hover { color: var(--mc-text-secondary); background: var(--mc-bg-hover); }
+/* 按压反馈（macOS 动效方案 §3.8）：tab 用微位移防行高抖动 */
+.aurora-csp__tab:active { transform: translateY(0.5px); }
+.aurora-csp__tab--active { color: var(--mc-accent); border-bottom-color: var(--mc-accent); font-weight: 600; }
+.aurora-csp__body { flex: 1; overflow-y: auto; touch-action: pan-y; position: relative; transition: transform var(--mc-dur-base) var(--mc-ease-out), opacity var(--mc-dur-base) var(--mc-ease-out); will-change: transform; }
+/* 方向边缘压暗层（侧栏较窄，遮罩收窄到 44px） */
+.aurora-csp__body::before,
+.aurora-csp__body::after {
+  content: ''; position: absolute; top: 0; bottom: 0; width: 44px; pointer-events: none;
+  opacity: 0; transition: opacity var(--mc-dur-base) var(--mc-ease-out); z-index: 1;
+}
+.aurora-csp__body::before { left: 0; background: linear-gradient(to right, color-mix(in srgb, var(--mc-bg-sidebar) 92%, transparent), transparent); }
+.aurora-csp__body::after { right: 0; background: linear-gradient(to left, color-mix(in srgb, var(--mc-bg-sidebar) 92%, transparent), transparent); }
+.aurora-csp__body.is-swiping::before { opacity: clamp(0, var(--swipe-progress, 0), 1); }
+.aurora-csp__body.is-swiping::after { opacity: clamp(0, calc(var(--swipe-progress, 0) * -1), 1); }
+@media (prefers-reduced-motion: reduce) {
+  .aurora-csp__body { transition-duration: 140ms; }
+  .aurora-csp__body.is-swiping { opacity: 0.97; }
+}
+.aurora-csp__panel { padding: 12px; }
+.aurora-csp__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.aurora-csp__title { font-size: var(--mc-font-base); font-weight: 600; color: var(--mc-text-primary); }
+.aurora-csp__sub { font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); }
+.aurora-csp__header-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: var(--mc-radius-sm); color: var(--mc-icon-muted); cursor: pointer; }
+.aurora-csp__header-btn:hover { background: var(--mc-bg-hover); color: var(--mc-icon-strong); }
+.aurora-csp__search { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 var(--mc-space-4); background: var(--mc-bg-elevated); border: 1px solid var(--mc-border-medium); border-radius: var(--mc-radius-sm); color: var(--mc-icon-muted); margin-bottom: var(--mc-space-4); position: sticky; top: 0; z-index: 3; max-height: 48px; overflow: hidden; transition: max-height var(--mc-dur-fast) var(--mc-ease-out), opacity var(--mc-dur-fast) var(--mc-ease-out), margin var(--mc-dur-fast) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-out); }
+/* 下滑才显示：默认收起（高度/透明度归零、不可点），下滑或已有查询时浮现 */
+.aurora-csp__search--hidden { max-height: 0; opacity: 0; margin-bottom: 0; transform: translateY(-6px); pointer-events: none; }
+.aurora-csp__search input { flex: 1; background: transparent; border: none; outline: none; color: var(--mc-text-primary); font-size: var(--mc-font-sm); font-family: inherit; }
+.aurora-csp__list { display: flex; flex-direction: column; gap: 2px; }
+.aurora-csp__item { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; border-radius: var(--mc-radius-sm); color: var(--mc-text-secondary); font-size: var(--mc-font-sm); cursor: pointer; transition: background-color var(--mc-dur-fast) var(--mc-ease-out); }
+.aurora-csp__item:hover { background: var(--mc-bg-hover); }
+.aurora-csp__item--active { background: var(--mc-accent-soft); color: var(--mc-accent); }
+/* 文件 Tab：可拖拽到画布的文件行 */
+.aurora-csp__fileitem { cursor: grab; }
+.aurora-csp__fileitem:active { cursor: grabbing; }
+.aurora-csp__grip { color: var(--mc-icon-muted); opacity: 0; flex-shrink: 0; transition: opacity var(--mc-dur-fast) var(--mc-ease-out); }
+.aurora-csp__fileitem:hover .aurora-csp__grip { opacity: 0.7; }
+.aurora-csp__drag-hint { display: flex; align-items: center; gap: 6px; font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); padding: 4px 8px 12px; }
+.aurora-csp__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.aurora-csp__item-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aurora-csp__star { width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: var(--mc-radius-sm); color: var(--mc-icon-muted); cursor: pointer; }
+.aurora-csp__star:hover { color: var(--mc-text-secondary); }
+.aurora-csp__star--on { color: var(--mc-warning); }
+.aurora-csp__empty { padding: 24px 12px; text-align: center; color: var(--mc-text-tertiary); font-size: var(--mc-font-sm); line-height: 1.6; }
+.aurora-csp__section-title { font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); margin: 12px 0 6px; font-weight: 500; }
+.aurora-csp__linkcard { background: var(--mc-bg-elevated); border: 1px solid var(--mc-border-medium); border-radius: var(--mc-radius-sm); padding: var(--mc-space-4); margin-bottom: 8px; }
+.aurora-csp__linkcard-title { display: flex; align-items: center; gap: 6px; font-size: var(--mc-font-sm); font-weight: 500; color: var(--mc-text-primary); margin-bottom: 4px; }
+.aurora-csp__linkcard-ctx { font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); line-height: 1.5; margin-bottom: 6px; }
+.aurora-csp__realtag { font-size: var(--mc-font-sm); color: var(--mc-accent-text); background: var(--mc-accent-soft); padding: 1px var(--mc-space-2); border-radius: var(--mc-radius-pill); }
+.aurora-csp__realtag--success { color: var(--mc-success); background: color-mix(in srgb, var(--mc-success) 16%, transparent); }
+.aurora-csp__logic { display: flex; gap: 6px; margin-bottom: 12px; }
+.aurora-csp__logic-btn { flex: 1; height: 28px; background: var(--mc-bg-elevated); border: 1px solid var(--mc-border-medium); border-radius: var(--mc-radius-sm); color: var(--mc-text-secondary); font-size: var(--mc-font-sm); font-family: inherit; cursor: pointer; }
+.aurora-csp__logic-btn--on { background: var(--mc-accent-soft); color: var(--mc-accent); border-color: color-mix(in srgb, var(--mc-accent) 45%, transparent); font-weight: 600; }
+.aurora-csp__tagitem { display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px; border-radius: var(--mc-radius-sm); cursor: pointer; font-size: var(--mc-font-sm); transition: background-color var(--mc-dur-fast) var(--mc-ease-out); }
+.aurora-csp__tagitem:hover { background: var(--mc-bg-hover); }
+.aurora-csp__tagitem--on { background: var(--mc-accent-soft); }
+.aurora-csp__tag-hash { font-weight: 700; }
+.aurora-csp__tag-name { flex: 1; }
+.aurora-csp__tag-count { font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); }
+.aurora-csp__footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+.aurora-csp__footer-btn { height: 28px; padding: 0 12px; background: var(--mc-bg-elevated); border: 1px solid var(--mc-border-medium); border-radius: var(--mc-radius-sm); color: var(--mc-text-secondary); font-size: var(--mc-font-sm); font-family: inherit; cursor: pointer; }
+.aurora-csp__footer-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.aurora-csp__footer-btn--primary { background: var(--mc-accent); color: var(--mc-text-inverse); border-color: var(--mc-accent); }
+.aurora-csp__footer-btn--primary:hover { background: var(--mc-accent-hover); }
+.aurora-csp__footer-btn--danger { color: var(--mc-danger); border-color: color-mix(in srgb, var(--mc-danger) 35%, transparent); background: color-mix(in srgb, var(--mc-danger) 10%, transparent); }
+.aurora-csp__timeline { display: flex; flex-direction: column; }
+.aurora-csp__hist { display: flex; align-items: center; gap: 8px; padding: 8px 0; position: relative; }
+.aurora-csp__hist-dot { width: var(--mc-space-4); height: var(--mc-space-4); border-radius: 50%; background: var(--mc-border-strong); flex-shrink: 0; border: 2px solid var(--mc-bg-content); }
+.aurora-csp__hist-dot--new { background: var(--mc-accent); box-shadow: 0 0 0 2px var(--mc-bg-content), 0 0 0 3px var(--mc-accent); }
+.aurora-csp__hist-icon { color: var(--mc-icon-muted); flex-shrink: 0; }
+.aurora-csp__hist-main { flex: 1; }
+.aurora-csp__hist-label { font-size: var(--mc-font-sm); color: var(--mc-text-primary); }
+.aurora-csp__hist-time { font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); }
+.aurora-csp__hist-actions { display: flex; gap: 2px; }
+.aurora-csp__hist-actions button { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: var(--mc-radius-sm); color: var(--mc-icon-muted); cursor: pointer; }
+.aurora-csp__hist-actions button:hover { background: var(--mc-bg-hover); color: var(--mc-icon-strong); }
+.aurora-csp__mini { position: relative; width: 100%; height: 200px; background: var(--mc-bg-elevated); border: 1px solid var(--mc-border-medium); border-radius: var(--mc-radius-md); overflow: hidden; margin-bottom: 8px; }
+.aurora-csp__mini-card { position: absolute; border-radius: 2px; opacity: 0.85; border: 1px solid rgba(255,255,255,0.1); }
+.aurora-csp__mini-card--sel { outline: 2px solid var(--mc-accent); z-index: 2; }
+.aurora-csp__mini-viewport { position: absolute; border: 1px solid var(--mc-accent); border-radius: 2px; background: var(--mc-accent-soft); pointer-events: none; }
+.aurora-csp__mini-hint { font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); text-align: center; margin: 6px 0; }
+.aurora-csp__zoomrow { display: flex; align-items: center; gap: 8px; }
+.aurora-csp__zoom-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--mc-bg-elevated); border: 1px solid var(--mc-border-medium); border-radius: var(--mc-radius-sm); color: var(--mc-icon-muted); cursor: pointer; }
+.aurora-csp__zoom-btn:hover { background: var(--mc-bg-hover); color: var(--mc-icon-strong); }
+.aurora-csp__zoom-slider { flex: 1; accent-color: var(--mc-accent); }
+.aurora-csp__zoom-val { font-size: var(--mc-font-xs); color: var(--mc-text-secondary); min-width: 38px; text-align: right; }
+
+/* 右侧 Inspector 扩展 */
+.aurora-cip { padding: 12px; }
+.aurora-cip__section { margin-bottom: 16px; }
+.aurora-cip__section-title { font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); margin-bottom: 8px; font-weight: 500; }
+.aurora-cip__row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.aurora-cip__label { font-size: var(--mc-font-sm); color: var(--mc-text-secondary); min-width: 32px; }
+.aurora-cip__input { flex: 1; height: 28px; padding: 0 8px; background: var(--mc-bg-elevated); border: 1px solid var(--mc-border-medium); border-radius: var(--mc-radius-sm); color: var(--mc-text-primary); font-size: var(--mc-font-sm); font-family: inherit; outline: none; }
+.aurora-cip__input:focus { border-color: var(--mc-accent); }
+/* 主题化下拉触发器（替代原生 select）：沿用输入框外观，右侧自定义箭头 */
+.aurora-cip__select {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  width: 100%; flex: none; height: 28px; margin-bottom: 8px; padding: 0 8px;
+}
+.aurora-cip__select-value { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.aurora-cip__select-value--ph { color: var(--mc-text-tertiary); }
+.aurora-cip__select-chevron { color: var(--mc-text-tertiary); flex-shrink: 0; transition: transform var(--mc-dur-fast) var(--mc-ease-out); }
+.aurora-cip__select--open .aurora-cip__select-chevron { transform: rotate(180deg); }
+
+/* 下拉菜单（portal 渲染到 body，fixed 定位，主题化弹层） */
+.aurora-cip__menu {
+  z-index: 200; padding: 4px; max-height: 240px; overflow-y: auto;
+  background: var(--mc-bg-elevated); border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-md); box-shadow: var(--mc-shadow-popover);
+  /* 下拉从触发器左下角长出（方案 §3.5 origin-aware；关键帧单源 = components.css） */
+  transform-origin: top left;
+  animation: aurora-menu-in var(--mc-dur-fast) var(--mc-ease-out) both;
+}
+.aurora-cip__option {
+  display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px;
+  border-radius: var(--mc-radius-sm); font-size: var(--mc-font-base); color: var(--mc-text-primary);
+  cursor: pointer; user-select: none;
+}
+.aurora-cip__option:hover { background: var(--mc-accent-soft); color: var(--mc-text-primary); }
+.aurora-cip__option--on { color: var(--mc-accent); font-weight: 500; }
+.aurora-cip__option-check { width: 14px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; color: var(--mc-accent); }
+.aurora-cip__option-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* 全宽文本输入（如标签输入框） */
+.aurora-cip__field { width: 100%; flex: none; margin-bottom: 8px; }
+.aurora-cip__unit { font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); }
+.aurora-cip__textarea { width: 100%; min-height: 72px; padding: 8px; background: var(--mc-bg-elevated); border: 1px solid var(--mc-border-medium); border-radius: var(--mc-radius-sm); color: var(--mc-text-primary); font-size: var(--mc-font-sm); font-family: inherit; line-height: 1.5; outline: none; resize: vertical; }
+.aurora-cip__textarea:focus { border-color: var(--mc-accent); }
+.aurora-cip__delete { display: flex; align-items: center; justify-content: center; gap: var(--mc-space-2); width: 100%; height: 28px; margin-top: 8px; background: color-mix(in srgb, var(--mc-danger) 14%, transparent); border: 1px solid color-mix(in srgb, var(--mc-danger) 40%, transparent); border-radius: var(--mc-radius-sm); color: var(--mc-danger); font-size: var(--mc-font-sm); font-family: inherit; cursor: pointer; }
+.aurora-cip__delete:hover { background: color-mix(in srgb, var(--mc-danger) 24%, transparent); }
+.aurora-cip__copy { display: flex; align-items: center; justify-content: center; gap: var(--mc-space-2); width: 100%; height: 28px; margin-top: 8px; background: var(--mc-accent-soft); border: 1px solid color-mix(in srgb, var(--mc-accent) 35%, transparent); border-radius: var(--mc-radius-sm); color: var(--mc-accent); font-size: var(--mc-font-sm); font-family: inherit; cursor: pointer; }
+.aurora-cip__copy:hover { background: color-mix(in srgb, var(--mc-accent) 22%, transparent); }
+.aurora-cip__switch { width: 34px; height: 18px; border-radius: var(--mc-radius-pill); background: var(--mc-border-strong); border: none; cursor: pointer; position: relative; transition: background-color var(--mc-dur-fast) var(--mc-ease-out); }
+.aurora-cip__switch--on { background: var(--mc-accent); }
+.aurora-cip__switch-knob { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--mc-text-inverse); transition: transform var(--mc-dur-fast) var(--mc-ease-out); }
+.aurora-cip__switch--on .aurora-cip__switch-knob { transform: translateX(16px); }
+.aurora-cip__layers { display: flex; flex-direction: column; gap: 2px; }
+.aurora-cip__layer { display: flex; align-items: center; gap: var(--mc-space-2); height: 32px; padding: 0 var(--mc-space-2); border-radius: var(--mc-radius-sm); cursor: pointer; font-size: var(--mc-font-sm); color: var(--mc-text-secondary); transition: background-color var(--mc-dur-fast) var(--mc-ease-out); }
+.aurora-cip__layer:hover { background: var(--mc-bg-hover); }
+.aurora-cip__layer--active { background: var(--mc-accent-soft); color: var(--mc-accent); }
+.aurora-cip__layer-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: var(--mc-radius-sm); color: var(--mc-icon-muted); cursor: pointer; }
+.aurora-cip__layer-btn:hover { background: var(--mc-bg-hover); color: var(--mc-icon-strong); }
+.aurora-cip__layer-icon { color: var(--mc-icon-muted); }
+.aurora-cip__layer-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aurora-cip__layer-grip { color: var(--mc-border-strong); cursor: grab; }
+.aurora-cip__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.aurora-cip__chip { height: 28px; padding: 0 var(--mc-space-4); background: var(--mc-bg-elevated); border: 1px solid var(--mc-border-medium); border-radius: var(--mc-radius-pill); color: var(--mc-text-secondary); font-size: var(--mc-font-sm); font-family: inherit; cursor: pointer; transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out); }
+.aurora-cip__chip--on { background: var(--mc-accent-soft); color: var(--mc-accent); border-color: color-mix(in srgb, var(--mc-accent) 45%, transparent); }
+.aurora-cip__types { display: flex; flex-direction: column; gap: 6px; }
+.aurora-cip__type { display: flex; align-items: center; gap: 8px; font-size: var(--mc-font-sm); color: var(--mc-text-secondary); cursor: pointer; }
+.aurora-cip__radio { display: flex; flex-direction: column; gap: 6px; }
+.aurora-cip__radio-item { display: flex; align-items: center; gap: 8px; font-size: var(--mc-font-sm); color: var(--mc-text-secondary); cursor: pointer; }
+.aurora-cip__rec { background: var(--mc-bg-elevated); border: 1px solid var(--mc-border-medium); border-radius: var(--mc-radius-md); padding: var(--mc-space-4); margin-bottom: 8px; }
+.aurora-cip__rec-title { font-size: var(--mc-font-sm); font-weight: 500; color: var(--mc-text-primary); margin-bottom: 4px; }
+.aurora-cip__rec-meta { font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); margin-bottom: 8px; }
+.aurora-cip__rec-pct { color: var(--mc-accent); font-weight: 600; }
+.aurora-cip__rec-actions { display: flex; align-items: center; gap: 6px; }
+.aurora-cip__rec-add { display: flex; align-items: center; gap: 4px; height: 28px; padding: 0 var(--mc-space-4); background: var(--mc-accent-soft); border: 1px solid color-mix(in srgb, var(--mc-accent) 35%, transparent); border-radius: var(--mc-radius-sm); color: var(--mc-accent); font-size: var(--mc-font-xs); font-family: inherit; cursor: pointer; }
+.aurora-cip__rec-x { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: var(--mc-radius-sm); color: var(--mc-icon-muted); cursor: pointer; }
+.aurora-cip__rec-x:hover { background: var(--mc-bg-hover); color: var(--mc-icon-strong); }
+.aurora-cip__more { width: 100%; height: 28px; margin-top: 4px; background: transparent; border: 1px dashed var(--mc-border-medium); border-radius: var(--mc-radius-sm); color: var(--mc-text-tertiary); font-size: var(--mc-font-sm); font-family: inherit; cursor: pointer; }
+.aurora-cip__more:hover { color: var(--mc-text-secondary); border-color: var(--mc-border-strong); }
+.aurora-cip__header-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.aurora-cip__viewtoggle { display: flex; gap: 2px; padding: 2px; background: var(--mc-bg-elevated); border: 1px solid var(--mc-border-medium); border-radius: var(--mc-radius-sm); }
+.aurora-cip__viewtoggle button { display: flex; align-items: center; justify-content: center; width: 24px; height: 22px; background: transparent; border: none; border-radius: var(--mc-radius-sm); color: var(--mc-icon-muted); cursor: pointer; }
+.aurora-cip__viewtoggle button.aurora-cip__viewtoggle--on { background: var(--mc-accent-soft); color: var(--mc-accent); }
+.aurora-cip__fav-list { display: flex; flex-direction: column; gap: 2px; }
+.aurora-cip__fav { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 8px; border-radius: var(--mc-radius-sm); cursor: pointer; font-size: var(--mc-font-sm); color: var(--mc-text-secondary); }
+.aurora-cip__fav:hover { background: var(--mc-bg-hover); }
+.aurora-cip__fav-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aurora-cip__fav-x { color: var(--mc-icon-muted); }
+.aurora-cip__fav-x:hover { color: var(--mc-warning); }
+.aurora-cip__fav-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.aurora-cip__fav-grid .aurora-cip__fav { flex-direction: column; align-items: flex-start; height: auto; padding: 12px; background: var(--mc-bg-elevated); border: 1px solid var(--mc-border-medium); }
+.aurora-cip__search { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 var(--mc-space-4); background: var(--mc-bg-elevated); border: 1px solid var(--mc-border-medium); border-radius: var(--mc-radius-sm); color: var(--mc-icon-muted); margin-bottom: var(--mc-space-4); }
+.aurora-cip__search input { flex: 1; background: transparent; border: none; outline: none; color: var(--mc-text-primary); font-size: var(--mc-font-sm); font-family: inherit; }
+.aurora-cip__search-item { display: flex; align-items: center; gap: var(--mc-space-4); padding: 8px; border-radius: var(--mc-radius-sm); cursor: pointer; }
+.aurora-cip__search-item:hover { background: var(--mc-bg-hover); }
+.aurora-cip__search-title { font-size: var(--mc-font-sm); color: var(--mc-text-primary); }
+.aurora-cip__search-snippet { font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); }
+.aurora-cip__empty { padding: 24px 12px; text-align: center; color: var(--mc-text-tertiary); font-size: var(--mc-font-sm); line-height: 1.6; }
+
+/* P3-B：canvas ⌘K 命令面板已归一到主壳 CommandPalette（.aurora-command 体系），
+   原 .aurora-cmdk 命令面板样式已删；仅保留 CanvasListMenu 复用的容器/搜索/Esc 类 */
+.aurora-cmdk { width: 560px; max-width: 92vw; max-height: 70vh; display: flex; flex-direction: column; background: var(--mc-bg-content); border: 1px solid var(--mc-border-strong); border-radius: var(--mc-radius-lg); box-shadow: var(--mc-shadow-popover); overflow: hidden; }
+.aurora-cmdk__search { display: flex; align-items: center; gap: 8px; padding: 16px; border-bottom: 1px solid var(--mc-border-subtle); color: var(--mc-icon-muted); }
+.aurora-cmdk__search input { flex: 1; background: transparent; border: none; outline: none; color: var(--mc-text-primary); font-size: var(--mc-font-md); font-family: inherit; }
+.aurora-cmdk__esc { font-size: var(--mc-font-sm); padding: 2px var(--mc-space-2); border-radius: var(--mc-radius-sm); background: var(--mc-bg-hover); color: var(--mc-text-tertiary); }
+
+.aurora-canvaslist__search { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 var(--mc-space-4); background: var(--mc-bg-elevated); border: 1px solid var(--mc-border-medium); border-radius: var(--mc-radius-sm); color: var(--mc-icon-muted); margin-bottom: 12px; }
+.aurora-canvaslist__search input { flex: 1; background: transparent; border: none; outline: none; color: var(--mc-text-primary); font-size: var(--mc-font-base); font-family: inherit; }
+.aurora-canvaslist { display: flex; flex-direction: column; gap: 6px; }
+.aurora-canvaslist__item { display: flex; align-items: center; gap: 12px; padding: var(--mc-space-4); border-radius: var(--mc-radius-md); cursor: pointer; border: 1px solid transparent; transition: background-color var(--mc-dur-fast) var(--mc-ease-out); }
+.aurora-canvaslist__item:hover { background: var(--mc-bg-hover); }
+.aurora-canvaslist__item--current { border-color: color-mix(in srgb, var(--mc-accent) 40%, transparent); background: var(--mc-accent-soft); }
+.aurora-canvaslist__cover { width: 44px; height: 32px; border-radius: var(--mc-radius-sm); flex-shrink: 0; }
+.aurora-canvaslist__meta { flex: 1; }
+.aurora-canvaslist__name { display: flex; align-items: center; gap: 8px; font-size: var(--mc-font-base); font-weight: 500; color: var(--mc-text-primary); }
+.aurora-canvaslist__current-tag { font-size: var(--mc-font-sm); color: var(--mc-accent); background: var(--mc-accent-soft); padding: 1px var(--mc-space-2); border-radius: var(--mc-radius-pill); }
+.aurora-canvaslist__time { font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); margin-top: 2px; }
+.aurora-canvaslist__del { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: var(--mc-radius-sm); color: var(--mc-icon-muted); cursor: pointer; }
+.aurora-canvaslist__del:hover { background: color-mix(in srgb, var(--mc-danger) 16%, transparent); color: var(--mc-danger); }
+.aurora-canvaslist__empty { padding: 32px; text-align: center; color: var(--mc-text-tertiary); font-size: var(--mc-font-base); }
+/* 画布列表 / 回收站 切换 */
+.aurora-canvaslist__tabs { display: flex; gap: 2px; padding: 3px; margin-bottom: 12px; background: var(--mc-bg-pressed); border-radius: var(--mc-radius-md); }
+.aurora-canvaslist__tab { flex: 1; height: 30px; border: none; background: transparent; color: var(--mc-text-secondary); border-radius: var(--mc-radius-sm); font-size: var(--mc-font-sm); cursor: pointer; font-family: inherit; transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out); }
+.aurora-canvaslist__tab:hover { background: var(--mc-bg-hover); color: var(--mc-text-primary); }
+.aurora-canvaslist__tab--on { background: var(--mc-bg-elevated); color: var(--mc-accent); font-weight: 600; box-shadow: var(--mc-shadow-inset); }
+/* 回收站条目 */
+.aurora-canvaslist__actions { display: flex; gap: 2px; flex-shrink: 0; }
+.aurora-canvaslist__del--danger:hover { background: color-mix(in srgb, var(--mc-danger) 16%, transparent); color: var(--mc-danger); }
+.aurora-canvaslist__trashhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: var(--mc-font-sm); color: var(--mc-text-tertiary); }
+.aurora-canvaslist__clear { border: none; background: transparent; color: var(--mc-text-secondary); font-size: var(--mc-font-sm); cursor: pointer; font-family: inherit; padding: 2px var(--mc-space-2); border-radius: var(--mc-radius-sm); }
+.aurora-canvaslist__clear:hover { background: color-mix(in srgb, var(--mc-danger) 16%, transparent); color: var(--mc-danger); }
+
+/* 画布管理弹窗：独立 overlay —— 垂直水平居中（命令面板保持顶部贴合，互不影响）；
+   层级带 Modal 阻断模态 9980（须盖过 canvas cmdk 9000，仍低于 toast/菜单） */
+.aurora-canvaslist__overlay { position: fixed; inset: 0; z-index: 9980; background: rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; padding: 0; }
+/* 复用 .aurora-cmdk 容器作为管理列表弹层：收窄至 md 档（默认命令面板 560px 过宽） */
+.aurora-canvaslist__overlay .aurora-cmdk { width: 440px; max-height: 60vh; }
+
+/* 新建画布：内联名称输入行（VS Code 风格：聚焦全选 / Enter 确认 / Esc 取消） */
+.aurora-canvaslist__create { display: flex; align-items: center; gap: var(--mc-space-2); padding: 8px; background: var(--mc-bg-elevated); border: 1px solid var(--mc-border-medium); border-radius: var(--mc-radius-md); margin-bottom: 8px; }
+.aurora-canvaslist__create-input { flex: 1; min-width: 0; height: 28px; padding: 0 var(--mc-space-4); background: var(--mc-bg-content); border: 1px solid var(--mc-border-medium); border-radius: var(--mc-radius-sm); color: var(--mc-text-primary); font-size: var(--mc-font-base); font-family: inherit; outline: none; transition: border-color var(--mc-dur-fast) var(--mc-ease-out); }
+.aurora-canvaslist__create-input:focus { border-color: var(--mc-accent); }
+.aurora-canvaslist__create-ok,
+.aurora-canvaslist__create-cancel { width: 28px; height: 28px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: var(--mc-radius-sm); cursor: pointer; color: var(--mc-icon-muted); transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out); }
+.aurora-canvaslist__create-ok:hover { background: color-mix(in srgb, var(--mc-accent) 16%, transparent); color: var(--mc-accent); }
+.aurora-canvaslist__create-cancel:hover { background: color-mix(in srgb, var(--mc-danger) 16%, transparent); color: var(--mc-danger); }
+
+/* 重命名画布：行内输入框 */
+.aurora-canvaslist__rename-input { flex: 1; min-width: 0; height: 28px; padding: 0 8px; background: var(--mc-bg-content); border: 1px solid var(--mc-accent); border-radius: var(--mc-radius-sm); color: var(--mc-text-primary); font-size: var(--mc-font-base); font-weight: 500; font-family: inherit; outline: none; }
+
+/* 画布视图外框 */
+.aurora-freewrap { position: relative; flex: 1; overflow: hidden; }
+
+/* P3-B：canvas 命令面板已归一到主壳，.aurora-cmdk 命令项/图标类已随副本删除 */
+
+/* ============================================================
+ * 左栏补充类（规范 20 §3）
+ * ========================================================== */
+.aurora-csp__arrow { width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; background: transparent; border: none; border-radius: var(--mc-radius-sm); color: var(--mc-icon-muted); cursor: pointer; flex-shrink: 0; transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out); }
+.aurora-csp__arrow:hover { background: var(--mc-bg-hover); color: var(--mc-accent); }
+.aurora-csp__arrow svg { transition: transform var(--mc-dur-fast) var(--mc-ease-out); }
+.aurora-csp__arrow--open svg { transform: rotate(90deg); }
+.aurora-csp__arrow-ghost { width: 18px; flex-shrink: 0; }
+.aurora-csp__arrow-spacer { width: 18px; flex-shrink: 0; }
+.aurora-csp__item-icon { display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.aurora-csp__pin { color: var(--mc-warning); flex-shrink: 0; }
+.aurora-csp__childcount { font-size: var(--mc-font-sm); color: var(--mc-text-tertiary); background: var(--mc-bg-hover); padding: 0 var(--mc-space-2); border-radius: var(--mc-radius-pill); flex-shrink: 0; }
+.aurora-csp__filelink { color: var(--mc-accent); flex-shrink: 0; }
+.aurora-csp__tag-actions { display: none; align-items: center; gap: 4px; margin-left: auto; }
+.aurora-csp__tagitem:hover .aurora-csp__tag-actions { display: flex; }
+.aurora-csp__tag-act { color: var(--mc-icon-muted); cursor: pointer; }
+.aurora-csp__tag-act:hover { color: var(--mc-text-primary); }
+
+/* ============================================================
+ * 右栏补充类（规范 20 §4）
+ * ========================================================== */
+.aurora-cip__swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.aurora-cip__swatch { width: 22px; height: 22px; border-radius: var(--mc-radius-sm); cursor: pointer; border: 2px solid transparent; transition: transform var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out); }
+.aurora-cip__swatch:hover { transform: scale(1.12); }
+.aurora-cip__swatch--on { border-color: var(--mc-accent); box-shadow: 0 0 0 2px var(--mc-bg-content), 0 0 0 3px var(--mc-accent); }
+.aurora-cip__seg { display: flex; gap: 2px; padding: 3px; background: var(--mc-bg-pressed); border-radius: var(--mc-radius-md); }
+.aurora-cip__seg-btn { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; background: transparent; border: none; border-radius: var(--mc-radius-sm); color: var(--mc-icon-muted); cursor: pointer; transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out); }
+.aurora-cip__seg-btn:hover { background: var(--mc-bg-hover); color: var(--mc-icon-strong); }
+.aurora-cip__seg-btn--on, .aurora-cip__seg-btn.aurora-cip__seg-btn--on { background: var(--mc-bg-elevated); color: var(--mc-accent); font-weight: 600; box-shadow: var(--mc-shadow-inset); }
+.aurora-cip__sub { font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); }
+.aurora-cip__fav-thumb { width: 100%; height: 36px; border-radius: var(--mc-radius-sm) var(--mc-radius-sm) 0 0; flex-shrink: 0; }
+.aurora-cip__search-opt { color: var(--mc-icon-muted); cursor: pointer; flex-shrink: 0; }
+
+/* 顶部切换器已嵌入 .aurora-ctop 居中定位（见 .aurora-ctop__switcher 主规则） */
+
+/* ============================================================
+ * 真实画布引擎容器（P0 · 1.1）：整区交给 features/canvas-v2/CanvasView
+ * ========================================================== */
+.aurora-canvas__realwrap {
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+  background: var(--mc-bg-content);
+  overflow: hidden;
+}
+
+.aurora-canvas__realwrap-loading {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--mc-font-base);
+  color: var(--mc-text-tertiary);
+}
+
+/* ============================================================
+ * 画布右键菜单（.aurora-canvas-ctxmenu，Portal 到 body）
+ * ========================================================== */
+.aurora-canvas-ctxmenu {
+  min-width: 168px;
+  padding: 4px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-md);
+  box-shadow: var(--mc-shadow-popover);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  /* 原点感知入场（macOS 动效方案 §3.5 origin-aware 延伸至右键菜单）：
+     菜单从光标处「长出来」；180ms 标准层（指针驱动，永不进从容层）+ 强 ease-out。
+     关键帧单源 = components.css 的 aurora-menu-in（Aurora 全量 CSS 经 aurora-main 静态加载）。 */
+  transform-origin: top left;
+  animation: aurora-menu-in var(--mc-dur-fast) var(--mc-ease-out) both;
+}
+
+.aurora-canvas-ctxmenu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 12px;
+  background: transparent;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-primary);
+  font-size: var(--mc-font-sm);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--mc-dur-micro) ease-out;
+}
+
+.aurora-canvas-ctxmenu__item:hover:not(:disabled) {
+  background: var(--mc-bg-hover);
+}
+
+.aurora-canvas-ctxmenu__item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.aurora-canvas-ctxmenu__item svg {
+  color: var(--mc-icon-muted);
+  flex-shrink: 0;
+}
+
+.aurora-canvas-ctxmenu__sep {
+  height: 1px;
+  margin: 3px 6px;
+  background: var(--mc-border-subtle);
+}
+
+/* ============================================================
+ * 底部工具栏扩展（旧 BottomBar 全功能 · Aurora 设计）
+ * ========================================================== */
+.aurora-dock {
+  gap: 2px;
+  padding: 6px;
+  min-height: 44px;
+}
+
+.aurora-dock__group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.aurora-dock__divider {
+  width: 1px;
+  height: 20px;
+  margin: 0 3px;
+  background: var(--mc-border-subtle);
+  flex-shrink: 0;
+}
+
+.aurora-dock__item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-icon-muted);
+  font-size: var(--mc-font-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--mc-dur-micro) ease-out, color var(--mc-dur-micro) ease-out;
+}
+
+.aurora-dock__item:hover:not(:disabled) {
+  background: var(--mc-bg-hover);
+  color: var(--mc-icon-strong);
+}
+
+.aurora-dock__item--active {
+  background: var(--mc-accent-soft);
+  color: var(--mc-accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mc-accent) 35%, transparent);
+}
+
+.aurora-dock__item:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.aurora-dock__item-icon {
+  flex-shrink: 0;
+}
+
+/* 画笔当前颜色指示点 */
+.aurora-dock__pen-dot {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+/* 浮层遮罩（点击外部收起；拦截 pointer 防穿透误绘 · 层级带 dock mask 9998） */
+.aurora-dock__mask {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+}
+
+/* 浮层通用（画笔菜单 / 橡皮滑动条 / 更多菜单 · 层级带 dock float 9999，须高于 dock mask 且高于 toast） */
+.aurora-dock__float {
+  position: fixed;
+  z-index: 9999;
+  transform: translateX(-50%);
+  min-width: 220px;
+  padding: 12px 16px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-md);
+  box-shadow: var(--mc-shadow-popover);
+  user-select: none;
+  /* 从 dock 升起（macOS 动效方案 §3.5 延伸）：
+     用独立 `translate` 属性承载动画位移，与自带定位 `transform: translateX(-50%)`
+     （及 --more-menu 的 transform: none）各走各的通道，互不覆盖。 */
+  animation: aurora-dock-float-in var(--mc-dur-fast) var(--mc-ease-out) both;
+}
+
+@keyframes aurora-dock-float-in {
+  from {
+    opacity: 0;
+    translate: 0 8px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+.aurora-dock__more-menu {
+  transform: none;
+  min-width: 172px;
+}
+
+/* dock 更多菜单锚在按钮的右下角：原点改为 bottom right，才像从按钮长出来 */
+.aurora-canvas-ctxmenu.aurora-dock__more-menu {
+  transform-origin: bottom right;
+}
+
+.aurora-dock__menu-title {
+  font-size: var(--mc-font-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--mc-text-tertiary);
+  padding: 4px 8px 2px;
+}
+
+.aurora-dock__pen-colors {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 0 2px;
+}
+
+.aurora-dock__swatch {
+  position: relative;
+  height: 28px;
+  border-radius: var(--mc-radius-sm);
+  border: 1px solid rgba(0, 0, 0, 0.14);
+  cursor: pointer;
+  padding: 0;
+  transition: box-shadow var(--mc-dur-micro) ease-out;
+}
+
+.aurora-dock__swatch.is-on {
+  outline: 2px solid var(--mc-accent);
+  outline-offset: 1.5px;
+  box-shadow: var(--mc-shadow-panel);
+}
+
+.aurora-dock__pen-widths {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.aurora-dock__width-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--mc-radius-sm);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: var(--mc-font-sm);
+  font-family: inherit;
+  color: var(--mc-text-primary);
+  text-align: left;
+}
+
+.aurora-dock__width-row:hover {
+  background: var(--mc-bg-hover);
+}
+
+.aurora-dock__width-row.is-on {
+  background: var(--mc-accent-soft);
+  border-color: var(--mc-accent);
+  color: var(--mc-accent);
+  font-weight: 600;
+}
+
+.aurora-dock__width-line {
+  width: 56px;
+  border-radius: 2px;
+  flex: 0 0 auto;
+}
+
+/* 橡皮「清空画笔笔迹」滑动条 */
+.aurora-dock__eraser-track {
+  position: relative;
+  height: 34px;
+  margin: 6px 2px 2px;
+  border-radius: var(--mc-radius-md);
+  background: var(--mc-bg-pressed);
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.aurora-dock__eraser-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: color-mix(in srgb, var(--mc-danger) 22%, transparent);
+  pointer-events: none;
+}
+
+.aurora-dock__eraser-thumb {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--mc-danger);
+  color: var(--mc-text-inverse);
+  box-shadow: var(--mc-shadow-panel);
+  pointer-events: none;
+}
+
+.aurora-dock__eraser-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+  pointer-events: none;
+}
+
+.aurora-dock__menu-title + .aurora-canvas-ctxmenu__item,
+.aurora-dock__menu-title + .aurora-canvas-ctxmenu__sep {
+  margin-top: 2px;
+}
+
+/* ── 所属知识库芯片（P1 白板 ↔ 知识库 反向关联）── */
+.aurora-canvas__owning {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--mc-border-subtle);
+  background: var(--mc-bg-content);
+}
+.aurora-canvas__owning-label {
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-tertiary);
+}
+.aurora-canvas__owning-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--mc-font-sm);
+  padding: 3px 12px;
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-bg-elevated, var(--mc-bg-content));
+  color: var(--mc-text-primary);
+  cursor: pointer;
+}
+.aurora-canvas__owning-chip:hover {
+  border-color: var(--mc-accent);
+  color: var(--mc-accent);
+}
+
+/* ── 插入笔记弹层（P1 白板串联：选库内/全部笔记 → 带 fileId 卡片）── */
+.aurora-ctop__export {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--mc-radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--mc-icon-muted);
+  cursor: pointer;
+  transition: background var(--mc-dur-micro) var(--mc-ease-out), color var(--mc-dur-micro) var(--mc-ease-out);
+}
+.aurora-ctop__export:hover {
+  background: var(--mc-bg-hover, rgba(255, 255, 255, 0.08));
+  color: var(--mc-text-primary);
+}

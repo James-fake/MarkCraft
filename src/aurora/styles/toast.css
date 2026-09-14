@@ -1,0 +1,78 @@
+/* =========================================================================
+ * Aurora Toast & Confirm 表面样式（Phase 1 外壳骨架）
+ * 全部走 --mc-* token（含兜底值），不与真实 components/ui 耦合。
+ * ====================================================================== */
+
+.aurora-toast-container {
+  position: fixed;
+  left: 50%;
+  bottom: 28px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 9990; /* 层级带 Toast：盖过模态遮罩/命令层，低于瞬态菜单 */
+  pointer-events: none;
+}
+
+.aurora-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 360px;
+  padding: 8px 16px;
+  border-radius: var(--mc-radius-md);
+  background: var(--mc-bg-elevated, #1b1f29);
+  border: 1px solid var(--mc-border-subtle, rgba(255, 255, 255, 0.1));
+  color: var(--mc-text-primary, #e7e9ee);
+  font-size: var(--mc-font-base);
+  line-height: 1.4;
+  box-shadow: var(--mc-shadow-popover, 0 8px 30px rgba(0, 0, 0, 0.4));
+  /* Sonner 式人格化慢速（macOS 动效方案 §3.3）：toast 慢是人格，420ms 从容层 */
+  animation: aurora-toast-in var(--mc-dur-slow) var(--mc-ease-out);
+  /* 出场走 transition（可中断、与入场同路径、出更快 180ms）；
+     ToastProvider 置 data-exiting 后反向离场，200ms 后真正卸载 */
+  transition: opacity var(--mc-dur-fast) ease, transform var(--mc-dur-fast) ease;
+}
+
+.aurora-toast[data-exiting='true'] {
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+}
+
+.aurora-toast__icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+}
+
+.aurora-toast--info .aurora-toast__icon {
+  color: var(--mc-accent);
+}
+.aurora-toast--success .aurora-toast__icon {
+  color: var(--mc-success);
+}
+.aurora-toast--error .aurora-toast__icon {
+  color: var(--mc-danger);
+}
+.aurora-toast--warning .aurora-toast__icon {
+  color: var(--mc-warning);
+}
+
+.aurora-toast__msg {
+  flex: 1 1 auto;
+}
+
+@keyframes aurora-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Confirm 内容样式已随 aurora ConfirmProvider 退役移除（㉚）：
+   共享 components/ui/ConfirmProvider 用 Modal description + footer，样式由 components.css 提供 */

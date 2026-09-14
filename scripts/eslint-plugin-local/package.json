@@ -1,0 +1,7 @@
+{
+  "name": "eslint-plugin-local",
+  "version": "0.0.0",
+  "private": true,
+  "description": "MarkCraft 本地 ESLint 规则（Batch D 反向依赖守卫等，项目自带，非第三方依赖）",
+  "main": "index.cjs"
+}

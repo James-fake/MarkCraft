@@ -1,0 +1,6 @@
+export { StylePanel } from './panels/StylePanel'
+export { ColorPanel } from './panels/ColorPanel'
+export { ContentPanel } from './panels/ContentPanel'
+export { FeaturesPanel } from './panels/FeaturesPanel'
+export { CssPanel } from './panels/CssPanel'
+export { ThemePanel } from './panels/ThemePanel'

@@ -1,0 +1,490 @@
+/* 日记面板（B 时间线流）样式 —— 两栏：左整屏编辑器 / 右常驻月历+浮窗+那年今日+每日一问
+ * 纪律：扁平暗色、发丝分隔、4/8/12 圆角、唯一 accent 收口；无玻璃、无渐变、无紫辉光、禁 emoji。
+ */
+
+.dv2-root {
+  height: 100%;
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+/* ============ 左栏：整屏编辑器 ============ */
+.dv2-editor-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.dv2-date-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 2px 16px;
+  flex: none;
+}
+.dv2-today-tag {
+  font-size: var(--mc-font-sm);
+  font-weight: 600;
+  color: var(--mc-accent-text);
+  background: color-mix(in srgb, var(--mc-accent) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mc-accent) 40%, transparent);
+  border-radius: var(--mc-radius-pill);
+  padding: 2px 8px;
+}
+.dv2-date-main {
+  font-size: var(--mc-font-lg);
+  font-weight: 700;
+  color: var(--mc-text-primary);
+  letter-spacing: 0.2px;
+}
+.dv2-date-year {
+  font-size: var(--mc-font-md);
+  color: var(--mc-text-tertiary);
+}
+.dv2-mood-btn {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--mc-font-base);
+  color: var(--mc-text-secondary);
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: background var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out);
+}
+.dv2-mood-btn:hover {
+  background: var(--mc-bg-pressed);
+  border-color: var(--mc-border-medium);
+  color: var(--mc-text-primary);
+}
+.dv2-link-btn {
+  font-size: var(--mc-font-base);
+  color: var(--mc-accent-text);
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+.dv2-link-btn:hover { text-decoration: underline; }
+
+/* 合并块：格式栏 + 编辑区为一个视觉单元 */
+.dv2-editor-block {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-md);
+  overflow: hidden;
+  box-sizing: border-box;
+  /* 与 .aurora-editor 同款重映射：内嵌的真实 TiptapEditor 用 --editor-* 旧变量驱动
+   * 书写区/边框/字体，日记面板不在 .aurora-editor 作用域内，故需在此显式重映射，
+   * 否则回落到 base.css 的全局旧默认值（--editor-bg:#0f172a 旧石板蓝），
+   * 与主编辑器（--editor-bg:var(--mc-bg-content) #101218）颜色不一致。 */
+  --editor-bg: var(--mc-bg-content);
+  --editor-text: var(--mc-text-primary);
+  --editor-border: var(--mc-border-subtle);
+  --editor-code-font-family: var(--mc-font-mono);
+  --button-primary: var(--mc-accent);
+}
+.dv2-editor-block .dv-format-bar {
+  flex: none;
+  border-bottom: 1px solid var(--mc-border-subtle);
+  border-radius: 0;
+  background: transparent;
+}
+.dv2-editor-block .tiptap-editor-wrapper {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.dv2-editor-block .ProseMirror {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  height: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+  color: var(--mc-text-primary);
+  font-size: var(--mc-font-md);
+  line-height: 1.7;
+}
+.dv2-editor-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--mc-border-subtle);
+  background: var(--mc-bg-content);
+}
+.dv2-toolbar__sep {
+  width: 1px;
+  height: 16px;
+  background: var(--mc-border-subtle);
+  margin: 0 2px;
+}
+.dv2-ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--mc-font-base);
+  color: var(--mc-text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--mc-radius-sm);
+  padding: 5px 8px;
+  cursor: pointer;
+  transition: background var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out);
+}
+.dv2-ghost-btn:hover {
+  background: var(--mc-bg-pressed);
+  color: var(--mc-text-primary);
+}
+.dv2-ghost-btn--danger:hover {
+  color: var(--mc-danger);
+  background: color-mix(in srgb, var(--mc-danger) 14%, transparent);
+}
+.dv2-save {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-tertiary);
+}
+.dv2-save .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mc-success);
+}
+.dv2-save.is-error { color: var(--mc-danger); }
+.dv2-save.is-error .dot { background: var(--mc-danger); }
+.dv2-wordcount {
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-tertiary);
+  letter-spacing: 0.2px;
+}
+
+/* 草稿态（当天/该日尚无日记，进入即空白可写） */
+.dv2-editor-block--draft {
+  border-style: dashed;
+  border-color: var(--mc-border-medium);
+}
+.dv2-draft-hint {
+  margin-left: 4px;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-tertiary);
+}
+
+/* ============ 右栏 ============ */
+.dv2-side-col {
+  width: 320px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: auto;
+  box-sizing: border-box;
+  padding-right: 2px;
+}
+
+/* 常驻 mini 月历 */
+.dv2-cal {
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-md);
+  padding: 12px;
+  box-sizing: border-box;
+}
+.dv2-cal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.dv2-cal__title { font-size: var(--mc-font-md); font-weight: 600; color: var(--mc-text-primary); }
+.dv2-cal__nav {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--mc-radius-sm);
+  border: 1px solid var(--mc-border-subtle);
+  background: var(--mc-bg-content);
+  color: var(--mc-text-secondary);
+  cursor: pointer;
+  font-size: var(--mc-font-md);
+  line-height: 1;
+}
+.dv2-cal__nav:hover { background: var(--mc-bg-pressed); color: var(--mc-text-primary); }
+.dv2-cal__week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: 4px;
+}
+.dv2-cal__wday {
+  text-align: center;
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+  padding: 2px 0;
+}
+.dv2-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+}
+.dv2-cal__cell {
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-secondary);
+  background: var(--mc-bg-content);
+  border: 1px solid transparent;
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+  transition: background var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out);
+}
+.dv2-cal__cell.is-blank { background: transparent; cursor: default; }
+.dv2-cal__grid .dv2-cal__cell:hover { background: var(--mc-bg-pressed); color: var(--mc-text-primary); }
+.dv2-cal__cell.is-heat-1 { background: color-mix(in srgb, var(--mc-accent) 14%, transparent); color: var(--mc-text-primary); }
+.dv2-cal__cell.is-heat-2 { background: color-mix(in srgb, var(--mc-accent) 26%, transparent); color: var(--mc-text-primary); }
+.dv2-cal__cell.is-heat-3 { background: color-mix(in srgb, var(--mc-accent) 40%, transparent); color: var(--mc-text-primary); }
+.dv2-cal__cell.is-heat-4 { background: color-mix(in srgb, var(--mc-accent) 56%, transparent); color: var(--mc-text-primary); }
+.dv2-cal__cell.is-heat-5 { background: color-mix(in srgb, var(--mc-accent) 72%, transparent); color: var(--mc-text-primary); }
+.dv2-cal__cell.is-today {
+  border-color: var(--mc-accent);
+  color: var(--mc-accent-text);
+}
+.dv2-cal__cell.is-focus {
+  background: var(--mc-bg-pressed);
+  border-color: var(--mc-border-medium);
+  color: var(--mc-text-primary);
+}
+
+/* 热力图图例（少 → 多） */
+.dv2-cal__legend {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+}
+.dv2-cal__legend-label { flex: none; }
+.dv2-cal__legend-grad {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex: 1;
+  justify-content: center;
+}
+.dv2-cal__legend-grad i {
+  flex: 1;
+  height: 12px;
+  border-radius: var(--mc-radius-sm);
+}
+
+/* 悬停浮窗：在流内、展开时把下方「那年今日/每日一问」平滑顶下 */
+.dv2-popover-wrap {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height var(--mc-dur-base) var(--mc-ease-out), opacity 0.2s ease, margin var(--mc-dur-base) var(--mc-ease-out);
+}
+.dv2-popover-wrap.is-open {
+  max-height: 220px;
+  opacity: 1;
+}
+.dv2-popover {
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-subtle);
+  border-left: 2px solid var(--mc-accent);
+  border-radius: var(--mc-radius-lg);
+  padding: 12px 16px;
+  box-sizing: border-box;
+}
+.dv2-popover__date { font-size: var(--mc-font-base); font-weight: 600; color: var(--mc-text-primary); }
+.dv2-popover__meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 6px;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-tertiary);
+}
+.dv2-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+.dv2-popover__excerpt {
+  margin-top: 8px;
+  font-size: var(--mc-font-sm);
+  line-height: 1.6;
+  color: var(--mc-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dv2-popover__view {
+  margin-top: 8px;
+  font-size: var(--mc-font-sm);
+  font-weight: 600;
+  color: var(--mc-accent-text);
+  background: none;
+  border: none;
+  padding: 2px 0;
+  cursor: pointer;
+}
+.dv2-popover__view:hover { text-decoration: underline; }
+.dv2-popover__empty {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-tertiary);
+}
+
+/* 那年今日 */
+.dv2-otd {
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-md);
+  padding: 12px 16px;
+  box-sizing: border-box;
+}
+.dv2-otd__title { font-size: var(--mc-font-sm); color: var(--mc-text-tertiary); margin-bottom: 6px; }
+.dv2-otd__excerpt {
+  font-size: var(--mc-font-base);
+  line-height: 1.6;
+  color: var(--mc-text-secondary);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dv2-otd__view {
+  margin-top: 8px;
+  font-size: var(--mc-font-sm);
+  font-weight: 600;
+  color: var(--mc-accent-text);
+  background: none;
+  border: none;
+  padding: 2px 0;
+  cursor: pointer;
+}
+.dv2-otd__view:hover { text-decoration: underline; }
+
+/* 每日一问 */
+.dv2-daily-q {
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-md);
+  padding: 12px 16px;
+  box-sizing: border-box;
+}
+.dv2-daily-q__label { font-size: var(--mc-font-sm); color: var(--mc-text-tertiary); margin-bottom: 6px; }
+.dv2-daily-q__text {
+  font-size: var(--mc-font-md);
+  line-height: 1.65;
+  color: var(--mc-text-primary);
+}
+.dv2-daily-q__switch {
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-secondary);
+  background: var(--mc-bg-content);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: background var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out);
+}
+.dv2-daily-q__switch:hover {
+  background: var(--mc-bg-pressed);
+  color: var(--mc-text-primary);
+}
+
+/* ============ 轻量格式工具栏（保留） ============ */
+.dv-format-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 6px 12px;
+  background: var(--mc-bg-elevated);
+  border-radius: var(--mc-radius-md);
+  border: 1px solid var(--mc-border-subtle);
+}
+.dv-format-bar__group {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-right: 4px;
+}
+.dv-format-bar__group:not(:last-child)::after {
+  content: '';
+  width: 1px;
+  height: 18px;
+  background: var(--mc-border-subtle);
+  margin-left: 4px;
+}
+.dv-format-bar__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 28px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: var(--mc-radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--mc-text-secondary);
+  cursor: pointer;
+  transition: background var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out);
+}
+.dv-format-bar__btn:hover { background: var(--mc-bg-pressed); color: var(--mc-text-primary); }
+.dv-format-bar__btn.is-active { background: color-mix(in srgb, var(--mc-accent) 16%, transparent); color: var(--mc-accent-text); }
+.dv-format-bar__icon { display: inline-flex; }
+.dv-format-bar__badge {
+  font-size: var(--mc-font-xs);
+  font-weight: 600;
+  color: var(--mc-accent-text);
+}
+
+/* ============ 心情选择器内容样式（宿主 = 共享 .aurora-modal，见 DiaryPanel） ============ */
+.dv-mood-picker__category-title { font-size: var(--mc-font-sm); font-weight: 600; margin: 12px 0 6px; }
+.dv-mood-picker__grid { display: flex; flex-wrap: wrap; gap: 6px; }
+.dv-mood-picker__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-bg-content);
+  border: 1px solid var(--mc-border-subtle);
+  color: var(--mc-text-secondary);
+  cursor: pointer;
+  font-size: var(--mc-font-base);
+}
+.dv-mood-picker__item.is-selected { border-color: var(--mc-accent); color: var(--mc-accent-text); }

@@ -1,0 +1,958 @@
+import { toolbar, toolbarAria } from './toolbar'
+import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
+import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
+import { blogStudio, blogModal } from './blog'
+import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages } from './common'
+import { frontMatter, settings } from './settings'
+import { lint } from './lint'
+import { outline, footnote } from './outline'
+import { saveAs, optimizeImages } from './export'
+
+export type Language = 'zh' | 'en'
+
+export interface Translations {
+  toolbar: {
+    undo: string
+    redo: string
+    bold: string
+    italic: string
+    underline: string
+    strikethrough: string
+    insertTable: string
+    inlineCode: string
+    highlight: string
+    heading: string
+    list: string
+    blockquote: string
+    horizontalLine: string
+    link: string
+    footnote: string
+    wikilink: string
+    referenceTemplate: string
+    relatedNotes: string
+    backindex: string
+    todayLink: string
+    backlinks: string
+    inlineMath: string
+    blockMath: string
+    codeBlock: string
+    emoji: string
+    mindmap: string
+    uploadImage: string
+    optimizeImage: string
+    searchReplace: string
+    openFile: string
+    saveAs: string
+    frontMatter: string
+    closePreview: string
+    openPreview: string
+    focusMode: string
+    typewriterMode: string
+    autocomplete: string
+    linkText: string
+    plainText: string
+    print: string
+    subscript: string
+    superscript: string
+    toc: string
+    useTemplate: string
+  }
+  editor: {
+    focusMode: string
+    typewriterOn: string
+    typewriterOff: string
+    exitFocus: string
+    wordCount: string
+    charCount: string
+    lineCount: string
+    readingTime: string
+    readingTimeUnit: string
+    textMode: string
+    standardMode: string
+    switchToStandard: string
+    switchToText: string
+    placeholder: string
+    unsupportedFileFormat: string
+    fileReadError: string
+    imageInsertError: string
+    unsupportedImageFormat: string
+    imageInsertSuccess: string
+    imageReadError: string
+    largeImageTitle: string
+    largeImageMessage: string
+    largeImageAdvice: string
+    imageSizeExceeded: string
+    cancel: string
+    insertAsBase64: string
+  }
+  editorMode: {
+    source: string
+    wysiwyg: string
+    split: string
+  }
+  preview: {
+    copyCode: string
+    expandCode: string
+    expandAll: string
+    lines: string
+    diagramRenderError: string
+  }
+  sidebar: {
+    createFolder: string
+    folderNamePlaceholder: string
+    newFolder: string
+    searchPlaceholder: string
+    collapseSidebar: string
+    expandFileList: string
+  }
+  welcome: {
+    subtitle: string
+    audienceTitle: string
+    audienceWriter: string
+    audienceWriterDesc: string
+    audienceBlogger: string
+    audienceBloggerDesc: string
+    audienceStudent: string
+    audienceStudentDesc: string
+    createFile: string
+    createFileDesc: string
+    blogStudio: string
+    blogStudioDesc: string
+    hideSidebar: string
+    showSidebar: string
+    hideSidebarDesc: string
+    showSidebarDesc: string
+    lightMode: string
+    darkMode: string
+    lightModeDesc: string
+    darkModeDesc: string
+    innovation: string
+    selectFeature: string
+    switchToEnDesc: string
+    switchToZhDesc: string
+    recentFiles: string
+    noRecentFiles: string
+    templateLibrary: string
+    templateLibraryDesc: string
+    browseSample: string
+    browseSampleDesc: string
+    firstRun: string
+    firstRunHint: string
+    migrateTitle: string
+    migrateDesc: string
+    migrateObsidian: string
+    migrateObsidianDesc: string
+    migrateNotion: string
+    migrateNotionDesc: string
+    migrateSelectFile: string
+    migrateSelectFileHint: string
+    migrateImporting: string
+    migrateDone: string
+    migrateFailed: string
+    migrateClose: string
+    migrateAgain: string
+    migrateFolderDefault: string
+  }
+  searchReplace: {
+    searchPlaceholder: string
+    replacePlaceholder: string
+    closeSearch: string
+    previous: string
+    next: string
+    replace: string
+    replaceAll: string
+    replaceSuccess: string
+    replaceAllSuccess: string
+    searchInSelection: string
+  }
+  table: {
+    insertTable: string
+    rows: string
+    cols: string
+    alignment: string
+    leftAlign: string
+    centerAlign: string
+    rightAlign: string
+    preview: string
+    header: string
+    content: string
+    quickInsert: string
+    advancedEditor: string
+    tableEditor: string
+    addRow: string
+    addCol: string
+    insertRow: string
+    deleteRow: string
+    insertCol: string
+    deleteCol: string
+    markdownPreview: string
+    insertTableBtn: string
+    minRowAlert: string
+    minColAlert: string
+    emptyTableAlert: string
+    cancel: string
+    mergeCells: string
+    splitCell: string
+    deleteTable: string
+  }
+  outline: {
+    title: string
+    expand: string
+    collapse: string
+    expandAll: string
+    collapseAll: string
+    layers: string
+    noHeadings: string
+    addHeadingTip: string
+  }
+  footnote: {
+    title: string
+    expand: string
+    collapse: string
+    noFootnotes: string
+    addFootnoteTip: string
+  }
+  frontMatter: {
+    title: string
+    close: string
+    articleTitle: string
+    articleTitlePlaceholder: string
+    date: string
+    tags: string
+    tagsPlaceholder: string
+    category: string
+    categoryPlaceholder: string
+    description: string
+    descriptionPlaceholder: string
+    author: string
+    authorPlaceholder: string
+    cancel: string
+    apply: string
+    coverImage: string
+    draft: string
+    advancedSettings: string
+    slug: string
+    slugPlaceholder: string
+    layout: string
+    layoutPost: string
+    layoutPage: string
+    permalink: string
+    permalinkPlaceholder: string
+    updated: string
+    excerpt: string
+    excerptPlaceholder: string
+  }
+  createFile: {
+    defaultName: string
+    rootFolder: string
+    fileName: string
+    folderName: string
+    selectFolder: string
+    create: string
+    cancel: string
+  }
+  lint: {
+    issueList: string
+    autoFix: string
+    unclosedCodeBlock: string
+    unclosedCodeBlockFix: string
+    incompleteLink: string
+    incompleteLinkFix: string
+    emptyLinkText: string
+    emptyLinkTextFix: string
+    emptyLinkUrl: string
+    emptyLinkUrlFix: string
+    possibleIncompleteLink: string
+    possibleIncompleteLinkFix: string
+    headingLevelSkip: string
+    headingLevelSkipFix: string
+    missingSpaceAfterHash: string
+    missingSpaceAfterHashFix: string
+    emptyHeading: string
+    emptyHeadingFix: string
+    missingSpaceAfterListMarker: string
+    missingSpaceAfterListMarkerFix: string
+    missingSpaceAfterOrderedList: string
+    missingSpaceAfterOrderedListFix: string
+    mixedIndentation: string
+    mixedIndentationFix: string
+    unclosedInlineCode: string
+    unclosedInlineCodeFix: string
+    incompleteImage: string
+    incompleteImageFix: string
+    missingImageAlt: string
+    missingImageAltFix: string
+    mixedHorizontalRule: string
+    mixedHorizontalRuleFix: string
+  }
+  codeLanguages: {
+    plainText: string
+  }
+  app: {
+    collapseFileList: string
+    expandFileList: string
+    switchToEnDesc: string
+    switchToZhDesc: string
+  }
+  fileTreeNode: {
+    newFile: string
+    newFolder: string
+    rename: string
+    renamePlaceholder: string
+    delete: string
+    confirmDelete: string
+    confirmDeleteMessage: string
+    folderDeleteWarning: string
+    cancel: string
+    createNewFolder: string
+    folderNamePlaceholder: string
+    newFolderDefault: string
+    copyLink: string
+  }
+  blogStudio: {
+    subtitle: string
+    docsCount: string
+    words: string
+    styleTab: string
+    colorTab: string
+    contentTab: string
+    featuresTab: string
+    blogStyle: string
+    themeMode: string
+    lightTheme: string
+    darkTheme: string
+    fontStyle: string
+    serif: string
+    sansSerif: string
+    monospace: string
+    colorScheme: string
+    warmGold: string
+    ocean: string
+    forest: string
+    rose: string
+    violet: string
+    currentStylePreview: string
+    siteTitle: string
+    siteDescription: string
+    author: string
+    language: string
+    docList: string
+    noMarkdownDocs: string
+    selected: string
+    selectAll: string
+    deselectAll: string
+    generateBlog: string
+    generating: string
+    downloadFolder: string
+    downloading: string
+    downloadSingleFile: string
+    projectStats: string
+    docCount: string
+    totalWords: string
+    style: string
+    generateResult: string
+    files: string
+    noSelectedFiles: string
+    generatingPreview: string
+    desktop: string
+    tablet: string
+    mobile: string
+    magazine: string
+    minimal: string
+    classic: string
+    inkWash: string
+    inkWashDesc: string
+    terminal: string
+    newspaper: string
+    glassmorphism: string
+    bento: string
+    narrative: string
+    generateFailed: string
+    downloadFailed: string
+    unknownError: string
+    blogPreview: string
+    customCss: string
+    customCssPlaceholder: string
+    clearCustomCss: string
+    presetNeonGlow: string
+    presetWideLayout: string
+    presetBigTitle: string
+    presetCardBorder: string
+    presetNoDecoration: string
+    presetSerifBody: string
+    presetLargerText: string
+    presetCompactList: string
+    presetDarkOverlay: string
+    presetRoundedTags: string
+    articleFeatures: string
+    viewsCount: string
+    applause: string
+    reward: string
+    enabled: string
+    enableReward: string
+    rewardTitle: string
+    wechatQrcode: string
+    alipayQrcode: string
+    aboutPage: string
+    enableAbout: string
+    avatarUrl: string
+    bio: string
+    skills: string
+    contact: string
+    friendLinks: string
+    addFriend: string
+    friendName: string
+    friendUrl: string
+    friendAvatar: string
+    confirm: string
+    cancel: string
+    noFriendLinks: string
+    seriesArticles: string
+    addSeries: string
+    seriesName: string
+    seriesSlug: string
+    seriesDescription: string
+    noSeries: string
+    configImportExport: string
+    exportConfig: string
+    importConfig: string
+    importSuccess: string
+    importFailed: string
+    invalidConfig: string
+    publishAsWork: string
+    publishAsWorkTitle: string
+    publishAsWorkSub: string
+    publishAsWorkHint: string
+    loadSamplePost: string
+    templateQuickStart: string
+    templatePersonal: string
+    templatePortfolio: string
+    templateTech: string
+    publishFlowHint: string
+  }
+  sidebarExtra: {
+    files: string
+    newFileTitle: string
+    newFolderTitle: string
+    importFile: string
+    searchResults: string
+    noMatchFound: string
+    blogStudio: string
+    collapsePanel: string
+    batchMode: string
+    exitBatchMode: string
+    selectedCount: string
+    cancel: string
+    batchDelete: string
+    batchDeleteConfirm: string
+    batchDeleteMessage: string
+    fileTreeEmptyTitle: string
+    fileTreeEmptyDesc: string
+    fileTreeEmptyCta: string
+    searchEmptyTitle: string
+    searchEmptyDesc: string
+    searchEmptyClear: string
+    canvasSectionTitle: string
+    noCanvasTitle: string
+    noCanvasDesc: string
+    newCanvasCta: string
+  }
+  createFileExtra: {
+    title: string
+    subtitle: string
+    fileNameLabel: string
+    fileNamePlaceholder: string
+    targetFolder: string
+    noFolderAvailable: string
+    willCreateTo: string
+    notSelected: string
+    createFileBtn: string
+  }
+  previewExtra: {
+    deleteImage: string
+    copied: string
+    copy: string
+    failed: string
+    collapse: string
+    collapseCode: string
+    expand: string
+    expandCode: string
+    exitEditMode: string
+    enterEditMode: string
+    editing: string
+    edit: string
+    switchToLight: string
+    switchToDark: string
+  }
+  editorExtra: {
+    unknownError: string
+    typewriterModeTitle: string
+    exitFocusTitle: string
+    imageSizeInfo: string
+    imagePrefix: string
+  }
+  toolbarAria: {
+    undo: string
+    redo: string
+    bold: string
+    italic: string
+    inlineCode: string
+    heading: string
+    list: string
+    blockquote: string
+    horizontalLine: string
+    link: string
+    footnote: string
+    inlineMath: string
+    blockMath: string
+    codeBlock: string
+    emoji: string
+    mindmap: string
+    uploadImage: string
+    optimizeImage: string
+    searchReplace: string
+    openFile: string
+    saveAs: string
+    frontMatter: string
+    closePreview: string
+    openPreview: string
+    subscript: string
+    superscript: string
+    toc: string
+  }
+  quickOpen: {
+    searchPlaceholder: string
+    noMatchFound: string
+    recentSearches: string
+    recentOpen: string
+    opened: string
+    navigate: string
+    open: string
+    escClose: string
+    fileCount: string
+  }
+  globalSearch: {
+    searchPlaceholder: string
+    matchesCount: string
+    noMatchFound: string
+    searchHint: string
+    matchCount: string
+    navigate: string
+    openFile: string
+    escClose: string
+    fileCount: string
+  }
+  tabBar: {
+    closeTab: string
+    closeAll: string
+    closeOtherTabs: string
+    closeTabsToRight: string
+  }
+  blogModal: {
+    generateBlog: string
+    siteTitle: string
+    siteDescription: string
+    author: string
+    siteUrl: string
+    theme: string
+    lightTheme: string
+    darkTheme: string
+    language: string
+    filePreview: string
+    fileCount: string
+    published: string
+    fileStats: string
+    noMarkdownFiles: string
+    draft: string
+    generating: string
+    downloadFolder: string
+    downloading: string
+    downloadSingle: string
+    browserNotSupported: string
+    generateResult: string
+    totalSize: string
+    preview: string
+    close: string
+    generateSuccess: string
+    generateFailed: string
+    downloadSuccess: string
+    downloadFailed: string
+    singleDownloadSuccess: string
+    singleDownloadFailed: string
+    unknownError: string
+    customCss: string
+  }
+  inputModal: {
+    cancel: string
+    confirm: string
+  }
+  tableEditorExtra: {
+    headerDefault: string
+    contentDefault: string
+    addRowShort: string
+    removeRowShort: string
+    addColShort: string
+    removeColShort: string
+    sortColumn: string
+  }
+  listMenu: {
+    unorderedList: string
+    orderedList: string
+    taskList: string
+    indent: string
+    outdent: string
+  }
+  optimizeImages: {
+    title: string
+    browserNotSupported: string
+    noBase64Images: string
+    image: string
+    alt: string
+    empty: string
+    saved: string
+    save: string
+    saving: string
+    savedDone: string
+    retry: string
+    totalImages: string
+    saveAll: string
+    replacePaths: string
+    close: string
+    browserNotSupportedMsg: string
+    saveFailed: string
+    noSavedImages: string
+    replacedCount: string
+  }
+  saveAs: {
+    title: string
+    fileName: string
+    fileNamePlaceholder: string
+    saveFormat: string
+    exportStyle: string
+    manageStyles: string
+    styleName: string
+    styleNamePlaceholder: string
+    styleCss: string
+    styleCssPlaceholder: string
+    addStyle: string
+    editStyle: string
+    deleteStyle: string
+    deleteStyleConfirm: string
+    importCss: string
+    builtInPresets: string
+    customStyles: string
+    styleEditor: string
+    saveStyle: string
+    styleApplied: string
+    saveLocation: string
+    selectFile: string
+    selectFolder: string
+    selectFullPath: string
+    selectFolderPath: string
+    willSaveAs: string
+    browserNotSupported: string
+    cancel: string
+    saving: string
+    save: string
+    browserDefaultLocation: string
+    notSelected: string
+    selectFailed: string
+    selectFolderFailed: string
+    enterFileName: string
+    savedAs: string
+    savedTo: string
+    downloadedAs: string
+    saveFailed: string
+    popupBlocked: string
+    close: string
+    imageScale: string
+    pdfOptions: string
+    includeToc: string
+    includePageNumbers: string
+    headerText: string
+    headerTextPlaceholder: string
+    footerText: string
+    footerTextPlaceholder: string
+    htmlOptions: string
+    docTitle: string
+    titlePlaceholder: string
+    author: string
+    authorPlaceholder: string
+    date: string
+    datePlaceholder: string
+  }
+  mathSymbols: {
+    inlineFormula: string
+    blockFormula: string
+    symbols: string
+    templates: string
+    blockOnly: string
+    blockOnlyShort: string
+    insertEmptyInline: string
+    insertEmptyBlock: string
+    inlineShortcut: string
+    blockShortcut: string
+    greekLetters: string
+    operators: string
+    relations: string
+    sets: string
+    logic: string
+    arrows: string
+    bigOps: string
+    accents: string
+    tmplFraction: string
+    tmplSqrt: string
+    tmplNthRoot: string
+    tmplSuperscript: string
+    tmplSubscript: string
+    tmplSum: string
+    tmplIntegral: string
+    tmplLimit: string
+    tmplMatrix: string
+    tmplDeterminant: string
+    tmplPiecewise: string
+    tmplSystem: string
+  }
+  inlineMathPreview: {
+    blockFormula: string
+    inlineFormula: string
+    syntaxError: string
+  }
+  mathPopover: {
+    inlineFormula: string
+    blockFormula: string
+    symbols: string
+    templates: string
+    greekLetters: string
+    operators: string
+    relations: string
+    setsLogic: string
+    arrows: string
+    integral: string
+    summation: string
+    product: string
+    squareRoot: string
+    infinity: string
+    partial: string
+    gradient: string
+    multiply: string
+    divide: string
+    plusMinus: string
+    dotProduct: string
+    fraction: string
+    notEqual: string
+    lessEqual: string
+    greaterEqual: string
+    approx: string
+    equivalent: string
+    similar: string
+    proportional: string
+    muchLess: string
+    muchGreater: string
+    perpendicular: string
+    parallel: string
+    elementOf: string
+    notElementOf: string
+    union: string
+    intersection: string
+    subset: string
+    properSubset: string
+    forAll: string
+    exists: string
+    logicalAnd: string
+    logicalOr: string
+    logicalNot: string
+    emptySet: string
+    rightArrow: string
+    doubleRightArrow: string
+    leftArrow: string
+    doubleLeftArrow: string
+    leftRightArrow: string
+    equivalence: string
+    mapsTo: string
+    upArrow: string
+    downArrow: string
+    upRightArrow: string
+    downRightArrow: string
+    implies: string
+    nthRoot: string
+    superscript: string
+    subscript: string
+    limit: string
+    matrix: string
+    determinant: string
+    piecewise: string
+    system: string
+    quickInsertInline: string
+    quickInsertBlock: string
+  }
+  scrollButtons: {
+    scrollToTop: string
+    scrollToBottom: string
+  }
+  defaultDocs: {
+    rootFolder: string
+    myNotes: string
+    userManual: string
+    markdownTutorial: string
+  }
+  errorBoundary: {
+    appError: string
+    fileManagerError: string
+    wysiwygError: string
+    sourceError: string
+    previewError: string
+    outlineError: string
+    retry: string
+  }
+  imageCache: {
+    title: string
+    totalSize: string
+    orphanCount: string
+    items: string
+    orphanedImages: string
+    referencedImages: string
+    moreCount: string
+    noCache: string
+    close: string
+    deleteSelected: string
+    cleanAllOrphans: string
+    confirmDelete: string
+    cancel: string
+    confirm: string
+  }
+  settings: {
+    title: string
+    close: string
+    resetToDefaults: string
+    tabEditor: string
+    tabAppearance: string
+    tabShortcuts: string
+    tabImage: string
+    tabExport: string
+    tabData: string
+    tabAdvanced: string
+    editorMode: string
+    editorModeSource: string
+    editorModeWysiwyg: string
+    editorModePreview: string
+    autoSaveInterval: string
+    spellCheck: string
+    smartPunctuation: string
+    autocomplete: string
+    focusMode: string
+    typewriterMode: string
+    livePreview: string
+    codeBlockDefaultLang: string
+    codeBlockDefaultLangPlaceholder: string
+    paragraphIndent: string
+    editorMaxWidth: string
+    tabSize: string
+    autoPairBrackets: string
+    autoPairQuotes: string
+    autoPairMarkdown: string
+    defaultSidebarVisible: string
+    theme: string
+    density: string
+    densityCompact: string
+    densityComfortable: string
+    themeLight: string
+    themeDark: string
+    customThemes: string
+    deleteTheme: string
+    themeImport: string
+    themeImportNamePlaceholder: string
+    themeImportConfirm: string
+    themeImportCancel: string
+    fontFamily: string
+    fontSize: string
+    lineHeight: string
+    codeFontFamily: string
+    codeTheme: string
+    sidebarWidth: string
+    shortcutEdit: string
+    shortcutReset: string
+    shortcutResetAll: string
+    shortcutConflict: string
+    shortcutNotEditable: string
+    imageHostType: string
+    imageHostNone: string
+    imageHostPicgo: string
+    imageHostCustom: string
+    useRelativeImagePath: string
+    imageHostNote: string
+    defaultExportFormat: string
+    defaultExportStyle: string
+  }
+}
+
+const zh: Translations = {
+  toolbar,
+  editor,
+  preview,
+  sidebar,
+  welcome,
+  searchReplace,
+  table,
+  outline,
+  footnote,
+  frontMatter,
+  createFile,
+  lint,
+  codeLanguages,
+  app,
+  fileTreeNode,
+  blogStudio,
+  sidebarExtra,
+  createFileExtra,
+  previewExtra,
+  editorExtra,
+  toolbarAria,
+  quickOpen,
+  globalSearch,
+  tabBar,
+  blogModal,
+  inputModal,
+  tableEditorExtra,
+  listMenu,
+  optimizeImages,
+  saveAs,
+  mathSymbols,
+  inlineMathPreview,
+  mathPopover,
+  scrollButtons,
+  defaultDocs,
+  settings,
+  errorBoundary: {
+    appError: '应用渲染错误',
+    fileManagerError: '文件管理渲染错误',
+    wysiwygError: 'WYSIWYG 编辑器渲染错误',
+    sourceError: '源码编辑器渲染错误',
+    previewError: '预览渲染错误',
+    outlineError: '大纲渲染错误',
+    retry: '重试',
+  },
+  editorMode: {
+    source: '源码',
+    wysiwyg: '所见即所得',
+    split: '预览',
+  },
+  imageCache: {
+    title: '图片缓存管理',
+    totalSize: '总缓存大小',
+    orphanCount: '未引用图片',
+    items: '个',
+    orphanedImages: '未引用的图片',
+    referencedImages: '引用中的图片',
+    moreCount: '...还有 {count} 个',
+    noCache: '暂无图片缓存',
+    close: '关闭',
+    deleteSelected: '删除选中 ({count})',
+    cleanAllOrphans: '清理所有未引用图片 ({count})',
+    confirmDelete: '确定要删除这些未引用的图片吗？此操作不可撤销。',
+    cancel: '取消',
+    confirm: '确认删除',
+  },
+}
+
+export { zh }

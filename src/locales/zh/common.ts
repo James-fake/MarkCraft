@@ -1,0 +1,135 @@
+export const app = {
+  collapseFileList: '收起文件列表',
+  expandFileList: '展开文件列表',
+  switchToEnDesc: '切换到英文界面',
+  switchToZhDesc: '切换到中文界面',
+}
+
+export const welcome = {
+  subtitle: '本地优先的个人知识与写作发布平台——为注重数据自主的知识型写作者，把记、连、思、发收进一个不上云的工具',
+  audienceTitle: '你主要用 MarkCraft 来做些什么？',
+  audienceWriter: '知识型写作者',
+  audienceWriterDesc: '记笔记、连想法、沉淀个人知识库',
+  audienceBlogger: '独立博主 / 自媒体',
+  audienceBloggerDesc: '写作并发布成美观文章或站点',
+  audienceStudent: '学生 / 终身学习者',
+  audienceStudentDesc: '整理课程、日记与阅读笔记',
+  createFile: '创建新文件',
+  createFileDesc: '开启全新的创作旅程',
+  blogStudio: '博客工作室',
+  blogStudioDesc: '设计属于你的个人博客',
+  hideSidebar: '隐藏文件列表',
+  showSidebar: '显示文件列表',
+  hideSidebarDesc: '收起侧边栏',
+  showSidebarDesc: '展开文件列表开始创作',
+  lightMode: '浅色模式',
+  darkMode: '深色模式',
+  lightModeDesc: '切换到明亮的世界',
+  darkModeDesc: '沉浸在深色中',
+  innovation: '本地优先 · 知识 · 写作 · 发布',
+  selectFeature: '选择一个功能开始',
+  switchToEnDesc: '切换到英文界面',
+  switchToZhDesc: '切换到中文界面',
+  recentFiles: '最近文件',
+  noRecentFiles: '暂无最近文件',
+  templateLibrary: '模板库',
+  templateLibraryDesc: '从精选模板快速开始一篇文档',
+  browseSample: '浏览示例',
+  browseSampleDesc: '看看 MarkCraft 能产出什么',
+  firstRun: '首次使用',
+  firstRunHint: '已为你准备了示例笔记，先看看，或直接新建',
+  migrateTitle: '迁移你已有的笔记',
+  migrateDesc: '从 Obsidian 或 Notion 导入整个笔记库，保留 Markdown 与双链结构',
+  migrateObsidian: 'Obsidian Vault',
+  migrateObsidianDesc: '选择 .zip 导出包，保留双链 [[]] 与 frontmatter',
+  migrateNotion: 'Notion 导出',
+  migrateNotionDesc: '选择 .zip 导出包，自动转换为 Markdown',
+  migrateSelectFile: '选择导出包',
+  migrateSelectFileHint: '支持 .zip 格式',
+  migrateImporting: '正在导入…',
+  migrateDone: '已成功导入 {n} 篇笔记到「{folder}」',
+  migrateFailed: '导入失败：{msg}',
+  migrateClose: '完成',
+  migrateAgain: '再导入一个',
+  migrateFolderDefault: '导入',
+}
+
+export const preview = {
+  copyCode: '复制代码',
+  expandCode: '展开代码',
+  expandAll: '展开全部',
+  lines: '行',
+  diagramRenderError: '图表渲染失败',
+}
+
+export const previewExtra = {
+  deleteImage: '删除图片',
+  copied: '已复制',
+  copy: '复制',
+  failed: '失败',
+  collapse: '收起',
+  collapseCode: '收起代码',
+  expand: '展开',
+  expandCode: '展开代码',
+  exitEditMode: '退出编辑模式',
+  enterEditMode: '进入编辑模式',
+  editing: '编辑中',
+  edit: '编辑',
+  switchToLight: '切换到亮色主题',
+  switchToDark: '切换到暗色主题',
+}
+
+export const table = {
+  insertTable: '插入表格',
+  rows: '行数',
+  cols: '列数',
+  alignment: '对齐方式',
+  leftAlign: '左对齐',
+  centerAlign: '居中',
+  rightAlign: '右对齐',
+  preview: '预览',
+  header: '表头',
+  content: '内容',
+  quickInsert: '快速插入',
+  advancedEditor: '高级编辑器...',
+  tableEditor: '表格编辑器',
+  addRow: '+ 添加行',
+  addCol: '+ 添加列',
+  insertRow: '插入行',
+  deleteRow: '删除行',
+  insertCol: '插入列',
+  deleteCol: '删除列',
+  markdownPreview: 'Markdown预览:',
+  insertTableBtn: '插入表格',
+  minRowAlert: '至少需要保留一行！',
+  minColAlert: '至少需要保留一列！',
+  emptyTableAlert: '表格不能为空！',
+  cancel: '取消',
+  mergeCells: '合并单元格',
+  splitCell: '拆分单元格',
+  deleteTable: '删除表格',
+}
+
+export const tableEditorExtra = {
+  headerDefault: '表头',
+  contentDefault: '内容',
+  addRowShort: '+行',
+  removeRowShort: '-行',
+  addColShort: '+列',
+  removeColShort: '-列',
+  sortColumn: '排序此列',
+}
+
+export const inputModal = {
+  cancel: '取消',
+  confirm: '确认',
+}
+
+export const scrollButtons = {
+  scrollToTop: '滚动到顶部',
+  scrollToBottom: '滚动到底部',
+}
+
+export const codeLanguages = {
+  plainText: '纯文本',
+}

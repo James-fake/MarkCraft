@@ -1,0 +1,1294 @@
+/* Tiptap WYSIWYG 编辑器样式 */
+.tiptap-editor-wrapper {
+  height: 100%;
+  width: 100%;
+}
+
+/* EditorContent 外层容器撑满剩余空间并支持滚动 */
+.tiptap-editor-wrapper .tiptap-wrapper {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.tiptap-editor-wrapper .tiptap {
+  outline: none;
+  padding: 16px 24px;
+  min-height: 100%;
+  color: var(--editor-text);
+}
+
+.tiptap-editor-content {
+  padding: 0 24px;
+  font-family: var(--editor-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
+  font-size: var(--editor-font-size, 15px);
+  line-height: var(--editor-line-height, 1.7);
+}
+
+/* 阶段5：主工作区纵向节奏接入应用级密度体系。
+   字号/行距仍由用户设置（--editor-font-size / --editor-line-height）控制，此处仅调整呼吸感，
+   使编辑器在「舒适」密度下拥有更舒展的书写栏内边距，贴合桌面写作软件观感。 */
+:root[data-density="comfortable"] .tiptap-editor-wrapper .tiptap {
+  padding: 22px 32px;
+}
+:root[data-density="comfortable"] .tiptap-editor-content {
+  padding: 0 32px;
+}
+:root[data-density="comfortable"] .preview-container {
+  padding: 22px 32px;
+}
+
+.tiptap-editor-wrapper .tiptap > *:first-child {
+  margin-top: 0;
+}
+
+.tiptap-editor-wrapper .tiptap h1 {
+  font-size: 2em;
+  font-weight: 700;
+  margin: 1em 0 0.5em;
+  line-height: 1.3;
+  border-bottom: 1px solid var(--editor-border);
+  padding-bottom: 0.3em;
+}
+
+.tiptap-editor-wrapper .tiptap h2 {
+  font-size: 1.5em;
+  font-weight: 600;
+  margin: 0.8em 0 0.4em;
+  line-height: 1.35;
+  border-bottom: 1px solid var(--editor-border);
+  padding-bottom: 0.25em;
+}
+
+.tiptap-editor-wrapper .tiptap h3 {
+  font-size: 1.25em;
+  font-weight: 600;
+  margin: 0.7em 0 0.3em;
+  line-height: 1.4;
+}
+
+.tiptap-editor-wrapper .tiptap h4 {
+  font-size: 1.1em;
+  font-weight: 600;
+  margin: 0.6em 0 0.3em;
+}
+
+.tiptap-editor-wrapper .tiptap h5,
+.tiptap-editor-wrapper .tiptap h6 {
+  font-size: 1em;
+  font-weight: 600;
+  margin: 0.5em 0 0.25em;
+}
+
+.tiptap-editor-wrapper .tiptap h6 {
+  opacity: 0.7;
+}
+
+.tiptap-editor-wrapper .tiptap p {
+  margin: 0.5em 0;
+}
+
+.tiptap-editor-wrapper .tiptap strong {
+  font-weight: 700;
+}
+
+.tiptap-editor-wrapper .tiptap em {
+  font-style: italic;
+}
+
+.tiptap-editor-wrapper .tiptap u {
+  text-decoration: underline;
+}
+
+.tiptap-editor-wrapper .tiptap s {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.tiptap-editor-wrapper .tiptap blockquote {
+  border-left: 4px solid var(--button-primary, #3b82f6);
+  padding: 0.5em 1em;
+  margin: 0.75em 0;
+  opacity: 0.85;
+  background: rgba(59, 130, 246, 0.05);
+  border-radius: 0 4px 4px 0;
+}
+
+.tiptap-editor-wrapper .tiptap ul {
+  list-style-type: disc;
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.tiptap-editor-wrapper .tiptap ol {
+  list-style-type: decimal;
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.tiptap-editor-wrapper .tiptap li {
+  margin: 0.2em 0;
+}
+
+.tiptap-editor-wrapper .tiptap li p {
+  margin: 0;
+}
+
+.tiptap-editor-wrapper .tiptap ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0.5em;
+}
+
+.tiptap-editor-wrapper .tiptap ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0.3em 0;
+}
+
+.tiptap-editor-wrapper .tiptap ul[data-type="taskList"] li label {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.tiptap-editor-wrapper .tiptap ul[data-type="taskList"] li label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--button-primary, #3b82f6);
+  cursor: pointer;
+}
+
+.tiptap-editor-wrapper .tiptap ul[data-type="taskList"] li > div {
+  flex: 1;
+}
+
+.tiptap-editor-wrapper .tiptap hr {
+  border: none;
+  border-top: 2px solid var(--editor-border);
+  margin: 1.5em 0;
+}
+
+.tiptap-editor-wrapper .tiptap a {
+  color: var(--link-color, #3b82f6);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.tiptap-editor-wrapper .tiptap a:hover {
+  opacity: 0.8;
+}
+
+.tiptap-editor-wrapper .tiptap img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--mc-radius-sm);
+  margin: 0.5em 0;
+}
+
+.tiptap-editor-wrapper .tiptap mark {
+  background-color: #fef08a;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+.tiptap-editor-wrapper .tiptap mark.mark-highlight {
+  background-color: #fef08a;
+  padding: 1px 3px;
+  border-radius: 2px;
+}
+
+[data-theme="dark"] .tiptap-editor-wrapper .tiptap mark.mark-highlight {
+  background-color: rgba(254, 240, 138, 0.3);
+}
+
+.tiptap-editor-wrapper .tiptap sub.subscript {
+  font-size: 0.75em;
+}
+
+.tiptap-editor-wrapper .tiptap sup.superscript {
+  font-size: 0.75em;
+}
+
+[data-theme="dark"] .tiptap-editor-wrapper .tiptap mark {
+  background-color: rgba(254, 240, 138, 0.3);
+}
+
+.tiptap-editor-wrapper .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--editor-text);
+  opacity: 0.3;
+  pointer-events: none;
+  height: 0;
+}
+
+.tiptap-editor-wrapper .tiptap .tiptap-code-block {
+  background: var(--code-block-bg);
+  border: 1px solid var(--editor-border);
+  border-radius: 8px;
+  margin: 0.75em 0;
+  overflow: hidden;
+  color: var(--code-block-text);
+}
+
+.tiptap-editor-wrapper .tiptap .tiptap-code-block pre {
+  margin: 0;
+  padding: 14px 18px;
+  overflow-x: auto;
+  background: transparent;
+}
+
+.tiptap-editor-wrapper .tiptap .tiptap-code-block code {
+  background: none;
+  padding: 0;
+  font-size: 0.85em;
+  line-height: 1.65;
+  color: inherit;
+}
+
+.tiptap-editor-wrapper .tiptap code {
+  background: var(--code-bg, rgba(127, 127, 127, 0.1));
+  border-radius: var(--mc-radius-sm);
+  padding: 0.15em 0.4em;
+  font-size: 0.88em;
+  font-family: var(--editor-code-font-family, Consolas, Monaco, 'Fira Code', monospace);
+  color: #e96900;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .tiptap code {
+  color: #d73a49;
+}
+
+.tiptap-editor-wrapper .tiptap pre code {
+  color: inherit;
+  background: none;
+  padding: 0;
+  font-size: 0.85em;
+}
+
+.tiptap-editor-wrapper .hljs-doctag,
+.tiptap-editor-wrapper .hljs-keyword,
+.tiptap-editor-wrapper .hljs-meta .hljs-keyword,
+.tiptap-editor-wrapper .hljs-template-tag,
+.tiptap-editor-wrapper .hljs-template-variable,
+.tiptap-editor-wrapper .hljs-type,
+.tiptap-editor-wrapper .hljs-variable.language_ {
+  color: #ff7b72;
+}
+
+.tiptap-editor-wrapper .hljs-title,
+.tiptap-editor-wrapper .hljs-title.class_,
+.tiptap-editor-wrapper .hljs-title.class_.inherited__,
+.tiptap-editor-wrapper .hljs-title.function_ {
+  color: #d2a8ff;
+}
+
+.tiptap-editor-wrapper .hljs-attr,
+.tiptap-editor-wrapper .hljs-attribute,
+.tiptap-editor-wrapper .hljs-literal,
+.tiptap-editor-wrapper .hljs-meta,
+.tiptap-editor-wrapper .hljs-number,
+.tiptap-editor-wrapper .hljs-operator,
+.tiptap-editor-wrapper .hljs-variable,
+.tiptap-editor-wrapper .hljs-selector-attr,
+.tiptap-editor-wrapper .hljs-selector-class,
+.tiptap-editor-wrapper .hljs-selector-id {
+  color: #79c0ff;
+}
+
+.tiptap-editor-wrapper .hljs-regexp,
+.tiptap-editor-wrapper .hljs-string,
+.tiptap-editor-wrapper .hljs-meta .hljs-string {
+  color: #a5d6ff;
+}
+
+.tiptap-editor-wrapper .hljs-built_in,
+.tiptap-editor-wrapper .hljs-symbol {
+  color: #ffa657;
+}
+
+.tiptap-editor-wrapper .hljs-comment,
+.tiptap-editor-wrapper .hljs-code,
+.tiptap-editor-wrapper .hljs-formula {
+  color: #8b949e;
+}
+
+.tiptap-editor-wrapper .hljs-name,
+.tiptap-editor-wrapper .hljs-quote,
+.tiptap-editor-wrapper .hljs-selector-tag,
+.tiptap-editor-wrapper .hljs-selector-pseudo {
+  color: #7ee787;
+}
+
+.tiptap-editor-wrapper .hljs-subst {
+  color: #c9d1d9;
+}
+
+.tiptap-editor-wrapper .hljs-section {
+  color: #1f6feb;
+  font-weight: bold;
+}
+
+.tiptap-editor-wrapper .hljs-bullet {
+  color: #f2cc60;
+}
+
+.tiptap-editor-wrapper .hljs-emphasis {
+  color: #c9d1d9;
+  font-style: italic;
+}
+
+.tiptap-editor-wrapper .hljs-strong {
+  color: #c9d1d9;
+  font-weight: bold;
+}
+
+.tiptap-editor-wrapper .hljs-addition {
+  color: #aff5b4;
+  background-color: #033a16;
+}
+
+.tiptap-editor-wrapper .hljs-deletion {
+  color: #ffdcd7;
+  background-color: #67060c;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .hljs-doctag,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-keyword,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-meta .hljs-keyword,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-template-tag,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-template-variable,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-type,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-variable.language_ {
+  color: #d73a49;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .hljs-title,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-title.class_,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-title.class_.inherited__,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-title.function_ {
+  color: #6f42c1;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .hljs-attr,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-attribute,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-literal,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-meta,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-number,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-operator,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-variable,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-selector-attr,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-selector-class,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-selector-id {
+  color: #005cc5;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .hljs-regexp,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-string,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-meta .hljs-string {
+  color: #032f62;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .hljs-built_in,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-symbol {
+  color: #e36209;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .hljs-comment,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-code,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-formula {
+  color: #6a737d;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .hljs-name,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-quote,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-selector-tag,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-selector-pseudo {
+  color: #22863a;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .hljs-subst {
+  color: #24292e;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .hljs-section {
+  color: #005cc5;
+  font-weight: bold;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .hljs-bullet {
+  color: #e36209;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .hljs-emphasis {
+  color: #24292e;
+  font-style: italic;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .hljs-strong {
+  color: #24292e;
+  font-weight: bold;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .hljs-addition {
+  color: #22863a;
+  background-color: #f0fff4;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .hljs-deletion {
+  color: #b31d28;
+  background-color: #ffeef0;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .hljs-char.escape_,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-link,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-params,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-property,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-punctuation,
+[data-theme="light"] .tiptap-editor-wrapper .hljs-tag {
+  color: #24292e;
+}
+
+.tiptap-editor-wrapper .tiptap .tiptap-math-inline {
+  background: rgba(127, 127, 127, 0.08);
+  border-radius: var(--mc-radius-sm);
+  padding: 1px 4px;
+  font-family: 'Fira Code', Consolas, monospace;
+  font-size: 0.9em;
+  color: #e96900;
+  cursor: default;
+}
+
+.tiptap-editor-wrapper .tiptap .tiptap-math-inline-katex .katex {
+  font-size: 1em;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .tiptap .tiptap-math-inline {
+  color: #d73a49;
+  background: rgba(127, 127, 127, 0.06);
+}
+
+.tiptap-editor-wrapper .tiptap-mermaid-block svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.tiptap-editor-wrapper .tiptap-mermaid-block [id^="mermaid-tiptap-"] {
+  width: 100%;
+}
+
+.tiptap-editor-wrapper .tiptap sup[data-type="footnoteReference"] {
+  color: var(--link-color, #3b82f6);
+  font-size: 0.75em;
+  vertical-align: super;
+  line-height: 0;
+  cursor: pointer;
+  border-radius: 2px;
+  padding: 0 2px;
+  transition: background-color 0.15s;
+}
+
+.tiptap-editor-wrapper .tiptap sup[data-type="footnoteReference"]:hover {
+  background-color: rgba(59, 130, 246, 0.08);
+}
+
+.tiptap-editor-wrapper .tiptap table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 0.75em 0;
+  overflow: hidden;
+  border-radius: var(--mc-radius-sm);
+  border: 1px solid var(--editor-border);
+}
+
+.tiptap-editor-wrapper .tiptap td,
+.tiptap-editor-wrapper .tiptap th {
+  min-width: 80px;
+  border: 1px solid var(--editor-border);
+  padding: 6px 10px;
+  position: relative;
+  text-align: left;
+  vertical-align: top;
+  box-sizing: border-box;
+  font-size: 0.9em;
+}
+
+.tiptap-editor-wrapper .tiptap th {
+  background: rgba(127, 127, 127, 0.08);
+  font-weight: 600;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .tiptap th {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.tiptap-editor-wrapper .tiptap .selectedCell {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.tiptap-editor-wrapper .tiptap .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: #3b82f6;
+  pointer-events: none;
+}
+
+.tiptap-editor-wrapper .tiptap .tableWrapper {
+  overflow-x: auto;
+  margin: 0.75em 0;
+}
+
+.tiptap-editor-wrapper .tiptap .resize-cursor {
+  cursor: col-resize;
+}
+
+/* MarkCraft 表格样式（可调整列宽） */
+.tiptap-editor-wrapper .tiptap table.markcraft-table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+  overflow: hidden;
+}
+
+.tiptap-editor-wrapper .tiptap table.markcraft-table td,
+.tiptap-editor-wrapper .tiptap table.markcraft-table th {
+  border: 1px solid var(--editor-border, #e5e7eb);
+  padding: 6px 10px;
+  min-width: 60px;
+  vertical-align: top;
+  position: relative;
+}
+
+.tiptap-editor-wrapper .tiptap table.markcraft-table th {
+  background: var(--editor-bg, #f5f5f5);
+  font-weight: 600;
+}
+
+.tiptap-editor-wrapper .tiptap table.markcraft-table .selectedCell {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.tiptap-editor-wrapper .tiptap table.markcraft-table .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background-color: var(--button-primary, #3b82f6);
+  pointer-events: none;
+}
+
+.tiptap-editor-wrapper .tiptap td > p,
+.tiptap-editor-wrapper .tiptap th > p {
+  margin: 0;
+}
+
+/* BubbleMenu 样式 */
+.tiptap-bubble-menu {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-radius: 8px;
+  background: var(--editor-bg);
+  border: 1px solid var(--editor-border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.tiptap-bubble-menu button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--editor-text);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background-color 0.15s;
+}
+
+.tiptap-bubble-menu button:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.tiptap-bubble-menu button.is-active {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--button-primary, #3b82f6);
+}
+
+.math-popover-footer-hint {
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-secondary);
+  opacity: 0.4;
+  font-family: var(--mc-font-sans);
+}
+
+.save-as-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: fadeIn var(--mc-dur-fast) var(--mc-ease-out)-out;
+}
+
+.save-as-modal {
+  width: 450px;
+  max-width: 90vw;
+  background-color: var(--mc-bg-panel);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  animation: scaleIn var(--mc-dur-fast) var(--mc-ease-out)-out;
+}
+
+.save-as-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--mc-border-subtle);
+}
+
+.save-as-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  margin: 0;
+  font-family: var(--mc-font-sans);
+}
+
+.save-as-close-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  background: transparent;
+  color: var(--mc-text-secondary);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.save-as-close-btn:hover {
+  background-color: rgba(128, 128, 128, 0.15);
+}
+
+.save-as-body {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.save-as-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.save-as-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--mc-text-secondary);
+  font-family: var(--mc-font-sans);
+}
+
+.save-as-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+  background-color: var(--mc-bg-app);
+  color: var(--mc-text-primary);
+  outline: none;
+  transition: border-color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out);
+  font-family: var(--mc-font-sans);
+  box-sizing: border-box;
+}
+
+.save-as-input:focus {
+  border-color: var(--link-color);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.save-as-select {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--mc-font-sans);
+}
+
+.save-as-scale-row {
+  display: flex;
+  gap: 8px;
+}
+
+.save-as-scale-btn {
+  flex: 1;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-family: var(--mc-font-sans);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-bg-panel);
+  color: var(--mc-text-secondary);
+  cursor: pointer;
+  transition: all var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.save-as-scale-btn:hover {
+  border-color: var(--link-color);
+}
+
+.save-as-scale-btn-active {
+  background: var(--link-color);
+  color: #ffffff;
+  border-color: var(--link-color);
+}
+
+.save-as-scale-btn-active:hover {
+  background: var(--link-color);
+  color: #ffffff;
+}
+
+.save-as-pdf-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.save-as-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--mc-text-secondary);
+  cursor: pointer;
+}
+
+.save-as-checkbox-label input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--link-color);
+  cursor: pointer;
+}
+
+.save-as-pdf-text-input {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.save-as-sub-label {
+  font-size: 12px;
+  color: var(--mc-text-secondary);
+  opacity: 0.8;
+}
+
+.save-as-preview-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: rgba(59, 130, 246, 0.06);
+  border-radius: var(--mc-radius-sm);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.save-as-preview-label {
+  font-size: 12px;
+  color: var(--mc-text-secondary);
+  font-family: var(--mc-font-sans);
+}
+
+.save-as-preview-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--link-color);
+  font-family: 'Fira Code', 'Consolas', monospace;
+}
+
+.save-as-compat-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: var(--mc-radius-sm);
+  font-size: 12px;
+  color: #b45309;
+  font-family: var(--mc-font-sans);
+  line-height: 1.4;
+}
+
+[data-theme="dark"] .save-as-compat-hint {
+  color: #fbbf24;
+  background-color: rgba(245, 158, 11, 0.1);
+}
+
+.save-as-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: rgba(220, 53, 69, 0.08);
+  border: 1px solid rgba(220, 53, 69, 0.2);
+  border-radius: var(--mc-radius-sm);
+  font-size: 12px;
+  color: var(--katex-error-color);
+  font-family: var(--mc-font-sans);
+  line-height: 1.4;
+}
+
+.save-as-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px 16px;
+  border-top: 1px solid var(--mc-border-subtle);
+}
+
+.save-as-btn {
+  padding: 8px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--mc-radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), opacity var(--mc-dur-fast) var(--mc-ease-out);
+  font-family: var(--mc-font-sans);
+}
+
+.save-as-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.save-as-btn-cancel {
+  background-color: transparent;
+  color: var(--mc-text-secondary);
+  border: 1px solid var(--mc-border-subtle);
+}
+
+.save-as-btn-cancel:hover:not(:disabled) {
+  background-color: rgba(128, 128, 128, 0.1);
+}
+
+.save-as-btn-confirm {
+  background-color: #16a34a;
+  color: #ffffff;
+}
+
+.save-as-btn-confirm:hover:not(:disabled) {
+  background-color: #15803d;
+}
+
+.save-as-saving {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.save-as-location-row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.save-as-location-display {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background-color: var(--mc-bg-app);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+  min-height: 36px;
+  overflow: hidden;
+}
+
+.save-as-location-text {
+  font-size: 13px;
+  color: var(--mc-text-primary);
+  font-family: 'Fira Code', 'Consolas', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.save-as-location-placeholder {
+  color: var(--mc-text-secondary);
+  opacity: 0.6;
+  font-style: italic;
+  font-family: var(--mc-font-sans);
+}
+
+.save-as-location-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.save-as-location-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+  background-color: var(--mc-bg-app);
+  color: var(--mc-text-primary);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out);
+  font-family: var(--mc-font-sans);
+  flex: 1;
+  justify-content: center;
+}
+
+.save-as-location-btn:hover:not(:disabled) {
+  background-color: rgba(59, 130, 246, 0.06);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.save-as-location-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Export Style Selector ── */
+
+.save-as-style-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.save-as-manage-style-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: 4px;
+  background-color: var(--mc-bg-app);
+  color: var(--mc-text-secondary);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out);
+  font-family: var(--mc-font-sans);
+}
+
+.save-as-manage-style-btn:hover {
+  background-color: rgba(59, 130, 246, 0.06);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+/* ── Style Editor Dialog ── */
+
+.save-as-style-editor-modal {
+  width: 520px;
+}
+
+.save-as-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 13px;
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+  background-color: var(--mc-bg-app);
+  color: var(--mc-text-primary);
+  outline: none;
+  transition: border-color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out);
+  font-family: 'Fira Code', 'Consolas', monospace;
+  box-sizing: border-box;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.save-as-textarea:focus {
+  border-color: var(--link-color);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.save-as-style-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.save-as-style-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background-color: var(--mc-bg-app);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+}
+
+.save-as-style-item-name {
+  font-size: 13px;
+  color: var(--mc-text-primary);
+  font-family: var(--mc-font-sans);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.save-as-style-item-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.save-as-style-item-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--mc-text-secondary);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.save-as-style-item-btn:hover {
+  background-color: rgba(128, 128, 128, 0.15);
+}
+
+.save-as-style-item-btn-delete:hover {
+  background-color: rgba(220, 53, 69, 0.1);
+  color: var(--katex-error-color);
+}
+
+.save-as-footer-spacer {
+  flex: 1;
+}
+
+/* ── Live Preview 样式 ── */
+
+/* 源码视图中的 Markdown 前缀高亮 */
+.tiptap-editor-wrapper .tiptap .lp-prefix {
+  color: var(--button-primary, #3b82f6);
+  font-weight: 600;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-size: 0.9em;
+  opacity: 0.7;
+  transition: opacity var(--mc-dur-fast) var(--mc-ease-out);
+  user-select: none;
+}
+
+/* 活跃标题：显示 # 前缀时保持标题样式 */
+.tiptap-editor-wrapper .tiptap [class*="lp-active"] h1,
+.tiptap-editor-wrapper .tiptap h1[class*="lp-active"] {
+  /* 标题样式保持不变，# 前缀由 lp-prefix span 显示 */
+}
+
+/* 列表 Live Preview 前缀 */
+.tiptap-editor-wrapper .tiptap .lp-list-prefix {
+  color: var(--button-primary, #3b82f6);
+  font-weight: 600;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-size: 0.9em;
+  opacity: 0.7;
+  user-select: none;
+  margin-right: 2px;
+}
+
+/* 表格 Live Preview 源码 */
+.tiptap-editor-wrapper .tiptap .lp-table-source {
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-size: 0.82em;
+  line-height: 1.5;
+  color: var(--editor-text);
+  opacity: 0.6;
+  padding: 8px 12px;
+  margin: 4px 0;
+  background: rgba(127, 127, 127, 0.04);
+  border-radius: 4px;
+  border: 1px dashed var(--editor-border);
+  overflow-x: auto;
+  white-space: pre;
+  user-select: none;
+}
+
+/* 代码块 ``` 标记 */
+.tiptap-editor-wrapper .tiptap .lp-code-fence {
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-size: 0.85em;
+  color: var(--editor-text);
+  opacity: 0.5;
+  padding: 2px 0;
+  user-select: none;
+  line-height: 1.4;
+  transition: opacity var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.tiptap-editor-wrapper .tiptap .lp-code-fence-open {
+  margin-top: 4px;
+}
+
+.tiptap-editor-wrapper .tiptap .lp-code-fence-close {
+  margin-bottom: 4px;
+}
+
+/* 数学公式 $$ 标记 */
+.tiptap-editor-wrapper .tiptap .lp-math-fence {
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-size: 0.85em;
+  color: var(--editor-text);
+  opacity: 0.5;
+  padding: 2px 0;
+  user-select: none;
+  line-height: 1.4;
+  transition: opacity var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.tiptap-editor-wrapper .tiptap .lp-math-fence-open {
+  margin-top: 4px;
+}
+
+.tiptap-editor-wrapper .tiptap .lp-math-fence-close {
+  margin-bottom: 4px;
+}
+
+/* ── 转换动画 ── */
+
+@keyframes lp-fade-in {
+  from {
+    opacity: 0.3;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.lp-fade-in {
+  animation: lp-fade-in var(--mc-dur-fast) var(--mc-ease-out)-out;
+}
+
+/* ── 行内标记半透明提示 ── */
+
+.mark-hint {
+  color: var(--editor-text);
+  opacity: 0.3;
+  font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+  font-size: 0.85em;
+  transition: opacity var(--mc-dur-fast) var(--mc-ease-out);
+  pointer-events: none;
+  user-select: none;
+}
+
+.mark-hint-active {
+  opacity: 0.8;
+  pointer-events: auto;
+}
+
+/* 暗色主题下行内标记 */
+[data-theme="dark"] .mark-hint {
+  color: var(--editor-text);
+  opacity: 0.25;
+}
+
+[data-theme="dark"] .mark-hint-active {
+  opacity: 0.75;
+}
+
+/* ── 段落首行缩进 ── */
+
+.tiptap-editor-content.paragraph-indent p {
+  text-indent: 2em;
+}
+.tiptap-editor-content.paragraph-indent p:first-child,
+.tiptap-editor-content.paragraph-indent h1 + p,
+.tiptap-editor-content.paragraph-indent h2 + p,
+.tiptap-editor-content.paragraph-indent h3 + p {
+  text-indent: 0;
+}
+
+/* ── Definition List ── */
+.tiptap-editor-wrapper .tiptap dl {
+  margin: 8px 0;
+  padding-left: 0;
+}
+.tiptap-editor-wrapper .tiptap dt {
+  font-weight: 600;
+  margin-top: 8px;
+}
+.tiptap-editor-wrapper .tiptap dd {
+  margin-left: 24px;
+  margin-top: 4px;
+}
+
+/* ── WikiLink Backlink Count Badge ── */
+
+.tiptap-editor-wrapper .tiptap [data-wiki-backlink-count]::after {
+  content: attr(data-wiki-backlink-count);
+  font-size: var(--mc-font-xs);
+  opacity: 0.4;
+  margin-left: 2px;
+  vertical-align: super;
+  font-weight: 400;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── WikiLink Relation & Note Tags ── */
+
+.tiptap-editor-wrapper .tiptap [data-wiki-relation]::before {
+  content: attr(data-wiki-relation);
+  font-size: var(--mc-font-xs);
+  padding: 0 4px;
+  border-radius: var(--mc-radius-sm);
+  margin-right: 2px;
+  vertical-align: super;
+  opacity: 0.6;
+  background: rgba(139, 92, 246, 0.15);
+  color: #8b5cf6;
+  pointer-events: none;
+  user-select: none;
+}
+
+[data-theme="light"] .tiptap-editor-wrapper .tiptap [data-wiki-relation]::before {
+  background: rgba(139, 92, 246, 0.1);
+  color: #7c3aed;
+}
+
+.tiptap-editor-wrapper .tiptap [data-wiki-note]::after {
+  content: '\01F4DD';
+  font-size: 8px;
+  margin-left: 1px;
+  vertical-align: super;
+  opacity: 0.5;
+  pointer-events: none;
+  user-select: none;
+}

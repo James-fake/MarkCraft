@@ -1,0 +1,1148 @@
+/* ============================================================
+ * Aurora Design System · Components Styles v2.0
+ * 通用组件：Button / Input / Segmented / ListItem / Dropdown / Tooltip / Card / Modal / Badge
+ * ========================================================== */
+
+/* ============================================================
+ * Button · 按钮
+ * ========================================================== */
+.aurora-btn {
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition:
+    background-color var(--mc-dur-fast) var(--mc-ease-out),
+    color var(--mc-dur-fast) var(--mc-ease-out),
+    border-color var(--mc-dur-fast) var(--mc-ease-out),
+    box-shadow 180ms var(--mc-ease-out),
+    transform var(--mc-dur-fast) var(--mc-ease-spring);
+}
+
+.aurora-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--mc-bg-content), 0 0 0 3px var(--mc-accent);
+}
+
+/* 统一键盘焦点环：自建按钮家族复用 .aurora-btn 同款规则（P0-3 无障碍） */
+.aurora-focus-ring:focus-visible,
+.aurora-kb-btn:focus-visible,
+.aurora-settings__btn:focus-visible,
+.aurora-graph__topbar-btn:focus-visible,
+.aurora-aidpanel__row:focus-visible,
+.aurora-aidpanel__kb:focus-visible,
+.aurora-filetree__confirm-btn:focus-visible,
+.dv-btn:focus-visible,
+.dv-format-bar__btn:focus-visible,
+.aurora-blog-seg__btn:focus-visible,
+.aurora-titlebar__crumb-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--mc-bg-content), 0 0 0 3px var(--mc-accent);
+}
+
+.aurora-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* 尺寸 */
+.aurora-btn--sm {
+  height: 24px;
+  padding: 0 8px;
+  font-size: var(--mc-font-sm);
+}
+
+.aurora-btn--md {
+  height: 28px;
+  padding: 0 12px;
+  font-size: var(--mc-font-base);
+}
+
+.aurora-btn--lg {
+  height: 32px;
+  padding: 0 16px;
+  font-size: var(--mc-font-md);
+}
+
+/* Primary 主按钮 */
+.aurora-btn--primary {
+  background: var(--mc-accent);
+  color: var(--mc-text-inverse);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.aurora-btn--primary:hover {
+  background: var(--mc-accent-hover);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.aurora-btn--primary:active {
+  background: var(--mc-accent-pressed);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  transform: scale(0.97);
+}
+
+/* Secondary 次按钮 */
+.aurora-btn--secondary {
+  background: var(--mc-bg-elevated);
+  color: var(--mc-text-primary);
+  border: 1px solid var(--mc-border-medium);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.aurora-btn--secondary:hover {
+  background: var(--mc-bg-hover);
+  border-color: var(--mc-border-strong);
+}
+
+.aurora-btn--secondary:active {
+  background: var(--mc-bg-pressed);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  transform: scale(0.97);
+}
+
+/* Ghost 幽灵按钮 */
+.aurora-btn--ghost {
+  background: transparent;
+  color: var(--mc-text-secondary);
+  border: 1px solid transparent;
+}
+
+.aurora-btn--ghost:hover {
+  background: var(--mc-bg-hover);
+  color: var(--mc-text-primary);
+}
+
+.aurora-btn--ghost:active {
+  background: var(--mc-bg-pressed);
+  transform: scale(0.97);
+}
+
+/* Danger 危险按钮
+ * 软态（默认 .aurora-btn--danger）：确认删除 / 破坏性确认的统一范式 —— 淡彩底 + danger 描边 + danger 文字
+ * 实底（.aurora-btn--danger-solid）：仅最高危场景（清空回收站 / 永久删除 / 删库）使用 */
+.aurora-btn--danger {
+  border: 1px solid color-mix(in srgb, var(--mc-danger) 35%, transparent);
+  background: color-mix(in srgb, var(--mc-danger) 12%, transparent);
+  color: var(--mc-danger);
+}
+
+.aurora-btn--danger:hover {
+  background: color-mix(in srgb, var(--mc-danger) 20%, transparent);
+  color: var(--mc-danger-text);
+  border-color: color-mix(in srgb, var(--mc-danger) 55%, transparent);
+}
+
+.aurora-btn--danger:active {
+  background: color-mix(in srgb, var(--mc-danger) 26%, transparent);
+  color: var(--mc-danger-text);
+  transform: scale(0.97);
+}
+
+.aurora-btn--danger-solid {
+  border: none;
+  background: var(--mc-danger);
+  color: var(--mc-text-inverse);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15);
+}
+
+.aurora-btn--danger-solid:hover {
+  background: var(--mc-danger);
+  filter: brightness(1.06);
+}
+
+.aurora-btn--danger-solid:active {
+  background: var(--mc-danger);
+  filter: brightness(0.95);
+  transform: scale(0.97);
+}
+
+/* 图标按钮 */
+.aurora-btn--icon {
+  padding: 0;
+  aspect-ratio: 1;
+}
+
+/* ============================================================
+ * Input · 输入框
+ * ========================================================== */
+.aurora-input-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 100%;
+}
+
+.aurora-input {
+  width: 100%;
+  height: 28px;
+  padding: 0 12px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-primary);
+  font-family: inherit;
+  font-size: var(--mc-font-base);
+  line-height: 1;
+  outline: none;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.15);
+  transition:
+    border-color var(--mc-dur-fast) var(--mc-ease-out),
+    box-shadow var(--mc-dur-fast) var(--mc-ease-out),
+    background-color var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-input:hover {
+  border-color: var(--mc-border-strong);
+}
+
+.aurora-input:focus {
+  border-color: var(--mc-accent);
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.15),
+    0 0 0 2px var(--mc-bg-content), 0 0 0 3px var(--mc-accent);
+}
+
+.aurora-input::placeholder {
+  color: var(--mc-text-tertiary);
+}
+
+.aurora-input:disabled {
+  background: var(--mc-bg-sidebar);
+  color: var(--mc-text-disabled);
+  cursor: not-allowed;
+  border-color: var(--mc-border-subtle);
+}
+
+/* 带前置图标 */
+.aurora-input--with-icon-left .aurora-input {
+  padding-left: 32px;
+}
+
+.aurora-input__icon-left {
+  position: absolute;
+  left: 10px;
+  width: 16px;
+  height: 16px;
+  color: var(--mc-icon);
+  pointer-events: none;
+}
+
+/* 带后置图标/按钮 */
+.aurora-input--with-icon-right .aurora-input {
+  padding-right: 32px;
+}
+
+.aurora-input__icon-right {
+  position: absolute;
+  right: 10px;
+  width: 16px;
+  height: 16px;
+  color: var(--mc-icon-muted);
+}
+
+/* 错误状态 */
+.aurora-input--error .aurora-input {
+  border-color: var(--mc-danger);
+}
+
+.aurora-input--error .aurora-input:focus {
+  box-shadow:
+    inset 0 1px 2px rgba(0, 0, 0, 0.15),
+    0 0 0 3px color-mix(in srgb, var(--mc-danger) 30%, transparent);
+}
+
+/* 尺寸 */
+.aurora-input--sm .aurora-input {
+  height: 24px;
+  font-size: var(--mc-font-sm);
+  padding: 0 8px;
+}
+
+.aurora-input--lg .aurora-input {
+  height: 32px;
+  font-size: var(--mc-font-md);
+  padding: 0 12px;
+}
+
+/* ============================================================
+ * ListItem · 列表项
+ * ========================================================== */
+.aurora-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: var(--mc-list-item-h);
+  padding: 0 12px;
+  background: transparent;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-base);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  position: relative;
+  transition:
+    background-color var(--mc-dur-micro) ease-out,
+    color var(--mc-dur-micro) ease-out;
+}
+
+.aurora-list-item:hover {
+  background: var(--mc-bg-hover);
+  color: var(--mc-text-primary);
+}
+
+.aurora-list-item:active {
+  background: var(--mc-bg-pressed);
+}
+
+/* 选中态 */
+.aurora-list-item--selected {
+  background: var(--mc-accent-soft);
+  color: var(--mc-text-primary);
+  font-weight: 500;
+}
+
+.aurora-list-item--selected::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 18px;
+  border-radius: 0 2px 2px 0;
+  background: var(--mc-accent);
+}
+
+/* 激活态（当前打开） */
+.aurora-list-item--active {
+  background: var(--mc-bg-selected);
+  color: var(--mc-text-primary);
+  font-weight: 500;
+}
+
+.aurora-list-item--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 18px;
+  border-radius: 0 2px 2px 0;
+  background: var(--mc-accent);
+}
+
+.aurora-list-item__icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--mc-icon);
+}
+
+.aurora-list-item--selected .aurora-list-item__icon {
+  color: var(--mc-accent);
+}
+
+.aurora-list-item__label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aurora-list-item__meta {
+  flex-shrink: 0;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-tertiary);
+}
+
+.aurora-list-item__actions {
+  display: none;
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+.aurora-list-item:hover .aurora-list-item__actions {
+  display: flex;
+}
+
+/* 紧凑密度 */
+[data-density='compact'] .aurora-list-item {
+  height: 26px;
+  font-size: var(--mc-font-sm);
+  padding: 0 12px;
+}
+
+/* cozy 密度（带副标题） */
+.aurora-list-item--cozy {
+  height: 40px;
+}
+
+.aurora-list-item__subtitle {
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+  margin-top: 2px;
+}
+
+.aurora-list-item--cozy .aurora-list-item__content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+/* ============================================================
+ * DropdownMenu · 下拉菜单
+ * ========================================================== */
+.aurora-dropdown {
+  position: absolute;
+  z-index: 1000;
+  min-width: 180px;
+  max-width: 320px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 4px;
+  background: var(--mc-bg-elevated);
+  backdrop-filter: blur(36px) saturate(115%);
+  -webkit-backdrop-filter: blur(36px) saturate(115%);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-md);
+  box-shadow: var(--mc-shadow-popover);
+  /* 向下弹出基线（origin-aware，macOS 动效方案 §3.5）：从触发方向浮现 */
+  animation: aurora-dropdown-in var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+/* 向上弹出变体（origin-aware）：translateY(4px) 起步，供底部锚点菜单复用 */
+.aurora-dropdown--up {
+  animation-name: aurora-dropdown-in-up;
+}
+
+@keyframes aurora-dropdown-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes aurora-dropdown-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 弹出菜单原点感知入场（单源关键帧，macOS 动效方案 §3.5 延伸至右键菜单族）：
+   消费者 = .aurora-canvas-ctxmenu / .aurora-filetree__ctxmenu / .aurora-outline__ctxmenu /
+   .aurora-cip__menu，各自声明 animation + transform-origin（默认 top left = 光标/触发器）。
+   180ms 标准层（指针驱动浮层，永不进从容层）；scale 0.97 起手（RECIPES：绝不 scale(0)）。 */
+@keyframes aurora-menu-in {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.aurora-dropdown__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 12px;
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-primary);
+  font-size: var(--mc-font-base);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  transition: background-color var(--mc-dur-micro) ease-out;
+}
+
+.aurora-dropdown__item:hover,
+.aurora-dropdown__item--highlighted {
+  background: var(--mc-accent-soft);
+  color: var(--mc-text-primary);
+}
+
+.aurora-dropdown__item--disabled {
+  color: var(--mc-text-disabled);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.aurora-dropdown__item-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--mc-icon);
+}
+
+.aurora-dropdown__item-label {
+  flex: 1;
+}
+
+.aurora-dropdown__item-shortcut {
+  flex-shrink: 0;
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+  margin-left: 16px;
+}
+
+.aurora-dropdown__separator {
+  height: 1px;
+  margin: 4px 6px;
+  background: var(--mc-border-subtle);
+}
+
+/* ============================================================
+ * Select · 统一下拉选择触发器
+ * 所有原生 <select> 与自定义触发器共享同一套外观，
+ * 仅由各面板 CSS 保留布局级差异（宽度/边距/箭头占位）。
+ * ========================================================== */
+.aurora-select,
+.aurora-settings__select,
+.aurora-blog-select select,
+.aurora-ctop__select select,
+.aurora-cip__select,
+.aurora-graph__grp-input,
+.save-as-select {
+  box-sizing: border-box;
+  height: 28px;
+  padding: 0 12px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-primary);
+  font-family: inherit;
+  font-size: var(--mc-font-base);
+  line-height: 1;
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--mc-dur-fast) var(--mc-ease-out),
+              box-shadow var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-select:hover,
+.aurora-settings__select:hover,
+.aurora-blog-select select:hover,
+.aurora-ctop__select select:hover,
+.aurora-cip__select:hover,
+.aurora-graph__grp-input:hover,
+.save-as-select:hover {
+  border-color: var(--mc-border-strong);
+}
+
+.aurora-select:focus,
+.aurora-select:focus-visible,
+.aurora-settings__select:focus,
+.aurora-blog-select select:focus,
+.aurora-ctop__select select:focus,
+.aurora-cip__select:focus,
+.aurora-graph__grp-input:focus,
+.save-as-select:focus {
+  border-color: var(--mc-accent);
+  box-shadow: 0 0 0 2px var(--mc-bg-content), 0 0 0 3px var(--mc-accent);
+}
+
+.aurora-select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 自定义触发器（按钮替代原生 select）—— 与 .aurora-select 共享外观，仅布局为 flex */
+.aurora-select--custom {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 140px;
+  text-align: left;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.aurora-select__value {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aurora-select__chevron {
+  flex-shrink: 0;
+  color: var(--mc-icon);
+  transition: transform var(--mc-dur-fast) var(--mc-ease-out);
+}
+.aurora-select--open {
+  border-color: var(--mc-accent);
+}
+.aurora-select--open .aurora-select__chevron {
+  transform: rotate(180deg);
+}
+
+/* 占满父容器宽度（表单字段 / 列布局） */
+.aurora-select--block {
+  width: 100%;
+}
+
+/* 下拉项选中态（与原生 select 当前项一致：accent 高亮 + 勾选） */
+.aurora-dropdown__item.is-selected {
+  color: var(--mc-accent);
+  font-weight: 500;
+}
+.aurora-dropdown__item-check {
+  margin-left: auto;
+  display: flex;
+  flex-shrink: 0;
+  color: var(--mc-accent);
+}
+
+/* 选项分组标题（原生 <optgroup> 对应） */
+.aurora-dropdown__group-label {
+  padding: 4px 12px 2px;
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+  user-select: none;
+  pointer-events: none;
+}
+
+/* 自定义触发器（非原生 select）展开态边框高亮 */
+.aurora-cip__select--open {
+  border-color: var(--mc-accent);
+}
+
+/* ============================================================
+ * Tooltip · 提示框
+ * ========================================================== */
+.aurora-tooltip {
+  position: absolute;
+  z-index: 2000;
+  padding: 6px 12px;
+  background: var(--mc-bg-elevated);
+  backdrop-filter: blur(36px) saturate(115%);
+  -webkit-backdrop-filter: blur(36px) saturate(115%);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  box-shadow: var(--mc-shadow-popover);
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-primary);
+  line-height: 1.4;
+  white-space: nowrap;
+  pointer-events: none;
+  animation: aurora-tooltip-in var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+@keyframes aurora-tooltip-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 箭头 */
+.aurora-tooltip__arrow {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: inherit;
+  border: inherit;
+  transform: rotate(45deg);
+  z-index: -1;
+}
+
+.aurora-tooltip--top .aurora-tooltip__arrow {
+  bottom: -3px;
+  left: 50%;
+  margin-left: -3px;
+  border-top: none;
+  border-left: none;
+}
+
+.aurora-tooltip--bottom .aurora-tooltip__arrow {
+  top: -3px;
+  left: 50%;
+  margin-left: -3px;
+  border-bottom: none;
+  border-right: none;
+}
+
+/* ============================================================
+ * ScrollNumberInput · 苹果风格数字滚轮输入（不可键入）
+ * 触发器按钮，悬停自动展开苹果风格数字滚轮鼓
+ * ========================================================== */
+.aurora-number {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* wheel 模式：不可键入的触发器，悬停自动展开滚轮鼓 */
+.aurora-number--wheel {
+  position: relative;
+  display: inline-flex;
+}
+.aurora-number__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  box-sizing: border-box;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-primary);
+  font-size: var(--mc-font-sm);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  transition: border-color var(--mc-dur-micro) ease-out, box-shadow var(--mc-dur-micro) ease-out, background var(--mc-dur-micro) ease-out;
+}
+.aurora-number__trigger:hover {
+  border-color: var(--mc-accent);
+}
+.aurora-number__trigger:focus-visible {
+  border-color: var(--mc-accent);
+  box-shadow: 0 0 0 2px var(--mc-accent-bg);
+}
+.aurora-number__trigger:disabled {
+  opacity: 0.5;
+  cursor: default;
+  pointer-events: none;
+}
+.aurora-number__value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aurora-number__hint {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--mc-text-tertiary);
+  opacity: 0.55;
+  transition: opacity var(--mc-dur-micro) ease-out, color var(--mc-dur-micro) ease-out;
+}
+.aurora-number--wheel:hover .aurora-number__hint {
+  opacity: 0.9;
+  color: var(--mc-text-secondary);
+}
+.aurora-number--wheel.is-open .aurora-number__hint {
+  opacity: 1;
+  color: var(--mc-accent);
+}
+
+/* 弹出层 */
+.aurora-wheel-popover {
+  --wh-item: 34px;
+  --wh-visible: 5;
+  z-index: 1000;
+  padding: 8px;
+  border-radius: var(--mc-radius-lg);
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  box-shadow: var(--mc-shadow-popover);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  animation: aurora-wheel-in var(--mc-dur-fast) var(--mc-ease-out);
+}
+@keyframes aurora-wheel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 滚轮鼓本体（参考 iOS / macOS 日期·时间选择器） */
+.aurora-wheel {
+  width: 100%;
+}
+.aurora-wheel__viewport {
+  position: relative;
+  width: 100%;
+  height: calc(var(--wh-item) * var(--wh-visible));
+  overflow: hidden;
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 20%, #000 80%, transparent);
+  mask-image: linear-gradient(to bottom, transparent, #000 20%, #000 80%, transparent);
+}
+.aurora-wheel__list {
+  height: 100%;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+  perspective: 900px;
+  transform-style: preserve-3d;
+  cursor: grab;
+}
+.aurora-wheel__list:active {
+  cursor: grabbing;
+}
+.aurora-wheel__list::-webkit-scrollbar {
+  display: none;
+}
+/* 首尾留白垫块：作为列表真实内容参与滚动，而非容器自身 padding。
+   容器 padding 会撑大 scrollport（clientHeight），反而把可滚动范围压没
+   （6 项列表时 scrollTop 仅 0~34px，只剩前两项能滚到中央）；
+   用垫块只增长 scrollHeight、不动 scrollport，第 0 项与末项才能滚到中央。 */
+.aurora-wheel__pad {
+  height: calc((var(--wh-visible) - 1) / 2 * var(--wh-item));
+  pointer-events: none;
+}
+.aurora-wheel__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--wh-item);
+  scroll-snap-align: center;
+  transform-origin: center center;
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-md);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+  cursor: inherit;
+  will-change: transform, opacity;
+}
+.aurora-wheel__item.is-disabled {
+  color: transparent;
+}
+.aurora-wheel__label {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aurora-wheel__band {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  top: calc((var(--wh-visible) - 1) / 2 * var(--wh-item));
+  height: var(--wh-item);
+  border-radius: var(--mc-radius-md);
+  background: var(--mc-accent-soft);
+  border: 1px solid color-mix(in srgb, var(--mc-accent) 35%, transparent);
+  pointer-events: none;
+}
+
+/* 日期滚轮鼓（年 / 月 / 日 三列） */
+.aurora-datewheel {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+}
+.aurora-datewheel__col {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.aurora-datewheel-popover {
+  width: 264px;
+}
+
+/* 日期输入触发器（替换原生 date） */
+.aurora-datewheel-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  min-width: 150px;
+  height: 28px;
+  padding: 0 8px 0 12px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-primary);
+  font-size: var(--mc-font-sm);
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--mc-dur-micro) ease-out, box-shadow var(--mc-dur-micro) ease-out;
+}
+.aurora-datewheel-trigger:hover {
+  border-color: var(--mc-border-strong);
+}
+.aurora-datewheel-trigger:focus,
+.aurora-datewheel-trigger[aria-expanded='true'] {
+  border-color: var(--mc-accent);
+  box-shadow: 0 0 0 2px var(--mc-accent-bg);
+}
+.aurora-datewheel-trigger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.aurora-datewheel-trigger .is-placeholder {
+  color: var(--mc-text-tertiary);
+}
+.aurora-datewheel-trigger__chev {
+  flex: none;
+  color: var(--mc-text-tertiary);
+}
+
+/* ============================================================
+ * Card · 卡片
+ * ========================================================== */
+.aurora-card {
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-md);
+  box-shadow: var(--mc-shadow-inset);
+  overflow: hidden;
+  transition:
+    transform var(--mc-dur-fast) var(--mc-ease-spring),
+    box-shadow 180ms ease-out;
+}
+
+.aurora-card--hoverable:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--mc-shadow-panel);
+}
+
+.aurora-card__header {
+  padding: 16px 16px 0;
+}
+
+.aurora-card__title {
+  font-size: var(--mc-font-md);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  margin: 0 0 4px;
+}
+
+.aurora-card__subtitle {
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-tertiary);
+  margin: 0;
+}
+
+.aurora-card__body {
+  padding: 16px;
+}
+
+.aurora-card__footer {
+  padding: 12px 16px;
+  border-top: 1px solid var(--mc-border-subtle);
+}
+
+/* ============================================================
+ * Modal · 模态对话框
+ * ========================================================== */
+.aurora-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  /* scrim 先暗下来（200ms < panel 320ms）：materialize, don't just fade */
+  animation: aurora-fade-in 200ms var(--mc-ease-out);
+}
+
+@keyframes aurora-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.aurora-modal {
+  min-width: 320px;
+  max-width: 640px;
+  max-height: 80vh;
+  background: var(--mc-bg-content);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-lg);
+  box-shadow: var(--mc-shadow-popover);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  /* Apple 化入场（macOS 动效方案 §3.2）：scale(0.96) 生长感，绝不 scale(0)；
+     modal 居中豁免 origin-aware；320ms 从容层 + ease-mac 抽屉曲线 */
+  transform-origin: center;
+  animation: aurora-modal-in var(--mc-dur-slow) var(--mc-ease-mac) both;
+}
+
+/* 宽度档位（共享 Modal size prop → 此处类） */
+.aurora-modal--sm { width: 360px; }
+.aurora-modal--md { width: 440px; }
+.aurora-modal--lg { width: 640px; }
+
+
+@keyframes aurora-modal-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* 退场（macOS 动效方案 §3.2 对称性收口）：入 420ms 强减速 → 出 180ms 加速（--mc-ease-in），
+   即 Apple 的进出不对称「出更快」。Modal.tsx 在退场播完后才真正卸载（EXIT_MS 与
+   --mc-dur-fast 对齐）；pointer-events:none 保证退场期间不再拦截点击。 */
+.aurora-modal-overlay[data-exiting='true'] {
+  animation: aurora-fade-out var(--mc-dur-fast) var(--mc-ease-in) forwards;
+  pointer-events: none;
+}
+
+.aurora-modal-overlay[data-exiting='true'] .aurora-modal {
+  animation: aurora-modal-out var(--mc-dur-fast) var(--mc-ease-in) forwards;
+}
+
+@keyframes aurora-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes aurora-modal-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+.aurora-modal__header {
+  display: flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--mc-border-subtle);
+  flex-shrink: 0;
+}
+
+.aurora-modal__title {
+  flex: 1;
+  font-size: var(--mc-font-md);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+}
+
+.aurora-modal__close {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-icon-muted);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-modal__close:hover {
+  background: var(--mc-bg-hover);
+  color: var(--mc-icon-strong);
+}
+
+.aurora-modal__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+/* 描述文字（共享 Modal description 移正文顶部渲染，token 化） */
+.aurora-modal__desc {
+  margin: 0 0 12px;
+  font-size: var(--mc-font-sm);
+  line-height: 1.55;
+  color: var(--mc-text-secondary);
+}
+
+.aurora-modal__footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  height: 48px;
+  padding: 0 20px;
+  border-top: 1px solid var(--mc-border-subtle);
+  flex-shrink: 0;
+}
+
+/* Switch · 开关（macOS 动效方案 §3.10）
+ * thumb 位移走 translateX（合成器属性），替代 layout 属性 left；
+ * 翻转 280ms ease-mac——「懒」的最小样本（320ms 归并入 --mc-dur-base token） */
+.aurora-switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: var(--mc-radius-md);
+  background: var(--mc-bg-pressed);
+  cursor: pointer;
+  transition: background-color 200ms var(--mc-ease-spring);
+  flex-shrink: 0;
+}
+
+.aurora-switch__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--mc-text-inverse);
+  box-shadow: var(--mc-shadow-inset);
+  transition: transform var(--mc-dur-base) var(--mc-ease-mac);
+}
+
+.aurora-switch:hover .aurora-switch__thumb {
+  transform: scale(1.1);
+}
+
+.aurora-switch--on {
+  background: var(--mc-accent);
+}
+
+.aurora-switch--on .aurora-switch__thumb {
+  transform: translateX(16px);
+}
+
+.aurora-switch--on:hover .aurora-switch__thumb {
+  transform: translateX(16px) scale(1.1);
+}
+
+.aurora-switch--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

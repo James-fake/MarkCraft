@@ -1,0 +1,10 @@
+@import './styles/desktop-chrome.css';
+@import './styles/base.css';
+@import './styles/markdown.css';
+@import './styles/components.css';
+@import './styles/syntax.css';
+@import './styles/mermaid.css';
+@import './styles/tiptap.css';
+/* 阶段 11 · 全局视觉统一：token / 统一滚动条 / 本地打包字体 */
+@import './styles/scrollbar.css';
+@import './styles/fonts.css';

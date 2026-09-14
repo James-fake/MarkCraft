@@ -1,0 +1,43 @@
+47b7d4665f70008e90df7a523a0361978f41a326|feat(swipe): 内容区滑动切 Tab —— 共享手势层 + 设置页接入
+9f07a7bb8d92edd9a01eb821217e1c022468d314|调查：GraphPanel 每帧重渲染经量化证明无需优化（治理项③收口）
+542a71233b01b7bfbdd6e9887a157dd37368d4fd|memory: 记录仪表盘死组件清理 + 工作区丢失事件与恢复方法
+004d4882c15db8e5076b1241c218fc952cd61356|清理：删除已退役的仪表盘组件（DashboardPanel / BookmarkContent，993 行）
+4c1be378f55315317d3a1f741c31f6e1fd329033|memory: 记录 PLAN-03 命令面板去动画 + aurora-dash 死 CSS 清理
+9bf8ec005bcd28941610c76d8b7ce0fb46ed162c|清理：删除 canvas.css 中已退役的 aurora-dash-* 死 CSS（367 行）
+5568ed0bf35bf0b955992c5949c66d803a28de8a|动效 PLAN-03：命令面板去入场动画（100+/天 键盘交互零动画）
+723f3b16dbbaeeaceede096adb47943e9b3e7555|perf(motion): PLAN-02 博客浮层停靠位移 left→translateX（改动 B 取消·死代码）
+36e67ecfcba93fc057c3930418ba86c1e872226b|feat(motion): PLAN-04 主按钮族补 scale(0.97) 按压反馈
+08685cc17513fd45a5684175d0e286446657330f|feat(motion): 指针类型门控——触屏假 hover 抑制（PLAN-01）
+075821f452d5f76456e0449314598ad01a4375e9|fix(blog): 主题市场搜索框判据改 hasLeftTop 回顶显示
+6f5c9adb025df666516362b0321b833107c5f530|chore(memory): MEMORY.md 补展开锚定与 CDP 时序伪影坑
+31f4743c92cedbc36519000de39c0febe1f19dd4|chore(memory): 记录需求 L（展开锚定+宽限期）与 CDP 时序伪影方法论
+ccb12456316cdd36fc25b9709bdb8ff37d23195f|fix(blog): 搜索框展开锚定 + 宽限期（修「刚进入面板不显示」）
+ac5edbabb996918444fc429bee5685835e93dddf|chore(memory): MEMORY.md 搜索框判据更新为顶端吸附
+e62c9731abf350d7d1ade023aacb3133adb68ad0|chore(memory): 记录需求 K（搜索框顶端吸附判据）
+59b9edd8fd336117717f808b96fed279b640213e|fix(blog): 搜索框显隐判据改为顶端吸附（回到顶部才显示）
+ab5f30031f262f132656e0f7f2427ab68e8910af|chore(memory): MEMORY.md 搜索框机制段更新为 FileTree 同款状态机
+9170fda2ee4cec553148bda8732e1cd5b3cc76f2|chore(memory): 记录需求 J（搜索框防闪烁移植 FileTree 状态机）
+9a5d9b945aa25adc64c81e960c06672b993d0ef8|fix(blog): 主题市场搜索框防闪烁——移植编辑器 FileTree 滚动显隐状态机
+4af3e463a089ec8182ec88944279c84a11261e63|chore(memory): 记录搜索框方向性显隐纠偏与滚动方向语境教训
+6e72c04074df06315e04c084a5555cf9cb6e713b|fix(blog): 搜索框改方向性显隐（Safari 工具栏模式）
+9f1811899b7a0bb526f0f758755af02641a0a491|chore(memory): 记录需求 I（行宽对齐 + 搜索框滚动显现吸顶）与 sticky 双坑
+63cb7f8a34440ca8b62f795c4382a4a5412488e5|feat(blog): 筛选行拉满行宽对齐卡片右缘 + 搜索框滚动显现吸顶
+4e19ec5923e80c6cba607fef76463773219c1aa6|feat(blog): 主题市场分类/风格筛选改滚轮鼓选择（AuroraSelect）
+ae891da9e7e25b6760a109194f325e0ae37100f4|fix(aurora): 主题市场文案排版统一 — 名称不断字 / 描述两行 / tag 全中文 / 筛选分组标识
+8db7082637ac9cc74c5019797c9c23ece1695ab0|feat(aurora): 知识库详情「笔记 Tab」头部视觉升级
+95c4948ff8e499bf8b0bd522ad56b3a427ef4e83|fix(aurora): 检查器浮层宽度回收 — 辅助 Tab 右侧文字不再被裁切
+db1e93a257f8348648d635be2f5d90aa313ea2d1|feat(aurora): 编辑器右栏「辅助」Tab 换内容 — 发布为博客(单篇) + 添加到知识库(选择列表)
+2663bb00ea7b3a865301ecb981c3c8426aacae23|docs(memory): 图谱节点跳转+返回现场复原（指针捕获吞掉 click 的铁律 / jsdom 假路径 / 几何断言需等稳态）
+f4163325d56a37f6eef29e70f88037a8f427137b|feat(graph): 双链图谱单击节点跳转对应笔记 + 编辑器「← 返回 双链图谱」，并复原图谱现场
+78011323a375f95dbd5f1b1f0de546177627d621|docs(memory): 2026-09-13 知识库「发布博客」内容源修复（nav param 映射表排查口诀 + 库内成员口径）
+87294e5797f4c18ed33ca3cb239505adffafcd2b|fix(blog): 知识库「发布博客」只发布库内笔记（修 param 映射 + 统一库内成员口径）
+fa01031aefc936cc1d931fe9fe68b1fa8d860c9f|docs(memory): 修正沙箱删除路径 —— robocopy /MIR 镜像法优于扁平化+rmSync（后者两次被 safe-delete 拒绝）
+6a47c5485e6fd235b2d3082b6f9ad22019eff9c1|docs(memory): 知识库详情页 .kb-shell 满屏假设回收（根因/修复/几何验证口径 + 两条防回归铁律）
+78df20665d9101bb96a839d66666c9ca85449615|fix(kb): 知识库详情页面板收回内容区文档流（修子栏消失/左列卡片被裁切）
+8217b08fdbdbabd7f16f5f12fb8be79d2a8a0654|docs(memory): 2026-09-13 日志（收口闭环 + 待决策项）
+1330e5c818a951adc86b9dcb926b8a067b07faee|docs(memory): 摸清沙箱 safe-delete 钩子完整规则 + 扁平化优先清理法（13 profile/982MB 6.2s 清完）
+4a069014b6df143cffcd6e7c5622963f4e1b3cf3|feat: 动效方案第二轮收口（右键菜单族/Modal 退场/Toast FLIP/右栏曲线/reduced-motion 细化）
+88961b0b38493416dda15da91da1557e4f65d75d|feat: 视图切换内容区从容浮现（方案 §3.1.1，外壳静止零闪烁）
+eea59dd350c933aa7495122210a613e82cc9aec3|fix: 回退视图切换整屏淡入（消除切换时「整体闪一下」）
+b0ebeb66637c9d5cb4b3dfb15d099573a64f5db3|feat: macOS 从容丝滑动效全批次落地（P0-P3）
+76c84fa4810c10627fcd434dac343607ee8b89b8|docs: 使用优化⑦ 收尾记录（审计第二十批 + 28 规范 §2 对齐 v7 现状）+ u7 验证脚本与截图

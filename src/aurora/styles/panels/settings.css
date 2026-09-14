@@ -1,0 +1,652 @@
+/* ============================================================
+ * Aurora · Settings Panel Styles
+ * 设置页：左侧分类导航 + 右侧设置内容
+ * ========================================================== */
+
+.aurora-settings {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 滑动进度变量：挂在面板根节点，供顶栏指示器与内容层共同消费 */
+.aurora-settings {
+  --swipe-progress: 0;
+}
+
+/* ---------- 顶栏导航栏（对齐白板 / 博客顶栏结构） ---------- */
+.aurora-settings__nav {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--mc-border-subtle);
+  background: var(--mc-bg-sidebar);
+}
+
+.aurora-settings__nav-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: var(--mc-bg-pressed);
+  border-radius: var(--mc-radius-md);
+}
+
+.aurora-settings__nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-sm);
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-settings__nav-tab:hover {
+  background: var(--mc-bg-hover);
+  color: var(--mc-text-primary);
+}
+
+.aurora-settings__nav-tab--active {
+  background: var(--mc-bg-elevated);
+  color: var(--mc-accent);
+  font-weight: 600;
+  box-shadow: var(--mc-shadow-inset);
+}
+
+/* ---------- 右侧内容区 ---------- */
+.aurora-settings__content {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 32px 40px 48px;
+  /* 滑动切 Tab：x 轴手势区，纵向滚动交回浏览器代管 */
+  touch-action: pan-y;
+  overflow-x: hidden;
+}
+
+/*
+ * 滑动切换层：把手势位移与内容区 padding 解耦。
+ * 位移写在本层（无 padding），内边距留在父级。
+ * 只有吸附阶段（is-swiping 移除后）才让 transition 接管，避免跟手延迟。
+ *
+ * 视觉策略：不推整页（桌面端不预渲染相邻页，推整页会裁字/露裸背景），
+ * 而是「微位移（≤26px，小于 40px 内边距 → 首字不裁）+ 方向边缘压暗」。
+ * 边缘压暗用 ::before/::after 渐变层，随 --swipe-progress 显现/消隐。
+ */
+.aurora-settings__swipe-layer {
+  position: relative;
+  transition:
+    transform var(--mc-dur-base) var(--mc-ease-out),
+    opacity var(--mc-dur-base) var(--mc-ease-out);
+  will-change: transform;
+}
+
+/* 方向边缘压暗层：顶/底各一片，用 opacity 由进度驱动 */
+.aurora-settings__swipe-layer::before,
+.aurora-settings__swipe-layer::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 72px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--mc-dur-base) var(--mc-ease-out);
+  z-index: 1;
+}
+
+/* 左缘：往右拖（progress > 0）时显现 */
+.aurora-settings__swipe-layer::before {
+  left: 0;
+  background: linear-gradient(
+    to right,
+    color-mix(in srgb, var(--mc-bg-content) 90%, transparent),
+    transparent
+  );
+}
+
+/* 右缘：往左拖（progress < 0）时显现 */
+.aurora-settings__swipe-layer::after {
+  right: 0;
+  background: linear-gradient(
+    to left,
+    color-mix(in srgb, var(--mc-bg-content) 90%, transparent),
+    transparent
+  );
+}
+
+/* 跟手期间：零过渡（必须），并轻微降透明度暗示「可翻页」 */
+.aurora-settings__content.is-swiping {
+  cursor: grabbing;
+  user-select: none;
+  overflow: hidden;
+}
+
+.aurora-settings__content.is-swiping .aurora-settings__swipe-layer {
+  transition: none;
+  opacity: 0.96;
+}
+
+/* 边缘压暗随进度显现：progress 为正 → 左缘亮起；为负 → 右缘亮起 */
+.aurora-settings__content.is-swiping .aurora-settings__swipe-layer::before {
+  opacity: clamp(0, var(--swipe-progress, 0), 1);
+}
+.aurora-settings__content.is-swiping .aurora-settings__swipe-layer::after {
+  opacity: clamp(0, calc(var(--swipe-progress, 0) * -1), 1);
+}
+
+/* 顶栏 tab 指示器：按位移比例（--swipe-progress ∈ [-1,1]）做微位移联动 */
+.aurora-settings__nav-tabs[data-swiping] .aurora-settings__nav-tab--active {
+  /* 拖拽中：当前 tab 底色轻微跟随，暗示方向 */
+  transform: translateX(calc(var(--swipe-progress) * 6px));
+  transition: none;
+}
+
+.aurora-settings__nav-tabs[data-swiping] {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-settings__swipe-layer {
+    /* 从容层减半，非归零 */
+    transition-duration: 140ms;
+  }
+  .aurora-settings__content.is-swiping .aurora-settings__swipe-layer {
+    opacity: 0.97;
+  }
+}
+
+.aurora-settings__header {
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--mc-border-subtle);
+}
+
+.aurora-settings__header-title {
+  font-size: var(--mc-font-xl);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  margin-bottom: 4px;
+}
+
+.aurora-settings__header-desc {
+  font-size: var(--mc-font-base);
+  color: var(--mc-text-tertiary);
+}
+
+/* ---------- 设置分组 ---------- */
+.aurora-settings__section {
+  margin-bottom: 32px;
+}
+
+.aurora-settings__section-title {
+  font-size: var(--mc-font-base);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  margin-bottom: 12px;
+}
+
+.aurora-settings__section-desc {
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-tertiary);
+  margin-bottom: 16px;
+  margin-top: -8px;
+}
+
+/* ---------- 设置项 ---------- */
+.aurora-settings__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--mc-border-subtle);
+  gap: 24px;
+}
+
+.aurora-settings__item:last-child {
+  border-bottom: none;
+}
+
+.aurora-settings__item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.aurora-settings__item-label {
+  font-size: var(--mc-font-base);
+  font-weight: 500;
+  color: var(--mc-text-primary);
+  margin-bottom: 2px;
+}
+
+.aurora-settings__item-desc {
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-tertiary);
+}
+
+.aurora-settings__item-control {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ---------- 快捷键列表 ---------- */
+.aurora-settings__shortcuts-search {
+  margin-bottom: 16px;
+}
+
+.aurora-settings__shortcut-group {
+  margin-bottom: 20px;
+}
+
+.aurora-settings__shortcut-group-title {
+  font-size: var(--mc-font-sm);
+  font-weight: 600;
+  color: var(--mc-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  padding: 0 4px;
+}
+
+.aurora-settings__shortcut-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: var(--mc-radius-sm);
+  transition: background-color var(--mc-dur-micro) ease-out;
+}
+
+.aurora-settings__shortcut-item:hover {
+  background: var(--mc-bg-hover);
+}
+
+.aurora-settings__shortcut-label {
+  font-size: var(--mc-font-base);
+  color: var(--mc-text-secondary);
+}
+
+.aurora-settings__shortcut-keys {
+  display: flex;
+  gap: 4px;
+}
+
+.aurora-settings__shortcut-key {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  font-size: var(--mc-font-xs);
+  font-family: var(--mc-font-mono);
+  color: var(--mc-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 -1px 0 var(--mc-border-subtle);
+}
+
+/* ---------- 关于页 ---------- */
+.aurora-settings__about {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.aurora-settings__about-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--mc-radius-lg);
+  background: linear-gradient(135deg, var(--mc-accent) 0%, var(--mc-accent-pressed) 100%);
+  color: var(--mc-text-inverse);
+  font-size: var(--mc-font-display);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  box-shadow: var(--mc-shadow-panel);
+}
+
+.aurora-settings__about-name {
+  font-size: var(--mc-font-xl);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  margin-bottom: 4px;
+}
+
+.aurora-settings__about-version {
+  font-size: var(--mc-font-base);
+  color: var(--mc-text-tertiary);
+  margin-bottom: 20px;
+}
+
+.aurora-settings__about-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+
+.aurora-settings__about-section {
+  width: 100%;
+  text-align: left;
+  margin-top: 24px;
+}
+
+.aurora-settings__about-section-title {
+  font-size: var(--mc-font-base);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  margin-bottom: 12px;
+}
+
+.aurora-settings__changelog {
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-md);
+  padding: 16px;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-secondary);
+  line-height: 1.7;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.aurora-settings__changelog strong {
+  color: var(--mc-text-primary);
+  font-weight: 600;
+}
+
+.aurora-settings__about-links {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.aurora-settings__about-link {
+  font-size: var(--mc-font-sm);
+  color: var(--mc-accent-text);
+  cursor: pointer;
+  transition: opacity var(--mc-dur-micro) ease-out;
+}
+
+.aurora-settings__about-link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+
+.aurora-settings__about-link--disabled {
+  color: var(--mc-text-tertiary);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.aurora-settings__about-link--disabled:hover {
+  opacity: 0.6;
+  text-decoration: none;
+}
+
+/* 「即将推出」标签：用于无后端的能力入口 */
+.aurora-settings__soon {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  font-size: var(--mc-font-xs);
+  line-height: 16px;
+  border-radius: var(--mc-radius-pill);
+  color: var(--mc-text-tertiary);
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  vertical-align: middle;
+}
+
+/* 设置项提示文案（如「请填写上传地址」） */
+.aurora-settings__item-hint {
+  padding: 0 0 4px;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-warning-text);
+}
+
+/* 选择框样式（外观由 .aurora-select 统一规范提供） */
+.aurora-settings__select {
+  min-width: 140px;
+}
+
+/* 数字输入 */
+.aurora-settings__number {
+  width: 72px;
+  height: 28px;
+  padding: 0 8px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-primary);
+  font-size: var(--mc-font-sm);
+  text-align: center;
+  outline: none;
+  transition: border-color var(--mc-dur-micro) ease-out;
+}
+
+.aurora-settings__number:focus {
+  border-color: var(--mc-accent);
+  box-shadow: 0 0 0 2px var(--mc-accent-bg);
+}
+
+/* 文本输入（代码块默认语言 / 自定义字体） */
+.aurora-settings__text {
+  width: 180px;
+  height: 28px;
+  padding: 0 12px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-primary);
+  font-size: var(--mc-font-sm);
+  outline: none;
+  transition: border-color var(--mc-dur-micro) ease-out;
+}
+
+.aurora-settings__text:hover {
+  border-color: var(--mc-border-strong);
+}
+
+.aurora-settings__text:focus {
+  border-color: var(--mc-accent);
+  box-shadow: 0 0 0 2px var(--mc-accent-bg);
+}
+
+/* 快捷键行内操作（编辑 / 重置） */
+.aurora-settings__shortcut-action {
+  border: none;
+  background: transparent;
+  color: var(--mc-accent-text);
+  font-size: var(--mc-font-xs);
+  padding: 2px 6px;
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-micro) ease-out;
+}
+
+.aurora-settings__shortcut-action:hover {
+  background: var(--mc-bg-hover);
+}
+
+.aurora-settings__shortcut-locked {
+  font-size: var(--mc-font-xs);
+  opacity: 0.4;
+  cursor: help;
+  padding: 2px 4px;
+}
+
+/* 快捷键冲突提示 */
+.aurora-settings__shortcut-conflict {
+  padding: 6px 12px;
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-warning-soft);
+  border: 1px solid color-mix(in srgb, var(--mc-warning) 30%, transparent);
+  color: var(--mc-warning-text);
+  font-size: var(--mc-font-sm);
+  margin-bottom: 16px;
+}
+
+/* 快捷键空结果态 */
+.aurora-settings__shortcut-empty {
+  padding: var(--mc-space-10) 0;
+  text-align: center;
+  color: var(--mc-text-tertiary);
+  font-size: var(--mc-font-base);
+}
+
+/* 通用按钮（数据管理等操作控件） */
+.aurora-settings__btn {
+  height: 28px;
+  padding: 0 12px;
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-bg-elevated);
+  color: var(--mc-text-primary);
+  font-size: var(--mc-font-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--mc-dur-micro) ease-out, border-color var(--mc-dur-micro) ease-out;
+}
+
+.aurora-settings__btn:hover {
+  background: var(--mc-bg-hover);
+  border-color: var(--mc-border-strong);
+}
+
+.aurora-settings__btn:active {
+  background: var(--mc-bg-pressed);
+}
+
+.aurora-settings__btn--ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--mc-text-secondary);
+}
+.aurora-settings__btn--ghost:hover {
+  background: var(--mc-bg-hover);
+  border-color: var(--mc-border-medium);
+}
+
+/* ---------- 用户设置（人情味） ---------- */
+.aurora-settings__user-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-lg);
+}
+
+.aurora-settings__user-avatar-lg {
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--mc-accent) 0%, var(--mc-success) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mc-text-inverse);
+  font-size: var(--mc-font-xl);
+  font-weight: 600;
+  overflow: hidden;
+}
+
+.aurora-settings__user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.aurora-settings__user-meta {
+  min-width: 0;
+}
+
+.aurora-settings__user-nickname {
+  font-size: var(--mc-font-lg);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  margin-bottom: 4px;
+}
+
+.aurora-settings__user-sub {
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-tertiary);
+}
+
+.aurora-settings__user-constellation {
+  font-size: var(--mc-font-sm);
+  color: var(--mc-accent-text);
+  background: var(--mc-accent-soft);
+  padding: 2px 8px;
+  border-radius: var(--mc-radius-pill);
+  white-space: nowrap;
+}
+
+/* 文本 / 日期输入（昵称、生日） */
+.aurora-settings__input {
+  min-width: 180px;
+  height: 28px;
+  padding: 0 12px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-primary);
+  font-size: var(--mc-font-sm);
+  font-family: inherit;
+  outline: none;
+  transition: border-color var(--mc-dur-micro) ease-out, box-shadow var(--mc-dur-micro) ease-out;
+}
+
+.aurora-settings__input:hover {
+  border-color: var(--mc-border-strong);
+}
+
+.aurora-settings__input:focus {
+  border-color: var(--mc-accent);
+  box-shadow: 0 0 0 2px var(--mc-accent-bg);
+}
+
+.aurora-settings__input--date {
+  min-width: 150px;
+}
+
+/* 隐藏真实 file input，由按钮触发 */
+.aurora-settings__file-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

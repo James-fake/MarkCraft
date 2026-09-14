@@ -1,0 +1,6 @@
+#!/usr/bin/env sh
+
+# 反向依赖守卫门禁（husky v9 写法：用户脚本直接写命令，由 .husky/_/h runner 调用）。
+# 仅对暂存的地基层文件运行守卫规则 local/no-aurora-ui-import，完全不碰项目既有 lint 债。
+# 详见《解耦整合实施计划.md》Batch D 与 .eslintrc.guard.cjs。
+npx lint-staged

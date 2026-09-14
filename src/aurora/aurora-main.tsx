@@ -1,0 +1,98 @@
+import { StrictMode, Component } from 'react'
+import type { ReactNode } from 'react'
+import { createRoot } from 'react-dom/client'
+// Aurora 设计系统 Token（Aurora 自有 --mc-* 初值，含仅 Aurora 使用的 --mc-accent-bg 等）
+import './styles/tokens.css'
+
+// 桌面密度广播（应用启动即同步 html data-density，避免 Settings 面板未挂载时密度系统未生效）
+// 见 P1-3：PageFrame 不再硬编码 data-density，仲裁权交给 <html>，由本 store 在模块顶层写入
+import '@stores/densityStore'
+
+// —— 真实全局样式底盘（迁移决策 D1：以真实设计系统为底盘）——
+// 必须位于 Aurora 外壳 CSS 之前，使真实 token / Tailwind 工具类成为底盘；
+// Aurora 外壳 CSS 在文件末尾（见下），确保 chrome 层在真实底盘之上覆盖。
+// 注意 base.css 内含 @tailwind 三指令 → 激活 Tailwind，真实 feature 大量使用工具类。
+import '../styles/base.css'
+import '../styles/desktop-chrome.css'
+import '../styles/components.css' // 真实组件工具类
+import '../styles/markdown.css'
+import '../styles/syntax.css'
+import '../styles/mermaid.css'
+import '../styles/tiptap.css'
+import '../styles/scrollbar.css'
+import '../styles/fonts.css'
+
+// Aurora 外壳样式（置于真实底盘之上，保证 chrome 覆盖）
+import './styles/shell.css'
+// 通用组件样式
+import './styles/components.css'
+// 命令面板样式
+import './styles/command-palette.css'
+// Toast / Confirm 表面样式（Phase 1 外壳骨架）
+import './styles/toast.css'
+// 各面板样式
+import './styles/panels/welcome.css'
+import './styles/panels/editor.css'
+import './styles/panels/canvas.css'
+import './styles/panels/settings.css'
+import './styles/panels/kb.css'
+import './styles/panels/blog.css'
+import './styles/panels/diary.css'
+
+import { AuroraShell } from './app/AuroraShell'
+
+/**
+ * Aurora 独立入口
+ *
+ * 通过 `AuroraShell` 挂载完整桌面界面外壳（PageFrame 由各面板自带）。
+ * 路由统一走真实 `viewState`（`#view=`，见 src/features/navigation/viewState），
+ * 不再使用演示期 `#/route` hash 路由。
+ */
+
+// 错误边界
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null }
+  static getDerivedStateFromError(error: Error) {
+    return { error }
+  }
+  componentDidCatch(error: Error) {
+    console.error('[Aurora] 渲染崩溃:', error)
+  }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 'var(--mc-space-8)', fontFamily: 'system-ui, sans-serif', color: '#cf222e', lineHeight: 1.6 }}>
+          <h2 style={{ marginTop: 0 }}>渲染出错</h2>
+          <pre style={{ whiteSpace: 'pre-wrap', background: 'rgba(207,34,46,.08)', padding: 'var(--mc-space-5)', borderRadius: 'var(--mc-radius-md)', fontSize: 'var(--mc-font-base)' }}>
+            {String(this.state.error?.stack || this.state.error?.message || this.state.error)}
+          </pre>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
+function bootstrap() {
+  const el = document.getElementById('aurora-root')
+  if (!el) {
+    document.body.innerHTML = '<div style="padding:24px;font-family:system-ui;color:#cf222e">找不到 #aurora-root 挂载点</div>'
+    return
+  }
+  createRoot(el).render(
+    <StrictMode>
+      <ErrorBoundary>
+        <AuroraShell />
+      </ErrorBoundary>
+    </StrictMode>,
+  )
+}
+
+window.addEventListener('error', (e) => {
+  console.error('[Aurora] 未捕获错误:', e.error || e.message)
+})
+window.addEventListener('unhandledrejection', (e) => {
+  console.error('[Aurora] 未处理的 Promise 拒绝:', e.reason)
+})
+
+bootstrap()

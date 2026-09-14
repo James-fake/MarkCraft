@@ -1,0 +1,82 @@
+/**
+ * excalidraw-hide-ui.css — 隐藏 Excalidraw 原生 UI，仅保留画布本体。
+ *
+ * 背景：混合画布引擎中，所有操作入口（工具栏、缩放、撤销/重做、菜单、右键菜单、
+ * 属性面板等）均由项目自定义组件（BottomBar / Topbar / 右栏 / FloatingToolbar /
+ * ContextMenu）统一接管。Excalidraw 自带 UI 与之完全重复，必须隐藏，避免：
+ *   1. 界面上出现两套工具栏（视觉冲突）；
+ *   2. 用户点击原生工具时走 Excalidraw 内部状态，与引擎工具名不一致导致行为错乱。
+ *
+ * 隐藏范围：仅隐藏 UI 浮层（layer-ui__wrapper 及各独立浮层菜单），
+ * 不触碰 .excalidraw__canvas（真正的绘图画布），因此几何/平移/缩放/选中/箭头/
+ * 手绘等底层交互能力完全保留。
+ *
+ * 作用域：用 .excalidraw-canvas-host 前缀限定，避免影响页面其它区域。
+ */
+
+/* 整个 UI 浮层容器（工具栏 / 顶部菜单 / 底部缩放 / 帮助 / 库面板等全部在内） */
+.excalidraw-canvas-host .layer-ui__wrapper {
+  display: none !important;
+}
+
+/* 兜底：即使个别版本把某些浮层挂到 wrapper 之外，也逐一隐藏 */
+.excalidraw-canvas-host .App-toolbar,
+.excalidraw-canvas-host .App-toolbar-content,
+.excalidraw-canvas-host .App-menu,
+.excalidraw-canvas-host .App-menu__left,
+.excalidraw-canvas-host .App-menu_top,
+.excalidraw-canvas-host .App-menu_bottom,
+.excalidraw-canvas-host .main-menu-trigger,
+.excalidraw-canvas-host .mobile-misc-tools-container,
+.excalidraw-canvas-host .footer-center,
+.excalidraw-canvas-host .zoom-actions,
+.excalidraw-canvas-host .undo-redo-buttons,
+.excalidraw-canvas-host .help-icon,
+.excalidraw-canvas-host .scroll-back-to-content,
+.excalidraw-canvas-host .layer-ui__wrapper__top-right,
+.excalidraw-canvas-host .layer-ui__wrapper__footer,
+.excalidraw-canvas-host .Stats,
+.excalidraw-canvas-host .welcome-screen,
+.excalidraw-canvas-host .welcome-screen-center,
+.excalidraw-canvas-host .welcome-screen-decor,
+.excalidraw-canvas-host .help-dialog,
+.excalidraw-canvas-host .dialog,
+.excalidraw-canvas-host .popover,
+.excalidraw-canvas-host .dropdown-menu {
+  display: none !important;
+}
+
+/* 关闭 Excalidraw 暗色模式的 CSS 反色管线（.theme--dark 定义 --theme-filter:
+   invert(93%) hue-rotate(180deg) 并应用于 .excalidraw__canvas）。
+   本引擎的场景是「暗色直出」创作：viewBackgroundColor=#0D0F15（CanvasEngine.loadDocument
+   统一注入）+ 浅色笔迹（#94a3b8/#6366f1），位图本身已是正确的暗色呈现；
+   Excalidraw 的暗色反色滤镜会把暗位图反成亮色（实测 #0D0F15 → #DFE0E5），
+   正是 v2 审计「canvas 空态亮卡 (215,216,220)」的真正根因。
+   故宿主内一律 filter:none；light 模式本就无滤镜，不受影响。 */
+.excalidraw-canvas-host .excalidraw__canvas {
+  filter: none !important;
+}
+
+/* 暗色主题下，对无法 display:none 的库自绘浮层（tooltip/popover 内容等）强制 token 化，
+   防主题回落漏网导致浅色卡片闪现。仅作用于 [data-theme='dark']，绝不触碰 .excalidraw__canvas 绘图画布。 */
+[data-theme='dark'] .excalidraw-canvas-host .excalidraw,
+[data-theme='dark'] .excalidraw-canvas-host .Tooltip,
+[data-theme='dark'] .excalidraw-canvas-host .Tooltip__label {
+  background-color: var(--mc-bg-elevated) !important;
+  color: var(--mc-text-primary) !important;
+  border-color: var(--mc-border-medium) !important;
+}
+
+/* 原生右键菜单与主菜单下拉（挂在 body 层，无法用 host 前缀，全局隐藏） */
+.excalidraw-contextMenu,
+.excalidraw .context-menu,
+.excalidraw-modal-container .Modal,
+.excalidraw .main-menu-content,
+.excalidraw .dropdown-menu {
+  display: none !important;
+}
+
+/* 让画布容器填满并去掉原生 UI 预留的内边距 */
+.excalidraw-canvas-host .excalidraw {
+  --zIndex-layerUI: -1;
+}

@@ -1,0 +1,57 @@
+/*
+ * MarkCraft 全局统一细滚动条（阶段 11 · C5）
+ * ------------------------------------------------------------
+ * 原仓库滚动条存在三派：none / thin / 自定义 thumb，观感不一。
+ * 此处定义"全局默认细滚动条"，通过 * 选择器（特异性最低）生效，
+ * 使绝大多数滚动区获得一致外观；而局部有意定制的规则（如
+ * GraphView 轨道 display:none、canvas 自定义 thumb）因特异性更高
+ * 仍保留，不被覆盖——从而实现"统一默认 + 局部有意保留"。
+ *
+ * 主题化：thumb / track 颜色由 token 驱动，随明暗主题切换。
+ */
+
+:root {
+  --mc-scrollbar-size: 10px;
+  --mc-scrollbar-thumb: rgba(100, 116, 139, 0.45);
+  --mc-scrollbar-thumb-hover: rgba(100, 116, 139, 0.7);
+  --mc-scrollbar-track: transparent;
+}
+
+[data-theme="light"] {
+  --mc-scrollbar-thumb: rgba(100, 116, 139, 0.4);
+  --mc-scrollbar-thumb-hover: rgba(100, 116, 139, 0.65);
+  --mc-scrollbar-track: rgba(15, 23, 42, 0.04);
+}
+
+/* Firefox 细滚动条规范 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mc-scrollbar-thumb) var(--mc-scrollbar-track);
+}
+
+/* WebKit / Blink 细滚动条规范 */
+*::-webkit-scrollbar {
+  width: var(--mc-scrollbar-size);
+  height: var(--mc-scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--mc-scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--mc-scrollbar-thumb);
+  border-radius: calc(var(--mc-scrollbar-size) / 2);
+  /* 用透明描边 + padding-box 让 thumb 视觉更纤细、留白更精致 */
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--mc-scrollbar-thumb-hover);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}

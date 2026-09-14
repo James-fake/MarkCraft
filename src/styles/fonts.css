@@ -1,0 +1,38 @@
+/*
+ * MarkCraft 字体本地打包（阶段 11 · C1）
+ * ------------------------------------------------------------
+ * 原仓库字体栈为 'Inter', -apple-system, ...，但 Inter 未随包分发，
+ * 用户机器若无 Inter 会静默回退系统字体，桌面质感不一致。
+ *
+ * 此处建立"本地打包"基础设施：
+ *  1. @font-face 优先 local()（本机已装 Inter 则零网络），
+ *     再渐进到打包的 woff2（/fonts/InterVariable.woff2）。
+ *  2. font-display: swap 保证首屏不因字体阻塞。
+ *  3. 把变量字体按字重区间（100–900）声明，单文件覆盖全部字重。
+ *
+ * 落地步骤（安全、零构建破坏）：
+ *  - 将 InterVariable.woff2 置于 public/fonts/ 即完成真打包；
+ *  - 若缺失，浏览器自动回退到系统栈，开发与线上均不报错。
+ */
+
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src:
+    local('Inter'),
+    local('Inter Variable'),
+    url('/fonts/InterVariable.woff2') format('woff2');
+}
+
+@font-face {
+  font-family: 'Inter';
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  src:
+    local('Inter Italic'),
+    local('Inter Variable Italic'),
+    url('/fonts/InterVariable-Italic.woff2') format('woff2');
+}

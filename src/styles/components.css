@@ -1,0 +1,251 @@
+/* Spell check error underline */
+.cm-spell-error {
+  text-decoration: underline wavy red;
+  text-decoration-skip-ink: none;
+}
+
+/* 滚动按钮 —— 用 fixed 定位使源码模式与 WYSIWYG 模式按钮位置完全一致 */
+.scroll-buttons-container {
+  position: fixed;
+  bottom: 48px;
+  right: calc(var(--outline-width, 0px) + 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 1000;
+  transition: opacity var(--mc-dur-base) var(--mc-ease-out), right var(--mc-dur-fast) var(--mc-ease-out);
+  /* 确保按钮不被其他浮动元素覆盖 */
+  pointer-events: auto;
+}
+
+.scroll-buttons-container.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scroll-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background-color: rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, opacity var(--mc-dur-base) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-out);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.scroll-btn.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.scroll-btn:hover {
+  background-color: rgba(0, 0, 0, 0.75);
+  transform: scale(1.1);
+}
+
+.scroll-btn:active {
+  transform: scale(0.95);
+}
+
+[data-theme="light"] .scroll-btn {
+  background-color: rgba(255, 255, 255, 0.85);
+  color: #374151;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .scroll-btn:hover {
+  background-color: rgba(255, 255, 255, 1);
+  color: #1f2937;
+}
+
+/* Hover utility — replaces JS onMouseEnter/onMouseLeave for common patterns */
+.hover-bg:hover {
+  background-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+.hover-close:hover {
+  background-color: rgba(239, 68, 68, 0.15) !important;
+  color: #ef4444 !important;
+}
+
+.hover-subtle:hover {
+  background-color: rgba(128, 128, 128, 0.08) !important;
+}
+
+.hover-blue:hover {
+  background-color: rgba(59, 130, 246, 0.08) !important;
+}
+
+.hover-blue-active:hover {
+  background-color: rgba(59, 130, 246, 0.15) !important;
+}
+
+/* 编辑器工具栏 */
+.editor-toolbar {
+  background-color: var(--toolbar-bg);
+  color: var(--toolbar-text);
+  transition: background-color var(--mc-dur-base) var(--mc-ease-out), color var(--mc-dur-base) var(--mc-ease-out);
+}
+
+.editor-area {
+  background-color: var(--editor-bg);
+  color: var(--editor-text);
+  transition: background-color var(--mc-dur-base) var(--mc-ease-out), color var(--mc-dur-base) var(--mc-ease-out);
+  min-height: 0;
+  height: 100%;
+}
+
+.preview-container {
+  background-color: var(--preview-bg);
+  transition: background-color var(--mc-dur-base) var(--mc-ease-out);
+}
+
+/* 标题高亮样式 */
+.heading-highlight {
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  animation: headingPulse 0.6s ease-out;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4), 0 0 20px rgba(59, 130, 246, 0.2);
+  transition: all var(--mc-dur-base) var(--mc-ease-out);
+}
+
+@keyframes headingPulse {
+  0% {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.35) 0%, rgba(59, 130, 246, 0.15) 100%);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3), 0 0 30px rgba(59, 130, 246, 0.3);
+    transform: scale(1.02);
+  }
+  50% {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.25) 0%, rgba(59, 130, 246, 0.1) 100%);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25), 0 0 20px rgba(59, 130, 246, 0.2);
+  }
+  100% {
+    background: linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4), 0 0 20px rgba(59, 130, 246, 0.2);
+    transform: scale(1);
+  }
+}
+
+.heading-link {
+  transition: all var(--mc-dur-base) var(--mc-ease-out);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .heading-highlight {
+    padding: 0.25rem;
+    font-size: 0.95em;
+  }
+}
+
+/* Ctrl+Click 链接光标样式 */
+.cm-editor .cm-url,
+.cm-editor .cm-link {
+  cursor: pointer;
+}
+
+/* ─── Canvas 白板卡片 markdown 渲染样式 ─── */
+.canvas-card-md {
+  font-size: 11px;
+  line-height: 1.5;
+  word-break: break-word;
+}
+.canvas-card-md h1,
+.canvas-card-md h2,
+.canvas-card-md h3,
+.canvas-card-md h4 {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 4px 0 2px;
+}
+.canvas-card-md h1 { font-size: 14px; }
+.canvas-card-md h2 { font-size: 13px; }
+.canvas-card-md h3 { font-size: 12px; }
+.canvas-card-md p { margin: 2px 0; }
+.canvas-card-md ul,
+.canvas-card-md ol {
+  margin: 2px 0;
+  padding-left: 16px;
+}
+.canvas-card-md li { margin: 1px 0; }
+.canvas-card-md code {
+  font-family: 'Fira Code', monospace;
+  font-size: var(--mc-font-xs);
+  background: rgba(128, 128, 128, 0.15);
+  padding: 0 3px;
+  border-radius: var(--mc-radius-sm);
+}
+.canvas-card-md pre {
+  font-family: 'Fira Code', monospace;
+  font-size: var(--mc-font-xs);
+  background: rgba(0, 0, 0, 0.1);
+  padding: 4px 6px;
+  border-radius: 4px;
+  overflow-x: auto;
+  margin: 2px 0;
+}
+.canvas-card-md pre code {
+  background: transparent;
+  padding: 0;
+}
+.canvas-card-md blockquote {
+  border-left: 2px solid var(--mc-border-subtle);
+  padding-left: 6px;
+  margin: 2px 0;
+  opacity: 0.7;
+}
+.canvas-card-md a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+.canvas-card-md a:hover {
+  text-decoration: underline;
+}
+.canvas-card-md table {
+  border-collapse: collapse;
+  font-size: var(--mc-font-xs);
+  margin: 2px 0;
+}
+.canvas-card-md th,
+.canvas-card-md td {
+  border: 1px solid var(--mc-border-subtle);
+  padding: 2px 4px;
+}
+.canvas-card-md img {
+  max-width: 100%;
+  height: auto;
+}
+/* 卡片内代码语法高亮（highlight.js） */
+.canvas-card-md .hljs {
+  background: transparent;
+  padding: 0;
+}
+.canvas-card-md pre .hljs {
+  padding: 4px 6px;
+}
+/* 卡片内 katex 公式 */
+.canvas-card-md .katex {
+  font-size: 0.85em;
+}
+.canvas-card-md .katex-display-wrapper {
+  margin: 2px 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.canvas-card-md .katex-display {
+  margin: 2px 0;
+}
+/* 卡片内脚注 */
+.canvas-card-md .footnotes {
+  font-size: var(--mc-font-xs);
+  opacity: 0.7;
+  border-top: 1px solid var(--mc-border-subtle);
+  margin-top: 4px;
+  padding-top: 2px;
+}

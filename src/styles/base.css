@@ -1,0 +1,182 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 深色模式主题 */
+:root {
+  --app-bg: #0f172a;
+  --app-text: #e2e8f0;
+  --sidebar-bg: #1e293b;
+  --sidebar-text: #cbd5e1;
+  --sidebar-border: #334155;
+  --tab-bg: #334155;
+  --tab-active-bg: #0f172a;
+  --tab-text: #94a3b8;
+  --tab-active-text: #60a5fa;
+  --tab-border: #475569;
+  --toolbar-bg: #1e293b;
+  --toolbar-text: #f1f5f9;
+  --editor-bg: #0f172a;
+  --editor-text: #e2e8f0;
+  --editor-border: #334155;
+  --preview-bg: #0f172a;
+  --preview-text: #e2e8f0;
+  --preview-border: #334155;
+  --button-primary: var(--mc-accent);
+  --button-primary-hover: var(--mc-accent-hover);
+  --button-success: #22c55e;
+  --button-success-hover: #16a34a;
+  --link-color: #60a5fa;
+  --blockquote-bg: #1e293b;
+  --blockquote-border: #3b82f6;
+  --code-bg: #1e293b;
+  --code-block-bg: #0d1117;
+  --code-block-text: #c9d1d9;
+  --table-border: #334155;
+  --table-header-bg: #1e293b;
+  --line-number-bg: #1e293b;
+  --line-number-color: #64748b;
+  --line-number-border: #334155;
+  --katex-color: #e2e8f0;
+  --katex-background: #1e293b;
+  --katex-error-color: #dc3545;
+
+  /* 知识库组件专用变量（Canvas View 系列） */
+  --cv-bg: #0f172a;
+  --cv-card-bg: #1e293b;
+  --cv-bg-hover: #334155;
+  --cv-text-main: #e2e8f0;
+  --cv-text-secondary: #94a3b8;
+  --cv-text-tertiary: #64748b;
+  --cv-border: #334155;
+  --cv-accent: #60a5fa;
+  --cv-primary: #3b82f6;
+  --cv-primary-light: #1e3a5f;
+  --cv-primary-dark: #60a5fa;
+  --cv-success: #10b981;
+  --cv-warning: #f59e0b;
+  --cv-danger: #ef4444;
+  --cv-success-bg: #064e3b;
+  --cv-success-text: #6ee7b7;
+  --cv-danger-bg: #450a0a;
+  --cv-danger-text: #fca5a5;
+  --cv-warning-bg: #451a03;
+  --cv-warning-text: #fcd34d;
+  --cv-highlight: rgba(250, 204, 21, 0.3);
+  --cv-on-primary: #ffffff;
+  --cv-mask: rgba(0, 0, 0, 0.55);
+  --cv-shadow: rgba(0, 0, 0, 0.4);
+
+  /* 标题栏（桌面应用外壳） */
+  --titlebar-h: 38px;
+  --titlebar-bg: #0b1220;
+  --titlebar-border: #334155;
+  --titlebar-text: #e2e8f0;
+  --titlebar-input-bg: #1e293b;
+}
+
+/* 侧边栏密度（桌面文件管理器观感）：默认紧凑，data-density="comfortable" 切换为舒适 */
+.sidebar {
+  --file-row-py: 2px;
+  --file-row-gap: 6px;
+  --file-font: 12.5px;
+  --file-icon-size: 14px;
+}
+.sidebar[data-density="comfortable"] {
+  --file-row-py: 5px;
+  --file-row-gap: 8px;
+  --file-font: 13px;
+  --file-icon-size: 15px;
+}
+
+/* 浅色模式主题 */
+[data-theme="light"] {
+  --app-bg: #ffffff;
+  --app-text: #0f172a;
+  --sidebar-bg: #f8fafc;
+  --sidebar-text: #475569;
+  --sidebar-border: #e2e8f0;
+  --tab-bg: #e2e8f0;
+  --tab-active-bg: #ffffff;
+  --tab-text: #64748b;
+  --tab-active-text: #2563eb;
+  --tab-border: #cbd5e1;
+  --toolbar-bg: #f1f5f9;
+  --toolbar-text: #0f172a;
+  --editor-bg: #ffffff;
+  --editor-text: #0f172a;
+  --editor-border: #e2e8f0;
+  --preview-bg: #ffffff;
+  --preview-text: #0f172a;
+  --preview-border: #e2e8f0;
+  --button-primary: var(--mc-accent);
+  --button-primary-hover: var(--mc-accent-hover);
+  --button-success: #22c55e;
+  --button-success-hover: #16a34a;
+  --link-color: #2563eb;
+
+  /* 标题栏（桌面应用外壳） */
+  --titlebar-h: 38px;
+  --titlebar-bg: #f1f5f9;
+  --titlebar-border: #e2e8f0;
+  --titlebar-text: #0f172a;
+  --titlebar-input-bg: #ffffff;
+  --blockquote-bg: #f1f5f9;
+  --blockquote-border: #3b82f6;
+  --code-bg: #f1f5f9;
+  --code-block-bg: #f6f8fa;
+  --code-block-text: #24292e;
+  --table-border: #e2e8f0;
+  --table-header-bg: #f8fafc;
+  --line-number-bg: #f8fafc;
+  --line-number-color: #94a3b8;
+  --line-number-border: #e2e8f0;
+  --katex-color: #1e293b;
+  --katex-background: #f1f5f9;
+  --katex-error-color: #dc3545;
+
+  /* 知识库组件专用变量（浅色） */
+  --cv-bg: #ffffff;
+  --cv-card-bg: #f8fafc;
+  --cv-bg-hover: #f1f5f9;
+  --cv-text-main: #1e293b;
+  --cv-text-secondary: #64748b;
+  --cv-text-tertiary: #94a3b8;
+  --cv-border: #e2e8f0;
+  --cv-accent: #3b82f6;
+  --cv-primary: #3b82f6;
+  --cv-primary-light: #dbeafe;
+  --cv-primary-dark: #1e40af;
+  --cv-success: #10b981;
+  --cv-warning: #f59e0b;
+  --cv-danger: #ef4444;
+  --cv-success-bg: #d1fae5;
+  --cv-success-text: #065f46;
+  --cv-danger-bg: #fee2e2;
+  --cv-danger-text: #991b1b;
+  --cv-warning-bg: #fef3c7;
+  --cv-warning-text: #92400e;
+  --cv-highlight: #fef08a;
+  --cv-on-primary: #ffffff;
+  --cv-mask: rgba(15, 23, 42, 0.55);
+  --cv-shadow: rgba(0, 0, 0, 0.1);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--mc-font-sans);
+  background-color: var(--mc-bg-window);
+  color: var(--mc-text-primary);
+  transition: background-color var(--mc-dur-base) var(--mc-ease-out), color var(--mc-dur-base) var(--mc-ease-out);
+}

@@ -1,0 +1,1237 @@
+/* ============================================================
+ * Aurora · 博客工作室面板
+ * 对齐项目实际 BlogStudio 6 面板结构（样式/配色/内容/功能/CSS/导出）
+ * ========================================================== */
+
+.aurora-blog {
+  box-sizing: border-box;
+  min-width: 0;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background-color: var(--mc-bg-content);
+  overflow: hidden;
+}
+
+/* ============================================================
+ * 顶部子栏（对齐 KbPanel 子栏，替代内部图标栏）
+ * ========================================================== */
+.aurora-blog__subbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 46px;
+  flex-shrink: 0;
+  padding: 0 12px;
+  background: var(--mc-bg-content);
+  border-bottom: 1px solid var(--mc-border-subtle);
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.aurora-blog__tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: var(--mc-bg-pressed);
+  border-radius: var(--mc-radius-md);
+  min-width: 0;
+}
+
+.aurora-blog__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--mc-inspector-tab-h);
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  color: var(--mc-text-secondary);
+  font-family: inherit;
+  font-size: var(--mc-font-sm);
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color var(--mc-dur-micro) ease-out, background-color var(--mc-dur-micro) ease-out;
+}
+.aurora-blog__tab:hover { color: var(--mc-text-primary); background: var(--mc-bg-hover); }
+.aurora-blog__tab.is-active {
+  color: var(--mc-accent);
+  background: var(--mc-bg-elevated);
+  font-weight: 600;
+  box-shadow: var(--mc-shadow-inset);
+}
+
+/* 次级 segmented（P1-5）：组内子面板切换。无轨道底、文本为主，
+ * 与主 tab 之间发丝线分区 —— 比主 tab 更轻一级的视觉权重 */
+.aurora-blog__subseg {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 8px;
+  padding-left: 9px;
+  border-left: 1px solid var(--mc-border-subtle);
+  min-width: 0;
+}
+.aurora-blog__subseg-btn {
+  display: inline-flex;
+  align-items: center;
+  height: calc(var(--mc-inspector-tab-h) - 4px);
+  padding: 0 10px;
+  border: none;
+  background: transparent;
+  color: var(--mc-text-tertiary);
+  font-family: inherit;
+  font-size: var(--mc-font-sm);
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: color var(--mc-dur-micro) ease-out, background-color var(--mc-dur-micro) ease-out;
+}
+.aurora-blog__subseg-btn:hover { color: var(--mc-text-primary); background: var(--mc-bg-hover); }
+.aurora-blog__subseg-btn.is-active {
+  color: var(--mc-text-primary);
+  background: var(--mc-bg-elevated);
+  font-weight: 600;
+  box-shadow: var(--mc-shadow-inset);
+}
+
+.aurora-blog__subbar-right {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.aurora-blog__device {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  background-color: var(--mc-bg-elevated);
+  border-radius: var(--mc-radius-sm);
+}
+.aurora-blog__device-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--mc-icon-muted);
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-spring);
+}
+.aurora-blog__device-btn:hover { color: var(--mc-icon-strong); }
+.aurora-blog__device-btn.is-active { background-color: var(--mc-accent); color: var(--mc-text-inverse); }
+/* 使用优化②：顶栏「打开」按钮（.aurora-blog__preview-open）已迁入导出面板步骤 2 动作卡 */
+
+/* ============================================================
+ * 中央预览舞台
+ * ========================================================== */
+.aurora-blog__stage {
+  box-sizing: border-box;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  display: flex;
+  position: relative;   /* 作为悬停捕获层与左右边缘提示箭头的定位上下文 */
+}
+
+/* ============================================================
+ * 功能列表浮层（高度 = 预览区高度；仅停靠博客界面最左 / 最右贴边；
+ * 抓住表头向左/右「甩丢」切换，transform spring 过渡实现快速顺滑贴边动画）
+ * ========================================================== */
+.aurora-blog__panelzone {
+  position: absolute;
+  top: 46px;   /* 紧贴顶栏（46px）下方，预览区即从此开始 */
+  bottom: 0;   /* 高度 = 预览区高度 */
+  left: 0;     /* 基准位（最左贴边）；横向停靠位移由 JS 写 transform 承载（audit 2026-09-14 #2） */
+  z-index: 30;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* 统一固定宽度：所有功能面板（样式/配色/内容/功能/CSS/导出）共用同一宽度，
+     不再随内容多少浮动；宽度克制（不超出预览正文可用区），避免遮挡博客内容 */
+  width: 300px;
+  min-width: 0;
+  /* 面板背景与项目整体一致（实色，去除毛玻璃半透明 —— 玻璃质感导致列表内容显示不清） */
+  background-color: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-subtle);
+  /* 圆角与博客界面（白色预览框）一致（--mc-radius-md）；贴边一侧直角融入整体界面 */
+  border-radius: var(--mc-radius-md);
+  box-shadow: var(--mc-shadow-popover);
+  /* 丝滑位移：切换 / 抛掷停靠点时 transform 平滑过渡（spring 曲线实现快速顺滑的贴边动画）。
+     audit 2026-09-14 #2：原为 `left`（布局属性，逐帧触发 layout→paint→composite）。
+     改 transform 后全程留在合成器线程 —— 时长/曲线与原实现逐字一致，仅更换载体属性。 */
+  transition: transform var(--mc-dur-base) var(--mc-ease-spring);
+  will-change: transform, opacity;
+}
+/* 贴边停靠时，贴边一侧圆角归零，自然融入界面（消除突兀感） */
+.aurora-blog__panelzone.is-left { border-radius: 0 var(--mc-radius-md) var(--mc-radius-md) 0; }
+.aurora-blog__panelzone.is-right { border-radius: var(--mc-radius-md) 0 0 var(--mc-radius-md); }
+/* 拖动中：关闭过渡、实时跟随指针，呈现「被抓住甩动」的抓取手感 */
+.aurora-blog__panelzone.is-dragging { transition: none; }
+.aurora-blog__panelzone:not(.is-open) { display: none; }
+.aurora-blog__panelzone-head {
+  box-sizing: border-box;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 12px;
+  background-color: transparent;
+  border-bottom: 1px solid var(--mc-border-subtle);
+  /* 表头即拖拽手柄：抓取并向左/右甩动切换停靠侧 */
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+.aurora-blog__panelzone:not(.is-dragging) .aurora-blog__panelzone-head:hover { background-color: var(--mc-bg-hover); }
+.aurora-blog__panelzone.is-dragging .aurora-blog__panelzone-head { cursor: grabbing; }
+/* 拖拽手柄提示（非按钮，仅视觉示意） */
+.aurora-blog__panel-grip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 4px;
+  flex-shrink: 0;
+  color: var(--mc-icon-muted);
+  border-radius: var(--mc-radius-sm);
+  cursor: grab;
+}
+.aurora-blog__panel-grip:hover { color: var(--mc-text-secondary); }
+.aurora-blog__panelzone.is-dragging .aurora-blog__panel-grip { cursor: grabbing; }
+.aurora-blog__panelzone-title {
+  font-size: var(--mc-font-md);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  white-space: nowrap;
+  margin-right: auto;
+}
+/* 切换交互已改为「抓住表头甩丢」贴边切换，故移除悬停捕获层与左右边缘提示箭头 */
+.aurora-blog__panelzone-body {
+  box-sizing: border-box;
+  min-width: 0;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* 滑动切「组内子面板」：x 轴手势区，纵向滚动交回浏览器代管 */
+  touch-action: pan-y;
+  position: relative;
+  transition:
+    transform var(--mc-dur-base) var(--mc-ease-out),
+    opacity var(--mc-dur-base) var(--mc-ease-out);
+  will-change: transform;
+}
+
+/* 滑动进度变量（挂博客根，供浮层内容层边缘遮罩消费） */
+.aurora-blog {
+  --swipe-progress: 0;
+}
+
+/* 方向边缘压暗层（浮层窄，遮罩宽度相应收窄） */
+.aurora-blog__panelzone-body::before,
+.aurora-blog__panelzone-body::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 48px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--mc-dur-base) var(--mc-ease-out);
+  z-index: 1;
+}
+.aurora-blog__panelzone-body::before {
+  left: 0;
+  background: linear-gradient(to right, color-mix(in srgb, var(--mc-bg-elevated) 92%, transparent), transparent);
+}
+.aurora-blog__panelzone-body::after {
+  right: 0;
+  background: linear-gradient(to left, color-mix(in srgb, var(--mc-bg-elevated) 92%, transparent), transparent);
+}
+
+/* 跟手期间：零过渡（必须） */
+.aurora-blog__panelzone-body.is-swiping {
+  transition: none;
+  opacity: 0.96;
+  cursor: grabbing;
+  user-select: none;
+}
+.aurora-blog__panelzone-body.is-swiping::before {
+  opacity: clamp(0, var(--swipe-progress, 0), 1);
+}
+.aurora-blog__panelzone-body.is-swiping::after {
+  opacity: clamp(0, calc(var(--swipe-progress, 0) * -1), 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-blog__panelzone-body {
+    transition-duration: 140ms;
+  }
+  .aurora-blog__panelzone-body.is-swiping {
+    opacity: 0.97;
+  }
+}
+.aurora-blog__panelzone:not(.is-open) .aurora-blog__panelzone-body { display: none; }
+
+/* 面板圆点（面板区头部 / 激活态共用） */
+.aurora-blog__panel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+/* 面板内滚动容器（各面板组件复用，全宽）。
+   height:100% 让它成为真实滚动容器（此前高度自适应，滚动实际发生在外层
+   .aurora-blog__panelzone-body 上）；同时它也是搜索框 sticky 的最近滚动上下文，
+   若滚动发生在外层，搜索框的 position:sticky 永远不会生效（2026-09-14 晚修复） */
+.aurora-blog-panel__scroll {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ============================================================
+ * 区块标签
+ * ========================================================== */
+.aurora-blog-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--mc-font-sm);
+  font-weight: 600;
+  color: var(--mc-text-secondary);
+  text-transform: none;
+  letter-spacing: 0.02em;
+  padding-left: 8px;
+  position: relative;
+}
+.aurora-blog-section::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 13px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--mc-accent), var(--mc-accent-pressed));
+}
+.aurora-blog-section em {
+  font-style: normal;
+  font-weight: 500;
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+  margin-left: auto;
+}
+
+/* ============================================================
+ * 表单控件
+ * ========================================================== */
+.aurora-blog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.aurora-blog-field > span {
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-secondary);
+}
+.aurora-blog-field--row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.aurora-blog-row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.aurora-blog-input,
+.aurora-blog-textarea,
+.aurora-blog-code__area {
+  box-sizing: border-box;
+  width: 100%;
+  background-color: var(--mc-bg-content);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-primary);
+  font-family: inherit;
+  font-size: var(--mc-font-base);
+  padding: 7px 12px;
+  transition: border-color var(--mc-dur-fast) ease-out, box-shadow var(--mc-dur-fast) ease-out;
+}
+.aurora-blog-input::placeholder,
+.aurora-blog-textarea::placeholder {
+  color: var(--mc-text-tertiary);
+}
+.aurora-blog-input:focus,
+.aurora-blog-textarea:focus {
+  outline: none;
+  border-color: var(--mc-accent);
+  box-shadow: 0 0 0 3px var(--mc-accent-soft);
+}
+.aurora-blog-textarea {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.aurora-blog-select {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.aurora-blog-select select {
+  box-sizing: border-box;
+  width: 100%;
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 28px;
+  cursor: pointer;
+}
+.aurora-blog-select svg {
+  position: absolute;
+  right: 9px;
+  color: var(--mc-text-tertiary);
+  pointer-events: none;
+}
+
+/* 开关 */
+.aurora-blog-toggle {
+  width: 38px;
+  height: 22px;
+  border-radius: var(--mc-radius-pill);
+  border: none;
+  background-color: var(--mc-bg-pressed);
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color var(--mc-dur-fast) ease-out;
+}
+.aurora-blog-toggle.is-on {
+  background-color: var(--mc-accent);
+}
+.aurora-blog-toggle__dot {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--mc-text-inverse);
+  transition: transform var(--mc-dur-fast) var(--mc-ease-spring);
+}
+.aurora-blog-toggle.is-on .aurora-blog-toggle__dot {
+  transform: translateX(16px);
+}
+
+/* chips */
+.aurora-blog-chip {
+  box-sizing: border-box;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--mc-radius-pill);
+  border: 1px solid var(--mc-border-medium);
+  background-color: var(--mc-bg-content);
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-sm);
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-spring);
+}
+.aurora-blog-chip:hover {
+  border-color: var(--mc-border-strong);
+  color: var(--mc-text-primary);
+}
+.aurora-blog-chip.is-active {
+  background-color: var(--mc-accent-soft);
+  border-color: var(--mc-accent);
+  color: var(--mc-accent-text);
+}
+
+/* 按钮 */
+.aurora-blog-btn {
+  box-sizing: border-box;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--mc-radius-sm);
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: var(--mc-font-base);
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-spring);
+}
+.aurora-blog-btn--primary {
+  background: var(--mc-accent);
+  border-color: transparent;
+  color: var(--mc-text-inverse);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.aurora-blog-btn--primary:hover {
+  background: var(--mc-accent-hover);
+  border-color: transparent;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.aurora-blog-btn--primary:active {
+  background: var(--mc-accent-pressed);
+  border-color: transparent;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+  transform: scale(0.97);
+}
+.aurora-blog-btn--secondary {
+  background-color: var(--mc-bg-elevated);
+  border-color: var(--mc-border-medium);
+  color: var(--mc-text-primary);
+}
+.aurora-blog-btn--secondary:hover { background-color: var(--mc-bg-hover); }
+.aurora-blog-btn--ghost {
+  background: transparent;
+  border-color: var(--mc-border-subtle);
+  color: var(--mc-text-secondary);
+}
+.aurora-blog-btn--ghost:hover { color: var(--mc-text-primary); border-color: var(--mc-border-strong); }
+
+/* ============================================================
+ * 搜索框 / tabs / tags
+ * ========================================================== */
+.aurora-blog-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  margin: 12px 16px 0;
+  padding: 0 12px;
+  border-radius: var(--mc-radius-sm);
+  background-color: var(--mc-bg-content);
+  border: 1px solid var(--mc-border-medium);
+  color: var(--mc-text-tertiary);
+  /* 滚动显隐折叠动画（FileTree 同款）：常驻 DOM，is-hidden 收成 0 高——
+     绝不条件渲染（挂载/卸载令滚动区高度跳变 → 伪反向滚动 → 自激振荡闪烁） */
+  max-height: 44px;
+  overflow: hidden;
+  transition: max-height var(--mc-dur-base) var(--mc-ease-out),
+    opacity var(--mc-dur-fast) var(--mc-ease-out),
+    margin var(--mc-dur-base) var(--mc-ease-out);
+}
+/* is-hidden：平滑折叠（max-height + opacity + margin 同步收拢；边框宽度一并收零，
+   只透明颜色不够——border 宽度仍占位，折叠后会残留 2px 边框线在列表顶部） */
+.aurora-blog-search.is-hidden {
+  max-height: 0;
+  margin-top: 0;
+  opacity: 0;
+  pointer-events: none;
+  border-width: 0;
+}
+.aurora-blog-search input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  color: var(--mc-text-primary);
+  font-family: inherit;
+  font-size: var(--mc-font-base);
+  outline: none;
+}
+.aurora-blog-search input::placeholder { color: var(--mc-text-tertiary); }
+
+.aurora-blog-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.aurora-blog-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+/* 主题市场面板外壳（2026-09-14 深夜重构）：搜索框在滚动容器「外」的兄弟节点（FileTree 同构），
+   折叠/展开完全不触碰滚动区内容高度，从结构上杜绝闪烁；sticky 吸顶方案随之退役 */
+.aurora-blog-market {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.aurora-blog-market .aurora-blog-panel__scroll {
+  height: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+/* 滚轮筛选触发器拉满行宽（2026-09-14 晚）：行容器与卡片网格同宽（面板同一 padding），
+   触发器 flex:1 吃掉行内剩余宽度 → 右缘与下方卡片网格右缘对齐 */
+.aurora-blog-tabs .aurora-select--custom,
+.aurora-blog-tags .aurora-select--custom {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* 分组微标签（2026-09-14 加入；2026-09-14 晚随筛选改滚轮鼓微调语义）：
+   分类/风格两行各自行首保留「分类/风格」小字，右侧是 AuroraSelect 滚轮鼓触发器，
+   标签与触发器（.aurora-select 28px）同高对齐，两组保持同款统一 */
+.aurora-blog-chipgroup__label {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  margin-right: 2px;
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+  letter-spacing: 0.05em;
+  user-select: none;
+}
+
+/* ============================================================
+ * 主题市场卡片网格
+ * ========================================================== */
+.aurora-blog-theme-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.aurora-blog-theme {
+  box-sizing: border-box;
+  width: 100%;
+  display: block;
+  text-align: left;
+  border: 1px solid var(--mc-border-medium);
+  background-color: var(--mc-bg-content);
+  border-radius: var(--mc-radius-md);
+  padding: 0 0 8px;
+  cursor: pointer;
+  overflow: hidden;
+  font-family: inherit;
+  color: inherit; /* 主题卡为可访问 div（role=button），文字色跟随面板（button 默认系统色会造成颜色错位） */
+  transition: border-color var(--mc-dur-fast) ease-out, transform var(--mc-dur-fast) ease-out;
+}
+.aurora-blog-theme:hover { border-color: var(--mc-border-strong); transform: translateY(-1px); }
+.aurora-blog-theme.is-active { border-color: var(--mc-accent); box-shadow: 0 0 0 2px var(--mc-accent-soft); }
+.aurora-blog-theme__cover {
+  position: relative;
+  height: 56px;
+  margin-bottom: 7px;
+}
+.aurora-blog-theme__fav {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+  color: rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+}
+.aurora-blog-theme__fav.is-on { color: var(--mc-warning); }
+.aurora-blog-theme__check {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--mc-accent);
+  color: var(--mc-text-inverse);
+}
+.aurora-blog-theme__name {
+  display: flex;
+  flex-wrap: wrap; /* 2026-09-14：卡片两列较窄，「赛博朋克 Cyberpunk」挤一行时中文名被 CJK 逐字断行成「赛博朋 克」。
+                      改为整体换行：中/英名各自 nowrap 成不可拆的词，放不下时英文名整词掉到第二行 */
+  align-items: baseline;
+  gap: 2px 5px;
+  padding: 0 8px;
+}
+.aurora-blog-theme__name b { font-size: var(--mc-font-base); color: var(--mc-text-primary); white-space: nowrap; }
+.aurora-blog-theme__name span { font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); white-space: nowrap; }
+.aurora-blog-theme__desc {
+  padding: 3px 8px 0;
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+  line-height: 1.4;
+  /* 两行截取替代单行省略：卡片宽 ~126px 一行仅容 ~9 个汉字，单行截断丢字严重（「学术论文风格，严…」）；
+     min-height 锁两行，描述短的主题卡不塌高、网格行高齐平 */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  min-height: calc(1.4em * 2);
+}
+.aurora-blog-theme__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px 8px 0;
+}
+.aurora-blog-theme__tags em {
+  font-style: normal;
+  font-size: var(--mc-font-xs);
+  padding: 1px 6px;
+  border-radius: var(--mc-radius-pill);
+  background-color: var(--mc-bg-elevated);
+  color: var(--mc-text-secondary);
+}
+.aurora-blog-theme__tags em.is-featured {
+  background-color: var(--mc-warning-soft);
+  color: var(--mc-warning-text);
+}
+
+/* ============================================================
+ * 分段控件 / 当前主题
+ * ========================================================== */
+.aurora-blog-seg {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background-color: var(--mc-bg-pressed);
+  border-radius: var(--mc-radius-md);
+}
+.aurora-blog-seg__btn {
+  flex: 1;
+  height: 30px;
+  border: none;
+  background: transparent;
+  color: var(--mc-text-secondary);
+  font-family: inherit;
+  font-size: var(--mc-font-sm);
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-spring);
+}
+.aurora-blog-seg__btn:hover { color: var(--mc-text-primary); background: var(--mc-bg-hover); }
+.aurora-blog-seg__btn.is-active {
+  background-color: var(--mc-bg-elevated);
+  box-shadow: var(--mc-shadow-inset);
+  color: var(--mc-accent);
+  font-weight: 600;
+}
+.aurora-blog-current {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-secondary);
+}
+.aurora-blog-current b { color: var(--mc-text-primary); }
+.aurora-blog-current__grad {
+  width: 28px;
+  height: 16px;
+  border-radius: var(--mc-radius-sm);
+  margin-left: auto;
+}
+
+/* ============================================================
+ * 配色
+ * ========================================================== */
+.aurora-blog-colors {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+.aurora-blog-color {
+  position: relative;
+  aspect-ratio: 1;
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  background-color: var(--mc-bg-content);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: border-color var(--mc-dur-fast) ease-out, transform var(--mc-dur-fast) ease-out;
+}
+.aurora-blog-color:hover { transform: translateY(-1px); }
+.aurora-blog-color span {
+  width: 70%;
+  height: 70%;
+  border-radius: var(--mc-radius-sm);
+}
+.aurora-blog-color.is-active { border-color: var(--mc-accent); box-shadow: 0 0 0 2px var(--mc-accent-soft); }
+.aurora-blog-color.is-active > svg { color: var(--mc-text-inverse); position: absolute; }
+.aurora-blog-color--custom span { background: conic-gradient(#ef4444, #f59e0b, #22c55e, #06b6d4, #6366f1, #ef4444); }
+
+.aurora-blog-color-preview {
+  box-sizing: border-box;
+  height: 84px;
+  border-radius: var(--mc-radius-md);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--mc-text-inverse);
+}
+.aurora-blog-color-preview__name { font-size: var(--mc-font-md); font-weight: 600; }
+.aurora-blog-color-preview__dots { display: flex; gap: 6px; }
+.aurora-blog-color-preview__dots span { width: 16px; height: 16px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, 0.5); }
+
+/* ============================================================
+ * 文档列表
+ * ========================================================== */
+.aurora-blog-doc-actions { display: flex; gap: 6px; }
+.aurora-blog-doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.aurora-blog-doc {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 8px;
+  border-radius: var(--mc-radius-sm);
+  background-color: transparent;
+  cursor: pointer;
+  transition: background-color var(--mc-dur-micro) ease-out;
+}
+.aurora-blog-doc:hover { background-color: var(--mc-bg-hover); }
+.aurora-blog-doc.is-on { border-color: var(--mc-border-medium); }
+.aurora-blog-doc input { accent-color: var(--mc-accent); width: 14px; height: 14px; }
+.aurora-blog-doc__title { flex: 1; font-size: var(--mc-font-base); color: var(--mc-text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.aurora-blog-doc__words { font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); flex-shrink: 0; }
+.aurora-blog-stat-inline {
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-secondary);
+  padding: 4px 2px;
+}
+.aurora-blog-stat-inline b { color: var(--mc-text-primary); }
+
+/* ============================================================
+ * 功能 chips / 列表
+ * ========================================================== */
+.aurora-blog-feature-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.aurora-blog-fchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: var(--mc-radius-sm);
+  border: 1px solid var(--mc-border-medium);
+  background-color: var(--mc-bg-content);
+  color: var(--mc-text-secondary);
+  font-family: inherit;
+  font-size: var(--mc-font-base);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-spring);
+}
+.aurora-blog-fchip:hover { color: var(--mc-text-primary); border-color: var(--mc-border-strong); }
+.aurora-blog-fchip.is-on {
+  background-color: var(--mc-accent-soft);
+  border-color: var(--mc-accent);
+  color: var(--mc-accent-text);
+}
+
+.aurora-blog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.aurora-blog-list-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--mc-radius-sm);
+  background-color: transparent;
+  border: 1px solid transparent;
+  transition: background-color var(--mc-dur-micro) ease-out;
+}
+.aurora-blog-list-item:hover { background: var(--mc-bg-hover); }
+.aurora-blog-list-item svg { color: var(--mc-text-tertiary); flex-shrink: 0; }
+.aurora-blog-list-item__body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.aurora-blog-list-item__body b { font-size: var(--mc-font-base); color: var(--mc-text-primary); font-weight: 500; }
+.aurora-blog-list-item__body span { font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.aurora-blog-icon-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--mc-icon-muted);
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background-color var(--mc-dur-micro) ease-out, color var(--mc-dur-micro) ease-out;
+}
+.aurora-blog-icon-btn:hover { background-color: var(--mc-danger-soft); color: var(--mc-danger); }
+.aurora-blog-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 28px;
+  border: 1px dashed var(--mc-border-strong);
+  background: transparent;
+  color: var(--mc-text-secondary);
+  border-radius: var(--mc-radius-sm);
+  font-family: inherit;
+  font-size: var(--mc-font-sm);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-spring);
+}
+.aurora-blog-add:hover { color: var(--mc-accent-text); border-color: var(--mc-accent); background-color: var(--mc-accent-soft); }
+
+/* ============================================================
+ * CSS 面板
+ * ========================================================== */
+.aurora-blog-banner {
+  font-size: var(--mc-font-xs);
+  color: var(--mc-warning-text);
+  background-color: var(--mc-warning-soft);
+  border-radius: var(--mc-radius-sm);
+  padding: 7px 12px;
+}
+.aurora-blog-code {
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  overflow: hidden;
+  background-color: var(--mc-bg-window);
+}
+.aurora-blog-code__bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 30px;
+  padding: 0 8px;
+  border-bottom: 1px solid var(--mc-border-subtle);
+  background-color: var(--mc-bg-elevated);
+}
+.aurora-blog-code__hint { margin-left: auto; font-size: var(--mc-font-xs); color: var(--mc-success-text); }
+.aurora-blog-code__area {
+  box-sizing: border-box;
+  width: 100%;
+  height: 150px;
+  border: none;
+  border-radius: 0;
+  background-color: var(--mc-bg-window);
+  color: var(--mc-text-primary);
+  font-family: var(--mc-font-mono);
+  font-size: var(--mc-font-sm);
+  line-height: 1.5;
+  padding: 12px;
+  resize: vertical;
+}
+.aurora-blog-code__area:focus { outline: none; box-shadow: none; }
+.aurora-blog-empty {
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-tertiary);
+  text-align: center;
+  padding: 20px 8px;
+  border: 1px dashed var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+}
+
+/* ============================================================
+ * 导出面板
+ * ========================================================== */
+.aurora-blog-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.aurora-blog-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 12px 6px;
+  border-radius: var(--mc-radius-md);
+  background-color: var(--mc-bg-content);
+  border: 1px solid var(--mc-border-subtle);
+  position: relative;
+}
+.aurora-blog-stat__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--mc-accent);
+  box-shadow: none;
+}
+.aurora-blog-stat__dot--2 { background-color: var(--mc-success); box-shadow: 0 0 8px var(--mc-success-soft); }
+.aurora-blog-stat__dot--3 { background-color: var(--mc-warning); box-shadow: 0 0 8px var(--mc-warning-soft); }
+.aurora-blog-stat b { font-size: var(--mc-font-lg); color: var(--mc-text-primary); }
+.aurora-blog-stat span { font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); }
+
+.aurora-blog-generate {
+  width: 100%;
+  height: 40px;
+  border: none;
+  border-radius: var(--mc-radius-md);
+  background: var(--mc-accent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  color: var(--mc-text-inverse);
+  font-family: inherit;
+  font-size: var(--mc-font-md);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out);
+}
+.aurora-blog-generate:hover:not(.is-loading) { background: var(--mc-accent-hover); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+.aurora-blog-generate:active:not(.is-loading) { background: var(--mc-accent-pressed); box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2); }
+.aurora-blog-generate.is-loading { opacity: 0.85; cursor: progress; }
+.aurora-blog-generate.is-loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.25) 50%, transparent 70%);
+  transform: translateX(-100%);
+  animation: aurora-blog-shimmer 1.1s infinite;
+}
+@keyframes aurora-blog-shimmer { to { transform: translateX(100%); } }
+
+.aurora-blog-download {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.aurora-blog-dl {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 8px;
+  border: 1px solid var(--mc-border-medium);
+  background-color: var(--mc-bg-content);
+  border-radius: var(--mc-radius-md);
+  color: var(--mc-text-primary);
+  font-family: inherit;
+  font-size: var(--mc-font-base);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-spring);
+}
+.aurora-blog-dl:hover { border-color: var(--mc-accent); background-color: var(--mc-accent-soft); }
+.aurora-blog-dl em { font-style: normal; font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); white-space: nowrap; }
+
+.aurora-blog-platforms {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.aurora-blog-platform {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--mc-border-medium);
+  background-color: var(--mc-bg-content);
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-secondary);
+  font-family: inherit;
+  font-size: var(--mc-font-sm);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-spring);
+}
+.aurora-blog-platform:hover { color: var(--mc-text-primary); border-color: var(--mc-border-strong); }
+
+.aurora-blog-deploy {
+  width: 100%;
+  height: 32px;
+  border: 1px solid var(--mc-accent);
+  background-color: var(--mc-accent-soft);
+  color: var(--mc-accent-text);
+  border-radius: var(--mc-radius-md);
+  font-family: inherit;
+  font-size: var(--mc-font-base);
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-spring);
+}
+.aurora-blog-deploy:hover { background-color: var(--mc-accent); color: var(--mc-text-inverse); }
+
+.aurora-blog-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+  background-color: var(--mc-bg-window);
+}
+.aurora-blog-tree__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--mc-font-sm);
+  font-family: var(--mc-font-mono);
+  color: var(--mc-text-secondary);
+}
+.aurora-blog-tree__row .badge-html,
+.aurora-blog-tree__row .badge-css,
+.aurora-blog-tree__row .badge-js,
+.aurora-blog-tree__row .badge-json {
+  font-size: var(--mc-font-xs);
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: var(--mc-radius-sm);
+  font-family: var(--mc-font-sans);
+}
+.badge-html { background: var(--mc-danger-soft); color: var(--mc-danger-text); }
+.badge-css { background: var(--mc-info-soft); color: var(--mc-info-text); }
+.badge-js { background: var(--mc-warning-soft); color: var(--mc-warning-text); }
+.badge-json { background: color-mix(in srgb, var(--mc-success) 18%, transparent); color: #86efac; }
+
+/* ============================================================
+ * 预览区
+ * ========================================================== */
+.aurora-blog__preview {
+  box-sizing: border-box;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--mc-bg-window);
+}
+.aurora-blog__preview-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  padding: 16px;
+  overflow: auto;
+}
+.aurora-blog__frame {
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  border-radius: var(--mc-radius-md);
+  overflow: hidden;
+  box-shadow: var(--mc-shadow-panel);
+  transition: max-width var(--mc-dur-base) var(--mc-ease-spring);
+}
+.aurora-blog__frame--tablet {
+  max-width: 768px;
+  border: 8px solid #1a1d28;
+  border-radius: var(--mc-radius-lg);
+}
+.aurora-blog__frame--mobile {
+  max-width: 375px;
+  border: 8px solid #1a1d28;
+  border-radius: var(--mc-radius-lg);
+}
+.aurora-blog__frame iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+  background: #fff;
+}
+
+/* 旋转动画 */
+.spin { animation: aurora-blog-spin 0.9s linear infinite; }
+@keyframes aurora-blog-spin { to { transform: rotate(360deg); } }
+
+/* 紧凑密度微调 */
+[data-density='compact'] .aurora-blog__subbar { height: 42px; }
+[data-density='compact'] .aurora-blog__panelzone-head { height: 34px; }
+[data-density='compact'] .aurora-blog__panelzone { top: 42px; }
+
+/* 发布来源提示条（知识库 → 博客工作室带入来源） */
+.aurora-blog-source-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 16px;
+  margin: 8px 12px 0;
+  border-radius: var(--mc-radius-md);
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  font-size: var(--mc-font-base);
+  color: var(--mc-text-secondary);
+}
+.aurora-blog-source-bar__label { font-weight: 600; color: var(--mc-text-primary); }
+.aurora-blog-source-bar__clear {
+  padding: 4px 12px;
+  border-radius: var(--mc-radius-sm);
+  border: 1px solid var(--mc-border-medium);
+  background: transparent;
+  color: var(--mc-text-primary);
+  cursor: pointer;
+  font-size: var(--mc-font-sm);
+}
+.aurora-blog-source-bar__clear:hover { background: var(--mc-bg-pressed); }
+
+/* 文档列表空态 */
+.aurora-blog-doc-empty {
+  padding: 20px 12px;
+  font-size: var(--mc-font-base);
+  line-height: 1.6;
+  color: var(--mc-text-secondary);
+  text-align: center;
+}
+.aurora-blog-doc-empty--muted { color: var(--mc-text-tertiary); }
+
+/* 文档行「在编辑器中打开源文件」（P2 博客↔编辑器串联） */
+.aurora-blog-doc__open {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-left: 6px;
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-bg-elevated, var(--mc-bg-content));
+  color: var(--mc-text-secondary);
+  cursor: pointer;
+}
+.aurora-blog-doc__open:hover {
+  border-color: var(--mc-accent);
+  color: var(--mc-accent);
+}

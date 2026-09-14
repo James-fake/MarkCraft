@@ -1,0 +1,268 @@
+/* ============================================================
+ * Aurora · Welcome Panel Styles
+ * L1 Launchpad v2：品牌行 + 人情味问候 + 左大右小非对称网格
+ * 扁平暗色 / 发丝分隔 / 唯一 accent 收口 / 无玻璃无辉光（§18）
+ * ========================================================== */
+
+.aurora-welcome {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 40px 36px 28px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.aurora-welcome *,
+.aurora-welcome *::before,
+.aurora-welcome *::after {
+  box-sizing: border-box;
+}
+
+.aurora-welcome__container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 920px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+ * 品牌头部
+ * ========================================================== */
+.aurora-welcome__brand-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.aurora-welcome__brand-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--mc-radius-md);
+  background: var(--mc-accent);
+  color: var(--mc-text-inverse);
+  font-size: var(--mc-font-xl);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aurora-welcome__brand-title {
+  font-size: var(--mc-font-xl);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  letter-spacing: 0.02em;
+}
+
+/* ============================================================
+ * 人情味问候
+ * ========================================================== */
+.aurora-welcome__greeting {
+  margin-top: 28px;
+}
+
+.aurora-welcome__hello {
+  font-size: var(--mc-font-hero);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  line-height: 1.2;
+}
+
+.aurora-welcome__usage {
+  margin-top: 12px;
+  font-size: var(--mc-font-lg);
+  color: var(--mc-text-secondary);
+}
+
+.aurora-welcome__usage-num {
+  color: var(--mc-accent);
+  font-weight: 600;
+}
+
+.aurora-welcome__streak {
+  margin-top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--mc-font-base);
+  color: var(--mc-accent-text);
+  border: 1px solid color-mix(in srgb, var(--mc-accent) 35%, transparent);
+  border-radius: var(--mc-radius-pill);
+  padding: 4px 12px;
+}
+
+/* ============================================================
+ * 主区：左大卡 + 右 2×3 网格（非对称）
+ * ========================================================== */
+.aurora-welcome__launchpad {
+  display: flex;
+  gap: 16px;
+  margin-top: 28px;
+  align-items: stretch;
+}
+
+/* ---------- 左大卡：编辑器 = 上次停留 ---------- */
+.aurora-welcome__hero {
+  flex: 1.05;
+  min-width: 0;
+  background: var(--mc-bg-elevated);
+  border: 1.5px solid var(--mc-accent);
+  border-radius: var(--mc-radius-lg);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
+  outline: none;
+  transition: border-color var(--mc-dur-fast) var(--mc-ease-out), background-color var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-welcome__hero:hover {
+  border-color: color-mix(in srgb, var(--mc-accent) 70%, transparent);
+  background: #1a1e27;
+}
+
+.aurora-welcome__hero:focus-visible {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--mc-accent) 30%, transparent);
+}
+
+.aurora-welcome__hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-base);
+}
+
+.aurora-welcome__hero-title {
+  margin-top: 20px;
+  font-size: var(--mc-font-xl);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+}
+
+.aurora-welcome__hero-sub {
+  margin-top: 8px;
+  font-size: var(--mc-font-md);
+  color: var(--mc-text-secondary);
+}
+
+.aurora-welcome__hero-cta {
+  margin-top: 24px;
+  align-self: flex-start;
+  font-size: var(--mc-font-base);
+  font-weight: 500;
+  color: var(--mc-accent-text);
+  border: 1px solid color-mix(in srgb, var(--mc-accent) 40%, transparent);
+  border-radius: var(--mc-radius-md);
+  padding: 7px 16px;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-welcome__hero:hover .aurora-welcome__hero-cta {
+  background: color-mix(in srgb, var(--mc-accent) 14%, transparent);
+}
+
+/* ---------- 右 2×3 模块网格 ---------- */
+.aurora-welcome__tiles {
+  flex: 1.35;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.aurora-welcome__tile {
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-md);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: var(--mc-icon-muted);
+  cursor: pointer;
+  outline: none;
+  transition: transform var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out),
+    background-color 160ms ease-out;
+  /* 首启 stagger（macOS 动效方案 §3.10）：60ms/片从容浮现（fill backwards——
+     delay 期应用 from 帧，结束后释放 transform，hover 位移不受锁定影响） */
+  animation: aurora-welcome-tile-in var(--mc-dur-slow) var(--mc-ease-mac) backwards;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+
+@keyframes aurora-welcome-tile-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+.aurora-welcome__tile:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--mc-accent) 55%, transparent);
+  background: var(--mc-bg-hover);
+}
+
+.aurora-welcome__tile:focus-visible {
+  border-color: var(--mc-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--mc-accent) 25%, transparent);
+}
+
+.aurora-welcome__tile:active {
+  transform: translateY(-1px);
+}
+
+.aurora-welcome__tile-label {
+  font-size: var(--mc-font-md);
+  font-weight: 500;
+  color: var(--mc-text-primary);
+}
+
+.aurora-welcome__tile-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.aurora-welcome__tile-kbd {
+  font-size: var(--mc-font-xs);
+  color: var(--mc-accent-text);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  padding: 1px 6px;
+  font-family: var(--mc-font-mono);
+}
+
+/* ============================================================
+ * 版本号
+ * ========================================================== */
+.aurora-welcome__version {
+  margin-top: auto;
+  padding-top: 28px;
+  font-size: var(--mc-font-base);
+  color: var(--mc-text-disabled);
+  width: 100%;
+  max-width: 920px;
+}
+
+/* ============================================================
+ * 响应式
+ * ========================================================== */
+@media (max-width: 800px) {
+  .aurora-welcome__launchpad {
+    flex-direction: column;
+  }
+
+  .aurora-welcome__tiles {
+    grid-template-rows: repeat(3, 88px);
+  }
+}

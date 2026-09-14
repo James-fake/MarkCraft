@@ -1,0 +1,280 @@
+/*
+ * MarkCraft · 桌面范式设计 token（方案 A · 图谱脊柱 Graph-Spine）
+ * ------------------------------------------------------------
+ * 来源：画布规范稿 60:2（细节打磨）+ 60:129（交互态规范），
+ *       CalmPremium 暗色语言。本文件是「方案 A 桌面转型」的官方设计契约，
+ *       与既有 slate/蓝调 legacy token（--app-bg / --cv-* 等）并存，
+ *       **仅用于 Spine56 / Dock44 / ModeCapsule / RightPanel280 及 ⌘K 面板**，
+ *       旧组件迁移前不要混用，避免视觉分裂。
+ *
+ * 接入方式：在 src/index.css 顶部（所有 @import 之前）加一行：
+ *   @import './styles/desktop-chrome.css';
+ *
+ * 命名：统一 --mc- 前缀（与 tokens.css 同体系）。颜色分暗/亮两套，
+ *       由 html[data-theme] 切换。font/spacing/radius 复用 tokens.css，
+ *       此处仅补充方案 A 新增的语义色与外壳尺寸。
+ */
+
+:root {
+  /* ===== 色彩 · CalmPremium（暗色为默认） ===== */
+  --mc-accent: #5B7CFA;            /* 品牌强调 / 激活态 */
+  --mc-accent-soft: rgba(91, 124, 250, 0.16); /* 选中行 / 高亮块背景 */
+
+  --mc-bg-app: #0E0F17;           /* 应用画布底色 */
+  --mc-bg-panel: #14161F;         /* 书脊 / 右栏面板表面 */
+  --mc-bg-elevated: #1A1C24;      /* 底栏 dock / 悬停表面 */
+  --mc-bg-card: #14161F;          /* 卡片表面（同 panel） */
+
+  --mc-border-subtle: #292E30;    /* 面板描边 */
+  --mc-border-panel: #16181F;     /* 面板间细分隔 */
+
+  --mc-text-primary: #E6E8EF;     /* 主文本 / 标题 */
+  --mc-text-secondary: #8A8F9C;   /* 次级文本 / 非激活图标 */
+  --mc-text-tertiary: #5A5F6B;    /* 禁用 / 占位 */
+
+  --mc-icon: #8A8F9C;             /* 非激活图标（书脊编辑/白板/图谱） */
+  --mc-icon-strong: #E6E8EF;      /* dock / elevated 面板上的图标 */
+  --mc-icon-active: #5B7CFA;      /* 当前模式图标 / 激活条 */
+
+  /* ===== 外壳尺寸（桌面 chrome 固定值） ===== */
+  --mc-spine-w: 56px;             /* 书脊宽（替代 240px 左栏） */
+  --mc-dock-h: 44px;              /* 底栏 dock 高 */
+  --mc-dock-radius: 999px;        /* dock 胶囊圆角 */
+  --mc-dock-icon-gap: 84px;       /* dock 三图标中心间距（x:636/720/804） */
+
+  /* 右栏渐进披露三态宽度 */
+  --mc-rightpanel-w: 280px;       /* 默认（展开）宽度 */
+  --mc-rightpanel-collapsed: 0px; /* 收起：仅留把手 */
+  --mc-rightpanel-peek: 120px;    /* 窥探：三行预览 */
+  --mc-rightpanel-expanded: 280px;/* 展开：完整上下文 */
+
+  /* ===== 交互态 ===== */
+  --mc-hover-surface: #1A1C24;    /* 悬停表面提亮 */
+  --mc-focus-ring-w: 2px;         /* 焦点环宽 */
+  --mc-focus-offset: 2px;         /* 焦点环偏移 */
+  --mc-focus-ring: 0 0 0 var(--mc-focus-ring-w) var(--mc-accent);
+
+  /* ===== 动效 =====
+   * 已退役（macOS 动效方案 P0 双源根治）：动效 token 单一来源 = src/aurora/styles/tokens.css §11，
+   * 此处重定义会在其后加载并覆盖 tokens.css 的 --mc-ease-out 强曲线与 reduced-motion 重映射。 */
+
+  /* ===== 字体补充（间距/圆角复用 tokens.css） ===== */
+  --mc-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mc-font-lg: 16px;
+  --mc-font-xl: 20px;
+  --mc-font-2xl: 24px;
+  --mc-radius-pill: 999px;
+
+  /* ============================================================
+   * Aurora 设计系统增量（2026-08-26 合并 · D1/D2/D6）
+   * 仅追加，不改动上方 CalmPremium 既有 token；同名 token 在此覆盖。
+   * ========================================================== */
+
+  /* 强调色统一 #7C8CFF（覆盖上方 CalmPremium #5B7CFA） */
+  --mc-accent: #7C8CFF;
+  --mc-accent-soft: rgba(124, 140, 255, 0.18);
+  --mc-accent-hover: #9AA7FF;
+  --mc-accent-pressed: #6B7CE6;
+  --mc-accent-glow: rgba(124, 140, 255, 0.40);
+  --mc-accent-text: #A5B4FF;
+  --mc-accent-bg: rgba(124, 140, 255, 0.18);
+
+  /* 背景 7 层（Aurora 拆分 bg-app 为更细层级） */
+  --mc-bg-window: #0A0B0F;
+  --mc-bg-sidebar: #0D0F15;
+  --mc-bg-content: #101218;
+  --mc-bg-hover: #1A1D28;
+  --mc-bg-pressed: #1F2330;
+  --mc-bg-selected: #252A38;
+
+  /* 边框 4 层（补充 medium/strong/outline） */
+  --mc-border-medium: #262B3B;
+  --mc-border-strong: #3A4055;
+  --mc-border-outline: #0D0F15;
+
+  /* 语义色 */
+  --mc-success: #4ADE80;
+  --mc-success-soft: rgba(74, 222, 128, 0.15);
+  --mc-success-text: #86EFAC;
+  --mc-warning: #FBBF24;
+  --mc-warning-soft: rgba(251, 191, 36, 0.15);
+  --mc-warning-text: #FCD34D;
+  --mc-danger: #F87171;
+  --mc-danger-soft: rgba(248, 113, 113, 0.15);
+  --mc-danger-text: #FCA5A5;
+  --mc-info: #60A5FA;
+  --mc-info-soft: rgba(96, 165, 250, 0.15);
+  --mc-info-text: #93C5FD;
+
+  /* 图谱语义色（审计 P1-4） */
+  --mc-graph-file: rgba(124, 140, 255, 0.6);
+  --mc-graph-file-stroke: var(--mc-accent);
+  --mc-graph-tag: #e6b450;
+  --mc-graph-tag-stroke: #f0c674;
+  --mc-graph-folder: #f0c674;
+  --mc-graph-folder-stroke: #fbbf24;
+  --mc-graph-orphan: rgba(107, 114, 128, 0.45);
+  --mc-graph-orphan-stroke: rgba(107, 114, 128, 0.6);
+  --mc-graph-edge: var(--mc-text-tertiary);
+  --mc-graph-edge-tag: #e6b450;
+  --mc-graph-edge-folder: #f0c674;
+  --mc-graph-current-stroke: #ffffff;
+  --mc-graph-pulse-weak: rgba(124, 140, 255, 0.55);
+  --mc-graph-pulse-strong: rgba(124, 140, 255, 0.9);
+
+  /* 字号行高补充（spacing/radius 复用 tokens.css） */
+  --mc-line-height-xs: 16px;
+  --mc-line-height-sm: 18px;
+  --mc-line-height-base: 20px;
+  --mc-line-height-md: 22px;
+  --mc-line-height-lg: 24px;
+  --mc-line-height-xl: 28px;
+  --mc-line-height-2xl: 36px;
+
+  /* 阴影（Aurora 三层） */
+  --mc-shadow-panel:
+    0 1px 2px rgba(0, 0, 0, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 12px 32px rgba(0, 0, 0, 0.2);
+  --mc-shadow-popover:
+    0 1px 3px rgba(0, 0, 0, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.35),
+    0 24px 48px rgba(0, 0, 0, 0.3);
+  --mc-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  /* 动效补充已退役：单一来源 = src/aurora/styles/tokens.css §11（含 reduced-motion 重映射） */
+
+  /* 外壳尺寸（Aurora 桌面 chrome）—— 注释于 P1-3 根治双源冲突
+   * 原因：消费方 100% 在 src/aurora/（grep 验证），desktop-chrome.css 的
+   *       chrome 尺寸行后加载覆盖 tokens.css 的 [data-density='compact']
+   *       变量定义，导致密度系统对 chrome 失效。
+   *       chrome 尺寸由 src/aurora/styles/tokens.css 单一来源定义。
+   * 解：保留注释以备回滚；后续 P1-3 收尾时可物理删除。
+  --mc-titlebar-h: 48px;
+  --mc-statusbar-h: 28px;
+  --mc-sidebar-w: 200px;
+  --mc-sidebar-collapsed-w: 60px;
+  --mc-inspector-w: 280px;
+  --mc-wincontrol-w: 46px;
+  --mc-toolbar-h: 36px;
+  */
+}
+
+/* ===== 亮色主题：CalmPremium 同步映射 ===== */
+[data-theme="light"] {
+  --mc-accent: #3B5BDB;           /* 加深以满足 AA 对比度 */
+  --mc-accent-soft: rgba(59, 91, 219, 0.12);
+
+  --mc-bg-app: #F7F8FA;
+  --mc-bg-panel: #FFFFFF;
+  --mc-bg-elevated: #F1F3F6;
+  --mc-bg-card: #FFFFFF;
+
+  --mc-border-subtle: #E2E5EA;
+  --mc-border-panel: #EDEFF3;
+
+  --mc-text-primary: #1A1D24;
+  --mc-text-secondary: #5A606E;
+  --mc-text-tertiary: #9AA0AC;
+
+  --mc-icon: #5A606E;
+  --mc-icon-strong: #1A1D24;
+  --mc-icon-active: #3B5BDB;
+
+  --mc-hover-surface: #F1F3F6;
+
+  /* ============================================================
+   * Aurora 增量 · 亮色（D6 沿用真实 light 值微调派生）
+   * ========================================================== */
+  --mc-accent: #5B6FE0;
+  --mc-accent-soft: rgba(124, 140, 255, 0.14);
+  --mc-accent-hover: #6B7CE6;
+  --mc-accent-pressed: #4F61D6;
+  --mc-accent-glow: rgba(124, 140, 255, 0.30);
+  --mc-accent-text: #5B6FE0;
+  --mc-accent-bg: rgba(124, 140, 255, 0.14);
+
+  --mc-bg-window: #F2F3F7;
+  --mc-bg-sidebar: #E9EBF0;
+  --mc-bg-content: #FBFCFE;
+  --mc-bg-hover: #E2E5EC;
+  --mc-bg-pressed: #D6DAE4;
+  --mc-bg-selected: #CBD2E2;
+
+  --mc-border-medium: #D2D7E0;
+  --mc-border-strong: #B4BCCB;
+  --mc-border-outline: #E9EBF0;
+
+  --mc-success: #16A34A;
+  --mc-success-soft: rgba(22, 163, 74, 0.12);
+  --mc-success-text: #15803D;
+  --mc-warning: #D97706;
+  --mc-warning-soft: rgba(217, 119, 6, 0.14);
+  --mc-warning-text: #B45309;
+  --mc-danger: #DC2626;
+  --mc-danger-soft: rgba(220, 38, 38, 0.12);
+  --mc-danger-text: #B91C1C;
+  --mc-info: #2563EB;
+  --mc-info-soft: rgba(37, 99, 235, 0.12);
+  --mc-info-text: #1D4ED8;
+
+  --mc-graph-file: rgba(124, 140, 255, 0.22);
+  --mc-graph-file-stroke: #5B6FE0;
+  --mc-graph-tag: #B7791F;
+  --mc-graph-tag-stroke: #D9A441;
+  --mc-graph-folder: #D9A441;
+  --mc-graph-folder-stroke: #B7791F;
+  --mc-graph-orphan: rgba(107, 114, 128, 0.35);
+  --mc-graph-orphan-stroke: rgba(107, 114, 128, 0.55);
+  --mc-graph-edge: var(--mc-text-tertiary);
+  --mc-graph-edge-tag: #B7791F;
+  --mc-graph-edge-folder: #D9A441;
+  --mc-graph-current-stroke: #1A1D24;
+  --mc-graph-pulse-weak: rgba(124, 140, 255, 0.30);
+  --mc-graph-pulse-strong: rgba(124, 140, 255, 0.50);
+
+  --mc-shadow-panel:
+    0 1px 2px rgba(15, 23, 42, 0.08),
+    0 4px 12px rgba(15, 23, 42, 0.06),
+    0 12px 32px rgba(15, 23, 42, 0.05);
+  --mc-shadow-popover:
+    0 1px 3px rgba(15, 23, 42, 0.10),
+    0 8px 24px rgba(15, 23, 42, 0.08),
+    0 24px 48px rgba(15, 23, 42, 0.06);
+  --mc-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+/* ============================================================
+ * Aurora 材质类（.material-*）· 全局可用（Phase 1 起 Aurora 面板切换至全局 token）
+ * ========================================================== */
+.material-solid {
+  background-color: var(--mc-bg-content);
+}
+
+.material-sidebar {
+  background-color: rgba(13, 15, 21, 0.72);
+  backdrop-filter: blur(24px) saturate(105%);
+  -webkit-backdrop-filter: blur(24px) saturate(105%);
+}
+
+.material-popover {
+  background-color: rgba(21, 24, 33, 0.80);
+  backdrop-filter: blur(36px) saturate(115%);
+  -webkit-backdrop-filter: blur(36px) saturate(115%);
+}
+
+.material-hud {
+  background-color: rgba(13, 15, 21, 0.65);
+  backdrop-filter: blur(48px) saturate(110%);
+  -webkit-backdrop-filter: blur(48px) saturate(110%);
+}
+
+[data-theme="light"] .material-sidebar {
+  background-color: rgba(233, 235, 240, 0.72);
+}
+[data-theme="light"] .material-popover {
+  background-color: rgba(251, 252, 254, 0.80);
+}
+[data-theme="light"] .material-hud {
+  background-color: rgba(233, 235, 240, 0.65);
+}

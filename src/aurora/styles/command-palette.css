@@ -1,0 +1,224 @@
+/* ============================================================
+ * Aurora · Command Palette Styles
+ * 命令面板：居中浮层，搜索 + 结果列表
+ * ========================================================== */
+
+.aurora-command-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 9000; /* 层级带 Command（P3-B：canvas ⌘K 已归一到本组件，单一实现） */
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 15vh;
+  /* 无入场动画（audit 2026-09-14 #3）：命令面板 = 键盘发起的高频交互（100+/天），
+     按 AUDIT §1「100+/天 永不动画」立即呈现。overlay 是半透明遮罩，
+     瞬时出现无感知跳跃；对比 Raycast 的命令面板开合零动画。 */
+}
+
+.aurora-command {
+  width: 100%;
+  max-width: 560px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-lg);
+  box-shadow: var(--mc-shadow-popover);
+  overflow: hidden;
+  /* 无入场动画（audit 2026-09-14 #3）。原为 200ms translateY(-12px) scale(0.98) 淡入 ——
+     键盘用户手速远快于动画，每次调用都被延迟感知，产生「迟钝」错觉；
+     面板是瞬态工具而非空间内容，无需传达「从哪来」。删动画即正解。 */
+  display: flex;
+  flex-direction: column;
+  max-height: 70vh;
+}
+
+/* ---------- 输入区 ---------- */
+.aurora-command__input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-bottom: 1px solid var(--mc-border-subtle);
+  flex-shrink: 0;
+}
+
+.aurora-command__input-icon {
+  width: 18px;
+  height: 18px;
+  color: var(--mc-text-tertiary);
+  flex-shrink: 0;
+}
+
+.aurora-command__input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--mc-text-primary);
+  font-size: var(--mc-font-md);
+  font-weight: 500;
+  caret-color: var(--mc-accent);
+}
+
+.aurora-command__input::placeholder {
+  color: var(--mc-text-disabled);
+  font-weight: 400;
+}
+
+.aurora-command__input-hint {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  font-size: var(--mc-font-xs);
+  font-family: var(--mc-font-mono);
+  color: var(--mc-text-tertiary);
+}
+
+/* ---------- 结果列表 ---------- */
+.aurora-command__list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.aurora-command__group {
+  margin-bottom: 4px;
+}
+
+.aurora-command__group-title {
+  font-size: var(--mc-font-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--mc-text-tertiary);
+  padding: 8px 12px 6px;
+}
+
+.aurora-command__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+  transition: background-color 100ms ease-out;
+}
+
+.aurora-command__item:hover,
+.aurora-command__item--highlighted {
+  background: var(--mc-accent-bg);
+}
+
+.aurora-command__item-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: var(--mc-icon);
+}
+
+.aurora-command__item--highlighted .aurora-command__item-icon {
+  color: var(--mc-accent);
+}
+
+.aurora-command__item-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.aurora-command__item-title {
+  font-size: var(--mc-font-base);
+  font-weight: 500;
+  color: var(--mc-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aurora-command__item-desc {
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aurora-command__item-shortcut {
+  flex-shrink: 0;
+  display: flex;
+  gap: 3px;
+}
+
+.aurora-command__item-key {
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  font-size: var(--mc-font-xs);
+  font-family: var(--mc-font-mono);
+  color: var(--mc-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------- 底部提示 ---------- */
+.aurora-command__footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-top: 1px solid var(--mc-border-subtle);
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+}
+
+.aurora-command__footer-keys {
+  display: flex;
+  gap: 12px;
+}
+
+.aurora-command__footer-key {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.aurora-command__footer-key kbd {
+  font-family: var(--mc-font-mono);
+  font-size: var(--mc-font-xs);
+  padding: 1px 5px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-secondary);
+}
+
+/* 空状态 */
+.aurora-command__empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--mc-text-tertiary);
+  font-size: var(--mc-font-base);
+}
+
+/* 防御性保留：命令面板本体已无入场动画（audit 2026-09-14 #3 去动画），
+   本块对这两个选择器已无实际作用；但保留可防未来有人加回动画时漏掉可达性处理。 */
+@media (prefers-reduced-motion: reduce) {
+  .aurora-command-overlay,
+  .aurora-command { animation: none; }
+}

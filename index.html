@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- E2 PWA：主题色与 iOS 独立窗口支持（manifest / SW 注册由 vite-plugin-pwa 自动注入） -->
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="MarkCraft" />
+    <link rel="apple-touch-icon" href="/icon.svg" />
+    <title>MarkCraft</title>
+    <script>
+      // 在CSS渲染前同步设置主题，避免闪烁
+      (function() {
+        try {
+          var t = localStorage.getItem('app-theme-preference');
+          if (t) document.documentElement.setAttribute('data-theme', t);
+        } catch(e) {}
+      })();
+    </script>
+    <script>
+      // 在CSS渲染前同步设置界面密度，避免闪烁
+      // 与 densityStore 同一本地存储键 mc-sidebar-density（默认 compact），保证首屏密度与真实应用一致
+      (function() {
+        try {
+          var d = localStorage.getItem('mc-sidebar-density') || 'compact';
+          document.documentElement.setAttribute('data-density', d);
+        } catch(e) {}
+      })();
+    </script>
+    <script>
+      // 浏览器环境 polyfill：@excalidraw/excalidraw 的入口在浏览器端引用
+      // process.env.IS_PREACT / NODE_ENV，提供最小 process 全局以避免 "process is not defined"。
+      // 生产构建由 vite.config 的 define 在构建期将 process.env.* 替换为字面量，此处仅作运行时兜底。
+      window.process = window.process || { env: { NODE_ENV: 'development', IS_PREACT: 'false' } };
+    </script>
+    <script>
+      // 让 Excalidraw 从本地（同源）加载运行时资源（vendor chunk / 字体 / wasm），
+      // 而不是默认的 unpkg.com。否则在离线 / 防火墙 / 浏览器跟踪防护（如 Edge Tracking
+      // Prevention 拦截 unpkg 的 localStorage）环境下，Excalidraw 的 vendor chunk 会
+      // 加载失败（ChunkLoadError）导致白板无法初始化、工具栏全部无响应。
+      // 该路径由 vite.config 的内联插件在 dev / preview / build 三种模式下提供本地服务。
+      window.EXCALIDRAW_ASSET_PATH = '/excalidraw-assets/';
+    </script>
+  </head>
+  <body>
+    <div id="aurora-root"></div>
+    <script type="module" src="/src/aurora/aurora-main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,56 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Path aliases — Batch B 解耦整合：用 @alias 替换 ../../../ 深相对引用，移动文件不再爆 import。
+       注意：故意不定义 @types（与 npm @types/* 作用域冲突），src/types 走 @src/types。 */
+    "baseUrl": ".",
+    "paths": {
+      "@features": ["src/features"],
+      "@features/*": ["src/features/*"],
+      "@stores": ["src/stores"],
+      "@stores/*": ["src/stores/*"],
+      "@aurora": ["src/aurora"],
+      "@aurora/*": ["src/aurora/*"],
+      "@components": ["src/components"],
+      "@components/*": ["src/components/*"],
+      "@services": ["src/services"],
+      "@services/*": ["src/services/*"],
+      "@utils": ["src/utils"],
+      "@utils/*": ["src/utils/*"],
+      "@hooks": ["src/hooks"],
+      "@hooks/*": ["src/hooks/*"],
+      "@app": ["src/app"],
+      "@app/*": ["src/app/*"],
+      "@locales": ["src/locales"],
+      "@locales/*": ["src/locales/*"],
+      "@styles": ["src/styles"],
+      "@styles/*": ["src/styles/*"],
+      "@workers": ["src/workers"],
+      "@workers/*": ["src/workers/*"],
+      "@src": ["src"],
+      "@src/*": ["src/*"]
+    },
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/__tests__/**"],
+  "references": [{ "path": "./tsconfig.node.json" }]
+}
