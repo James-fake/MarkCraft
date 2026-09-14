@@ -183,11 +183,12 @@ bash 每条命令内联 `export PATH="<PortableGit版本目录>/{cmd,usr/bin,min
   - **CDP 探针坐标必须落 tab 中心，不能取 tab 行中心**（6 等分行中心恰在 #2/#3 交界 → mouseup 的
     `click` 会误切 tab = 假失败）。
   - `--swipe-progress` 挂**面板根**（挂 nav-tabs 兄弟层继承不到）；BlogPanel swipe 块必须在 `rootRef` 之后（TDZ）。
-- ⚠️ **2026-09-14 仓库重建**：git stash 半途 SIGTERM → 对象库大面积损坏（832 缺失 blob + 多缺失 tree）。
-  工作树完好故以工作树为准重建（HEAD `1fe58b8`，956 文件，`git fsck` 零错误）。旧 .git 备份
+- ⚠️ **2026-09-14 仓库重建 + 已推送远端**：git stash 半途 SIGTERM → 对象库大面积损坏（832 缺失 blob + 多缺失 tree）。
+  工作树完好故以工作树为准重建（HEAD `1fe58b8`→`95111f0`，956 文件，`git fsck` 零错误）。旧 .git 备份
   `D:/_mc_git_damaged_backup/dot-git`；旧提交历史 `.workbuddy/artifacts/git-history-salvage.txt`（43 条）。
-  **远端 master 仅 3 个初始提交，远落后本地**（近期工作从未推送）。铁律见「git」节。
-- 待用户决策：`--mc-dur-lazy` 删除或消费；3 项预存测试失败是否排查；defaultDocsZh 帮助文档旧名跟随；
-  **是否将重建快照推送远端**（本地领先远端 40+ 提交，推送需令牌）。
+  **已 force push 覆盖远端**（`+ 7beb40b...95111f0`，远端与本地同 hash）——推送前已核对：
+  远端独有 4 文件均为主动退役的死组件，无有效内容丢失。铁律见「git」节。
+- 待用户决策：`--mc-dur-lazy` 删除或消费；3 项预存测试失败是否排查；defaultDocsZh 帮助文档旧名跟随。
+- ✅ 快照已推送远端（2026-09-15，`95111f0`）：本地与远端 master 同 hash，单点故障已消除。
 - 设计审计 v2（2026-09-09）12 项优化路线（P0×2/P1×2/P2×3/P3×5）；两决策已拍板：完整 HIG 三菜单 + 自定义退出弹窗。
 - 战略：网页 UI → 桌面端软件范式（窗口 chrome/命令面板/右键菜单/密度/键盘优先）。
