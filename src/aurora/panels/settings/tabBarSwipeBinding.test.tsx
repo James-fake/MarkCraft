@@ -1,11 +1,15 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { render, cleanup, fireEvent } from '@testing-library/react'
+import { useState } from 'react'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { RealProviders } from '../../app/RealProviders'
 import { SettingsPanel } from './SettingsPanel'
 import { KbPanel } from '../kb/KbPanel'
 import { CanvasSidebarPanel } from '../canvas/CanvasSidebarPanel'
+import { CanvasTopbar } from '../canvas/CanvasTopbar'
+import { BlogPanel } from '../blog/BlogPanel'
+import type { CanvasViewId } from '../canvas/CanvasPanel'
 
 /**
  * 顶栏功能切换 tab「按住方块左右滑」契约测试（需求 N 第四轮定案 + 第六轮连续滑动）
@@ -45,6 +49,12 @@ function pointer(type: string, x: number, y = 0): MouseEvent {
   Object.defineProperty(e, 'pointerType', { value: 'mouse' })
   Object.defineProperty(e, 'isPrimary', { value: true })
   return e
+}
+
+/** CanvasTopbar 是**受控**组件（view 由父级传入）→ 用有状态壳承接切换，落位才可验证 */
+function TopbarHarness() {
+  const [view, setView] = useState<CanvasViewId>('canvas')
+  return <CanvasTopbar view={view} onView={setView} canvasName="测试白板" onOpenList={() => {}} />
 }
 
 const rect = (left: number, width: number) =>
@@ -180,6 +190,35 @@ const CASES: ThumbCase[] = [
     thumb: '.aurora-csp__tabs-thumb',
     content: '.aurora-csp__body',
     activeOf: (c) => c.querySelector('.aurora-csp__tab--active')?.textContent?.trim(),
+  },
+  // —— 第七轮补齐的两条栏（用户点名：白板**顶部** + 博客**功能 tab**）——
+  {
+    name: '白板顶部视图',
+    render: () => render(
+      <RealProviders>
+        <TopbarHarness />
+      </RealProviders>,
+    ),
+    bar: '.aurora-ctop__switcher',
+    track: '.aurora-ctop__switcher-track',
+    thumb: '.aurora-ctop__switcher-thumb',
+    // 顶栏没有「内容区」（白板画布在其它 DOM 分支）→ 用 null 跳过内容零位移断言
+    content: null,
+    activeOf: (c) => c.querySelector('.aurora-ctop__view--active')?.textContent?.trim(),
+  },
+  {
+    name: '博客功能分组',
+    render: () => render(
+      <RealProviders>
+        <BlogPanel />
+      </RealProviders>,
+    ),
+    bar: '.aurora-blog__tabs',
+    track: '.aurora-blog__tabs-track',
+    thumb: '.aurora-blog__tabs-thumb',
+    // 浮层默认收起 → 内容体不挂载；分组切换只换浮层内容，不移动任何容器
+    content: null,
+    activeOf: (c) => c.querySelector('.aurora-blog__tab.is-active')?.textContent?.trim(),
   },
 ]
 
@@ -322,6 +361,93 @@ describe('第四轮：分段控件滑块（按住方块必须看得见地动，�
       expect(bar.scrollLeft).toBe(0)
     })
   }
+})
+
+/* ------------------------------------------------------------------ *
+ * 博客功能分组：拖拽不得吞掉「同组再点 = 开合浮层」语义
+ * ------------------------------------------------------------------ */
+
+describe('博客功能分组 tab：滑块与点击语义共存', () => {
+  const setupBlog = () => {
+    const { container } = render(
+      <RealProviders>
+        <BlogPanel />
+      </RealProviders>,
+    )
+    const bar = container.querySelector('.aurora-blog__tabs') as HTMLElement
+    const track = container.querySelector('.aurora-blog__tabs-track') as HTMLElement
+    const thumb = container.querySelector('.aurora-blog__tabs-thumb') as HTMLElement
+    expect(bar, '缺分组 tab 栏').toBeTruthy()
+    expect(track, '缺分组轨道').toBeTruthy()
+    expect(thumb, '缺分组滑块').toBeTruthy()
+    stubGeometry(track)
+    return { container, bar, track, thumb, isOpen: () => /is-open/.test(container.querySelector('.aurora-blog__panelzone')?.className ?? '') }
+  }
+
+  it('拖一下又滑回原格 → 不误开浮层（落点=原格时 hook 不回调 onIndexChange）', () => {
+    const { bar, isOpen } = setupBlog()
+    expect(isOpen(), '浮层初始应为收起').toBe(false)
+
+    // 14px：过了方向阈值（8px）但远不足半格、也不构成甩掷 → 落点仍属原格
+    dragRight(bar, 14)
+    endDrag(14)
+
+    expect(isOpen(), '拖回原格不应把浮层打开（那会让「拖一下」变成副作用）').toBe(false)
+  })
+
+  it('点击同组 tab → 仍能开合浮层（滑块没有吞掉点击语义）', () => {
+    const { bar, isOpen } = setupBlog()
+    fireEvent.click(bar.querySelector('.aurora-blog__tab')!)
+
+    expect(isOpen(), '点击同组 tab 应开合浮层').toBe(true)
+  })
+})
+
+/* ------------------------------------------------------------------ *
+ * 白板顶部：空白板引导锁定态 → 手势停用（设计语义）
+ * ------------------------------------------------------------------ */
+
+describe('白板顶部视图：引导锁定态下手势停用', () => {
+  const renderTopbar = (locked: boolean) => {
+    const { container } = render(
+      <RealProviders>
+        <CanvasTopbar view="canvas" onView={() => {}} canvasName="空板" onOpenList={() => {}} locked={locked} />
+      </RealProviders>,
+    )
+    const bar = container.querySelector('.aurora-ctop__switcher') as HTMLElement
+    const track = container.querySelector('.aurora-ctop__switcher-track') as HTMLElement
+    const thumb = container.querySelector('.aurora-ctop__switcher-thumb') as HTMLElement
+    expect(bar, '缺顶栏 switcher').toBeTruthy()
+    stubGeometry(track)
+    return { container, bar, thumb }
+  }
+
+  // 真机教训（2026-09-15 CDP）：白板为空且未点「跳过，直接开始」时，
+  // CanvasPanel 会给顶栏传 locked=true（只有「白板」视图可选，其余 disabled）。
+  // 探针第一次跑就卡在这个态上，看起来像"手势坏了"，实际是设计使然。
+  it('locked=true：拖动完全无反应（不起手、滑块不动、不切换）', () => {
+    const { container, bar, thumb } = renderTopbar(true)
+    const before = shiftOf(thumb.style.transform)
+
+    dragRight(bar, 150)
+
+    expect(bar.hasAttribute('data-swiping'), '锁定态不该起手（滑块会滑到被锁的视图上）').toBe(false)
+    expect(thumb.style.transition, '锁定态不该进入跟手（跟手会置 transition: none）').not.toBe('none')
+    expect(shiftOf(thumb.style.transform), '锁定态滑块不得位移').toBe(before)
+    endDrag(150)
+    expect(container.querySelector('.aurora-ctop__view--active')?.textContent?.trim()).toBe('白板')
+  })
+
+  it('locked=false（对照组）：同样的一次拖动必须生效 —— 证明锁定是唯一变量', () => {
+    const { bar, thumb } = renderTopbar(false)
+    const before = shiftOf(thumb.style.transform)
+
+    dragRight(bar, 150)
+
+    expect(bar.hasAttribute('data-swiping'), '解锁后必须能起手').toBe(true)
+    expect(Math.abs(shiftOf(thumb.style.transform) - before), '解锁后滑块必须跟着走').toBeGreaterThanOrEqual(30)
+    endDrag(150)
+  })
 })
 
 /* ------------------------------------------------------------------ *

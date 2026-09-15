@@ -32,17 +32,59 @@
   min-width: 0;
 }
 
+/*
+ * 功能分组 tab（主题/数据/高级）= Apple 分段控件式滑块（需求 N 第七轮）。
+ * 凹槽（本层）→ 轨道 → 常驻滑块 + 分组按钮。
+ * 选中底色/阴影从 tab **搬到滑块**：按住分组拖动时只有滑块在滑、文字钉住不动。
+ * 栏**不滚动**（3 个分组恒在可视区，横滑只切换）。
+ */
 .aurora-blog__tabs {
   display: flex;
   align-items: center;
-  gap: 2px;
   padding: 3px;
   background: var(--mc-bg-pressed);
   border-radius: var(--mc-radius-md);
   min-width: 0;
+  /* 越界橡胶会把滑块推过相邻 tab 一点点 → 裁在凹槽内，不越界压到次级 segmented 上 */
+  overflow: hidden;
+  /* 横滑必须能被手势层接住，否则被浏览器当作页面横滚/回退抢走；纵向交回浏览器 */
+  touch-action: pan-y;
+  user-select: none;
 }
 
+/* 轨道：滑块的定位坐标系（必须 relative —— 滑块 left:0 的原点要与几何量测对齐） */
+.aurora-blog__tabs-track {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* 滑块：选中态的视觉承载者 */
+.aurora-blog__tabs-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-bg-elevated);
+  box-shadow: var(--mc-shadow-inset);
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform, width;
+  transition:
+    transform var(--mc-dur-fast) var(--mc-ease-out),
+    width var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+/* 跟手期间：滑块零过渡 + 光标语言（静止态不设 grab，避免与点击语义打架） */
+.aurora-blog__tabs[data-swiping] { cursor: grabbing; }
+.aurora-blog__tabs[data-swiping] .aurora-blog__tabs-thumb { transition: none; }
+
 .aurora-blog__tab {
+  /* 抬到滑块之上：滑块绝对定位会盖住非定位兄弟的文字 */
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -59,12 +101,12 @@
   flex-shrink: 0;
   transition: color var(--mc-dur-micro) ease-out, background-color var(--mc-dur-micro) ease-out;
 }
-.aurora-blog__tab:hover { color: var(--mc-text-primary); background: var(--mc-bg-hover); }
+/* hover 只给未选中项：选中项底色归滑块，tab 再铺一层会盖住滑块 */
+.aurora-blog__tab:not(.is-active):hover { color: var(--mc-text-primary); background: var(--mc-bg-hover); }
+/* 选中态：底色/阴影已交给滑块，tab 只负责文字色与字重 */
 .aurora-blog__tab.is-active {
   color: var(--mc-accent);
-  background: var(--mc-bg-elevated);
   font-weight: 600;
-  box-shadow: var(--mc-shadow-inset);
 }
 
 /* 次级 segmented（P1-5）：组内子面板切换。无轨道底、文本为主，

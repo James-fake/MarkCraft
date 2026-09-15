@@ -1,10 +1,9 @@
 # MarkCraft · Aurora 记忆（铁律only；案例/细节见 `memory/YYYY-MM-DD.md` 与 `artifacts/DESIGNBRIEF-*.md`）
 
 ## 定位
-Vite5+React18+TS；CodeMirror6+TipTap3；白板 Excalidraw(canvas-v2)；Dexie/IndexedDB。
-dev 端口 **5174**：`node node_modules/vite/bin/vite.js --port 5174 --host`。
-入口 `src/aurora/aurora-main.tsx`（真实 `#view=` 路由）。**Aurora = 真实运行界面**（非演示壳）。
-战略：网页 UI → **桌面端软件范式**（窗口 chrome / 命令菜单 / 右键菜单 / 密度 / 键盘优先）。
+Vite5+React18+TS；CodeMirror6+TipTap3；白板 Excalidraw(canvas-v2)；Dexie/IndexedDB。dev 端口 **5174**：
+`node node_modules/vite/bin/vite.js --port 5174 --host`。入口 `src/aurora/aurora-main.tsx`（真实 `#view=` 路由）。
+**Aurora = 真实运行界面**（非演示壳）。战略：网页 UI → **桌面端软件范式**（窗口 chrome / 命令菜单 / 密度 / 键盘优先）。
 
 ## Aurora 铁律
 ① Aurora 即真实界面；② 禁增功能（边界 = 真实已有能力）；③ 视觉只用 `styles/tokens.css` 的 `--mc-*`；
@@ -36,6 +35,9 @@ dev 端口 **5174**：`node node_modules/vite/bin/vite.js --port 5174 --host`。
 - **末段速度采样会被 jsdom 的 dt≈0 放大** → 同步连发 `pointermove` 会误判甩掷；「期望不切换」的用例必须
   **真实慢速**（每步 sleep 300ms）+ 位移 < 20px（甩掷最小位移），别靠"越界护栏"碰巧成立。
 - 读文件断言用 `readFileSync(resolve(__dirname, ...))`。
+- **jsdom 缺的浏览器 API 统一补在 `src/setupTests.ts`**（已有 `ResizeObserver` / `Path2D` / `scrollIntoView` /
+  `elementFromPoint` / `matchMedia`）。缺 `matchMedia` 会让 `CssPanel`（读 `prefers-color-scheme`）挂载即崩 ——
+  症状是**某条用例"切到末格"时才炸**（切到「高级」组才渲染 CssPanel）。新用例把面板切到末格要留意带出的子面板。
 - 命令：`node node_modules/vitest/vitest.mjs run [pattern]`；`tsc --noEmit -p tsconfig.json`。
   ⚠️ tsconfig **不含** `*.test.*` → tsc 干净 ≠ 测试文件无类型错，测试必须实跑。
 
@@ -67,28 +69,31 @@ bash 每条内联 `export PATH="<三目录>:/c/Users/HJN/.workbuddy/binaries/nod
 - reduced-motion = 「更少更柔非归零」：时长减半，入场降级 `mc-rm-fade`、**退场 `mc-rm-fade-out`**。
 - 指针门控只归零**纯位移/缩放型** hover，**复合 transform 必须豁免**。
 
-## 需求 N：tab 栏滑动切 Tab（**六轮定稿，R6 现行**）
-形态 = **Apple 分段控件**：常驻滑块 thumb 压在选中项上；按住 tab 横拖 → **只有滑块跟手，tab 文字与内容区零位移**；
-栏不滚动（`scrollLeft` 恒 0）；**位移方向 = 目标方向**；**连续滑动**（轨道内 1:1，可跨多格，落点最近中心位即目标）。
-- 单源 = `hooks/tabStripSwipe.ts` + `swipeTabsCore.ts`（纯逻辑）+ `useTabStripThumb.ts`（React 壳）；四面板同接入，手势只挂 tab 栏。
-- 滑块位置 = **基准定位 + 手势位移，合成到同一个 `transform`**（拆两段 → 松手瞬间视觉裂缝）。
-- `mapTrackOffset(raw, baseCenter, minCenter, maxCenter)`：轨道内 1:1；越界 ×`EDGE_RESISTANCE` + **绝对封顶 28px**
-  （**不能用 limit×比例** —— 中间起手时到端点距离可达数百 px，会冲出轨道）。`decideSnap` = 落点最近中心位 +
-  甩掷兜底一格（**不做惯性外推**）。
-- hook 侧必须传 `dampenOffset`（恒等）+ `snapDecider` 覆盖内置「index±1」单步语义 —— 否则双重阻尼，跨格拖不动。
-- 方向铁律：**位移保号与目标取反不能并存**（滑块 = 指示器，位置即真相）；单源 = `swipeTabsCore` 三处 `nextSign`。
-- 四栏：设置/知识库/博客用**圆角块**（博客 `enabled:true` 常驻，浮层收起也能拖）；白板用**下划线**。
-- 测试 4 份（`tabStripSwipe` / `useSwipeTabs` / `tabBarSwipeBinding` / `swipeTabBarSurface`）+ 探针 3 个。
-- ⚠️ 白板左栏是 hover overlay、知识库空库时 tab 栏不渲染；建库后**不自动进详情**，要再点卡片；
-  提交按钮选择器须限定 `.aurora-kb-modal` 内（宽正则会命中底层）。
-- R1–R3 旧法（内容区滑动 / 整排轨道位移 / `visualMapper` / 边缘压暗 / `--swipe-progress`）**已废弃，勿回退**。
+## 需求 N：tab 栏滑动切 Tab（**七轮定稿，R7 现行**）
+形态 = **Apple 分段控件**：常驻滑块压在选中项上；按住 tab 横拖 → **只有滑块跟手，文字/内容区零位移**；栏不滚动；
+**位移方向 = 目标方向**；**连续滑动**（轨道内 1:1，可跨多格，落点最近中心位即目标）。
+- 单源 = `hooks/{tabStripSwipe, swipeTabsCore, useTabStripThumb}`；手势只挂 tab 栏。**六条栏**：
+  设置 `settings__nav-tabs`／知识库 `kb-subbar-tabs`／博客组内 `blog__subseg`／博客功能分组 `blog__tabs`／
+  白板侧栏 `csp__tabs`／白板顶部 `ctop__switcher`。**用户按"位置"点名，同一面板有两条，勿混层级**。
+  白板侧栏 = 下划线滑块，其余五条 = 圆角块，博客两条 `enabled:true` 常驻（浮层收起也能拖）。
+- 滑块位置 = **基准 + 手势位移合成同一个 `transform`**（拆两段 → 松手瞬间裂缝）。
+- hook 必须传 `dampenOffset`(恒等) + `snapDecider`，否则双重阻尼 → 跨格拖不动。
+- 方向铁律：**位移保号与目标取反不能并存**（滑块=指示器，位置即真相）；单源 = `swipeTabsCore` 三处 `nextSign`。
+- 机制细节（轨道内 1:1／越界封顶 28px／`role="tab"` 必需／`data-swiping || undefined`／轨道三件套／`decideSnap` 不外推）
+  见 `artifacts/DESIGNBRIEF-SWIPE-TABS-01.md` §12–§15；测试 4 份 + 探针 `probe-swipe-continuous.mjs`（`ONLY=` 单栏）。
+- ⚠️ 白板顶栏有**空白板引导锁定态** `locked = isCanvasEmpty && !guideSkipped` → 手势按设计停用；真机验证前须点
+  空态「跳过，直接开始」（否则看着像"手势坏了"，R7 踩过）。
+- ⚠️ 博客分组「同组再点开合浮层」：拖回原格**不误触发**（hook 判 `targetIndex !== index` 才回调）。
+- ⚠️ 白板左栏是 hover overlay；知识库空库时 tab 栏不渲染、建库后**不自动进详情**要再点卡片；提交按钮选择器须限定
+  `.aurora-kb-modal` 内（宽正则会命中底层）。
+- R1–R3 旧法（内容区滑动／整排轨道位移／`visualMapper`／边缘压暗／`--swipe-progress`）**已废弃，勿回退**。
 
 ## 其他已锁死项
 - 右栏「辅助」Tab = 发布为博客 + 添加到知识库；知识库列表**只有一个家**在那；⌘K/标签右键 = **钉住右栏 + 切辅助 Tab + 展开列表**；
   `setBlogEntryFileId` = 单篇语义（单篇下 `setAllDocs` 走 `scopedDocs`）；右侧宽度 `fit-content`（浮层壳曾截右栏）。
-- 知识库「笔记 Tab」头部 / 博客「主题市场」滚轮鼓筛选 / 博客筛选行拉满宽 + 搜索框回顶显隐（`hasLeftTop` 滞回）。
+- 知识库「笔记 Tab」头部；博客「主题市场」滚轮鼓筛选；博客筛选行拉满宽 + 搜索框回顶显隐（`hasLeftTop` 滞回）。
 
 ## 当前状态
-- vitest **1109 passed / 3 failed / 2 skipped**，tsc 干净。3 项失败**预存**（与需求 N 无关）：
-  `commandWiring` / `KbPanel.smoke`(`getByText('编辑')` 多元素) / `blogCssRefs`(KeyframeEditor 汉化)。
-- 需求 N 六轮已全部落地推送。待决：3 项预存失败排查；`--mc-dur-lazy` 处置；>30 天旧日志蒸馏归档。
+- vitest **1160 passed / 3 failed / 2 skipped**，tsc 干净。3 项**预存**失败（与需求 N 无关）：`commandWiring` /
+  `KbPanel.smoke`(`getByText('编辑')` 多元素) / `blogCssRefs`(KeyframeEditor 汉化)。需求 N 七轮已落地推送。
+- 待决：3 项预存失败排查；`--mc-dur-lazy` 处置；>30 天旧日志蒸馏归档。

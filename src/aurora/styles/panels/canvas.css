@@ -1141,25 +1141,56 @@
 }
 .aurora-ctop__name svg:last-child { color: var(--mc-icon-muted); flex-shrink: 0; }
 .aurora-ctop__name span { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/*
+ * 顶栏视图切换 = Apple 分段控件式滑块（需求 N 第七轮）。
+ * 凹槽（本层）→ 轨道 → 常驻滑块 + 视图按钮。
+ * 选中底色/阴影从 tab **搬到滑块**：于是按住视图拖动时只有滑块在滑、文字钉住不动。
+ * 栏**不滚动**（4 个视图恒在可视区，横滑只切换）。
+ */
 .aurora-ctop__switcher {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2;
-  display: flex; align-items: center; gap: 2px; padding: 3px;
+  display: flex; align-items: center; padding: 3px;
   background: var(--mc-bg-pressed); border-radius: var(--mc-radius-md);
+  /* 越界橡胶会把滑块推过相邻 tab 一点点 → 裁在凹槽内，不越界压在白板名/导出上 */
+  overflow: hidden;
+  /* 横滑必须能被手势层接住，否则被浏览器当作页面横滚/回退抢走；纵向交回浏览器 */
+  touch-action: pan-y;
+  user-select: none;
 }
+/* 轨道：滑块的定位坐标系（必须 relative —— 滑块 left:0 的原点要与几何量测对齐） */
+.aurora-ctop__switcher-track { position: relative; display: flex; align-items: center; gap: 2px; }
+/* 滑块：选中态的视觉承载者 */
+.aurora-ctop__switcher-thumb {
+  position: absolute; top: 0; left: 0; height: 100%;
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-bg-elevated);
+  box-shadow: var(--mc-shadow-inset);
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform, width;
+  transition:
+    transform var(--mc-dur-fast) var(--mc-ease-out),
+    width var(--mc-dur-fast) var(--mc-ease-out);
+}
+/* 跟手期间：滑块零过渡 + 光标语言（静止态不设 grab，避免与点击语义打架） */
+.aurora-ctop__switcher[data-swiping] { cursor: grabbing; }
+.aurora-ctop__switcher[data-swiping] .aurora-ctop__switcher-thumb { transition: none; }
 .aurora-ctop__view {
+  /* 抬到滑块之上：滑块绝对定位会盖住非定位兄弟的文字 */
+  position: relative; z-index: 1;
   display: inline-flex; align-items: center; gap: 6px; height: var(--mc-inspector-tab-h); padding: 0 12px;
   background: transparent; border: none; border-radius: var(--mc-radius-sm);
   color: var(--mc-text-secondary); font-size: var(--mc-font-sm); font-family: inherit; cursor: pointer;
   transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out);
 }
 .aurora-ctop__view-icon { flex-shrink: 0; }
-.aurora-ctop__view:hover { background: var(--mc-bg-hover); color: var(--mc-text-primary); }
+/* hover 只给未选中项：选中项底色归滑块，tab 再铺一层会盖住滑块 */
+.aurora-ctop__view:not(.aurora-ctop__view--active):hover { background: var(--mc-bg-hover); color: var(--mc-text-primary); }
 .aurora-ctop__view--disabled { opacity: 0.38; cursor: not-allowed; pointer-events: none; }
+/* 选中态：底色/阴影已交给滑块，tab 只负责文字色与字重 */
 .aurora-ctop__view--active {
-  background: var(--mc-bg-elevated);
   color: var(--mc-accent);
   font-weight: 600;
-  box-shadow: var(--mc-shadow-inset);
 }
 .aurora-ctop__act {
   display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px;

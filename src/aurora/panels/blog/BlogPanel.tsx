@@ -1057,6 +1057,29 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
     },
   })
 
+  /**
+   * 顶部**功能分组** tab（主题 / 数据 / 高级）= 同一套分段控件滑块（需求 N 第七轮）。
+   *
+   * 与组内子面板 segmented（`blogTabs`）的区别：这一层切的是**组** ——
+   * 切组会连带换掉组内子面板并展开浮层，与点击语义一致
+   * （点击时同组 = 开合浮层、异组 = 落组内首项并展开）。
+   *
+   * 「同组再点 = 收/展浮层」仍**只由 click 触发**：滑块落点回到原格时 hook
+   * 不会回调 onIndexChange（`useSwipeTabs` 里 `targetIndex !== next.index` 判定），
+   * 所以拖一下就松手（回到原格）不会把浮层误开。
+   * 手势常驻可用：这一行始终可见，与浮层开合无关。
+   */
+  const groupTabs = useTabStripThumb({
+    index: Math.max(0, PANEL_GROUPS.findIndex((g) => g.key === activeGroup.key)),
+    count: PANEL_GROUPS.length,
+    enabled: true,
+    onIndexChange: (next) => {
+      const g = PANEL_GROUPS[next]
+      setPanel(g.items[0])
+      setPanelOpen(true)
+    },
+  })
+
   // 最右贴边 = 博客界面内容区宽度 − 功能列表宽度
   const edgeMax = () => Math.max(0, (rootRef.current?.offsetWidth ?? 0) - (panelRef.current?.offsetWidth ?? 0))
 
@@ -1190,26 +1213,42 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
         )}
         {/* 顶部子栏：分组 tab（主题/数据/高级）+ 组内次级 segmented + 设备切换 */}
         <div className="aurora-blog__subbar">
-          <div className="aurora-blog__tabs">
-            {PANEL_GROUPS.map((g) => {
-              const I = Icon[g.icon]
-              const groupActive = activeGroup.key === g.key
-              return (
-                <button
-                  key={g.key}
-                  className={`aurora-blog__tab ${groupActive ? 'is-active' : ''}`}
-                  onClick={() => {
-                    // 同组再点 = 切换浮层收/展；切组 = 落到组内子面板并展开
-                    if (groupActive) setPanelOpen((v) => !v)
-                    else { setPanel(g.items[0]); setPanelOpen(true) }
-                  }}
-                  title={g.label}
-                >
-                  <I size={16} />
-                  <span>{g.label}</span>
-                </button>
-              )
-            })}
+          {/* 功能分组 tab = 分段控件滑块（需求 N 第七轮）：按住任一分组左右拖，
+              只有滑块跟手走（可跨组直达），分组文字零位移；松手落到最近分组 */}
+          <div
+            className="aurora-blog__tabs"
+            role="tablist"
+            aria-label="功能分组切换"
+            data-swiping={groupTabs.dragging || undefined}
+            {...groupTabs.bind}
+          >
+            {/* 轨道：滑块的定位坐标系（滑块绝对定位于其中，常驻） */}
+            <div className="aurora-blog__tabs-track" ref={groupTabs.trackRef}>
+              {/* 滑块：选中态的视觉承载者（选中底色/阴影已从 tab 迁到这里） */}
+              <span className="aurora-blog__tabs-thumb" ref={groupTabs.thumbRef} aria-hidden="true" />
+              {PANEL_GROUPS.map((g) => {
+                const I = Icon[g.icon]
+                const groupActive = activeGroup.key === g.key
+                return (
+                  <button
+                    key={g.key}
+                    type="button"
+                    role="tab"
+                    aria-selected={groupActive}
+                    className={`aurora-blog__tab ${groupActive ? 'is-active' : ''}`}
+                    onClick={() => {
+                      // 同组再点 = 切换浮层收/展；切组 = 落到组内子面板并展开
+                      if (groupActive) setPanelOpen((v) => !v)
+                      else { setPanel(g.items[0]); setPanelOpen(true) }
+                    }}
+                    title={g.label}
+                  >
+                    <I size={16} />
+                    <span>{g.label}</span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
           <div className="aurora-blog__subseg" role="tablist" aria-label="子面板切换" data-swiping={blogTabs.dragging || undefined} {...blogTabs.bind}>
             {/* 轨道：滑块的定位坐标系（滑块绝对定位于其中，常驻） */}

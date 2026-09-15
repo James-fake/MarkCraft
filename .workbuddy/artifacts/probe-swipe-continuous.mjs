@@ -248,7 +248,12 @@ async function ensureKbOpen() {
 const PANELS = [
   { name: '设置页', sidebar: '设置', bar: '.aurora-settings__nav-tabs', thumb: '.aurora-settings__nav-thumb', tab: '.aurora-settings__nav-tab' },
   { name: '博客工作室', sidebar: '博客', bar: '.aurora-blog__subseg', thumb: '.aurora-blog__subseg-thumb', tab: '.aurora-blog__subseg-btn' },
+  // 第七轮补齐：博客**功能分组**（主题/数据/高级）—— 与组内子面板是两条独立栏
+  { name: '博客功能分组', sidebar: '博客', bar: '.aurora-blog__tabs', thumb: '.aurora-blog__tabs-thumb', tab: '.aurora-blog__tab' },
   { name: '白板侧栏', sidebar: '白板', bar: '.aurora-csp__tabs', thumb: '.aurora-csp__tabs-thumb', tab: '.aurora-csp__tab' },
+  // 第七轮补齐：白板**顶部**视图切换（白板/思维导图/看板/时间轴）
+  // ⚠️ 必须排在「白板侧栏」之后：切 view 会换掉左栏内容，先跑侧栏才不互相干扰
+  { name: '白板顶部', sidebar: '白板', bar: '.aurora-ctop__switcher', thumb: '.aurora-ctop__switcher-thumb', tab: '.aurora-ctop__view' },
   { name: '知识库', sidebar: '知识库', bar: '.aurora-kb-subbar-tabs', thumb: '.aurora-kb-subbar-thumb', tab: '.aurora-kb-subbar-tab' },
 ]
 
@@ -339,6 +344,31 @@ for (const p of PANELS) {
   const nav = await goto(p.sidebar)
   await sleep(700)
   if (p.name === '白板侧栏') { console.log(`  打开左栏: ${await openCanvasLeftOverlay()}`); await sleep(600) }
+  if (p.name === '白板顶部') {
+    // ⚠️ 白板顶栏有一个「空白板引导锁定态」（CanvasPanel：`locked = isCanvasEmpty && !guideSkipped`）：
+    //    此时只有「白板」视图可选，其余三个 disabled —— 手势按设计一并停用
+    //    （拖动会滑到被锁的视图上再弹回，比不能拖更困惑）。
+    //    所以真机要验证「按住拖动」必须先退出该状态：点空态里的「跳过，直接开始」。
+    const lock = await cdp.eval(`(() => {
+      const sw = document.querySelector('.aurora-ctop__switcher')
+      if (!sw) return null
+      return {
+        disabled: [...sw.querySelectorAll('[role="tab"]')].filter(e => e.hasAttribute('disabled')).length,
+        skipBtn: !!document.querySelector('.aurora-canvas__empty-skip'),
+      }
+    })()`)
+    console.log(`  锁定态: 被禁用视图 ${lock?.disabled ?? '?'} 个｜「跳过引导」按钮 ${lock?.skipBtn ? '在' : '不在'}`)
+    if (lock?.skipBtn) {
+      const clicked = await cdp.eval(`(() => {
+        const b = document.querySelector('.aurora-canvas__empty-skip')
+        if (b) b.click()
+        return !!b
+      })()`)
+      await sleep(900)
+      const after = await cdp.eval(`[...document.querySelectorAll('.aurora-ctop__switcher [role="tab"]')].filter(e => e.hasAttribute('disabled')).length`)
+      console.log(`  退出锁定: ${clicked ? '已点跳过' : '未找到按钮'} → 剩余禁用视图 ${after} 个`)
+    }
+  }
   if (p.name === '知识库') { console.log(`  进入详情: ${await ensureKbOpen()}`); await sleep(700) }
 
   const has = await cdp.eval(`!!document.querySelector(${JSON.stringify(p.bar)})`)
@@ -359,7 +389,10 @@ for (const p of PANELS) {
   //    captureScreenshot 会返回上一帧（实测：滑块 DOM 已移动 430px，图里却还在原位，
   //    既非 bug 也无法用 sleep / 双 rAF / bringToFront 修好）。要拍就带 SHOT_MID=1，
   //    并且**只当参考、不要当证据**；"拖动中跟手"的证据用数值（跟手差 + 绘制态）。
-  const shotName = p.name === '知识库' ? 'thumb-continuous-kb' : null
+  const shotName = p.name === '知识库' ? 'thumb-continuous-kb'
+    : p.name === '白板顶部' ? 'thumb-continuous-canvastop'
+      : p.name === '博客功能分组' ? 'thumb-continuous-bloggroup'
+        : null
   const r1 = await dragTo(p, count - 1, `第 0 格 → 末格`, shotName)
   if (r1) results.push(r1)
 

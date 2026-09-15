@@ -631,3 +631,103 @@ R1–R4 沿用的是**内容区翻页（Content-Pan）**的符号约定：
    不参与命中测试，必然返回它下面的元素。判"看得见"应断言
    `opacity / visibility / display / backgroundColor / 面积`。
 
+---
+
+## 15. 修订记录 R7（2026-09-15）：补齐**白板顶部视图**与**博客功能分组**两条栏
+
+### 15.1 用户反馈
+
+> 「白板功能的顶部的 tab 和博客功能的 tab 也实现同样的按住 tab 往左或右一路拖，
+> 滑块会一直跟着你走，松手直接停在相对应的位置」
+
+R4~R6 期间接入的是**白板侧栏**（`.aurora-csp__tabs`）与博客**组内子面板**
+（`.aurora-blog__subseg`）。用户点名的却是另外两条栏：
+
+| 用户说的 | 实际元素 | 组件 | 之前状态 |
+| --- | --- | --- | --- |
+| 白板功能的**顶部** tab | `.aurora-ctop__switcher` | `CanvasTopbar.tsx` | 普通按钮 + `--active` 类，无滑块 |
+| 博客功能的 tab | `.aurora-blog__tabs` | `BlogPanel.tsx` | 普通按钮 + `is-active` 类，无滑块 |
+
+即：同一套能力此前只覆盖了「侧栏 / 组内」这两个层级，而**顶栏层级**的两条栏还停在
+R3 之前的形态。R7 把它们补齐 —— 至此白板与博客**各自的两条 tab 栏**都是分段控件。
+
+### 15.2 定案
+
+两处均按 §12 的定案形态（Apple 分段控件）接入同一套 `useTabStripThumb`，
+形态取 **block（圆角块）**：两者的凹槽（`--mc-bg-pressed` + `radius-md` + `padding 3px`）
+本就是现成的，滑块沿用 `--mc-bg-elevated` + `--mc-shadow-inset`。
+
+白色板侧栏为什么仍是 underline：那是全站 `.aurora-csp__tab` 的下划线语言（与编辑器
+rightbar 同源），不因 R7 改变；新加的两条栏**没有**下划线传统，故走 block。
+
+### 15.3 关键实现决策
+
+1. **DOM 结构加一层轨道**：`凹槽 > 轨道(position:relative) > [滑块 + tab…]`。
+   滑块 `left:0` 的原点必须与几何量测对齐，故轨道承担 `position:relative`；
+   凹槽只留外观（`overflow:hidden` 把越界橡胶裁在凹槽内）。
+2. **`gap` 从凹槽移到轨道**：滑块的定位坐标系是轨道，槽间距必须落在轨道内，
+   否则量出的 tab 几何与滑块坐标系差一个 gap。
+3. **`role="tab"` 是硬需求**：`TAB_SELECTOR = '[role="tab"]'` —— 博客分组按钮原本
+   只有 `className`，必须补 `role="tab"` + `aria-selected`，否则量不到 tab 几何
+   （滑块宽度/位置全错）。白板顶部的按钮原本就有。
+4. **`data-swiping={dragging || undefined}`**：不能用 `data-swiping={dragging}`，
+   否则松手后留下 `data-swiping="false"`，CSS 的 `[data-swiping]` 属性选择器
+   **只认存在性**，会继续命中「跟手态」规则（滑块过渡被永久压成 none）。
+5. **白板顶部的锁定态（`locked`）**：`locked = isCanvasEmpty && !guideSkipped`
+   （CanvasPanel），此时只有「白板」视图可选，其余三个 `disabled`。手势**一并停用**
+   —— 拖到被锁的视图上再弹回，比"拖不动"更困惑（点击路径本就 `return`）。
+6. **博客分组的「同组再点 = 开合浮层」语义完好**：`useSwipeTabs` 的松手判定是
+   `if (decision.passed && decision.targetIndex !== next.index)` —— 落点回到原格时
+   **不回调** `onIndexChange`，所以"拖一下又滑回原位"不会把浮层误开。这条专门加了
+   回归用例（含"点击同组仍能开合"的反向对照）。
+
+### 15.4 验收标准（与 §12 六条一致，逐条覆盖两条新栏）
+
+| # | 标准 |
+| --- | --- |
+| 1 | 一条常驻滑块压在选中项上（静止态即对齐，Δx = Δw = 0） |
+| 2 | 按住任一 tab 拖动 → **只有滑块**跟手走，**文字零位移** |
+| 3 | **内容区零位移**（顶栏两条栏无内容区；分组切换只换浮层内容） |
+| 4 | 松手落到**落点最近**的 tab，**可跨多格** |
+| 5 | 栏**不滚动**（`scrollLeft` 恒 0） |
+| 6 | 点击 tab 同样让滑块带过渡落位（不只手势路径） |
+
+### 15.5 实测结果（CDP@9445 · **10/10 通过**）
+
+| 栏 | 跨格 | 结果 | 跟手差 | 落位 | 文字 | 不滚 | 绘制 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 设置页 · 首↔末 | 8 | 0↔8 ✅ | 0 / 0 | Δ0.0 | ✅ | ✅ | ✅ |
+| **博客功能分组 · 主题↔高级** | **2** | 0↔2 ✅ | 0 / 0 | Δ0.0 | ✅ | ✅ | ✅ |
+| 白板侧栏 · 首↔末 | 5 | 0↔5 ✅ | 0 / 0 | Δ0.0 | ✅ | ✅ | ✅ |
+| **白板顶部 · 白板↔时间轴** | **3** | 0↔3 ✅ | 0 / 0 | Δ0.0 | ✅ | ✅ | ✅ |
+| 知识库 · 概览↔导出 | 6 | 0↔6 ✅ | −0.2 / +0.1 | Δ0.0 | ✅ | ✅ | ✅ |
+
+视觉证据：`thumb-continuous-canvastop-rest.png`（滑块压在末格「时间轴」）、
+`thumb-continuous-bloggroup-rest.png`（滑块压在末格「高级」）。
+
+### 15.6 实现位置
+
+- `panels/canvas/CanvasTopbar.tsx`：接入 `useTabStripThumb`（`enabled: !locked`）+ 轨道/滑块
+- `panels/blog/BlogPanel.tsx`：新增 `groupTabs`（分组层）+ 轨道/滑块；`blogTabs`（组内层）不动
+- `styles/panels/canvas.css`：`.aurora-ctop__switcher{,-track,-thumb}`；`.aurora-ctop__view--active` 去底色
+- `styles/panels/blog.css`：`.aurora-blog__tabs{,-track,-thumb}`；`.aurora-blog__tab.is-active` 去底色
+- `src/setupTests.ts`：补 jsdom 缺的 `matchMedia`（缺它会崩，见 15.7-2）
+- 测试：`swipeTabBarSurface.test.ts`（SURFACES +2 / hover 守卫 +2 / 「手势只落 tab 栏」改为
+  `data-swiping` 与 `bind` **逐一配对**，不再写死 1 次）/ `tabBarSwipeBinding.test.tsx`
+  （CASES +2、锁定态对照组 2 例、博客"拖回原格不误开浮层"1 例）
+- 探针：`probe-swipe-continuous.mjs`（PANELS +2，白板顶部前置"退出引导锁定"）
+
+### 15.7 教训（两条）
+
+1. **"手势没反应"要先分三层**：DOM 存在 / 事件到达 / 逻辑早退。
+   本次白板顶部失败，`elementFromPoint` 与祖先链都正常，最后靠
+   **事件流探针**（document capture → 元素 native → document bubble 各记一笔）
+   确认事件确实到了元素、React 三个 handler 也都在 → 锁定「逻辑早退」，
+   再回源码即见 `enabled: !locked`。「注解式排错」（先猜遮挡、猜 z-index）
+   会白跑两轮。**事件流探针是本类问题的第一条命令，不是最后一条。**
+2. **jsdom 缺 `matchMedia` 会静默封死一条路径**：博客切到「高级」组会渲染 `CssPanel`，
+   它读 `prefers-color-scheme` → `window.matchMedia is not a function`。
+   此前没有任何测试渲染过 CssPanel，所以这个洞一直没被发现；它被"顺便"补进
+   `src/setupTests.ts`（与 ResizeObserver / Path2D 同处）。**新写用例把面板切到末格时，
+   要留意它是否会带出此前从未挂载的子面板。**
+

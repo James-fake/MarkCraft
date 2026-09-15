@@ -1,4 +1,5 @@
 import { Icon } from '../../icons'
+import { useTabStripThumb } from '../../hooks/useTabStripThumb'
 import type { CanvasViewId } from './CanvasPanel'
 
 /**
@@ -23,6 +24,28 @@ const VIEWS: { id: CanvasViewId; label: string; icon: string }[] = [
 ]
 
 export function CanvasTopbar({ view, onView, canvasName, onOpenList, onExport, locked }: CanvasTopbarProps) {
+  /**
+   * 顶栏视图切换 = Apple 分段控件式滑块（需求 N 第七轮）。
+   *
+   * 与设置/知识库/博客同源（`useTabStripThumb`）：一条**常驻滑块**压在选中视图
+   * 上；按住任一视图左右拖 → **只有滑块跟手走**（可一次跨多格，白板 ↔ 时间轴
+   * 直达），tab 文字与白板内容一个像素都不动；松手落到**落点最近**的视图。
+   *
+   * 首启锁定态（`locked`）只有「白板」可用 → 手势一并停用：拖到被锁的视图
+   * 没有意义，停用它比让滑块滑过去再弹回更符合直觉（点击路径本就 return）。
+   *
+   * ⚠️ 真机验证注意：`locked = isCanvasEmpty && !guideSkipped`（CanvasPanel）——
+   * 白板为空且没点过「跳过，直接开始」时它就是 true，看着像"手势坏了"。
+   * 要验手势得先在空态点「跳过，直接开始」退出该状态。jsdom 侧见
+   * `tabBarSwipeBinding.test.tsx` 的「引导锁定态下手势停用」两条对照组。
+   */
+  const tabs = useTabStripThumb({
+    index: Math.max(0, VIEWS.findIndex((v) => v.id === view)),
+    count: VIEWS.length,
+    enabled: !locked,
+    onIndexChange: (next) => onView(VIEWS[next].id),
+  })
+
   return (
     <div className="aurora-ctop">
       <div className="aurora-ctop__left">
@@ -33,26 +56,37 @@ export function CanvasTopbar({ view, onView, canvasName, onOpenList, onExport, l
         </button>
       </div>
 
-      <div className="aurora-ctop__switcher" role="tablist" aria-label="视图切换">
-        {VIEWS.map((v) => {
-          const IconComp = Icon[v.icon as keyof typeof Icon]
-          const disabled = !!locked && v.id !== 'canvas'
-          return (
-            <button
-              key={v.id}
-              type="button"
-              role="tab"
-              aria-selected={view === v.id}
-              aria-disabled={disabled}
-              disabled={disabled}
-              className={`aurora-ctop__view ${view === v.id ? 'aurora-ctop__view--active' : ''}${disabled ? ' aurora-ctop__view--disabled' : ''}`}
-              onClick={() => { if (disabled) return; onView(v.id) }}
-            >
-              {IconComp ? <IconComp size={15} className="aurora-ctop__view-icon" /> : null}
-              <span>{v.label}</span>
-            </button>
-          )
-        })}
+      <div
+        className="aurora-ctop__switcher"
+        role="tablist"
+        aria-label="视图切换"
+        data-swiping={tabs.dragging || undefined}
+        {...tabs.bind}
+      >
+        {/* 轨道：滑块的定位坐标系（滑块绝对定位于其中，常驻） */}
+        <div className="aurora-ctop__switcher-track" ref={tabs.trackRef}>
+          {/* 滑块：选中态的视觉承载者（选中底色/阴影已从 tab 迁到这里） */}
+          <span className="aurora-ctop__switcher-thumb" ref={tabs.thumbRef} aria-hidden="true" />
+          {VIEWS.map((v) => {
+            const IconComp = Icon[v.icon as keyof typeof Icon]
+            const disabled = !!locked && v.id !== 'canvas'
+            return (
+              <button
+                key={v.id}
+                type="button"
+                role="tab"
+                aria-selected={view === v.id}
+                aria-disabled={disabled}
+                disabled={disabled}
+                className={`aurora-ctop__view ${view === v.id ? 'aurora-ctop__view--active' : ''}${disabled ? ' aurora-ctop__view--disabled' : ''}`}
+                onClick={() => { if (disabled) return; onView(v.id) }}
+              >
+                {IconComp ? <IconComp size={15} className="aurora-ctop__view-icon" /> : null}
+                <span>{v.label}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       <div className="aurora-ctop__right">

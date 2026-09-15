@@ -123,6 +123,29 @@ const SURFACES: Surface[] = [
     form: 'underline',
     tsx: 'canvas/CanvasSidebarPanel.tsx',
   },
+  // —— 第七轮补齐的两条栏（用户点名）：白板**顶部**视图切换 + 博客**功能分组** ——
+  {
+    name: '白板顶部视图',
+    css: 'canvas.css',
+    bar: '.aurora-ctop__switcher',
+    track: '.aurora-ctop__switcher-track',
+    thumb: '.aurora-ctop__switcher-thumb',
+    tab: '.aurora-ctop__view',
+    tabActive: '.aurora-ctop__view--active',
+    form: 'block',
+    tsx: 'canvas/CanvasTopbar.tsx',
+  },
+  {
+    name: '博客功能分组',
+    css: 'blog.css',
+    bar: '.aurora-blog__tabs',
+    track: '.aurora-blog__tabs-track',
+    thumb: '.aurora-blog__tabs-thumb',
+    tab: '.aurora-blog__tab',
+    tabActive: '.aurora-blog__tab.is-active',
+    form: 'block',
+    tsx: 'blog/BlogPanel.tsx',
+  },
 ]
 
 /* ================================================================== *
@@ -207,15 +230,22 @@ describe('B. 内容区不参与滑动 · JSX 侧', () => {
     ['知识库', 'kb/KbPanel.tsx'],
     ['博客工作室', 'blog/BlogPanel.tsx'],
     ['白板', 'canvas/CanvasSidebarPanel.tsx'],
+    ['白板顶部', 'canvas/CanvasTopbar.tsx'],
   ]
 
   for (const [name, tsx] of PANELS) {
-    it(`${name}：${tsx} 不再出现 is-swiping / 内容区手势绑定`, () => {
+    it(`${name}：${tsx} 不再出现 is-swiping，且手势只落在 tab 栏上`, () => {
       const src = tsxOf(tsx)
       expect(src, `${tsx} 仍有 is-swiping`).not.toMatch(/is-swiping/)
-      // 手势展开只能出现一次（tab 栏那一处）——内容区那处已删
       const binds = src.match(/\{\.\.\.[\w.]*[Bb]ind\}/g) ?? []
-      expect(binds.length, `${tsx} 手势绑定出现 ${binds.length} 次（应只有 tab 栏 1 次）`).toBe(1)
+      expect(binds.length, `${tsx} 一处手势绑定都没有`).toBeGreaterThanOrEqual(1)
+      // 手势展开数必须与 data-swiping 数**逐一配对**：凡展开手势的元素都必须是
+      // tab 栏（自己声明 data-swiping 供 CSS 的跟手态规则命中）。内容区若偷挂
+      // 手势，要么缺 data-swiping 在这里被拦下，要么触发上面 CSS 侧的内容区断言。
+      // 第七轮起博客有 2 条**合法** tab 栏（功能分组 + 组内子面板），故不能再写死「恰好 1 次」。
+      const swiping = src.match(/data-swiping=\{/g) ?? []
+      expect(swiping.length, `${tsx} data-swiping(${swiping.length}) 与手势绑定(${binds.length}) 数量不一致（有手势挂在非 tab 栏元素上）`)
+        .toBe(binds.length)
     })
   }
 })
@@ -290,6 +320,9 @@ describe('C. 分段控件滑块 · CSS 侧', () => {
       ['settings.css', '.aurora-settings__nav-tab', ':not(.aurora-settings__nav-tab--active)'],
       ['kb.css', '.aurora-kb-subbar-tab', ':not(.is-active)'],
       ['blog.css', '.aurora-blog__subseg-btn', ':not(.is-active)'],
+      // 第七轮补齐的两条栏
+      ['blog.css', '.aurora-blog__tab', ':not(.is-active)'],
+      ['canvas.css', '.aurora-ctop__view', ':not(.aurora-ctop__view--active)'],
     ]
     for (const [css, tab, guard] of CASES) {
       const text = stripComments(cssOf(css))
