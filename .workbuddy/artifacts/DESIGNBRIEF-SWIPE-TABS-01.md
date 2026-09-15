@@ -307,3 +307,73 @@ export interface UseSwipeTabsResult {
 | token 单源 `tokens.css §11` | ✅ 全部引用 `--mc-dur-*` / `--mc-ease-*`，不新增裸值 |
 | 新类必须同批交付 CSS | ✅ 拖拽态类名 `is-swiping` 与 CSS 同批 |
 | 单一数据源 | ✅ hook 不持有 tab 状态，索引由面板传入 |
+
+---
+
+## 11. 修订记录 R3（2026-09-15）：主反馈改为「整排 tab 跟手」
+
+### 11.1 用户第三次反馈与实测定位
+
+> 「在 tab 栏本身内横滑的效果还是没有显示出来，我要的效果鼠标按住 tab 方框左或右可以滑动」
+
+R2 已把手势挂到 tab 栏（**能识别**），但**视觉上等于没动** —— 这是本轮的关键认知：
+**"手势识别" ≠ "用户看得见"**。探针 `artifacts/probe-swipe-drag-amplitude.mjs` 实测：
+
+| 拖动 | 手势 | 内容层位移 | tab 方块位移 | 松手 |
+| --- | --- | --- | --- | --- |
+| 按住方块慢拖 150px | ✅ 识别 | 25.2px | **0.7px** | ❌ 不切换 |
+| 快速甩 150px | ✅ 识别 | 25.2px | **0.7px** | ❌ 不切换 |
+| 大幅拖 420px | ✅ 识别 | 25.2px | **2.0px** | ❌ 不切换 |
+
+两个坏点都在**参数**（绑定无问题）：
+1. 方块位移 = `--swipe-progress × 6px`，`progress = offset / 内容区宽(1358px)` → `0.11 × 6 = 0.7px`；
+2. 松手阈值 = 内容区宽 × 32% = **435px** → 鼠标慢拖/快甩都够不到，**永远不切换**。
+
+### 11.2 修订后的规范（覆盖 §3.2 参数表 / §5 视觉反馈）
+
+| 项 | 旧（R2 及以前） | **新（R3 现行）** |
+| --- | --- | --- |
+| 位移承载者 | 内容层（≤18px 钳制） | **tab 栏内层轨道**（`__nav-track` / `__subseg-track` / `__tabs-track` / `__subbar-track`） |
+| 位移映射 | `toVisualOffset` 钳 18px | `mapStripOffset(raw, slot)`：一个槽距内**严格 1:1**，越界增益 `0.18`，硬顶 `1.25 × 槽距` |
+| 松手阈值 | `size × 32%`（内容区宽） | **半个槽距**（设置页 37.5px）→「拖过一半就切」 |
+| `--swipe-progress` 归一化 | `offset / 内容区宽`（最大仅 ~0.3） | **`shift / 槽距`**（±1 = 满格）→ 边缘压暗真正可见 |
+| 内容层位移 | 18px（主反馈） | 22px 钳制（硬顶 30.8 < 40px 内边距，首字不裁）→ **降级为呼应** |
+| 博客位移目标 | `panelOpen ? 浮层内容体 : undefined` | **常驻轨道**（浮层收起时也看得见跟手） |
+| 跟手期视觉 | 方块轻微跟随 | 轨道跟手 + 栏体 `overflow` 裁剪 + **两端 12/14px 渐隐遮罩**（否则方块硬切在边界上） |
+
+**槽距取「平均」**（首末中心距 / (n-1)）：逐对相邻距会因方块宽 70/82 不等，导致**反向拖动时限幅突跳**。
+
+### 11.3 与 §10 铁律的一致性（需显式说明）
+
+§10 原写「外壳永不参与视图切换动画 …… 顶栏 tab 行本身不动」。**R3 让 tab 行跟手位移，属用户明确要求**（
+经 AskUserQuestion 三选一确认「整排 tab 跟手滑」）。解释口径：
+- 铁律约束的是**视图切换动画**（页面级淡入淡出 / 面板整体平移），防「整体闪一下」；
+- R3 动的是**用户直接操作下的跟手反馈**（active gesture feedback）—— 手指按着才动，松手即归位（`--mc-dur-fast` 过渡），
+  与工具栏按压 `scale(0.97)`、switch 拇指位移同属一类，不改变视图层的动画体系；
+- 位移仍只走 `transform`，只引用 `tokens.css §11` token，**不新增裸值**。
+
+### 11.4 验收标准补充（覆盖 §6 第 2/3 条）
+
+| # | 断言 | 方法 |
+| --- | --- | --- |
+| R3-1 | 按住 tab 方块拖 150px → 轨道位移 **≥ 30px** | 跟手期读 `DOMMatrixReadOnly(getComputedStyle(track).transform).m41`；契约测试 `tabBarSwipeBinding` 同断言 |
+| R3-2 | 内容层位移恒 **≤ 32px**（不得露出空白/裁首字） | 同上读内容层 |
+| R3-3 | 松手后轨道的**内联** transform 必须被清空 | 否则会盖住 CSS 归位过渡 |
+| R3-4 | 松手阈值 = 半个槽距（不再按容器宽） | `decideSnap({ thresholdPx })` 单测 + 真机 `通用→外观` |
+
+### 11.5 实测结果（CDP@9444）
+
+- 设置页：按住「用户/通用」方块拖 150px → 轨道 **-88.5px**（= 75 + 75×0.18，与映射公式吻合）、内容层 -30.8px、
+  进度 -1、松手切换 ✅；小拖 60px → **-60px（严格 1:1）** ✅；反向右拖 → +88.5px ✅。
+- 博客工作室：轨道 -48.5px ✅ 切换 ✅。
+- ⚠️ **CDP 覆盖不到的两条**：白板左栏是 hover 打开的 overlay、知识库需先建库 → 空库时 tab 栏不渲染。
+  这两条以 jsdom 集成测试兜底（真渲染 + 真 pointer 轨迹 + 轨道位移断言），**不作端到端结论**。
+
+### 11.6 实现位置
+
+- 纯逻辑：`hooks/swipeTabsCore.ts`（`mapStripOffset` / `averageSlot` / `decideSnap.thresholdPx` / `toVisualOffset(raw, clamp?)`）
+- 扩展点：`hooks/useSwipeTabs.ts`（`visualMapper` / `snapThresholdPx`，向后兼容）
+- 共享层：`hooks/tabStripSwipe.ts`（`measureTabCenters` / `createTabStripMotion`）
+- 接入：`panels/{settings,kb,blog,canvas}/*` + `styles/panels/{settings,kb,blog,canvas}.css`
+- 测试：`hooks/tabStripSwipe.test.ts`(22) / `styles/swipeTabBarSurface.test.ts`(44) / `panels/settings/tabBarSwipeBinding.test.tsx`(12)
+- 提交：`bf70cf8`
