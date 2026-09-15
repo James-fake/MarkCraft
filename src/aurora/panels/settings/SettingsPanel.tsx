@@ -1,10 +1,11 @@
-﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+﻿import { useState, useEffect, useRef, useMemo } from 'react'
 import { PageFrame } from '../../components/shell/PageFrame'
 import { useCommandPalette } from '../../components/command-palette/CommandPaletteContext'
 import { Icon } from '../../icons'
 import type { IconName } from '../../types'
 import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
 import { useSwipeTabs } from '../../hooks/useSwipeTabs'
+import { createTabStripMotion } from '../../hooks/tabStripSwipe'
 import { GeneralSection } from './sections/GeneralSection'
 import { AppearanceSection } from './sections/AppearanceSection'
 import { EditorSection } from './sections/EditorSection'
@@ -76,31 +77,38 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
 
   /** 内容区滑动切 Tab（跟手拖拽 / 触控板双指横滑） */
   const rootRef = useRef<HTMLDivElement>(null)
+  /** 内容层位移目标（无 padding 的内层包裹件，避免把 padding 一起推走） */
   const swipeLayerRef = useRef<HTMLDivElement>(null)
-  /** 吸附判定基准（内容区可视宽度），手势从 tab 栏起手时也按它算 */
+  /** 吸附判定基准（内容区可视宽度） */
   const contentRef = useRef<HTMLDivElement>(null)
+  /**
+   * tab 轨道（nav-tabs 的内层）。
+   *
+   * 药丸底色留在 nav-tabs 上，**跟手位移落到轨道**：用户按住的是 tab 方块本身，
+   * 方块必须跟着手指走（第二轮只让方块挪 0.7px = 人眼认为没动）。
+   */
+  const trackRef = useRef<HTMLDivElement>(null)
 
   /**
-   * 进度联动：把位移映射为 --swipe-progress ∈ [-1,1]，
-   * 挂到面板根节点（.aurora-settings），供顶栏指示器与内容层阴影共同消费。
+   * 整排 tab 跟手：1:1 位移（限幅一个槽距）+ 半格松手阈值 + 按槽距归一化的进度。
+   * 见 hooks/tabStripSwipe.ts 的实测数据说明。
    */
-  const handleOffsetChange = useCallback((offset: number) => {
-    const root = rootRef.current
-    if (!root) return
-    const width = swipeLayerRef.current?.clientWidth || root.clientWidth || 1
-    const progress = Math.max(-1, Math.min(1, offset / width))
-    root.style.setProperty('--swipe-progress', String(progress))
-  }, [])
+  const motion = useMemo(
+    () => createTabStripMotion({ trackRef, rootRef, contentRef: swipeLayerRef }),
+    [],
+  )
 
   const swipe = useSwipeTabs({
     index: CATEGORIES.findIndex((c) => c.id === activeCategory),
     count: CATEGORIES.length,
     onIndexChange: (next) => setActiveCategory(CATEGORIES[next].id),
-    onOffsetChange: handleOffsetChange,
-    // 位移落到内层无 padding 的包裹层，避免把 padding 一起推走
-    targetRef: swipeLayerRef,
-    // 吸附阈值恒按内容区宽度算（不是 tab 栏宽度）
+    onOffsetChange: motion.handleOffset,
+    // 位移落到 **tab 轨道**：按住的那个方块本身要跟着走（主反馈）
+    targetRef: trackRef,
+    // 判定基准仍是内容区（阈值由 motion.snapThresholdPx 覆盖为「半个槽距」）
     measureRef: contentRef,
+    visualMapper: motion.visualMapper,
+    snapThresholdPx: motion.snapThresholdPx,
   })
 
   /**
@@ -113,12 +121,11 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
    */
   const bind = useMemo(() => swipe.makeBind(), [swipe])
 
-  /** 拖拽结束后归零指示器进度 */
+  /** 跟手开始 → 内容层零过渡；结束 → 清内联位移，归位动画交回 CSS 过渡 */
   useEffect(() => {
-    if (!swipe.dragging) {
-      rootRef.current?.style.setProperty('--swipe-progress', '0')
-    }
-  }, [swipe.dragging])
+    if (swipe.dragging) motion.begin()
+    else motion.reset()
+  }, [swipe.dragging, motion])
 
   // 外部带参进入（如侧栏头像点击）→ 同步定位到目标分类
   useEffect(() => {
@@ -179,28 +186,31 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
             data-swiping={swipe.dragging || undefined}
             {...bind}
           >
-            {CATEGORIES.map((cat, i) => {
-              const IconComp = Icon[cat.icon]
-              const isActive = cat.id === activeCategory
-              return (
-                <button
-                  key={cat.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  data-tab-index={i}
-                  className={[
-                    'aurora-settings__nav-tab',
-                    isActive ? 'aurora-settings__nav-tab--active' : '',
-                  ].filter(Boolean).join(' ')}
-                  onClick={() => setActiveCategory(cat.id)}
-                  title={cat.label}
-                >
-                  <IconComp size={16} />
-                  <span>{cat.label}</span>
-                </button>
-              )
-            })}
+            {/* 轨道：整排跟手位移的承载者（药丸底色留在外层，位移不带走底色） */}
+            <div className="aurora-settings__nav-track" ref={trackRef}>
+              {CATEGORIES.map((cat, i) => {
+                const IconComp = Icon[cat.icon]
+                const isActive = cat.id === activeCategory
+                return (
+                  <button
+                    key={cat.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    data-tab-index={i}
+                    className={[
+                      'aurora-settings__nav-tab',
+                      isActive ? 'aurora-settings__nav-tab--active' : '',
+                    ].filter(Boolean).join(' ')}
+                    onClick={() => setActiveCategory(cat.id)}
+                    title={cat.label}
+                  >
+                    <IconComp size={16} />
+                    <span>{cat.label}</span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
 

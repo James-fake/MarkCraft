@@ -84,7 +84,9 @@ const SURFACES: Surface[] = [
     css: 'kb.css',
     selector: '.aurora-kb-subbar-tabs',
     tsx: 'kb/KbPanel.tsx',
-    classLiteral: 'aurora-kb-subbar-tabs',
+    // 必须用带引号的完整字面量锚定：裸类名会先命中注释里提到的同名类
+    // （第三轮就在 trackRef 的注释里提到过 .aurora-kb-subbar-tabs，导致锚点落进注释）
+    classLiteral: 'className="aurora-kb-subbar-tabs"',
   },
   {
     name: '博客工作室',
@@ -160,6 +162,93 @@ describe('内容区手势声明未被本次改动回退', () => {
       const body = baseRule(cssOf(css), selector)
       expect(body, `${css} 缺 ${selector} 基类规则`).not.toBe('')
       expect(body).toMatch(/touch-action:\s*pan-y/)
+    })
+  }
+})
+
+/* ------------------------------------------------------------------ *
+ * 第三轮：整排 tab 跟手（用户原话「按住 tab 方框左或右可以滑动」）
+ * ------------------------------------------------------------------ *
+ * 事故背景：第二轮把手势挂上了 tab 栏（能识别），但视觉上等于没动 ——
+ * CDP 实测按住方块拖 150px，方块只挪 0.7px（progress 被内容区宽 1358px 稀释后 ×6px），
+ * 且松手阈值是内容区宽 × 32% = 435px，鼠标慢拖永远够不到。
+ *
+ * 修法：药丸底色留在外层，**内层加一条轨道**承载整排跟手位移（1:1，限幅一个槽距）；
+ * 松手阈值改「半个槽距」；进度按槽距归一化。
+ *
+ * 这里锁死「CSS 侧有轨道规则」+「JSX 侧有真实承载者」两半 ——
+ * 只加 CSS 无元素 = 死代码；只加元素无 CSS = 位移没有过渡、跟手期间还会滞后。
+ */
+interface StripCase {
+  name: string
+  css: string
+  /** tab 栏（裁剪方 + 渐隐遮罩 + cursor） */
+  bar: string
+  /** 轨道（位移承载者） */
+  track: string
+  /** 渐隐半径（与 CSS 字面量同源） */
+  fade: string
+  tsx: string
+  /** JSX 里轨道元素的 className 字面量 */
+  trackLiteral: string
+}
+
+const STRIPS: StripCase[] = [
+  { name: '设置页', css: 'settings.css', bar: '.aurora-settings__nav-tabs', track: '.aurora-settings__nav-track', fade: '14px', tsx: 'settings/SettingsPanel.tsx', trackLiteral: 'className="aurora-settings__nav-track"' },
+  { name: '知识库', css: 'kb.css', bar: '.aurora-kb-subbar-tabs', track: '.aurora-kb-subbar-track', fade: '14px', tsx: 'kb/KbPanel.tsx', trackLiteral: 'className="aurora-kb-subbar-track"' },
+  { name: '博客工作室', css: 'blog.css', bar: '.aurora-blog__subseg', track: '.aurora-blog__subseg-track', fade: '12px', tsx: 'blog/BlogPanel.tsx', trackLiteral: 'className="aurora-blog__subseg-track"' },
+  { name: '白板', css: 'canvas.css', bar: '.aurora-csp__tabs', track: '.aurora-csp__tabs-track', fade: '12px', tsx: 'canvas/CanvasSidebarPanel.tsx', trackLiteral: 'className="aurora-csp__tabs-track"' },
+]
+
+/** 取出「选择器 { ... }」的规则体（用于轨道基类） */
+function ruleBody(css: string, selector: string): string {
+  const esc = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return css.match(new RegExp(`${esc}\\s*\\{([\\s\\S]*?)\\}`))?.[1] ?? ''
+}
+
+describe('整排 tab 跟手 · CSS 侧', () => {
+  for (const s of STRIPS) {
+    it(`${s.name}：轨道有归位过渡（transform transition，松手吸附靠它）`, () => {
+      const body = baseRule(cssOf(s.css), s.track)
+      expect(body, `${s.css} 缺 ${s.track} 基类规则`).not.toBe('')
+      expect(body).toMatch(/transition:\s*transform/)
+    })
+
+    it(`${s.name}：跟手期间轨道过渡归零（否则位移逐帧滞后于指针）`, () => {
+      const css = cssOf(s.css)
+      const at = css.indexOf(`${s.bar}[data-swiping] ${s.track}`)
+      expect(at, `${s.css} 缺「${s.bar}[data-swiping] ${s.track}」规则`).toBeGreaterThanOrEqual(0)
+      const body = css.slice(at, css.indexOf('}', at))
+      expect(body).toMatch(/transition:\s*none/)
+    })
+
+    it(`${s.name}：跟手期间两端渐隐（整排外滑时方块不再被硬切在边界上）`, () => {
+      const body = swipingRule(cssOf(s.css), s.bar)
+      expect(body, `${s.css} 的 ${s.bar}[data-swiping] 缺渐隐遮罩`).toMatch(/mask-image/)
+      expect(body).toContain(s.fade)
+    })
+
+    it(`${s.name}：旧的「激活方块只挪 6px」联动已移除（否则与新轨道位移叠加）`, () => {
+      const css = cssOf(s.css).replace(/\/\*[\s\S]*?\*\//g, '')
+      expect(css, `${s.css} 仍有 var(--swipe-progress) * 6px 的旧联动`).not.toMatch(/swipe-progress\)\s*\*\s*6px/)
+    })
+  }
+})
+
+describe('整排 tab 跟手 · JSX 侧（轨道必须有真实承载者，否则 CSS 全是死代码）', () => {
+  for (const s of STRIPS) {
+    it(`${s.name}：轨道元素存在并挂 ref（位移写不进 DOM 就等于没做）`, () => {
+      const src = tsxOf(s.tsx)
+      const at = src.indexOf(s.trackLiteral)
+      expect(at, `${s.tsx} 未找到轨道锚点 ${s.trackLiteral}`).toBeGreaterThanOrEqual(0)
+      const tagEnd = src.indexOf('>', at)
+      const tag = src.slice(at, tagEnd === -1 ? at + 200 : tagEnd + 1)
+      expect(tag, `${s.tsx} 的轨道未挂 ref`).toMatch(/ref=\{\w*[Tt]rackRef\}/)
+
+      // 轨道必须嵌在 tab 栏**内部**（药丸底色留在外层，位移才不带走底色）
+      const barAt = src.indexOf(`className="${s.bar.slice(1)}"`)
+      expect(barAt, `${s.tsx} 未找到 tab 栏锚点 className="${s.bar.slice(1)}"`).toBeGreaterThanOrEqual(0)
+      expect(barAt, `${s.tsx} 的轨道出现在 tab 栏之前（应在栏内）`).toBeLessThan(at)
     })
   }
 })

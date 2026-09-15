@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../../icons'
 import { useSwipeTabs } from '../../hooks/useSwipeTabs'
+import { createTabStripMotion } from '../../hooks/tabStripSwipe'
 import { fileTypeMeta } from '../../themes/categoricalColors'
 import type { CanvasEngine } from '@features/canvas-v2/engine/CanvasEngine'
 import { useEngineSnapshot } from './canvasHooks'
@@ -72,25 +73,32 @@ export function CanvasSidebarPanel({ engine, onOpenFile, initialTab }: CanvasSid
      手势绑在 tab 行而非主绘图区 —— Excalidraw 的水平拖拽是画布平移/绘制，
      劫持它必然破坏绘图体验（DesignBrief §4.3）。 */
   const rootRef = useRef<HTMLDivElement>(null)
-  const handleSwipeOffset = useCallback((offset: number) => {
-    const root = rootRef.current
-    if (!root) return
-    const width = bodyRef.current?.clientWidth || 1
-    root.style.setProperty('--swipe-progress', String(Math.max(-1, Math.min(1, offset / width))))
-  }, [])
+  /**
+   * tab 轨道：整排跟手位移的承载者（需求 N 第三轮）。
+   * 侧栏窄，槽距小 → 内容层位移相应更克制（16px）。
+   */
+  const trackRef = useRef<HTMLDivElement>(null)
+  const motion = useMemo(
+    () => createTabStripMotion({ trackRef, rootRef, contentRef: bodyRef, contentClamp: 16 }),
+    [],
+  )
   const swipe = useSwipeTabs({
     index: Math.max(0, TABS.findIndex((t) => t.id === tab)),
     count: TABS.length,
     onIndexChange: (next) => setTab(TABS[next].id),
-    onOffsetChange: handleSwipeOffset,
-    // 位移落到内容区（tab 行本身不位移，只做指示器联动）
-    targetRef: bodyRef,
-    // 吸附基准按内容区（侧栏体）尺寸算
+    onOffsetChange: motion.handleOffset,
+    // 位移落到 **tab 轨道**：按住的那个方块本身要跟着走（主反馈）
+    targetRef: trackRef,
+    // 判定基准仍按内容区（阈值由 motion.snapThresholdPx 覆盖为「半个槽距」）
     measureRef: bodyRef,
+    visualMapper: motion.visualMapper,
+    snapThresholdPx: motion.snapThresholdPx,
   })
+  /** 跟手开始 → 内容层零过渡；结束 → 清内联位移，归位动画交回 CSS 过渡 */
   useEffect(() => {
-    if (!swipe.dragging) rootRef.current?.style.setProperty('--swipe-progress', '0')
-  }, [swipe.dragging])
+    if (swipe.dragging) motion.begin()
+    else motion.reset()
+  }, [swipe.dragging, motion])
 
   /** tab 行手势绑定：吃掉横滑松手后按钮的 click，避免「滑完又点回去」 */
   const bind = useMemo(() => swipe.makeBind(), [swipe])
@@ -223,23 +231,26 @@ const [shapes, setShapes] = useState<ParsedShape[]>([])
     <div className="aurora-csp" ref={rootRef}>
       <div className="aurora-csp__head">
         <div className="aurora-csp__tabs" role="tablist" data-swiping={swipe.dragging || undefined} {...bind}>
-          {TABS.map((t) => {
-            const IconComp = Icon[t.icon as keyof typeof Icon]
-            return (
-              <button
-                key={t.id}
-                role="tab"
-                aria-selected={tab === t.id}
-                title={t.label}
-                className={`aurora-csp__tab ${tab === t.id ? 'aurora-csp__tab--active' : ''}`}
-                onClick={() => setTab(t.id)}
-              >
-                {IconComp ? <IconComp size={14} /> : null}
-                {/* 使用优化⑥：补渲染文字（图标+文字竖排，与编辑器 rightbar__tab 全站同款） */}
-                <span>{t.label}</span>
-              </button>
-            )
-          })}
+          {/* 轨道：整排跟手位移的承载者 */}
+          <div className="aurora-csp__tabs-track" ref={trackRef}>
+            {TABS.map((t) => {
+              const IconComp = Icon[t.icon as keyof typeof Icon]
+              return (
+                <button
+                  key={t.id}
+                  role="tab"
+                  aria-selected={tab === t.id}
+                  title={t.label}
+                  className={`aurora-csp__tab ${tab === t.id ? 'aurora-csp__tab--active' : ''}`}
+                  onClick={() => setTab(t.id)}
+                >
+                  {IconComp ? <IconComp size={14} /> : null}
+                  {/* 使用优化⑥：补渲染文字（图标+文字竖排，与编辑器 rightbar__tab 全站同款） */}
+                  <span>{t.label}</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
 

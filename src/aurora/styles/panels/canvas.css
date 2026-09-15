@@ -1182,18 +1182,25 @@
 /* 左侧栏面板（5 Tab） */
 .aurora-csp { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
 .aurora-csp__head { display: flex; align-items: stretch; border-bottom: 1px solid var(--mc-border-subtle); }
-/* 横滑 tab 行：x 轴手势区（纵向交回浏览器），横滑时不选中 tab 文案 */
-.aurora-csp__tabs { display: flex; align-items: center; gap: 2px; padding: 8px 8px 0; flex: 1; border-bottom: none; touch-action: pan-y; user-select: none; }
-/* 滑动进度变量（挂侧栏根，供 tab 指示器与内容层边缘遮罩消费） */
+/* 横滑 tab 行：x 轴手势区（纵向交回浏览器），横滑时不选中 tab 文案。
+ * overflow:hidden —— 整排跟手位移裁在 tab 行边界内（方块滑出即被裁，不越界压在别处）。 */
+.aurora-csp__tabs { display: flex; align-items: center; padding: 8px 8px 0; flex: 1; border-bottom: none; touch-action: pan-y; user-select: none; overflow: hidden; }
+/*
+ * tab 轨道：整排跟手位移的承载者（需求 N 第三轮）。
+ * tab 方块是 flex:1 撑满型 → 轨道必须接住 flex:1，否则方块塌成内容宽。
+ * 位移由 JS 内联 style 写（跟手期间），松手后由本条 transition 接管归位动画。
+ */
+.aurora-csp__tabs-track { flex: 1; display: flex; align-items: center; gap: 2px; transition: transform var(--mc-dur-fast) var(--mc-ease-out); will-change: transform; }
+/* 滑动进度变量（挂侧栏根，供内容层边缘遮罩消费；按槽距归一化） */
 .aurora-csp { --swipe-progress: 0; }
-/* 滑动切换（横滑 tab 行）：位移落在内容区，tab 行只做指示器联动 */
+/* 跟手期间：轨道零过渡（位移必须逐帧跟手，不能有过渡滞后） */
+.aurora-csp__tabs[data-swiping] .aurora-csp__tabs-track { transition: none; }
 /* 跟手期间给出「正在拖动」的光标语言（静止态不设 grab，避免与点击语义打架） */
 .aurora-csp__tabs[data-swiping] {
   cursor: grabbing;
-}
-.aurora-csp__tabs[data-swiping] .aurora-csp__tab--active {
-  transform: translateX(calc(var(--swipe-progress) * 6px));
-  transition: none;
+  /* 两端渐隐：整排外滑时方块硬切在边界上显得廉价，遮罩让边缘读作"滑进去/滑出来" */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
 }
 .aurora-csp__body.is-swiping {
   transition: none;

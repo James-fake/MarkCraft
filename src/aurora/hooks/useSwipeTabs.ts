@@ -94,6 +94,21 @@ export interface UseSwipeTabsOptions {
    * 否则从 tab 栏起手时「划 216px」就被判翻页，手感过灵。
    */
   measureRef?: React.RefObject<HTMLElement>
+  /**
+   * 覆盖「视觉位移映射」函数（可选，默认 `toVisualOffset`：钳制 18px）。
+   *
+   * 用途：tab 轨道跟手模式需要位移与手指 1:1（限幅到「一个槽距」），
+   * 而不是内容层那种克制到 18px 的微位移。
+   */
+  visualMapper?: (raw: number) => number
+  /**
+   * 覆盖「位移比例」吸附阈值（px）。
+   *
+   * 默认按 measure 尺寸 × 32% 算（内容区 1358px → 需拖 435px，鼠标慢拖几乎够不到）。
+   * tab 轨道跟手模式传「半个槽距」→「拖过一半就切」，与视觉位移一致。
+   * 传函数则每次松手惰性取值（几何可能在拖动中被重新量取）。
+   */
+  snapThresholdPx?: number | (() => number)
 }
 
 export interface UseSwipeTabsResult {
@@ -134,6 +149,8 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
     onSettle,
     targetRef,
     measureRef,
+    visualMapper,
+    snapThresholdPx,
   } = options
 
   const [dragging, setDragging] = useState(false)
@@ -144,8 +161,8 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
   const activeRef = useRef(false)
 
   /** 最新 props 快照，供 document 监听器（闭包）读取，避免闭包陷阱 */
-  const latestRef = useRef({ index, count, onIndexChange, axis, onOffsetChange, onSettle, targetRef, measureRef })
-  latestRef.current = { index, count, onIndexChange, axis, onOffsetChange, onSettle, targetRef, measureRef }
+  const latestRef = useRef({ index, count, onIndexChange, axis, onOffsetChange, onSettle, targetRef, measureRef, visualMapper, snapThresholdPx })
+  latestRef.current = { index, count, onIndexChange, axis, onOffsetChange, onSettle, targetRef, measureRef, visualMapper, snapThresholdPx }
 
   /** 手势元数据 */
   const gestureRef = useRef({
@@ -187,7 +204,10 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
     const el = applyTarget()
     if (el) {
       // 视觉位移钳制：判定用真实位移（px），渲染用克制后的位移
-      const visual = toVisualOffset(px)
+      // （tab 轨道跟手模式由 visualMapper 覆盖：1:1 跟手，限幅到一个槽距）
+      const visual = latestRef.current.visualMapper
+        ? latestRef.current.visualMapper(px)
+        : toVisualOffset(px)
       const t = latestRef.current.axis === 'x'
         ? `translate3d(${visual}px, 0, 0)`
         : `translate3d(0, ${visual}px, 0)`
@@ -259,6 +279,11 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
       ? (measure?.clientWidth ?? window.innerWidth)
       : (measure?.clientHeight ?? window.innerHeight)
 
+    // 位移比例阈值：默认 size × 32%；tab 轨道跟手模式惰性取「半个槽距」
+    const thresholdPx = typeof next.snapThresholdPx === 'function'
+      ? next.snapThresholdPx()
+      : next.snapThresholdPx
+
     const decision = decideSnap({
       offset,
       elapsed,
@@ -266,6 +291,7 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
       index: next.index,
       count: next.count,
       endVelocity,
+      thresholdPx,
     })
 
     // 发生过真实位移型手势 → 吃掉随后由同一按键序列派发的 click，

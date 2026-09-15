@@ -72,15 +72,34 @@
 .aurora-blog__subseg {
   display: flex;
   align-items: center;
-  gap: 2px;
   margin-left: 8px;
   padding-left: 9px;
   border-left: 1px solid var(--mc-border-subtle);
   min-width: 0;
+  /* 整排跟手位移裁在 subseg 边界内（方块滑出即被裁，不越界压在设备按钮上） */
+  overflow: hidden;
   /* 滑动切「组内子面板」：手势已同时绑在 subseg 与浮层内容体，
    * subseg 也必须是 x 轴手势区，否则横滑被浏览器抢走。 */
   touch-action: pan-y;
   user-select: none;
+}
+
+/*
+ * tab 轨道：整排跟手位移的承载者（需求 N 第三轮）。
+ * subseg 无药丸底色，位移写在内层轨道，方块跟手、左侧分隔线不动。
+ * 位移由 JS 内联 style 写（跟手期间），松手后由本条 transition 接管归位动画。
+ */
+.aurora-blog__subseg-track {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  transition: transform var(--mc-dur-fast) var(--mc-ease-out);
+  will-change: transform;
+}
+
+/* 跟手期间：轨道零过渡（位移必须逐帧跟手，不能有过渡滞后） */
+.aurora-blog__subseg[data-swiping] .aurora-blog__subseg-track {
+  transition: none;
 }
 .aurora-blog__subseg-btn {
   display: inline-flex;
@@ -109,6 +128,9 @@
 /* 跟手期间给出「正在拖动」的光标语言（静止态不设 grab，避免与点击语义打架） */
 .aurora-blog__subseg[data-swiping] {
   cursor: grabbing;
+  /* 两端渐隐：整排外滑时方块硬切在边界上显得廉价，遮罩让边缘读作"滑进去/滑出来" */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
 }
 
 .aurora-blog__subbar-right {

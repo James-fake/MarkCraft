@@ -6,6 +6,7 @@ import { AuroraSelect } from '@components/ui/AuroraSelect'
 import type { IconName } from '../../types'
 import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
 import { useSwipeTabs } from '../../hooks/useSwipeTabs'
+import { createTabStripMotion } from '../../hooks/tabStripSwipe'
 import { useFileManager } from '@stores/FileStore'
 import { useSettings } from '@stores/SettingsStore'
 import { findNode, collectMarkdownFiles } from '@features/fileManager/fileManagerUtils'
@@ -1057,32 +1058,43 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
    * 时条件渲染、不挂载 → ref.current 为 null → 手势会退回用 99px 宽的 tab 行
    * 做 32% 阈值基准，从 tab 行起手时「轻轻一划」就被误判翻页。
    * 预览区（`.aurora-blog__stage`）常驻，用它的宽度作基准才是稳定的。
+   *
+   * （第三轮起阈值改为「半个槽距」，本 ref 仅作 size 兜底，仍保留稳定性语义。）
    */
   const blogMeasureRef = useRef<HTMLDivElement>(null)
-  const handleBlogOffset = useCallback((offset: number) => {
-    const root = rootRef.current
-    if (!root) return
-    const width = (blogPanelBodyRef.current ?? blogMeasureRef.current)?.clientWidth || 1
-    root.style.setProperty('--swipe-progress', String(Math.max(-1, Math.min(1, offset / width))))
-  }, [])
+  /**
+   * tab 轨道：整排跟手位移的承载者（需求 N 第三轮）。
+   *
+   * segmented 常驻（浮层收起也在）→ 比 `targetRef: panelOpen ? body : undefined`
+   * 更稳：浮层收起时位移依然落在可见的 tab 行上，不再"位移目标为空"。
+   * 内容层位移改由 motion.handleOffset 手动写（浮层收起时自然跳过）。
+   */
+  const blogTrackRef = useRef<HTMLDivElement>(null)
+  const blogMotion = useMemo(
+    () => createTabStripMotion({ trackRef: blogTrackRef, rootRef, contentRef: blogPanelBodyRef }),
+    [],
+  )
   const blogSwipe = useSwipeTabs({
     index: Math.max(0, PANEL_GROUPS.find((g) => g.items.includes(panel))!.items.indexOf(panel)),
     count: PANEL_GROUPS.find((g) => g.items.includes(panel))!.items.length,
-    // 顶栏 tab 行**常驻可见** → 手势必须始终可用（不受浮层开合影响）。
-    // 位移目标（targetRef）在浮层收起时为 null，由 applyOffset 内部空判兜住。
+    // 顶栏 tab 行**常驻可见** → 手势必须始终可用（不受浮层开合影响）
     enabled: true,
     onIndexChange: (next) => {
       const g = PANEL_GROUPS.find((x) => x.items.includes(panel))!
       setPanel(g.items[next])
     },
-    onOffsetChange: handleBlogOffset,
-    // 只位移浮层内容体（预览区不该跟着抖）
-    targetRef: panelOpen ? blogPanelBodyRef : undefined,
+    onOffsetChange: blogMotion.handleOffset,
+    // 位移落到 **tab 轨道**（常驻）：按住的那个方块本身要跟着走（主反馈）
+    targetRef: blogTrackRef,
     measureRef: blogMeasureRef,
+    visualMapper: blogMotion.visualMapper,
+    snapThresholdPx: blogMotion.snapThresholdPx,
   })
+  /** 跟手开始 → 内容层零过渡；结束 → 清内联位移，归位动画交回 CSS 过渡 */
   useEffect(() => {
-    if (!blogSwipe.dragging) rootRef.current?.style.setProperty('--swipe-progress', '0')
-  }, [blogSwipe.dragging])
+    if (blogSwipe.dragging) blogMotion.begin()
+    else blogMotion.reset()
+  }, [blogSwipe.dragging, blogMotion])
 
   /**
    * 手势同时挂到 subbar 的**子面板 segmented** 与**浮层内容体**两处。
@@ -1245,20 +1257,23 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
             })}
           </div>
           <div className="aurora-blog__subseg" role="tablist" aria-label="子面板切换" data-swiping={blogSwipe.dragging || undefined} {...blogBind}>
-            {activeGroup.items.map((key) => {
-              const p = PANELS.find((x) => x.key === key)!
-              return (
-                <button
-                  key={key}
-                  role="tab"
-                  aria-selected={panel === key}
-                  className={`aurora-blog__subseg-btn ${panel === key ? 'is-active' : ''}`}
-                  onClick={() => { setPanel(key); setPanelOpen(true) }}
-                >
-                  {p.label}
-                </button>
-              )
-            })}
+            {/* 轨道：整排跟手位移的承载者（常驻，浮层收起时也可见可拖） */}
+            <div className="aurora-blog__subseg-track" ref={blogTrackRef}>
+              {activeGroup.items.map((key) => {
+                const p = PANELS.find((x) => x.key === key)!
+                return (
+                  <button
+                    key={key}
+                    role="tab"
+                    aria-selected={panel === key}
+                    className={`aurora-blog__subseg-btn ${panel === key ? 'is-active' : ''}`}
+                    onClick={() => { setPanel(key); setPanelOpen(true) }}
+                  >
+                    {p.label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
           <div className="aurora-blog__subbar-right">
             <div className="aurora-blog__device">

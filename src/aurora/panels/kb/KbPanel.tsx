@@ -6,6 +6,7 @@ import { Icon } from '../../icons'
 import type { IconName } from '../../types'
 import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
 import { useSwipeTabs } from '../../hooks/useSwipeTabs'
+import { createTabStripMotion } from '../../hooks/tabStripSwipe'
 import { formatKbTime } from './kbData'
 import { useFileManager } from '@stores/FileStore'
 import { useLinkIndex } from '@stores/LinkIndexStore'
@@ -316,23 +317,32 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
   const swipeLayerRef = useRef<HTMLDivElement>(null)
   /** 吸附判定基准（内容区可视宽度），手势从 subbar tab 栏起手时也按它算 */
   const contentRef = useRef<HTMLDivElement>(null)
-  const handleOffsetChange = useCallback((offset: number) => {
-    const root = rootRef.current
-    if (!root) return
-    const width = swipeLayerRef.current?.clientWidth || root.clientWidth || 1
-    root.style.setProperty('--swipe-progress', String(Math.max(-1, Math.min(1, offset / width))))
-  }, [])
+  /**
+   * tab 轨道：整排跟手位移的承载者（需求 N 第三轮）。
+   * 药丸底色留在 `.aurora-kb-subbar-tabs` 上，位移落到轨道 → 方块跟手、底色不动。
+   */
+  const trackRef = useRef<HTMLDivElement>(null)
+  const motion = useMemo(
+    () => createTabStripMotion({ trackRef, rootRef, contentRef: swipeLayerRef }),
+    [],
+  )
   const swipe = useSwipeTabs({
     index: Math.max(0, TABS.findIndex((t) => t.id === tab)),
     count: TABS.length,
     onIndexChange: (next) => setTab(TABS[next].id),
-    onOffsetChange: handleOffsetChange,
-    targetRef: swipeLayerRef,
+    onOffsetChange: motion.handleOffset,
+    // 位移落到 **tab 轨道**：按住的那个方块本身要跟着走（主反馈）
+    targetRef: trackRef,
+    // 判定基准仍是内容区（阈值由 motion.snapThresholdPx 覆盖为「半个槽距」）
     measureRef: contentRef,
+    visualMapper: motion.visualMapper,
+    snapThresholdPx: motion.snapThresholdPx,
   })
+  /** 跟手开始 → 内容层零过渡；结束 → 清内联位移，归位动画交回 CSS 过渡 */
   useEffect(() => {
-    if (!swipe.dragging) rootRef.current?.style.setProperty('--swipe-progress', '0')
-  }, [swipe.dragging])
+    if (swipe.dragging) motion.begin()
+    else motion.reset()
+  }, [swipe.dragging, motion])
 
   /** 手势同时挂到 subbar tab 栏与内容区（tab 栏那份吃掉横滑后的 click） */
   const bind = useMemo(() => swipe.makeBind(), [swipe])
@@ -500,22 +510,25 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
 
           <div className="aurora-kb-subbar__center">
             <div className="aurora-kb-subbar-tabs" role="tablist" aria-label="知识库功能切换" data-swiping={swipe.dragging || undefined} {...bind}>
-              {TABS.map((t) => {
-                const I = Icon[t.icon]
-                return (
-                  <button
-                    key={t.id}
-                    role="tab"
-                    aria-selected={tab === t.id}
-                    className={`aurora-kb-subbar-tab ${tab === t.id ? 'is-active' : ''}`}
-                    onClick={() => setTab(t.id)}
-                    title={t.label}
-                  >
-                    <I size={15} />
-                    <span>{t.label}</span>
-                  </button>
-                )
-              })}
+              {/* 轨道：整排跟手位移的承载者 */}
+              <div className="aurora-kb-subbar-track" ref={trackRef}>
+                {TABS.map((t) => {
+                  const I = Icon[t.icon]
+                  return (
+                    <button
+                      key={t.id}
+                      role="tab"
+                      aria-selected={tab === t.id}
+                      className={`aurora-kb-subbar-tab ${tab === t.id ? 'is-active' : ''}`}
+                      onClick={() => setTab(t.id)}
+                      title={t.label}
+                    >
+                      <I size={15} />
+                      <span>{t.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>
 

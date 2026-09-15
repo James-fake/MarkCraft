@@ -147,6 +147,14 @@ export interface SnapDecisionInput {
   /** 总数 */
   count: number
   /**
+   * 覆盖「位移比例」阈值（px）。
+   *
+   * 默认按 `size × SNAP_PERCENT`（内容区宽 1358px → 需拖 435px，鼠标慢拖几乎够不到）。
+   * tab 轨道跟手模式改传「半个槽距」：位移与视觉位移 1:1 对应，
+   * 「拖过一半就切」既是手感也是视觉事实。
+   */
+  thresholdPx?: number
+  /**
    * 末段瞬时速度（px/ms，可选）。
    *
    * 由调用方按 FLICK_SAMPLE_WINDOW 采样最后若干 ms 的位移算出。
@@ -166,13 +174,13 @@ export interface SnapDecision {
  * 松手瞬间的吸附判定。
  *
  * 两条独立路径，满足任一即通过：
- *   A. 位移比例：|offset| > size × 0.32
+ *   A. 位移比例：|offset| > thresholdPx（默认 size × 0.32）
  *   B. 甩掷：末段速度 > 0.3 px/ms 且 |offset| > 20px
  *
  * 一次手势最多移动 ±1 个 tab（单步约束）。
  */
 export function decideSnap(input: SnapDecisionInput): SnapDecision {
-  const { offset, elapsed, size, index, count, endVelocity } = input
+  const { offset, elapsed, size, index, count, endVelocity, thresholdPx } = input
   const stay: SnapDecision = { passed: false, targetIndex: index }
 
   const absOffset = Math.abs(offset)
@@ -189,7 +197,7 @@ export function decideSnap(input: SnapDecisionInput): SnapDecision {
     ? Math.abs(endVelocity)
     : (elapsed > 0 ? absOffset / elapsed : 0)
 
-  const byDistance = absOffset > size * SNAP_PERCENT
+  const byDistance = absOffset > (thresholdPx ?? size * SNAP_PERCENT)
   const byFlick = velocity > FLICK_VELOCITY && absOffset > FLICK_MIN_DISTANCE
 
   if (!byDistance && !byFlick) return stay
@@ -262,12 +270,64 @@ export function computeEndVelocity(samples: VelocitySample[]): number {
 export const VISUAL_CLAMP = 18
 
 /** 把真实手势位移映射到克制的视觉位移（保号、强递减增益） */
-export function toVisualOffset(raw: number): number {
+export function toVisualOffset(raw: number, clamp: number = VISUAL_CLAMP): number {
   const abs = Math.abs(raw)
-  if (abs <= VISUAL_CLAMP) return raw
+  if (abs <= clamp) return raw
   // 超出部分按 1/14 增益继续增长，明确"拉不动"的阻力感
-  const extra = (abs - VISUAL_CLAMP) / 14
-  return Math.sign(raw) * Math.min(VISUAL_CLAMP + extra, VISUAL_CLAMP * 1.4)
+  const extra = (abs - clamp) / 14
+  return Math.sign(raw) * Math.min(clamp + extra, clamp * 1.4)
+}
+
+/* ------------------------------------------------------------------ *
+ * tab 轨道跟手位移（需求 N 第三轮）
+ * ------------------------------------------------------------------ */
+
+/**
+ * 越界橡胶增益：整排位移超过一个槽距后，每多拖 1px 只再让 0.18px。
+ * 目的是让"拖不动了"的阻力可被手掌感知，而不是硬停。
+ */
+export const STRIP_RUBBER_GAIN = 0.18
+
+/** 整排位移硬顶 = 槽距 × 该比例（一个槽距再多 1/4） */
+export const STRIP_MAX_RATIO = 1.25
+
+/**
+ * 把真实手势位移映射为 **tab 整排跟手位移**。
+ *
+ * 与 `toVisualOffset`（内容层 18px 微位移）的本质区别：
+ * 用户按住的是 tab 方块**本身**，它必须 1:1 跟着走 —— 0.x px 的位移
+ * 在人眼里等于"完全没动"（2026-09-15 CDP 实测：拖 150px 时方块只挪 0.7px，
+ * 这正是「滑动效果没有显示出来」的直接原因）。
+ *
+ * 限幅取**一个槽距**（当前 tab → 相邻 tab 中心距）：
+ *   - ±limit 内严格 1:1（跟手真实）
+ *   - 越界后阻尼（橡胶感），硬顶 limit × 1.25
+ * 为什么必须限幅：桌面端不预渲染相邻页，无限制平移会让 tab 整排出框漏白。
+ *
+ * @param raw 真实位移（px）
+ * @param limit 一个槽距（px）；≤0 时原样返回（量不到几何时不做假动作）
+ */
+export function mapStripOffset(raw: number, limit: number): number {
+  if (!(limit > 0)) return raw
+  const abs = Math.abs(raw)
+  if (abs <= limit) return raw
+  const extra = Math.min((abs - limit) * STRIP_RUBBER_GAIN, limit * (STRIP_MAX_RATIO - 1))
+  return Math.sign(raw) * (limit + extra)
+}
+
+/**
+ * 量取「平均槽距」= 首末 tab 中心距 /（n - 1）。
+ *
+ * 用平均而不是逐对相邻距：逐对会让位移限幅随方向反转跳变（方块宽 70/82 不等），
+ * 平均槽距与方向无关，跟手过程中反向拖不会突跳。
+ *
+ * @returns 平均槽距（px）；tab 少于 2 个或几何退化时返回 fallback
+ */
+export function averageSlot(centers: number[], fallback = 0): number {
+  if (centers.length < 2) return fallback
+  const span = centers[centers.length - 1] - centers[0]
+  const slot = span / (centers.length - 1)
+  return slot > 0 ? slot : fallback
 }
 
 /* ------------------------------------------------------------------ *

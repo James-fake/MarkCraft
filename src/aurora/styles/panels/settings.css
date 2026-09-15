@@ -11,7 +11,8 @@
   overflow: hidden;
 }
 
-/* 滑动进度变量：挂在面板根节点，供顶栏指示器与内容层共同消费 */
+/* 滑动进度变量：挂在面板根节点，供内容层边缘压暗消费。
+ * 归一化基准 = 一个槽距（非内容区宽）：拖满一格即 ±1，压暗与位移同步到位。 */
 .aurora-settings {
   --swipe-progress: 0;
 }
@@ -31,15 +32,33 @@
 .aurora-settings__nav-tabs {
   display: flex;
   align-items: center;
-  gap: 2px;
   padding: 3px;
   background: var(--mc-bg-pressed);
   border-radius: var(--mc-radius-md);
+  /* 整排跟手位移会被裁在药丸边界内（方块滑出左/右缘即消失，不越界压在别处） */
+  overflow: hidden;
   /* 滑动切 Tab：手势已同时绑在 tab 栏与内容区，tab 栏也必须是 x 轴手势区，
    * 否则横滑会被浏览器当作页面横滚/回退手势抢走。纵向仍交回浏览器代管。 */
   touch-action: pan-y;
   /* 横滑时不要选中 tab 文案 */
   user-select: none;
+}
+
+/*
+ * tab 轨道：整排跟手位移的承载者（需求 N 第三轮）。
+ *
+ * 为什么药丸底色留在外层、位移落到内层：用户按住的是 tab 方块**本身**，
+ * 方块必须 1:1 跟着手指走。若位移写在外层，药丸底色会一起被推走（出框漏白）；
+ * 写在内层则底色不动、方块在药丸内滑动。
+ *
+ * 位移由 JS 内联 style 写（跟手期间），松手后由本条 transition 接管归位动画。
+ */
+.aurora-settings__nav-track {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  transition: transform var(--mc-dur-fast) var(--mc-ease-out);
+  will-change: transform;
 }
 
 .aurora-settings__nav-tab {
@@ -89,9 +108,9 @@
  * 位移写在本层（无 padding），内边距留在父级。
  * 只有吸附阶段（is-swiping 移除后）才让 transition 接管，避免跟手延迟。
  *
- * 视觉策略：不推整页（桌面端不预渲染相邻页，推整页会裁字/露裸背景），
- * 而是「微位移（≤26px，小于 40px 内边距 → 首字不裁）+ 方向边缘压暗」。
- * 边缘压暗用 ::before/::after 渐变层，随 --swipe-progress 显现/消隐。
+ * 视觉策略：主反馈是**顶栏整排 tab 跟手位移**（见 .aurora-settings__nav-track）；
+ * 内容层只做呼应的微位移（≤28px，小于 40px 内边距 → 首字不裁）+ 方向边缘压暗。
+ * 边缘压暗用 ::before/::after 渐变层，随 --swipe-progress（按槽距归一化）显现/消隐。
  */
 .aurora-settings__swipe-layer {
   position: relative;
@@ -155,18 +174,21 @@
   opacity: clamp(0, calc(var(--swipe-progress, 0) * -1), 1);
 }
 
-/* 顶栏 tab 指示器：按位移比例（--swipe-progress ∈ [-1,1]）做微位移联动 */
-.aurora-settings__nav-tabs[data-swiping] .aurora-settings__nav-tab--active {
-  /* 拖拽中：当前 tab 底色轻微跟随，暗示方向 */
-  transform: translateX(calc(var(--swipe-progress) * 6px));
+/* 跟手期间：轨道零过渡（位移必须逐帧跟手，不能有过渡滞后） */
+.aurora-settings__nav-tabs[data-swiping] .aurora-settings__nav-track {
   transition: none;
 }
 
 .aurora-settings__nav-tabs[data-swiping] {
-  transition: none;
   /* 跟手期间给出「正在拖动」的光标语言（静止态不设 grab：
    * tab 是按钮，静止态显示 grab 会与点击语义打架） */
   cursor: grabbing;
+  /* 跟手期间左右两端渐隐：整排外滑时方块是**硬切**在药丸边界上的
+   * （半个字形挂在那里显得廉价），且对侧会露出药丸空白。
+   * 用遮罩让两端 14px 渐隐 → 读作"从边缘滑进去/滑出来"。
+   * 只挂在跟手态：静止态药丸外观不因此改变。 */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {

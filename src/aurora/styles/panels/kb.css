@@ -73,7 +73,6 @@
 .aurora-kb-subbar-tabs {
   display: flex;
   align-items: center;
-  gap: 2px;
   max-width: 100%;
   overflow-x: auto;
   scrollbar-width: none;
@@ -82,11 +81,24 @@
   border-radius: var(--mc-radius-md);
   /* 滑动切 Tab：手势已同时绑在 tab 栏与内容区，tab 栏也必须是 x 轴手势区。
    * 本栏 overflow-x:auto（tab 多时溢出）——溢出内容由「横滑切 tab」抵达，
-   * 触摸下不再走原生横滚；桌面鼠标仍可 Shift+滚轮横滚。 */
+   * 触摸下不再走原生横滚；桌面鼠标仍可 Shift+滚轮横滚。
+   * 它同时承担整排跟手位移的裁剪职责（方块滑出即被裁，不越界压在别处）。 */
   touch-action: pan-y;
   user-select: none;
 }
 .aurora-kb-subbar-tabs::-webkit-scrollbar { display: none; }
+/*
+ * tab 轨道：整排跟手位移的承载者（需求 N 第三轮）。
+ * 药丸底色留在外层，位移落到轨道 → 方块跟手、底色不动。
+ * 位移由 JS 内联 style 写（跟手期间），松手后由本条 transition 接管归位动画。
+ */
+.aurora-kb-subbar-track {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  transition: transform var(--mc-dur-fast) var(--mc-ease-out);
+  will-change: transform;
+}
 .aurora-kb-subbar-tab {
   display: inline-flex;
   align-items: center;
@@ -232,14 +244,16 @@
   touch-action: pan-y;
 }
 
-/* 滑动进度变量：挂在面板根，供顶栏 tab 与内容层边缘遮罩共同消费 */
+/* 滑动进度变量：挂在面板根，供内容层边缘遮罩消费。
+ * 归一化基准 = 一个槽距（非内容区宽）：拖满一格即 ±1，压暗与位移同步到位。 */
 .aurora-kb {
   --swipe-progress: 0;
 }
 
 /*
  * 滑动切换层：位移落在 __body（无 padding 的内容容器）。
- * 视觉策略同设置页：微位移（hook 侧钳制 ≤18px）+ 方向边缘压暗，
+ * 主反馈是 subbar 的**整排 tab 跟手位移**（见 .aurora-kb-subbar-track）；
+ * 内容层只做呼应的微位移（限幅 22px）+ 方向边缘压暗，
  * 不做整页平移（桌面不预渲染相邻页，整页平移会裁字/露裸背景）。
  */
 .aurora-kb-content__body {
@@ -292,15 +306,17 @@
   opacity: clamp(0, calc(var(--swipe-progress, 0) * -1), 1);
 }
 
+/* 跟手期间：轨道零过渡（位移必须逐帧跟手，不能有过渡滞后） */
+.aurora-kb-subbar-tabs[data-swiping] .aurora-kb-subbar-track {
+  transition: none;
+}
+
 /* 跟手期间给出「正在拖动」的光标语言（静止态不设 grab，避免与点击语义打架） */
 .aurora-kb-subbar-tabs[data-swiping] {
   cursor: grabbing;
-}
-
-/* 顶栏 tab 指示器：按进度做微位移联动 */
-.aurora-kb-subbar-tabs[data-swiping] .aurora-kb-subbar-tab.is-active {
-  transform: translateX(calc(var(--swipe-progress) * 6px));
-  transition: none;
+  /* 两端渐隐：整排外滑时方块硬切在边界上显得廉价，遮罩让边缘读作"滑进去/滑出来" */
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
+  mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
