@@ -1,133 +1,210 @@
 /**
- * tabStripSwipe · 「整排 tab 跟手滑动」共享层
+ * tabStripSwipe · 「分段控件滑块」纯逻辑层
  * ---------------------------------------------------------------------------
- * 需求 N 第三轮（用户原话）：
- *   「在 tab 栏本身内横滑的效果还是没有显示出来，我要的效果鼠标按住 tab 方框
- *     左或右可以滑动」
+ * 需求 N 第四轮（用户原话）：
+ *   「滑动只有功能 tab 栏中的功能 tab 进行滑动 …… 摁住这个功能 tab，就有一个
+ *     显示一个方块的感觉，然后可以进行一个滑动 …… 内容区域不要 …… 工具 tab
+ *     栏也是不需要进行滚动的」
  *
- * 第二轮已经把**手势**挂到 tab 栏上（能识别），但视觉上等于没动 ——
- * 2026-09-15 CDP 实测（`probe-swipe-drag-amplitude.mjs`）：
+ * 形态定案（AskUserQuestion 二选一确认）：**Apple 分段控件（Segmented Control）**
+ *   - 一条**常驻**方块（滑块）盖在当前选中项上；
+ *   - 按住 tab 拖动 → **只有滑块**跟手滑，**文字一个像素都不动**；
+ *   - 松手 → 滑块过渡滑到最近的 tab（拖过一半就切）；
+ *   - **内容区零位移**（第三轮留的 22px「呼应位移」已删）；
+ *   - tab 栏**不滚动**（所有 tab 恒在可视区，横滑只是切换手势）。
  *
- * | 拖动 | 手势 | 内容层位移 | tab 方块位移 | 松手 |
- * |------|------|-----------|-------------|------|
- * | 按住方块慢拖 150px | ✅ 识别 | 25.2px | **0.7px** | ❌ 不切换 |
- * | 快速甩 150px       | ✅ 识别 | 25.2px | **0.7px** | ❌ 不切换 |
- * | 大幅拖 420px       | ✅ 识别 | 25.2px | **2.0px** | ❌ 不切换 |
+ * ⚠️ 与第三轮（整排跟手位移）的本质区别：那一轮动的是**整排轨道**
+ * （文字 + 方块一起被拉走），本轮动的是**一个独立滑块**。所以选中态的
+ * 视觉承载者从「tab 自身的底色」**迁移**到「滑块元素」—— 这不是加个动画，
+ * 而是把"谁在体现选中"这件事搬了家（tab 只留文字色 + 字重）。
  *
- * 两个坏点：
- *   1. 「方块位移 = `--swipe-progress` × 6px」，而 progress = offset / 内容区宽(1358px)
- *      → 拖 150px 只有 0.11 × 6px = 0.7px，**人眼判定为完全没动**；
- *   2. 松手阈值 = 内容区宽 × 32% = **435px**，鼠标慢拖根本够不到。
- *
- * 本层把「按住的那个方块自己也跟着走」做成主反馈，并让阈值与视觉一致：
- *   - **整排跟手位移 = 1:1**，限幅到「一个槽距」（相邻 tab 中心距），越界橡胶；
- *   - **松手阈值 = 半个槽距** →「拖过一半就切」，与看得见的位移一致；
- *   - **进度归一化按槽距**（而非内容区宽）→ 边缘压暗真正可见（原来最多 0.3 不透明度）。
- *
- * 为什么必须限幅：桌面端不预渲染相邻页，无限平移会让整排 tab 出框漏白。
- * 为什么用**平均**槽距：逐对相邻距会让限幅随方向反转跳变（方块 70/82px 不等），
- * 平均槽距与方向无关，拖动中途反向不会突跳。
+ * 位移模型（为什么需要 hook 的 manualOffset）：
+ *   滑块位置 = **基准定位**（随选中项变化，量 tab 的几何）+ **手势位移**（跟手）
+ *   两者必须写进**同一个 transform**，否则松手瞬间「基准跳变 + 位移清零」
+ *   会被浏览器拆成两段动画（先弹回旧 tab 再滑向新 tab）。
  */
 import type React from 'react'
-import { averageSlot, mapStripOffset, toVisualOffset } from './swipeTabsCore'
+import { mapStripOffset } from './swipeTabsCore'
 
-/**
- * 内容层跟手位移上限（px）。
- *
- * 必须远小于内容区左右内边距（设置页 40px），否则首字会被推到贴边/裁切。
- * 取 22：越界阻尼后硬顶 22 × 1.4 = 30.8px，仍留 9px 余量。
- */
-export const CONTENT_FOLLOW_CLAMP = 22
-
-/** 量不到轨道几何时的兜底槽距（px）：约等于一个中等宽度 tab + 间距 */
+/** 量不到几何时的兜底槽距（px）：约一个中等宽度 tab + 间距 */
 export const FALLBACK_SLOT = 72
 
-export interface TabStripMotionOptions {
-  /** tab 轨道元素（其子元素即 tab 方块，用于量槽距） */
-  trackRef: React.RefObject<HTMLElement>
-  /** 面板根节点（承载 `--swipe-progress`，供边缘压暗消费） */
-  rootRef: React.RefObject<HTMLElement>
-  /** 内容层（可选）：同步做克制的跟手位移（无 padding 的内层包裹件） */
-  contentRef?: React.RefObject<HTMLElement>
-  /** 内容层位移上限（px，默认 {@link CONTENT_FOLLOW_CLAMP}） */
-  contentClamp?: number
-  /** 槽距兜底值（px） */
-  fallbackSlot?: number
+/** tab 元素默认选择器（四条栏的 tab 都带 role="tab"，滑块自身无 role） */
+export const TAB_SELECTOR = '[role="tab"]'
+
+/** tab（或滑块）在轨道内的盒子，坐标系 = 轨道 padding box（与绝对定位的 left:0 对齐） */
+export interface TabBox {
+  /** 左缘（px） */
+  x: number
+  /** 宽（px） */
+  w: number
 }
 
-export interface TabStripMotion {
-  /** 交给 `useSwipeTabs({ visualMapper })`：整排 1:1 跟手（限幅一个槽距） */
-  visualMapper: (raw: number) => number
-  /** 交给 `useSwipeTabs({ snapThresholdPx })`：松手阈值 = 半个槽距 */
-  snapThresholdPx: () => number
-  /** 交给 `useSwipeTabs({ onOffsetChange })`：内容层位移 + 进度归一化 */
-  handleOffset: (raw: number) => void
-  /** 跟手开始：内容层零过渡 */
-  begin: () => void
-  /** 手势结束 / 未拖拽：清空内联位移（归位动画交回 CSS 过渡） */
-  reset: () => void
+/** 取轨道内所有 tab 元素 */
+export function tabElements(track: HTMLElement | null, selector: string = TAB_SELECTOR): HTMLElement[] {
+  if (!track) return []
+  return [...track.querySelectorAll<HTMLElement>(selector)]
 }
 
 /**
- * 量取轨道内各 tab 方块的**中心 x**（相对轨道左缘）。
+ * 把元素盒子换算到「轨道 padding box」坐标系。
  *
- * 轨道自身可能正被内联 transform 位移 → 所有子元素同量平移，
- * 而本函数只用于求「中心距」（差值），常量偏移自动抵消，无需先清位移。
+ * 用 `getBoundingClientRect` 差值 + `clientLeft`（= border-left 宽）扣掉边框，
+ * 而不是 `el.offsetLeft` —— 后者依赖 `offsetParent`，一旦轨道本身不是
+ * positioned 祖先就会跳到别的参照系上，静默量错。
  */
-export function measureTabCenters(track: HTMLElement | null): number[] {
+function boxInTrack(track: HTMLElement, el: HTMLElement): TabBox {
+  const t = track.getBoundingClientRect()
+  const r = el.getBoundingClientRect()
+  return { x: r.left - t.left - track.clientLeft, w: r.width }
+}
+
+/** 量取轨道内第 index 个 tab 的盒子；越界 / 未挂载返回 null */
+export function measureTabBox(
+  track: HTMLElement | null,
+  index: number,
+  selector: string = TAB_SELECTOR,
+): TabBox | null {
+  if (!track) return null
+  const el = tabElements(track, selector)[index]
+  return el ? boxInTrack(track, el) : null
+}
+
+/** 量取轨道内所有 tab 的中心（相对轨道 padding box） */
+export function measureTabCenters(track: HTMLElement | null, selector: string = TAB_SELECTOR): number[] {
   if (!track) return []
-  const origin = track.getBoundingClientRect().left
-  return [...track.children].map((el) => {
-    const r = el.getBoundingClientRect()
-    return r.left - origin + r.width / 2
+  return tabElements(track, selector).map((el) => {
+    const b = boxInTrack(track, el)
+    return b.x + b.w / 2
   })
 }
 
-/**
- * 组装一块面板的「整排 tab 跟手」行为。
- *
- * 槽距**惰性量取并缓存**：一次手势内几何不变，避免每帧 `getBoundingClientRect`
- * 强制同步布局；`reset()` 清缓存，下次手势重新量（tab 增删 / 换组后仍准）。
- */
-export function createTabStripMotion(o: TabStripMotionOptions): TabStripMotion {
-  const fallback = o.fallbackSlot ?? FALLBACK_SLOT
-  const contentClamp = o.contentClamp ?? CONTENT_FOLLOW_CLAMP
-  let slot: number | null = null
+/** 平均槽距（首末中心距 / (n-1)）；几何退化时返回 null */
+function averageSlotOf(centers: number[]): number | null {
+  if (centers.length < 2) return null
+  const avg = (centers[centers.length - 1] - centers[0]) / (centers.length - 1)
+  return avg > 0 ? avg : null
+}
 
-  const slotOf = (): number => {
-    if (slot == null) {
-      const measured = averageSlot(measureTabCenters(o.trackRef.current), 0)
-      slot = measured > 0 ? measured : fallback
-    }
-    return slot
+export interface TabStripThumbOptions {
+  /** tab 轨道元素（其内第一个孩子是滑块，其余是 role="tab" 的按钮） */
+  trackRef: React.RefObject<HTMLElement>
+  /** 滑块元素（绝对定位在轨道内） */
+  thumbRef: React.RefObject<HTMLElement>
+  /** 当前索引（惰性读取：手势起点用） */
+  getIndex: () => number
+  /** tab 选择器 */
+  tabSelector?: string
+  /** 兜底槽距（px） */
+  fallbackSlot?: number
+}
+
+export interface TabStripThumb {
+  /**
+   * 交给 `useSwipeTabs({ onOffsetChange })`：把「基准 + 跟手位移」合成为滑块位置。
+   * 每帧调用，内部不触发 React re-render，仅直写 style。
+   */
+  handleOffset: (raw: number) => void
+  /** 交给 `useSwipeTabs({ snapThresholdPx })`：松手阈值 = 半个「本方向真实中心距」 */
+  snapThresholdPx: () => number
+  /**
+   * 把滑块落到第 index 个 tab 上（宽度也换成该 tab 的宽度）。
+   *
+   * @param animated true = 交回 CSS 过渡（点击切换 / 松手吸附）；
+   *                 false = 瞬时落位（首帧、窗口尺寸变化）
+   */
+  place: (index: number, animated?: boolean) => void
+}
+
+/**
+ * 组装一条 tab 栏的「分段控件滑块」行为。
+ *
+ * 几何**惰性量取并在一次手势内缓存**：一次手势内布局不变，避免每帧
+ * `getBoundingClientRect` 强制同步布局；`place()` 清缓存，下次手势重量
+ * （tab 增删 / 换组后仍准）。
+ */
+export function createTabStripThumb(o: TabStripThumbOptions): TabStripThumb {
+  const fallback = o.fallbackSlot ?? FALLBACK_SLOT
+  const selector = o.tabSelector ?? TAB_SELECTOR
+
+  /** 本次手势的基准盒（手势首次位移时量取，松手后清空） */
+  let base: TabBox | null = null
+  /** 本次手势的中心位缓存 */
+  let centers: number[] | null = null
+  /** 松手前最后一次位移（用于按方向算阈值） */
+  let lastRaw = 0
+
+  const centersOf = (): number[] => {
+    if (!centers) centers = measureTabCenters(o.trackRef.current, selector)
+    return centers
+  }
+
+  /**
+   * 当前位移方向到相邻 tab 的**真实中心距**。
+   *
+   * 为什么不能用平均槽距：滑块跟手一格的视觉距离就是这两个 tab 的中心距，
+   * 用平均值会让「限幅到不了目标中心」（滑块滑一半就被阻尼卡住），阈值也
+   * 与视觉不符。方向由位移符号决定 —— 符号穿越 0 时位移本身≈0，无跳变。
+   * 边界（该方向没有相邻 tab）退回平均槽距，让越界仍有可感知的橡胶阻尼。
+   */
+  const distanceOf = (offset: number): number => {
+    const cs = centersOf()
+    const idx = o.getIndex()
+    const cur = cs[idx]
+    if (cur == null) return fallback
+    const tgt = cs[offset <= 0 ? idx + 1 : idx - 1]
+    const d = tgt == null ? 0 : Math.abs(tgt - cur)
+    return d > 0 ? d : (averageSlotOf(cs) ?? fallback)
   }
 
   return {
-    visualMapper: (raw) => mapStripOffset(raw, slotOf()),
-    snapThresholdPx: () => slotOf() / 2,
     handleOffset: (raw) => {
-      const s = slotOf()
-      const content = o.contentRef?.current
-      if (content) {
-        content.style.transform = `translate3d(${toVisualOffset(raw, contentClamp)}px, 0, 0)`
+      lastRaw = raw
+      const thumb = o.thumbRef.current
+      if (!thumb) return
+
+      // 手势首次位移：量基准（此时 index 仍是手势起点，正确）
+      if (!base) {
+        base = measureTabBox(o.trackRef.current, o.getIndex(), selector) ?? { x: 0, w: 0 }
+        // 跟手期间必须零过渡，否则位移滞后于指针
+        thumb.style.transition = 'none'
+        thumb.style.width = `${base.w}px`
       }
-      // 进度按**槽距**归一化：拖满一格即 -1 / 1，边缘压暗与位移同步到位
-      const progress = Math.max(-1, Math.min(1, mapStripOffset(raw, s) / s))
-      o.rootRef.current?.style.setProperty('--swipe-progress', String(progress))
+
+      const shift = mapStripOffset(raw, distanceOf(raw))
+      thumb.style.transform = `translate3d(${base.x + shift}px, 0, 0)`
     },
-    begin: () => {
-      // 跟手期间内容层必须零过渡，否则位移滞后于指针
-      const content = o.contentRef?.current
-      if (content) content.style.transition = 'none'
-    },
-    reset: () => {
-      slot = null
-      const content = o.contentRef?.current
-      if (content) {
-        content.style.transform = ''
-        content.style.transition = ''
+
+    snapThresholdPx: () => distanceOf(lastRaw) / 2,
+
+    place: (index, animated = true) => {
+      base = null
+      centers = null
+      lastRaw = 0
+      const thumb = o.thumbRef.current
+      const box = measureTabBox(o.trackRef.current, index, selector)
+      if (!thumb || !box) return
+
+      const apply = () => {
+        thumb.style.width = `${box.w}px`
+        thumb.style.transform = `translate3d(${box.x}px, 0, 0)`
       }
-      o.rootRef.current?.style.setProperty('--swipe-progress', '0')
+
+      if (animated) {
+        // 恢复过渡 + 强制一次样式重算：把「过渡已生效 + 当前位移」记成 before-change，
+        // 否则「恢复过渡 + 改 transform」同帧提交会被浏览器当成跳变，吸附动画不播（松手即瞬移）。
+        thumb.style.transition = ''
+        void thumb.offsetWidth
+        apply()
+      } else {
+        // 瞬时落位（首帧 / 尺寸变化）：关过渡 → 写值 → 强制重算 → **立刻恢复**。
+        // ⚠️ 不能把内联 `transition: none` 留在元素上 —— 它会一直压着 CSS 过渡，
+        // 之后所有「点击 / 松手落位」都会变成瞬移（且静止态 computed transition 也不对）。
+        thumb.style.transition = 'none'
+        apply()
+        void thumb.offsetWidth
+        thumb.style.transition = ''
+      }
     },
   }
 }

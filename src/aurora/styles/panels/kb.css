@@ -70,36 +70,54 @@
   display: flex;
   justify-content: center;
 }
+/*
+ * subbar 功能 Tab = Apple 分段控件式滑块（需求 N 第四轮定案）。
+ * 凹槽（本层）→ 轨道（position:relative）→ 常驻滑块 + tab 按钮们。
+ * 栏**不滚动**：所有 tab 恒在可视区内（第三轮的 overflow-x:auto 已删），
+ * 横滑只承担「切换」，不再承担「浏览溢出内容」。
+ */
 .aurora-kb-subbar-tabs {
   display: flex;
   align-items: center;
   max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
   padding: 3px;
   background: var(--mc-bg-pressed);
   border-radius: var(--mc-radius-md);
-  /* 滑动切 Tab：手势已同时绑在 tab 栏与内容区，tab 栏也必须是 x 轴手势区。
-   * 本栏 overflow-x:auto（tab 多时溢出）——溢出内容由「横滑切 tab」抵达，
-   * 触摸下不再走原生横滚；桌面鼠标仍可 Shift+滚轮横滚。
-   * 它同时承担整排跟手位移的裁剪职责（方块滑出即被裁，不越界压在别处）。 */
+  /* 越界橡胶阻尼会把滑块推过相邻 tab 一点点 → 裁在凹槽圆角内 */
+  overflow: hidden;
+  /* 横滑必须能被手势层接住，否则被浏览器当作页面横滚/回退抢走；纵向交回浏览器 */
   touch-action: pan-y;
   user-select: none;
 }
-.aurora-kb-subbar-tabs::-webkit-scrollbar { display: none; }
 /*
- * tab 轨道：整排跟手位移的承载者（需求 N 第三轮）。
- * 药丸底色留在外层，位移落到轨道 → 方块跟手、底色不动。
- * 位移由 JS 内联 style 写（跟手期间），松手后由本条 transition 接管归位动画。
+ * 轨道：滑块的定位坐标系（必须 relative —— 滑块 left:0 的原点要与几何量测对齐）。
+ * 轨道自身**不再位移**（第三轮的整排跟手已废弃）。
  */
 .aurora-kb-subbar-track {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
-  transition: transform var(--mc-dur-fast) var(--mc-ease-out);
-  will-change: transform;
+}
+/* 滑块：选中态的视觉承载者（选中底色已从 tab 迁到这里） */
+.aurora-kb-subbar-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-bg-elevated);
+  box-shadow: var(--mc-shadow-inset);
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform, width;
+  transition:
+    transform var(--mc-dur-fast) var(--mc-ease-out),
+    width var(--mc-dur-fast) var(--mc-ease-out);
 }
 .aurora-kb-subbar-tab {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -113,15 +131,19 @@
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: color var(--mc-dur-fast) var(--mc-ease-out), background var(--mc-dur-fast) var(--mc-ease-out);
+  transition: color var(--mc-dur-fast) var(--mc-ease-out);
 }
-.aurora-kb-subbar-tab:hover { color: var(--mc-text-primary); background: var(--mc-bg-hover); }
+/* hover 只给未选中项：选中项底色归滑块，tab 再铺一层会盖住滑块 */
+.aurora-kb-subbar-tab:not(.is-active):hover { color: var(--mc-text-primary); background: var(--mc-bg-hover); }
+/* 选中态：底色/阴影已交给滑块，tab 只负责文字色与字重 */
 .aurora-kb-subbar-tab.is-active {
   color: var(--mc-accent);
-  background: var(--mc-bg-elevated);
   font-weight: 600;
-  box-shadow: var(--mc-shadow-inset);
 }
+
+/* 跟手期间：滑块零过渡 + 光标语言（静止态不设 grab，避免与点击语义打架） */
+.aurora-kb-subbar-tabs[data-swiping] { cursor: grabbing; }
+.aurora-kb-subbar-tabs[data-swiping] .aurora-kb-subbar-thumb { transition: none; }
 
 /* 子栏右侧操作簇 */
 .aurora-kb-subbar-actions {
@@ -240,21 +262,12 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  /* 滑动切 Tab：x 轴手势区，纵向滚动交回浏览器代管 */
-  touch-action: pan-y;
-}
-
-/* 滑动进度变量：挂在面板根，供内容层边缘遮罩消费。
- * 归一化基准 = 一个槽距（非内容区宽）：拖满一格即 ±1，压暗与位移同步到位。 */
-.aurora-kb {
-  --swipe-progress: 0;
 }
 
 /*
- * 滑动切换层：位移落在 __body（无 padding 的内容容器）。
- * 主反馈是 subbar 的**整排 tab 跟手位移**（见 .aurora-kb-subbar-track）；
- * 内容层只做呼应的微位移（限幅 22px）+ 方向边缘压暗，
- * 不做整页平移（桌面不预渲染相邻页，整页平移会裁字/露裸背景）。
+ * 内容层：**完全不参与滑动**（需求 N 第四轮：内容区零位移）。
+ * 第三轮的呼应微位移 + 方向边缘压暗已整体删除 —— 主反馈只由
+ * subbar 的滑块承担（见 .aurora-kb-subbar-thumb）。
  */
 .aurora-kb-content__body {
   flex: 1;
@@ -262,71 +275,6 @@
   overflow: hidden;
   box-sizing: border-box;
   position: relative;
-  transition:
-    transform var(--mc-dur-base) var(--mc-ease-out),
-    opacity var(--mc-dur-base) var(--mc-ease-out);
-  will-change: transform;
-}
-
-/* 方向边缘压暗层 */
-.aurora-kb-content__body::before,
-.aurora-kb-content__body::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 72px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--mc-dur-base) var(--mc-ease-out);
-  z-index: 2;
-}
-.aurora-kb-content__body::before {
-  left: 0;
-  background: linear-gradient(to right, color-mix(in srgb, var(--mc-bg-content) 90%, transparent), transparent);
-}
-.aurora-kb-content__body::after {
-  right: 0;
-  background: linear-gradient(to left, color-mix(in srgb, var(--mc-bg-content) 90%, transparent), transparent);
-}
-
-/* 跟手期间：零过渡（必须） */
-.aurora-kb-content.is-swiping {
-  cursor: grabbing;
-  user-select: none;
-}
-.aurora-kb-content.is-swiping .aurora-kb-content__body {
-  transition: none;
-  opacity: 0.96;
-}
-.aurora-kb-content.is-swiping .aurora-kb-content__body::before {
-  opacity: clamp(0, var(--swipe-progress, 0), 1);
-}
-.aurora-kb-content.is-swiping .aurora-kb-content__body::after {
-  opacity: clamp(0, calc(var(--swipe-progress, 0) * -1), 1);
-}
-
-/* 跟手期间：轨道零过渡（位移必须逐帧跟手，不能有过渡滞后） */
-.aurora-kb-subbar-tabs[data-swiping] .aurora-kb-subbar-track {
-  transition: none;
-}
-
-/* 跟手期间给出「正在拖动」的光标语言（静止态不设 grab，避免与点击语义打架） */
-.aurora-kb-subbar-tabs[data-swiping] {
-  cursor: grabbing;
-  /* 两端渐隐：整排外滑时方块硬切在边界上显得廉价，遮罩让边缘读作"滑进去/滑出来" */
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
-  mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .aurora-kb-content__body {
-    /* 从容层减半，非归零 */
-    transition-duration: 140ms;
-  }
-  .aurora-kb-content.is-swiping .aurora-kb-content__body {
-    opacity: 0.97;
-  }
 }
 
 /* ---------- 概览首屏 ---------- */

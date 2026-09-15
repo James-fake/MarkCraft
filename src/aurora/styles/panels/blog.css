@@ -69,6 +69,11 @@
 
 /* 次级 segmented（P1-5）：组内子面板切换。无轨道底、文本为主，
  * 与主 tab 之间发丝线分区 —— 比主 tab 更轻一级的视觉权重 */
+/*
+ * 组内子面板 = Apple 分段控件式滑块（需求 N 第四轮定案）。
+ * 凹槽即本层（无底色，只靠 tab 间距分组）→ 轨道 → 常驻滑块 + tab 按钮们。
+ * 栏**不滚动**：组内只有 2 项，恒在可视区。
+ */
 .aurora-blog__subseg {
   display: flex;
   align-items: center;
@@ -76,32 +81,44 @@
   padding-left: 9px;
   border-left: 1px solid var(--mc-border-subtle);
   min-width: 0;
-  /* 整排跟手位移裁在 subseg 边界内（方块滑出即被裁，不越界压在设备按钮上） */
+  /* 越界橡胶阻尼会把滑块推过相邻 tab 一点点 → 裁在栏边界内，不越界压在设备按钮上 */
   overflow: hidden;
-  /* 滑动切「组内子面板」：手势已同时绑在 subseg 与浮层内容体，
-   * subseg 也必须是 x 轴手势区，否则横滑被浏览器抢走。 */
+  /* 横滑必须能被手势层接住，否则被浏览器当作页面横滚/回退抢走；纵向交回浏览器 */
   touch-action: pan-y;
   user-select: none;
 }
 
 /*
- * tab 轨道：整排跟手位移的承载者（需求 N 第三轮）。
- * subseg 无药丸底色，位移写在内层轨道，方块跟手、左侧分隔线不动。
- * 位移由 JS 内联 style 写（跟手期间），松手后由本条 transition 接管归位动画。
+ * 轨道：滑块的定位坐标系（必须 relative —— 滑块 left:0 的原点要与几何量测对齐）。
+ * 轨道自身**不再位移**（第三轮的整排跟手已废弃）。
  */
 .aurora-blog__subseg-track {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
-  transition: transform var(--mc-dur-fast) var(--mc-ease-out);
-  will-change: transform;
 }
 
-/* 跟手期间：轨道零过渡（位移必须逐帧跟手，不能有过渡滞后） */
-.aurora-blog__subseg[data-swiping] .aurora-blog__subseg-track {
-  transition: none;
+/* 滑块：选中态的视觉承载者（选中底色已从 tab 迁到这里） */
+.aurora-blog__subseg-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-bg-elevated);
+  box-shadow: var(--mc-shadow-inset);
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform, width;
+  transition:
+    transform var(--mc-dur-fast) var(--mc-ease-out),
+    width var(--mc-dur-fast) var(--mc-ease-out);
 }
+
 .aurora-blog__subseg-btn {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   height: calc(var(--mc-inspector-tab-h) - 4px);
@@ -115,23 +132,19 @@
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: color var(--mc-dur-micro) ease-out, background-color var(--mc-dur-micro) ease-out;
+  transition: color var(--mc-dur-micro) ease-out;
 }
-.aurora-blog__subseg-btn:hover { color: var(--mc-text-primary); background: var(--mc-bg-hover); }
+/* hover 只给未选中项：选中项底色归滑块，tab 再铺一层会盖住滑块 */
+.aurora-blog__subseg-btn:not(.is-active):hover { color: var(--mc-text-primary); background: var(--mc-bg-hover); }
+/* 选中态：底色/阴影已交给滑块，tab 只负责文字色与字重 */
 .aurora-blog__subseg-btn.is-active {
   color: var(--mc-text-primary);
-  background: var(--mc-bg-elevated);
   font-weight: 600;
-  box-shadow: var(--mc-shadow-inset);
 }
 
-/* 跟手期间给出「正在拖动」的光标语言（静止态不设 grab，避免与点击语义打架） */
-.aurora-blog__subseg[data-swiping] {
-  cursor: grabbing;
-  /* 两端渐隐：整排外滑时方块硬切在边界上显得廉价，遮罩让边缘读作"滑进去/滑出来" */
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
-  mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
-}
+/* 跟手期间：滑块零过渡 + 光标语言（静止态不设 grab，避免与点击语义打架） */
+.aurora-blog__subseg[data-swiping] { cursor: grabbing; }
+.aurora-blog__subseg[data-swiping] .aurora-blog__subseg-thumb { transition: none; }
 
 .aurora-blog__subbar-right {
   position: absolute;
@@ -255,6 +268,11 @@
   margin-right: auto;
 }
 /* 切换交互已改为「抓住表头甩丢」贴边切换，故移除悬停捕获层与左右边缘提示箭头 */
+/*
+ * 浮层内容体：**完全不参与滑动**（需求 N 第四轮：内容区零位移）。
+ * 第三轮的呼应微位移 + 方向边缘压暗 + touch-action 手势区已整体删除 ——
+ * 主反馈只由顶栏 segmented 的滑块承担（见 .aurora-blog__subseg-thumb）。
+ */
 .aurora-blog__panelzone-body {
   box-sizing: border-box;
   min-width: 0;
@@ -262,64 +280,9 @@
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  /* 滑动切「组内子面板」：x 轴手势区，纵向滚动交回浏览器代管 */
-  touch-action: pan-y;
   position: relative;
-  transition:
-    transform var(--mc-dur-base) var(--mc-ease-out),
-    opacity var(--mc-dur-base) var(--mc-ease-out);
-  will-change: transform;
 }
 
-/* 滑动进度变量（挂博客根，供浮层内容层边缘遮罩消费） */
-.aurora-blog {
-  --swipe-progress: 0;
-}
-
-/* 方向边缘压暗层（浮层窄，遮罩宽度相应收窄） */
-.aurora-blog__panelzone-body::before,
-.aurora-blog__panelzone-body::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 48px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--mc-dur-base) var(--mc-ease-out);
-  z-index: 1;
-}
-.aurora-blog__panelzone-body::before {
-  left: 0;
-  background: linear-gradient(to right, color-mix(in srgb, var(--mc-bg-elevated) 92%, transparent), transparent);
-}
-.aurora-blog__panelzone-body::after {
-  right: 0;
-  background: linear-gradient(to left, color-mix(in srgb, var(--mc-bg-elevated) 92%, transparent), transparent);
-}
-
-/* 跟手期间：零过渡（必须） */
-.aurora-blog__panelzone-body.is-swiping {
-  transition: none;
-  opacity: 0.96;
-  cursor: grabbing;
-  user-select: none;
-}
-.aurora-blog__panelzone-body.is-swiping::before {
-  opacity: clamp(0, var(--swipe-progress, 0), 1);
-}
-.aurora-blog__panelzone-body.is-swiping::after {
-  opacity: clamp(0, calc(var(--swipe-progress, 0) * -1), 1);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .aurora-blog__panelzone-body {
-    transition-duration: 140ms;
-  }
-  .aurora-blog__panelzone-body.is-swiping {
-    opacity: 0.97;
-  }
-}
 .aurora-blog__panelzone:not(.is-open) .aurora-blog__panelzone-body { display: none; }
 
 /* 面板圆点（面板区头部 / 激活态共用） */

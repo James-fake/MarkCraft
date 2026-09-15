@@ -1,12 +1,11 @@
-import { useMemo, useState, useEffect, useCallback, useRef } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import { Modal } from '@components/ui/Modal'
 import { PageFrame } from '../../components/shell/PageFrame'
 import { useCommandPalette } from '../../components/command-palette/CommandPaletteContext'
 import { Icon } from '../../icons'
 import type { IconName } from '../../types'
 import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
-import { useSwipeTabs } from '../../hooks/useSwipeTabs'
-import { createTabStripMotion } from '../../hooks/tabStripSwipe'
+import { useTabStripThumb } from '../../hooks/useTabStripThumb'
 import { formatKbTime } from './kbData'
 import { useFileManager } from '@stores/FileStore'
 import { useLinkIndex } from '@stores/LinkIndexStore'
@@ -312,40 +311,18 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
   const [kb, setKb] = useState<KnowledgeBase | null>(null)
   const [loaded, setLoaded] = useState(false)
 
-  /* 内容区滑动切 Tab：内容区容器接收事件，内层包裹层承载位移 */
-  const rootRef = useRef<HTMLDivElement>(null)
-  const swipeLayerRef = useRef<HTMLDivElement>(null)
-  /** 吸附判定基准（内容区可视宽度），手势从 subbar tab 栏起手时也按它算 */
-  const contentRef = useRef<HTMLDivElement>(null)
   /**
-   * tab 轨道：整排跟手位移的承载者（需求 N 第三轮）。
-   * 药丸底色留在 `.aurora-kb-subbar-tabs` 上，位移落到轨道 → 方块跟手、底色不动。
+   * 顶栏 subbar tab 栏 = Apple 分段控件式滑块（需求 N 第四轮定案）。
+   *
+   * 一条**常驻滑块**覆盖在选中项上；按住 tab 拖动时**只有滑块**跟手滑，
+   * tab 文字与内容区一个像素都不动；松手滑块过渡滑到最近的 tab（拖过一半就切）。
+   * 形态与参数说明见 hooks/tabStripSwipe.ts。
    */
-  const trackRef = useRef<HTMLDivElement>(null)
-  const motion = useMemo(
-    () => createTabStripMotion({ trackRef, rootRef, contentRef: swipeLayerRef }),
-    [],
-  )
-  const swipe = useSwipeTabs({
+  const tabs = useTabStripThumb({
     index: Math.max(0, TABS.findIndex((t) => t.id === tab)),
     count: TABS.length,
     onIndexChange: (next) => setTab(TABS[next].id),
-    onOffsetChange: motion.handleOffset,
-    // 位移落到 **tab 轨道**：按住的那个方块本身要跟着走（主反馈）
-    targetRef: trackRef,
-    // 判定基准仍是内容区（阈值由 motion.snapThresholdPx 覆盖为「半个槽距」）
-    measureRef: contentRef,
-    visualMapper: motion.visualMapper,
-    snapThresholdPx: motion.snapThresholdPx,
   })
-  /** 跟手开始 → 内容层零过渡；结束 → 清内联位移，归位动画交回 CSS 过渡 */
-  useEffect(() => {
-    if (swipe.dragging) motion.begin()
-    else motion.reset()
-  }, [swipe.dragging, motion])
-
-  /** 手势同时挂到 subbar tab 栏与内容区（tab 栏那份吃掉横滑后的 click） */
-  const bind = useMemo(() => swipe.makeBind(), [swipe])
 
   const { rootFolder, renameNode, deleteNode, createFile, openFile } = useFileManager()
   const { openCommandPalette } = useCommandPalette()
@@ -495,7 +472,7 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
       ]}
       statusRightItems={[{ content: `双链 ${data.linkCount} · 标签 ${data.tagCount}` }, { content: '⌘K 命令面板', clickable: true, onClick: () => openCommandPalette() }]}
     >
-      <div className="aurora-kb kb-shell" ref={rootRef}>
+      <div className="aurora-kb kb-shell">
         {/* 顶栏下方的子栏：库名 / 功能 Tab / 操作 */}
         <div className="aurora-kb-subbar">
           <div className="aurora-kb-subbar__left">
@@ -509,9 +486,11 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
           </div>
 
           <div className="aurora-kb-subbar__center">
-            <div className="aurora-kb-subbar-tabs" role="tablist" aria-label="知识库功能切换" data-swiping={swipe.dragging || undefined} {...bind}>
-              {/* 轨道：整排跟手位移的承载者 */}
-              <div className="aurora-kb-subbar-track" ref={trackRef}>
+            <div className="aurora-kb-subbar-tabs" role="tablist" aria-label="知识库功能切换" data-swiping={tabs.dragging || undefined} {...tabs.bind}>
+              {/* 轨道：滑块的定位坐标系（滑块绝对定位于其中） */}
+              <div className="aurora-kb-subbar-track" ref={tabs.trackRef}>
+                {/* 滑块：选中态的视觉承载者（选中底色已从 tab 迁到这里） */}
+                <span className="aurora-kb-subbar-thumb" ref={tabs.thumbRef} aria-hidden="true" />
                 {TABS.map((t) => {
                   const I = Icon[t.icon]
                   return (
@@ -540,12 +519,9 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
           </div>
         </div>
 
-        <div
-          className={`aurora-kb-content ${swipe.dragging ? 'is-swiping' : ''}`}
-          ref={contentRef}
-          {...bind}
-        >
-          <div className="aurora-kb-content__body" ref={swipeLayerRef}>
+        {/* 内容区：完全不参与滑动（需求 N 第四轮：内容区零位移） */}
+        <div className="aurora-kb-content">
+          <div className="aurora-kb-content__body">
             {!loaded ? (
               <div className="aurora-kb-placeholder">
                 <div className="aurora-kb-placeholder__title">正在加载知识库…</div>

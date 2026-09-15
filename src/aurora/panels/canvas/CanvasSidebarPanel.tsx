@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Icon } from '../../icons'
-import { useSwipeTabs } from '../../hooks/useSwipeTabs'
-import { createTabStripMotion } from '../../hooks/tabStripSwipe'
+import { useTabStripThumb } from '../../hooks/useTabStripThumb'
 import { fileTypeMeta } from '../../themes/categoricalColors'
 import type { CanvasEngine } from '@features/canvas-v2/engine/CanvasEngine'
 import { useEngineSnapshot } from './canvasHooks'
@@ -69,39 +68,17 @@ export function CanvasSidebarPanel({ engine, onOpenFile, initialTab }: CanvasSid
   const [tagLogic, setTagLogic] = useState<'AND' | 'OR'>('OR')
   const [picked, setPicked] = useState<Set<string>>(new Set())
 
-  /* 侧栏 tab 行滑动切 Tab（axis=x，横向）。
+  /* 侧栏 tab 行 = Apple 分段控件式滑块（需求 N 第四轮定案）。
+     本栏是「下划线滑块」形态：沿用 `.aurora-csp__tab` 原有的下划线选中语言
+     （编辑器 rightbar 与它全站同源），只把「哪一条下划线亮」从 tab 自身挪到
+     一条独立滑块上 —— 于是按住 tab 拖动时**只有下划线在滑**，文字钉住不动。
      手势绑在 tab 行而非主绘图区 —— Excalidraw 的水平拖拽是画布平移/绘制，
      劫持它必然破坏绘图体验（DesignBrief §4.3）。 */
-  const rootRef = useRef<HTMLDivElement>(null)
-  /**
-   * tab 轨道：整排跟手位移的承载者（需求 N 第三轮）。
-   * 侧栏窄，槽距小 → 内容层位移相应更克制（16px）。
-   */
-  const trackRef = useRef<HTMLDivElement>(null)
-  const motion = useMemo(
-    () => createTabStripMotion({ trackRef, rootRef, contentRef: bodyRef, contentClamp: 16 }),
-    [],
-  )
-  const swipe = useSwipeTabs({
+  const tabStrip = useTabStripThumb({
     index: Math.max(0, TABS.findIndex((t) => t.id === tab)),
     count: TABS.length,
     onIndexChange: (next) => setTab(TABS[next].id),
-    onOffsetChange: motion.handleOffset,
-    // 位移落到 **tab 轨道**：按住的那个方块本身要跟着走（主反馈）
-    targetRef: trackRef,
-    // 判定基准仍按内容区（阈值由 motion.snapThresholdPx 覆盖为「半个槽距」）
-    measureRef: bodyRef,
-    visualMapper: motion.visualMapper,
-    snapThresholdPx: motion.snapThresholdPx,
   })
-  /** 跟手开始 → 内容层零过渡；结束 → 清内联位移，归位动画交回 CSS 过渡 */
-  useEffect(() => {
-    if (swipe.dragging) motion.begin()
-    else motion.reset()
-  }, [swipe.dragging, motion])
-
-  /** tab 行手势绑定：吃掉横滑松手后按钮的 click，避免「滑完又点回去」 */
-  const bind = useMemo(() => swipe.makeBind(), [swipe])
   const [miniZoom, setMiniZoom] = useState(0.5)
 
   const { getBacklinks, getOutgoingLinks } = useLinkIndex()
@@ -228,11 +205,13 @@ const [shapes, setShapes] = useState<ParsedShape[]>([])
   }
 
   return (
-    <div className="aurora-csp" ref={rootRef}>
+    <div className="aurora-csp">
       <div className="aurora-csp__head">
-        <div className="aurora-csp__tabs" role="tablist" data-swiping={swipe.dragging || undefined} {...bind}>
-          {/* 轨道：整排跟手位移的承载者 */}
-          <div className="aurora-csp__tabs-track" ref={trackRef}>
+        <div className="aurora-csp__tabs" role="tablist" data-swiping={tabStrip.dragging || undefined} {...tabStrip.bind}>
+          {/* 轨道：滑块的定位坐标系（滑块绝对定位于其中） */}
+          <div className="aurora-csp__tabs-track" ref={tabStrip.trackRef}>
+            {/* 滑块：选中态的视觉承载者（下划线，选中色已从 tab 迁到这里） */}
+            <span className="aurora-csp__tabs-thumb" ref={tabStrip.thumbRef} aria-hidden="true" />
             {TABS.map((t) => {
               const IconComp = Icon[t.icon as keyof typeof Icon]
               return (
@@ -255,7 +234,7 @@ const [shapes, setShapes] = useState<ParsedShape[]>([])
       </div>
 
       <div
-        className={`aurora-csp__body ${swipe.dragging ? 'is-swiping' : ''}`}
+        className="aurora-csp__body"
         ref={bodyRef}
         onScroll={(e) => {
           const next = e.currentTarget.scrollTop > 8

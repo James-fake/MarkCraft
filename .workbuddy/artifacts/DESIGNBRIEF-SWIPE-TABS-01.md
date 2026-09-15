@@ -377,3 +377,87 @@ R2 已把手势挂到 tab 栏（**能识别**），但**视觉上等于没动** 
 - 接入：`panels/{settings,kb,blog,canvas}/*` + `styles/panels/{settings,kb,blog,canvas}.css`
 - 测试：`hooks/tabStripSwipe.test.ts`(22) / `styles/swipeTabBarSurface.test.ts`(44) / `panels/settings/tabBarSwipeBinding.test.tsx`(12)
 - 提交：`bf70cf8`
+
+---
+
+## 12. 修订记录 R4（2026-09-15）：选中态「搬家」为独立滑块（Apple 分段控件）
+
+### 12.1 用户第四次反馈（R3 被否）
+
+> 「第一，内容区域。不要。滑动只有。功能tab栏中的功能tab进行滑动。你知不知道apple的产品？它的工具栏。是可以进行滑动的。
+> 也就是说。摁住这个功能tab。就有一个显示一个方块的感觉，然后可以进行一个滑动。而且工具tab栏。也是不需要进行滚动的」
+
+R3 让**整排 tab 一起跟手位移**，但用户要的是 **Apple 分段控件**：动的是那条**方块**，文字**不该动**。
+R3 的方向（让位移"看得见"）是对的，**承载者**错了 —— 位移不该由文字承担。
+
+### 12.2 定案形态（AskUserQuestion 用户答「对了」）
+
+| # | 规格 | 说明 |
+| --- | --- | --- |
+| 1 | **常驻滑块（thumb）** 压在选中项上 | 不是"按住才浮起"，静止态就在 |
+| 2 | 按住任一 tab 横拖 → **只有滑块跟手滑** | 1:1 跟手，可越界（橡胶阻尼） |
+| 3 | **tab 文字一个像素都不动** | 文字不参与任何位移、内联样式不被写 |
+| 4 | **内容区一个像素都不动** | 无位移、无 `is-swiping`、无 `--swipe-progress` |
+| 5 | 松手滑块**过渡吸到最近 tab** | 拖过一半即切（按真实中心距算） |
+| 6 | **栏不滚动** | `scrollLeft` 恒 0；`overflow:hidden`，删掉 kb 的 `overflow-x:auto` |
+
+### 12.3 关键实现决策
+
+1. **选中态承载者迁移**（本轮核心）：激活底色/下划线**从 tab 自身搬到 thumb**；tab 只留文字色 + 字重
+   （hover 只对**未选中**项生效，避免与滑块抢视觉）。
+2. **滑块位置 = 基准定位 + 手势位移，合成到同一个 `transform`**：
+   拆成两段（松手时基准重算 + 位移清零）会产生"基准跳变 + 位移归零"的视觉裂缝。
+3. **`snapThresholdPx` = 该方向真实中心距的一半**（非平均槽距）—— 槽距 72–75px 但方块宽不等 70/82，
+   用平均值会让"拖过一半就切"与视觉不符。
+4. **`manualOffset: true`**：`useSwipeTabs` 不再碰 DOM，只回调 `onOffsetChange(raw)` / `onSettle(targetIndex)`；
+   位移与落位全部由 `createTabStripThumb` 负责。
+5. **白板走「下划线滑块」**（`height:2px; bottom:0`），沿用全站 `.aurora-csp__tab` 同源下划线语言，其余三栏用圆角块。
+6. ⚠️ **`transition:none` 残留坑**：瞬时落位（首帧 / ResizeObserver）若把 `style.transition='none'` 留在元素上，
+   会**永久压住 CSS 过渡** → 之后点击/松手落位全变瞬移。瞬时分支必须
+   `apply(); void el.offsetWidth; el.style.transition = ''` 恢复。
+
+### 12.4 与 §10 铁律的一致性（**§11.3 的解释口径作废**）
+
+R4 比 R3 **更贴近**铁律：位移只发生在 thumb 上，**tab 文字、内容区、栏滚动全部归零** ——
+外壳（含 tab 行本身）彻底不参与动画，不需要 §11.3 那样为"tab 行位移"做例外说明。
+
+### 12.5 验收标准（覆盖 §6 与 §11.4）
+
+| # | 断言 | 方法 |
+| --- | --- | --- |
+| R4-1 | 静止态 thumb 与激活 tab **Δx ≤ 1.5px 且 Δw ≤ 1.5px** | 真机 `getBoundingClientRect` 对比 |
+| R4-2 | 按住拖动 → **thumb 位移 ≥ 30px** | 跟手期读 thumb rect.x 差值 |
+| R4-3 | 跟手期 **所有 tab 的 left 指纹 + 内联 style 指纹均不变** | 逐 tab 取 `rect.x` 序列与 `getAttribute('style')` 序列 |
+| R4-4 | 内容层 `rect.x` 与内联 transform **均不变** | 逐字比较（**不可 `?? 0`**：元素缺失会误判成"动了"） |
+| R4-5 | 栏 `scrollLeft` 在 rest/mid/after 三态恒 **0** | 同上 |
+| R4-6 | 松手后 thumb 落点与**新**激活 tab 的 x 对齐（≤1.5px） | 松手后重查激活项 |
+
+契约测试两侧同断言（CSS + JSX）：`styles/swipeTabBarSurface.test.ts`。
+
+### 12.6 实测结果（CDP@9445，**四面板全部通过**）
+
+| 面板 | 滑块Δ | 文字不动 | 内容不动 | 落位 | 切换 | 不滚 | 结论 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 设置页 | 68px | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ 通过 |
+| 博客工作室 | 49px | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ 通过 |
+| 白板侧栏 | 47px | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ 通过 |
+| 知识库 | 65px | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ 通过 |
+
+- R3 遗留的「知识库 CDP 覆盖不到」**已解除**：探针内 `ensureKbOpen()` 走真实建库链路
+  （空态「新建知识库」→ 填名 → **限定在 `.aurora-kb-modal` 内**点「创建知识库」→ 回列表点卡片进详情）。
+  ⚠️ 踩坑：提交按钮**不能用宽正则** `/创建|新建/` —— modal 走 portal 渲染在 body 末尾，
+  宽正则会先命中页面底层的「新建知识库」按钮，点了个无效按钮（表现为"点了没反应"）。
+- 落位精确到 0.0px；静止态宽度差 1.0px 属亚像素取整（阈值 1.5px 内）。
+
+### 12.7 实现位置
+
+- 共享纯逻辑：`hooks/tabStripSwipe.ts`（`createTabStripThumb` → `{ handleOffset, snapThresholdPx, place }`；
+  `mapStripOffset` / `measureTabBox`（轨道 padding box 坐标系）/ `measureTabCenters`；滑块**不计入** tab 量取）
+- React 壳：`hooks/useTabStripThumb.ts`（`{ trackRef, thumbRef, bind, dragging }`；首帧/选中变化 `useLayoutEffect` 落位 +
+  `ResizeObserver` 瞬时落位）
+- 接入：`panels/settings/SettingsPanel.tsx`、`panels/kb/KbPanel.tsx`、`panels/blog/BlogPanel.tsx`、`panels/canvas/CanvasSidebarPanel.tsx`
+- 样式：`styles/panels/{settings,kb,blog,canvas}.css`（各栏 `position:relative` 轨道 + `position:absolute` thumb；
+  `[data-swiping]` 时 thumb `transition:none` + 栏 `cursor:grabbing`）
+- 测试：`hooks/tabStripSwipe.test.ts`(26) / `panels/settings/tabBarSwipeBinding.test.tsx`(22) / `styles/swipeTabBarSurface.test.ts`(~50)
+- 探针：`artifacts/probe-swipe-thumb.mjs`（量"谁动了谁没动"）
+- 已废弃（勿回退）：R3 的 `createTabStripMotion` / 轨道位移 / `visualMapper` / 边缘压暗 / `--swipe-progress`

@@ -1183,31 +1183,35 @@
 .aurora-csp { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
 .aurora-csp__head { display: flex; align-items: stretch; border-bottom: 1px solid var(--mc-border-subtle); }
 /* 横滑 tab 行：x 轴手势区（纵向交回浏览器），横滑时不选中 tab 文案。
- * overflow:hidden —— 整排跟手位移裁在 tab 行边界内（方块滑出即被裁，不越界压在别处）。 */
+ * overflow:hidden —— 越界橡胶阻尼会把滑块推过相邻 tab 一点点，裁在栏边界内。 */
 .aurora-csp__tabs { display: flex; align-items: center; padding: 8px 8px 0; flex: 1; border-bottom: none; touch-action: pan-y; user-select: none; overflow: hidden; }
 /*
- * tab 轨道：整排跟手位移的承载者（需求 N 第三轮）。
+ * 轨道 / 滑块（需求 N 第四轮）：侧栏 tab 行 = 「下划线滑块」形态。
+ * 沿用 .aurora-csp__tab 原有的下划线选中语言（与编辑器 rightbar 全站同源），
+ * 只把「哪一条下划线亮」从 tab 自身挪到一条独立滑块上 ——
+ * 于是按住 tab 拖动时**只有下划线在滑**，文字钉住不动。
  * tab 方块是 flex:1 撑满型 → 轨道必须接住 flex:1，否则方块塌成内容宽。
- * 位移由 JS 内联 style 写（跟手期间），松手后由本条 transition 接管归位动画。
+ * 轨道自身**不再位移**（第三轮的整排跟手已废弃）。
  */
-.aurora-csp__tabs-track { flex: 1; display: flex; align-items: center; gap: 2px; transition: transform var(--mc-dur-fast) var(--mc-ease-out); will-change: transform; }
-/* 滑动进度变量（挂侧栏根，供内容层边缘遮罩消费；按槽距归一化） */
-.aurora-csp { --swipe-progress: 0; }
-/* 跟手期间：轨道零过渡（位移必须逐帧跟手，不能有过渡滞后） */
-.aurora-csp__tabs[data-swiping] .aurora-csp__tabs-track { transition: none; }
-/* 跟手期间给出「正在拖动」的光标语言（静止态不设 grab，避免与点击语义打架） */
-.aurora-csp__tabs[data-swiping] {
-  cursor: grabbing;
-  /* 两端渐隐：整排外滑时方块硬切在边界上显得廉价，遮罩让边缘读作"滑进去/滑出来" */
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
-  mask-image: linear-gradient(to right, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+.aurora-csp__tabs-track { position: relative; flex: 1; display: flex; align-items: center; gap: 2px; }
+/* 滑块：选中态的视觉承载者（选中下划线已从 tab 迁到这里） */
+.aurora-csp__tabs-thumb {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--mc-accent);
+  pointer-events: none;
+  z-index: 1;
+  will-change: transform, width;
+  transition:
+    transform var(--mc-dur-fast) var(--mc-ease-out),
+    width var(--mc-dur-fast) var(--mc-ease-out);
 }
-.aurora-csp__body.is-swiping {
-  transition: none;
-  opacity: 0.96;
-  cursor: grabbing;
-  user-select: none;
-}
+/* 跟手期间：滑块零过渡 + 光标语言（静止态不设 grab，避免与点击语义打架） */
+.aurora-csp__tabs[data-swiping] { cursor: grabbing; }
+.aurora-csp__tabs[data-swiping] .aurora-csp__tabs-thumb { transition: none; }
 /* 使用优化⑥ · 侧栏面板导航 tab 全站同源基准（编辑器 .aurora-rightbar__tab 与此逐字一致） */
 .aurora-csp__tab {
   flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
@@ -1218,22 +1222,11 @@
 .aurora-csp__tab:hover { color: var(--mc-text-secondary); background: var(--mc-bg-hover); }
 /* 按压反馈（macOS 动效方案 §3.8）：tab 用微位移防行高抖动 */
 .aurora-csp__tab:active { transform: translateY(0.5px); }
-.aurora-csp__tab--active { color: var(--mc-accent); border-bottom-color: var(--mc-accent); font-weight: 600; }
-.aurora-csp__body { flex: 1; overflow-y: auto; touch-action: pan-y; position: relative; transition: transform var(--mc-dur-base) var(--mc-ease-out), opacity var(--mc-dur-base) var(--mc-ease-out); will-change: transform; }
-/* 方向边缘压暗层（侧栏较窄，遮罩收窄到 44px） */
-.aurora-csp__body::before,
-.aurora-csp__body::after {
-  content: ''; position: absolute; top: 0; bottom: 0; width: 44px; pointer-events: none;
-  opacity: 0; transition: opacity var(--mc-dur-base) var(--mc-ease-out); z-index: 1;
-}
-.aurora-csp__body::before { left: 0; background: linear-gradient(to right, color-mix(in srgb, var(--mc-bg-sidebar) 92%, transparent), transparent); }
-.aurora-csp__body::after { right: 0; background: linear-gradient(to left, color-mix(in srgb, var(--mc-bg-sidebar) 92%, transparent), transparent); }
-.aurora-csp__body.is-swiping::before { opacity: clamp(0, var(--swipe-progress, 0), 1); }
-.aurora-csp__body.is-swiping::after { opacity: clamp(0, calc(var(--swipe-progress, 0) * -1), 1); }
-@media (prefers-reduced-motion: reduce) {
-  .aurora-csp__body { transition-duration: 140ms; }
-  .aurora-csp__body.is-swiping { opacity: 0.97; }
-}
+/* 选中态：下划线已交给滑块，tab 只负责文字色与字重 */
+.aurora-csp__tab--active { color: var(--mc-accent); font-weight: 600; }
+/* 内容区：**完全不参与滑动**（需求 N 第四轮：内容区零位移）。
+ * 第三轮的呼应微位移 + 方向边缘压暗已整体删除 —— 主反馈只由 tab 行滑块承担。 */
+.aurora-csp__body { flex: 1; overflow-y: auto; touch-action: pan-y; position: relative; }
 .aurora-csp__panel { padding: 12px; }
 .aurora-csp__header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .aurora-csp__title { font-size: var(--mc-font-base); font-weight: 600; color: var(--mc-text-primary); }

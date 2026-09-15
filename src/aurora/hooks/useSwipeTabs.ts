@@ -109,6 +109,21 @@ export interface UseSwipeTabsOptions {
    * 传函数则每次松手惰性取值（几何可能在拖动中被重新量取）。
    */
   snapThresholdPx?: number | (() => number)
+  /**
+   * 位移写入完全交给调用方（manual 模式）。
+   *
+   * 为 true 时 hook **不碰任何元素的 style**：每帧只回调 `onOffsetChange(raw)`，
+   * 归位时机与目标位置交给 `onSettle(targetIndex)`。
+   *
+   * 为什么需要它：Apple 式「分段控件滑块」的滑块位置有两个来源 ——
+   *   ① 基准定位（随选中项变化，量 tab 的 offsetLeft / offsetWidth）
+   *   ② 手势位移（跟手 1:1）
+   * 两者必须合成到**同一个 transform** 里，否则松手瞬间「基准跳变 + 位移清零」
+   * 会拆成两段动画（先弹回旧 tab 再滑向新 tab）。hook 内置的
+   * 「写 offset → 松手清空内联样式让 CSS 归位」模型表达不了这个合成，
+   * 因此提供 manual 模式，由面板统一写。
+   */
+  manualOffset?: boolean
 }
 
 export interface UseSwipeTabsResult {
@@ -151,6 +166,7 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
     measureRef,
     visualMapper,
     snapThresholdPx,
+    manualOffset = false,
   } = options
 
   const [dragging, setDragging] = useState(false)
@@ -161,8 +177,8 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
   const activeRef = useRef(false)
 
   /** 最新 props 快照，供 document 监听器（闭包）读取，避免闭包陷阱 */
-  const latestRef = useRef({ index, count, onIndexChange, axis, onOffsetChange, onSettle, targetRef, measureRef, visualMapper, snapThresholdPx })
-  latestRef.current = { index, count, onIndexChange, axis, onOffsetChange, onSettle, targetRef, measureRef, visualMapper, snapThresholdPx }
+  const latestRef = useRef({ index, count, onIndexChange, axis, onOffsetChange, onSettle, targetRef, measureRef, visualMapper, snapThresholdPx, manualOffset })
+  latestRef.current = { index, count, onIndexChange, axis, onOffsetChange, onSettle, targetRef, measureRef, visualMapper, snapThresholdPx, manualOffset }
 
   /** 手势元数据 */
   const gestureRef = useRef({
@@ -201,6 +217,11 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
    * ---------------------------------------------------------------- */
   const applyOffset = useCallback((px: number) => {
     offsetRef.current = px
+    // manual 模式：不碰 DOM，位移由调用方在 onOffsetChange 里自行合成
+    if (latestRef.current.manualOffset) {
+      latestRef.current.onOffsetChange?.(px)
+      return
+    }
     const el = applyTarget()
     if (el) {
       // 视觉位移钳制：判定用真实位移（px），渲染用克制后的位移
@@ -219,6 +240,9 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
   /** 清空内联位移（吸附动画交给 CSS 过渡） */
   const clearOffset = useCallback(() => {
     offsetRef.current = 0
+    // manual 模式：归位位置只有调用方知道（要量目标 tab 的几何），
+    // 这里既不清样式也不回调 0 —— 否则会在松手瞬间把滑块拽回旧 tab。
+    if (latestRef.current.manualOffset) return
     const el = applyTarget()
     if (el) {
       el.style.transform = ''
@@ -361,9 +385,11 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
         g.axisLocked = res
         activeRef.current = true
         setDragging(true)
-        // 跟手期间必须零过渡；同时把起点对齐到按下位置，避免抖动
-        const t = applyTarget()
-        if (t) t.style.transition = 'none'
+        // 跟手期间必须零过渡（manual 模式下由调用方自己保证）
+        if (!latestRef.current.manualOffset) {
+          const t = applyTarget()
+          if (t) t.style.transition = 'none'
+        }
         g.startTime = performance.now()
         g.samples = [{ offset: 0, time: 0 }]
       }
@@ -443,6 +469,7 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
    * 卸载清理
    * ---------------------------------------------------------------- */
   useEffect(() => () => {
+    if (latestRef.current.manualOffset) return
     const el = applyTarget()
     if (el) {
       el.style.transform = ''

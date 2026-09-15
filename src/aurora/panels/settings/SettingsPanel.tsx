@@ -1,11 +1,10 @@
-﻿import { useState, useEffect, useRef, useMemo } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { PageFrame } from '../../components/shell/PageFrame'
 import { useCommandPalette } from '../../components/command-palette/CommandPaletteContext'
 import { Icon } from '../../icons'
 import type { IconName } from '../../types'
 import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
-import { useSwipeTabs } from '../../hooks/useSwipeTabs'
-import { createTabStripMotion } from '../../hooks/tabStripSwipe'
+import { useTabStripThumb } from '../../hooks/useTabStripThumb'
 import { GeneralSection } from './sections/GeneralSection'
 import { AppearanceSection } from './sections/AppearanceSection'
 import { EditorSection } from './sections/EditorSection'
@@ -75,57 +74,18 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
   )
   const { openCommandPalette } = useCommandPalette()
 
-  /** 内容区滑动切 Tab（跟手拖拽 / 触控板双指横滑） */
-  const rootRef = useRef<HTMLDivElement>(null)
-  /** 内容层位移目标（无 padding 的内层包裹件，避免把 padding 一起推走） */
-  const swipeLayerRef = useRef<HTMLDivElement>(null)
-  /** 吸附判定基准（内容区可视宽度） */
-  const contentRef = useRef<HTMLDivElement>(null)
   /**
-   * tab 轨道（nav-tabs 的内层）。
+   * 顶栏分类切换 = Apple 分段控件式滑块（需求 N 第四轮定案）。
    *
-   * 药丸底色留在 nav-tabs 上，**跟手位移落到轨道**：用户按住的是 tab 方块本身，
-   * 方块必须跟着手指走（第二轮只让方块挪 0.7px = 人眼认为没动）。
+   * 一条**常驻方块**覆盖在选中项上；按住 tab 拖动时**只有滑块**跟手滑，
+   * tab 文字与内容区一个像素都不动；松手滑块过渡滑到最近的 tab（拖过一半就切）。
+   * 形态与参数说明见 hooks/tabStripSwipe.ts。
    */
-  const trackRef = useRef<HTMLDivElement>(null)
-
-  /**
-   * 整排 tab 跟手：1:1 位移（限幅一个槽距）+ 半格松手阈值 + 按槽距归一化的进度。
-   * 见 hooks/tabStripSwipe.ts 的实测数据说明。
-   */
-  const motion = useMemo(
-    () => createTabStripMotion({ trackRef, rootRef, contentRef: swipeLayerRef }),
-    [],
-  )
-
-  const swipe = useSwipeTabs({
-    index: CATEGORIES.findIndex((c) => c.id === activeCategory),
+  const tabs = useTabStripThumb({
+    index: Math.max(0, CATEGORIES.findIndex((c) => c.id === activeCategory)),
     count: CATEGORIES.length,
     onIndexChange: (next) => setActiveCategory(CATEGORIES[next].id),
-    onOffsetChange: motion.handleOffset,
-    // 位移落到 **tab 轨道**：按住的那个方块本身要跟着走（主反馈）
-    targetRef: trackRef,
-    // 判定基准仍是内容区（阈值由 motion.snapThresholdPx 覆盖为「半个槽距」）
-    measureRef: contentRef,
-    visualMapper: motion.visualMapper,
-    snapThresholdPx: motion.snapThresholdPx,
   })
-
-  /**
-   * 手势同时挂在**顶栏 tab 栏**与**内容区**两处。
-   *
-   * 用户要求「顶栏的功能切换 tab 支持左右滑动」—— 起手位置必须在
-   * tab 栏内也能生效。两处共享同一 hook 状态，不会互相干扰。
-   * tab 栏那份额外带 onClickCapture：横滑松手后吃掉按钮的 click，
-   * 否则会把刚滑到的 tab 又点回去。
-   */
-  const bind = useMemo(() => swipe.makeBind(), [swipe])
-
-  /** 跟手开始 → 内容层零过渡；结束 → 清内联位移，归位动画交回 CSS 过渡 */
-  useEffect(() => {
-    if (swipe.dragging) motion.begin()
-    else motion.reset()
-  }, [swipe.dragging, motion])
 
   // 外部带参进入（如侧栏头像点击）→ 同步定位到目标分类
   useEffect(() => {
@@ -176,19 +136,23 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
         { content: '⌘K 命令面板', clickable: true, onClick: () => openCommandPalette() },
       ]}
     >
-      <div className="aurora-settings" ref={rootRef}>
-        {/* 顶栏导航栏：分类切换（对齐白板 / 博客顶栏结构） */}
+      <div className="aurora-settings">
+        {/* 顶栏导航栏：Apple 分段控件式滑块（需求 N 第四轮定案）
+         *  选中态 = 一条**常驻滑块**；按住 tab 拖动时**只有滑块**跟手滑，
+         *  tab 文字与内容区一个像素都不动；松手滑块过渡到目标 tab。 */}
         <div className="aurora-settings__nav">
           <div
             className="aurora-settings__nav-tabs"
             role="tablist"
             aria-label="设置分类"
-            data-swiping={swipe.dragging || undefined}
-            {...bind}
+            data-swiping={tabs.dragging || undefined}
+            {...tabs.bind}
           >
-            {/* 轨道：整排跟手位移的承载者（药丸底色留在外层，位移不带走底色） */}
-            <div className="aurora-settings__nav-track" ref={trackRef}>
-              {CATEGORIES.map((cat, i) => {
+            {/* 轨道：滑块的定位坐标系（滑块绝对定位于其中） */}
+            <div className="aurora-settings__nav-track" ref={tabs.trackRef}>
+              {/* 滑块：选中态的视觉承载者（选中底色已从 tab 迁到这里） */}
+              <span className="aurora-settings__nav-thumb" ref={tabs.thumbRef} aria-hidden="true" />
+              {CATEGORIES.map((cat) => {
                 const IconComp = Icon[cat.icon]
                 const isActive = cat.id === activeCategory
                 return (
@@ -197,7 +161,6 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
                     type="button"
                     role="tab"
                     aria-selected={isActive}
-                    data-tab-index={i}
                     className={[
                       'aurora-settings__nav-tab',
                       isActive ? 'aurora-settings__nav-tab--active' : '',
@@ -214,19 +177,13 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
           </div>
         </div>
 
-        {/* 内容区（滑动切 Tab 手势同样绑定于此，与顶栏 tab 栏并列可起手） */}
-        <div
-          className={`aurora-settings__content ${swipe.dragging ? 'is-swiping' : ''}`}
-          ref={contentRef}
-          {...bind}
-        >
-          <div className="aurora-settings__swipe-layer" ref={swipeLayerRef}>
-            <div className="aurora-settings__header">
-              <div className="aurora-settings__header-title">{categoryInfo.title}</div>
-              <div className="aurora-settings__header-desc">{categoryInfo.desc}</div>
-            </div>
-            {renderCategory(activeCategory)}
+        {/* 内容区：完全不参与滑动（需求 N 第四轮：内容区零位移，第三轮的「呼应位移」已删） */}
+        <div className="aurora-settings__content">
+          <div className="aurora-settings__header">
+            <div className="aurora-settings__header-title">{categoryInfo.title}</div>
+            <div className="aurora-settings__header-desc">{categoryInfo.desc}</div>
           </div>
+          {renderCategory(activeCategory)}
         </div>
       </div>
     </PageFrame>

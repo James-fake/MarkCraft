@@ -11,12 +11,6 @@
   overflow: hidden;
 }
 
-/* 滑动进度变量：挂在面板根节点，供内容层边缘压暗消费。
- * 归一化基准 = 一个槽距（非内容区宽）：拖满一格即 ±1，压暗与位移同步到位。 */
-.aurora-settings {
-  --swipe-progress: 0;
-}
-
 /* ---------- 顶栏导航栏（对齐白板 / 博客顶栏结构） ---------- */
 .aurora-settings__nav {
   flex-shrink: 0;
@@ -29,39 +23,69 @@
   background: var(--mc-bg-sidebar);
 }
 
+/*
+ * 顶栏分段控件（需求 N 第四轮定案 · Apple Segmented Control）
+ *
+ * 结构：凹槽（本层，药丸底色）→ 轨道（position:relative）→ **常驻滑块** + tab 按钮们。
+ * 交互：按住任一 tab 左右拖 → **只有滑块**跟手滑，tab 文字与内容区零位移；
+ *      松手滑块过渡滑到最近的 tab（拖过一半就切）。
+ *
+ * touch-action: pan-y —— 横滑必须能被手势层接住，否则会被浏览器当作
+ * 页面横滚 / 回退手势抢走；纵向仍交回浏览器代管。
+ */
 .aurora-settings__nav-tabs {
   display: flex;
   align-items: center;
   padding: 3px;
   background: var(--mc-bg-pressed);
   border-radius: var(--mc-radius-md);
-  /* 整排跟手位移会被裁在药丸边界内（方块滑出左/右缘即消失，不越界压在别处） */
+  /* 越界橡胶阻尼会把滑块推过相邻 tab 一点点 → 裁在凹槽圆角内，不越界压在别处 */
   overflow: hidden;
-  /* 滑动切 Tab：手势已同时绑在 tab 栏与内容区，tab 栏也必须是 x 轴手势区，
-   * 否则横滑会被浏览器当作页面横滚/回退手势抢走。纵向仍交回浏览器代管。 */
   touch-action: pan-y;
   /* 横滑时不要选中 tab 文案 */
   user-select: none;
 }
 
 /*
- * tab 轨道：整排跟手位移的承载者（需求 N 第三轮）。
+ * 轨道：滑块的定位坐标系。
  *
- * 为什么药丸底色留在外层、位移落到内层：用户按住的是 tab 方块**本身**，
- * 方块必须 1:1 跟着手指走。若位移写在外层，药丸底色会一起被推走（出框漏白）；
- * 写在内层则底色不动、方块在药丸内滑动。
- *
- * 位移由 JS 内联 style 写（跟手期间），松手后由本条 transition 接管归位动画。
+ * 必须 position:relative —— 滑块 `left:0` 的原点要与几何量测（相对轨道
+ * padding box）对齐；同时轨道自身**不再位移**（第三轮的整排跟手已废弃），
+ * 所以这里没有 transition。
  */
 .aurora-settings__nav-track {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 2px;
-  transition: transform var(--mc-dur-fast) var(--mc-ease-out);
-  will-change: transform;
+}
+
+/*
+ * 滑块：**选中态的视觉承载者**。
+ *
+ * 选中底色从 tab 身上**迁到**这里 —— 这是本轮的本质：不是给 tab 加动画，
+ * 而是把"谁在体现选中"搬了家（tab 只留文字色 + 字重）。
+ * 位置/宽度由 JS 直写内联 style（transform + width），松手归位走本条过渡。
+ */
+.aurora-settings__nav-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-bg-elevated);
+  box-shadow: var(--mc-shadow-inset);
+  pointer-events: none;
+  z-index: 0;
+  will-change: transform, width;
+  transition:
+    transform var(--mc-dur-fast) var(--mc-ease-out),
+    width var(--mc-dur-fast) var(--mc-ease-out);
 }
 
 .aurora-settings__nav-tab {
+  position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -76,19 +100,19 @@
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out);
+  transition: color var(--mc-dur-fast) var(--mc-ease-out);
 }
 
-.aurora-settings__nav-tab:hover {
+/* hover 只给未选中项：选中项的底色归滑块，若 tab 自身再铺一层会盖住滑块 */
+.aurora-settings__nav-tab:not(.aurora-settings__nav-tab--active):hover {
   background: var(--mc-bg-hover);
   color: var(--mc-text-primary);
 }
 
+/* 选中态：底色/阴影已交给滑块，tab 只负责文字色与字重 */
 .aurora-settings__nav-tab--active {
-  background: var(--mc-bg-elevated);
   color: var(--mc-accent);
   font-weight: 600;
-  box-shadow: var(--mc-shadow-inset);
 }
 
 /* ---------- 右侧内容区 ---------- */
@@ -98,107 +122,17 @@
   min-height: 0;
   overflow-y: auto;
   padding: 32px 40px 48px;
-  /* 滑动切 Tab：x 轴手势区，纵向滚动交回浏览器代管 */
-  touch-action: pan-y;
   overflow-x: hidden;
 }
 
-/*
- * 滑动切换层：把手势位移与内容区 padding 解耦。
- * 位移写在本层（无 padding），内边距留在父级。
- * 只有吸附阶段（is-swiping 移除后）才让 transition 接管，避免跟手延迟。
- *
- * 视觉策略：主反馈是**顶栏整排 tab 跟手位移**（见 .aurora-settings__nav-track）；
- * 内容层只做呼应的微位移（≤28px，小于 40px 内边距 → 首字不裁）+ 方向边缘压暗。
- * 边缘压暗用 ::before/::after 渐变层，随 --swipe-progress（按槽距归一化）显现/消隐。
- */
-.aurora-settings__swipe-layer {
-  position: relative;
-  transition:
-    transform var(--mc-dur-base) var(--mc-ease-out),
-    opacity var(--mc-dur-base) var(--mc-ease-out);
-  will-change: transform;
-}
-
-/* 方向边缘压暗层：顶/底各一片，用 opacity 由进度驱动 */
-.aurora-settings__swipe-layer::before,
-.aurora-settings__swipe-layer::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 72px;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity var(--mc-dur-base) var(--mc-ease-out);
-  z-index: 1;
-}
-
-/* 左缘：往右拖（progress > 0）时显现 */
-.aurora-settings__swipe-layer::before {
-  left: 0;
-  background: linear-gradient(
-    to right,
-    color-mix(in srgb, var(--mc-bg-content) 90%, transparent),
-    transparent
-  );
-}
-
-/* 右缘：往左拖（progress < 0）时显现 */
-.aurora-settings__swipe-layer::after {
-  right: 0;
-  background: linear-gradient(
-    to left,
-    color-mix(in srgb, var(--mc-bg-content) 90%, transparent),
-    transparent
-  );
-}
-
-/* 跟手期间：零过渡（必须），并轻微降透明度暗示「可翻页」 */
-.aurora-settings__content.is-swiping {
-  cursor: grabbing;
-  user-select: none;
-  overflow: hidden;
-}
-
-.aurora-settings__content.is-swiping .aurora-settings__swipe-layer {
-  transition: none;
-  opacity: 0.96;
-}
-
-/* 边缘压暗随进度显现：progress 为正 → 左缘亮起；为负 → 右缘亮起 */
-.aurora-settings__content.is-swiping .aurora-settings__swipe-layer::before {
-  opacity: clamp(0, var(--swipe-progress, 0), 1);
-}
-.aurora-settings__content.is-swiping .aurora-settings__swipe-layer::after {
-  opacity: clamp(0, calc(var(--swipe-progress, 0) * -1), 1);
-}
-
-/* 跟手期间：轨道零过渡（位移必须逐帧跟手，不能有过渡滞后） */
-.aurora-settings__nav-tabs[data-swiping] .aurora-settings__nav-track {
-  transition: none;
-}
-
+/* 跟手期间：滑块零过渡（位移必须逐帧跟手，不能有过渡滞后）；
+ * 光标语言只在跟手期切换（静止态不设 grab —— tab 是按钮，会与点击语义打架）。 */
 .aurora-settings__nav-tabs[data-swiping] {
-  /* 跟手期间给出「正在拖动」的光标语言（静止态不设 grab：
-   * tab 是按钮，静止态显示 grab 会与点击语义打架） */
   cursor: grabbing;
-  /* 跟手期间左右两端渐隐：整排外滑时方块是**硬切**在药丸边界上的
-   * （半个字形挂在那里显得廉价），且对侧会露出药丸空白。
-   * 用遮罩让两端 14px 渐隐 → 读作"从边缘滑进去/滑出来"。
-   * 只挂在跟手态：静止态药丸外观不因此改变。 */
-  -webkit-mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
-  mask-image: linear-gradient(to right, transparent, #000 14px, #000 calc(100% - 14px), transparent);
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .aurora-settings__swipe-layer {
-    /* 从容层减半，非归零 */
-    transition-duration: 140ms;
-  }
-  .aurora-settings__content.is-swiping .aurora-settings__swipe-layer {
-    opacity: 0.97;
-  }
+.aurora-settings__nav-tabs[data-swiping] .aurora-settings__nav-thumb {
+  transition: none;
 }
 
 .aurora-settings__header {

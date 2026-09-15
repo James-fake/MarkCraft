@@ -1,30 +1,39 @@
 /**
- * tabStripSwipe · 「整排 tab 跟手」共享层单测
+ * tabStripSwipe · 「分段控件滑块」纯逻辑层单测（需求 N 第四轮）
  * ---------------------------------------------------------------------------
- * 事故背景（用户三次追问「按住 tab 方框左右滑的效果没显示出来」）：
- * 第二轮手势已能识别，但视觉上等于没动 —— CDP 实测按住方块拖 150px，
- * 方块只挪 0.7px（progress 被内容区宽 1358px 稀释后 × 6px），
- * 松手阈值却是内容区宽 × 32% = 435px。
+ * 形态定案（经 AskUserQuestion 与用户确认）：**Apple 分段控件（Segmented Control）**
+ *   - 一条**常驻滑块**盖在选中项上；
+ *   - 按住 tab 拖动 → **只有滑块**跟手滑，tab 文字一个像素都不动；
+ *   - 松手 → 滑块滑到最近的 tab（拖过一半就切）；
+ *   - 内容区零位移、栏不滚动。
  *
- * 本文件锁死两条「所见即所得」不变量：
- *   1. 位移：一个槽距内 **严格 1:1**（用户按住的方块必须跟着手指走），越界才阻尼；
- *   2. 阈值：**半个槽距**（拖过一半就切），与看得见的位移一致。
- * 外加几何量取（槽距）与进度归一化的边界行为。
+ * 与第三轮（整排轨道跟手）的本质区别：位移承载者从「整排轨道」换成「一条独立滑块」，
+ * 所以滑块位置 = **基准定位**（随选中项变化，量 tab 几何）+ **手势位移**（跟手），
+ * 两者必须合成到**同一个 transform**（否则松手瞬间「基准跳变 + 位移清零」会被拆成两段动画）。
+ *
+ * 本文件锁死四条「所见即所得」不变量：
+ *   1. 位移：一个槽距内**严格 1:1**（用户按住的滑块必须跟着手指走），越界才阻尼；
+ *   2. 阈值：**半个「该方向的真实中心距」**（拖过一半就切），与看得见的位移一致；
+ *   3. 宽度：滑块宽度恒等于**当前所压那个 tab** 的宽度（tab 宽窄不一时不能塌）；
+ *   4. 落位：松手/点击/首帧/resize 三种时机各自的动画策略（带过渡 / 瞬时）。
  */
 import { describe, it, expect } from 'vitest'
+import type React from 'react'
 import {
-  CONTENT_FOLLOW_CLAMP,
   FALLBACK_SLOT,
-  createTabStripMotion,
+  TAB_SELECTOR,
+  createTabStripThumb,
+  measureTabBox,
   measureTabCenters,
+  tabElements,
 } from './tabStripSwipe'
 import { STRIP_MAX_RATIO, averageSlot, decideSnap, mapStripOffset } from './swipeTabsCore'
 
 /* ------------------------------------------------------------------ *
- * mapStripOffset · 整排跟手位移映射
+ * mapStripOffset · 滑块跟手位移映射（核心公式）
  * ------------------------------------------------------------------ */
 
-describe('mapStripOffset · 整排关手位移（1:1 跟手 + 越界橡胶）', () => {
+describe('mapStripOffset · 滑块跟手位移（1:1 跟手 + 越界橡胶）', () => {
   const LIMIT = 75
 
   it('槽距（一个 limit）内严格 1:1 —— 所见即所得，这是主反馈的全部意义', () => {
@@ -36,12 +45,12 @@ describe('mapStripOffset · 整排关手位移（1:1 跟手 + 越界橡胶）', 
   })
 
   it('越界后阻尼（0.18 增益），而非硬停 —— 让「拖不动了」可被手掌感知', () => {
-    // 150px 拖拽、槽距 75 → 75 + 75 × 0.18 = 88.5（CDP 实测同值）
+    // 150px 拖拽、槽距 75 → 75 + 75 × 0.18 = 88.5
     expect(mapStripOffset(150, LIMIT)).toBeCloseTo(88.5, 5)
     expect(mapStripOffset(-150, LIMIT)).toBeCloseTo(-88.5, 5)
   })
 
-  it('硬顶 limit × 1.25 —— 桌面端不预渲染相邻页，无限平移会整排出框漏白', () => {
+  it('硬顶 limit × 1.25 —— 滑块不得被拖出凹槽太远（出框会压到别处/漏白）', () => {
     const cap = LIMIT * STRIP_MAX_RATIO
     expect(mapStripOffset(100000, LIMIT)).toBeCloseTo(cap, 5)
     expect(mapStripOffset(-100000, LIMIT)).toBeCloseTo(-cap, 5)
@@ -64,7 +73,6 @@ describe('mapStripOffset · 整排关手位移（1:1 跟手 + 越界橡胶）', 
 
 describe('averageSlot · 平均槽距', () => {
   it('首末中心距 /（n-1）—— 用平均而非逐对相邻距，避免反向拖动时限幅突跳', () => {
-    // 中心：439 / 511 / 583 → 跨度 144，n-1 = 2 → 72
     expect(averageSlot([439, 511, 583])).toBe(72)
     // 方块宽不等（70/82）时，平均来自首末，与方向无关
     expect(averageSlot([0, 72, 156, 228])).toBeCloseTo(76, 5)
@@ -106,123 +114,183 @@ describe('decideSnap · thresholdPx 覆盖（半个槽距）', () => {
 })
 
 /* ------------------------------------------------------------------ *
- * measureTabCenters · DOM 量取
+ * DOM 量取（用真 DOM 元素 + 打桩 getBoundingClientRect）
  * ------------------------------------------------------------------ */
 
-/** 造一个只带 getBoundingClientRect 的假元素 */
-const fakeRect = (left: number, width: number) =>
-  ({ getBoundingClientRect: () => ({ left, width }) } as unknown as HTMLElement)
+const rect = (left: number, width: number) =>
+  ({ left, top: 0, right: left + width, bottom: 0, width, height: 0, x: left, y: 0, toJSON: () => ({}) }) as DOMRect
 
-const fakeTrack = (children: HTMLElement[], left = 0) =>
-  ({ getBoundingClientRect: () => ({ left }), children } as unknown as HTMLElement)
+/**
+ * 造「轨道 + N 个 tab + 滑块」的最小 DOM。
+ *
+ * 用真 `document.createElement`（而非纯对象）—— 因为量取走的是
+ * `track.querySelectorAll('[role="tab"]')`，必须验证「滑块不会被当成 tab 量进去」。
+ */
+function makeTrack(boxes: Array<[number, number]>, trackLeft = 0) {
+  const track = document.createElement('div')
+  const thumb = document.createElement('span')
+  thumb.setAttribute('aria-hidden', 'true')
+  track.appendChild(thumb)
 
-describe('measureTabCenters · 从轨道子元素量 tab 中心', () => {
-  it('返回各子元素中心相对轨道左缘的 x', () => {
-    const track = fakeTrack([fakeRect(0, 70), fakeRect(72, 70), fakeRect(144, 82)])
-    expect(measureTabCenters(track)).toEqual([35, 107, 185])
+  const tabs = boxes.map(([left, width]) => {
+    const el = document.createElement('button')
+    el.setAttribute('role', 'tab')
+    el.getBoundingClientRect = () => rect(trackLeft + left, width)
+    track.appendChild(el)
+    return el
+  })
+  track.getBoundingClientRect = () => rect(trackLeft, 0)
+  return { track, thumb, tabs }
+}
+
+const ref = <T,>(v: T | null) => ({ current: v } as React.RefObject<T>)
+
+const num = (transform: string) => {
+  const m = /translate3d\((-?[\d.]+)px/.exec(transform || '')
+  return m ? Number(m[1]) : 0
+}
+
+describe('measureTabBox / measureTabCenters · 轨道 padding box 坐标系', () => {
+  it('返回 tab 的 x 与宽，坐标原点与轨道对齐（滑块 left:0 才能直接对上）', () => {
+    const { track } = makeTrack([[0, 70], [72, 70], [144, 82]])
+    expect(measureTabBox(track, 1)).toEqual({ x: 72, w: 70 })
+    expect(measureTabBox(track, 2)).toEqual({ x: 144, w: 82 })
   })
 
-  it('轨道自身被位移时中心距不变（差值抵消常量偏移）—— 跟手期间无需清位移再量', () => {
-    const a = fakeTrack([fakeRect(0, 70), fakeRect(72, 70), fakeRect(144, 70)], 404)
-    const b = fakeTrack([fakeRect(-88, 70), fakeRect(-16, 70), fakeRect(56, 70)], 404)
-    expect(averageSlot(measureTabCenters(a), 72)).toBe(72)
-    expect(averageSlot(measureTabCenters(b), 72)).toBe(72)
+  it('轨道整体偏移不影响结果（差值抵消常量）—— 跟手期间无需先清位移再量', () => {
+    const { track } = makeTrack([[0, 70], [72, 70]], 404)
+    expect(measureTabBox(track, 1)).toEqual({ x: 72, w: 70 })
+    expect(measureTabCenters(track)).toEqual([35, 107])
   })
 
-  it('轨道为 null → 空数组（下游退回 fallback，不抛错）', () => {
+  it('滑块（aria-hidden，无 role）不会被当成 tab 量进去', () => {
+    const { track } = makeTrack([[0, 70], [72, 70], [144, 70]])
+    expect(tabElements(track, TAB_SELECTOR)).toHaveLength(3)
+    expect(measureTabCenters(track)).toEqual([35, 107, 179])
+  })
+
+  it('越界 / 轨道为 null → null 与空数组（下游退回 fallback，不抛错）', () => {
+    const { track } = makeTrack([[0, 70]])
+    expect(measureTabBox(track, 5)).toBeNull()
+    expect(measureTabBox(null, 0)).toBeNull()
     expect(measureTabCenters(null)).toEqual([])
   })
 })
 
 /* ------------------------------------------------------------------ *
- * createTabStripMotion · 面板侧组装
+ * createTabStripThumb · 组装（位移 / 宽度 / 阈值 / 落位）
  * ------------------------------------------------------------------ */
 
-/** 造一块面板的最小 DOM：轨道（3 个 tab，槽距 75）+ 面板根 + 内容层 */
-function makeFixture() {
-  const track = fakeTrack([fakeRect(0, 70), fakeRect(75, 70), fakeRect(150, 70)])
-  const root = document.createElement('div')
-  const content = document.createElement('div')
+function fixture(boxes: Array<[number, number]> = [[0, 70], [72, 82], [156, 70]], index = 0) {
+  const { track, thumb, tabs } = makeTrack(boxes)
+  let cur = index
   return {
-    trackRef: { current: track },
-    rootRef: { current: root },
-    contentRef: { current: content },
-    root,
-    content,
+    track,
+    thumb,
+    tabs,
+    getIndex: () => cur,
+    setIndex: (i: number) => { cur = i },
+    make: () => createTabStripThumb({
+      trackRef: ref(track),
+      thumbRef: ref(thumb),
+      getIndex: () => cur,
+    }),
   }
 }
 
-describe('createTabStripMotion · 组装（位移 / 阈值 / 进度 / 归位）', () => {
-  it('visualMapper 用实测槽距做限幅（1:1 + 越界阻尼）', () => {
-    const f = makeFixture()
-    const m = createTabStripMotion(f)
-    expect(m.visualMapper(40)).toBe(40)          // 槽距内 1:1
-    expect(m.visualMapper(150)).toBeCloseTo(75 + (150 - 75) * 0.18, 5)
+describe('createTabStripThumb · 滑块跟手（所见即所得）', () => {
+  it('首次位移量基准：宽度 = 当前 tab 宽，位置 = 基准 + 1:1 位移', () => {
+    const f = fixture()
+    f.make().handleOffset(-40)
+    expect(f.thumb.style.width).toBe('70px')
+    expect(f.thumb.style.transition).toBe('none')   // 跟手期间必须零过渡
+    expect(num(f.thumb.style.transform)).toBe(-40)  // base.x = 0 + (-40)
   })
 
-  it('snapThresholdPx = 半个槽距（「拖过一半就切」与视觉一致）', () => {
-    const f = makeFixture()
-    const m = createTabStripMotion(f)
-    expect(m.snapThresholdPx()).toBe(37.5)
+  it('一次手势内只量一次几何（不在每帧 getBoundingClientRect → 不触发同步布局）', () => {
+    const f = fixture()
+    let measureCount = 0
+    for (const t of f.tabs) {
+      const orig = t.getBoundingClientRect
+      t.getBoundingClientRect = () => { measureCount++; return orig.call(t) }
+    }
+    const m = f.make()
+    for (let i = 1; i <= 30; i++) m.handleOffset(-i * 5)
+    // 基准盒 1 次 + 中心位 1 批（每个 tab 各 1 次），此后全程缓存
+    expect(measureCount).toBe(f.tabs.length + 1)
   })
 
-  it('量不到轨道几何时退回兜底槽距（不把 0 传给下游 → 不出现「一碰就翻页」）', () => {
-    const m = createTabStripMotion({
-      trackRef: { current: null },
-      rootRef: { current: document.createElement('div') },
-    })
+  it('越界橡胶：拖 150px 时位移 = 一个槽距 + 阻尼（不是硬停，也不是无限跟）', () => {
+    const f = fixture()   // 中心 35 / 113 → 槽距 78
+    f.make().handleOffset(-150)
+    expect(num(f.thumb.style.transform)).toBeCloseTo(-(78 + (150 - 78) * 0.18), 5)
+  })
+
+  it('起点不在 0 时位移带基准（滑块压在哪个 tab 上就从哪个 tab 起滑）', () => {
+    const f = fixture([[0, 70], [72, 82], [156, 70]], 1)
+    f.make().handleOffset(-30)
+    expect(f.thumb.style.width).toBe('82px')       // 宽度取起始 tab
+    expect(num(f.thumb.style.transform)).toBe(72 - 30)
+  })
+
+  it('snapThresholdPx = 该方向真实中心距的一半（拖过一半就切）', () => {
+    const f = fixture([[0, 70], [72, 70], [144, 70]], 0)   // 中心 35 / 107 / 179 → 每格 72
+    const m = f.make()
+    m.handleOffset(-40)
+    expect(m.snapThresholdPx()).toBe(36)
+  })
+
+  it('阈值按**方向**取相邻格，而不是平均槽距（方块不等宽时两者不同）', () => {
+    // 中心 35 / 113 / 179 / 251 → 前向格 66、后向格 78、均值 72
+    const f = fixture([[0, 70], [72, 82], [138, 82], [210, 82]], 1)
+    const m = f.make()
+
+    m.handleOffset(-40)                       // 向左 = 下一个（中心距 66）
+    expect(m.snapThresholdPx()).toBe(33)
+
+    m.handleOffset(40)                        // 向右 = 上一个（中心距 78）
+    expect(m.snapThresholdPx()).toBe(39)
+  })
+
+  it('边界方向无相邻 tab → 退回平均槽距（越界仍有可感的橡胶阻尼）', () => {
+    const f = fixture([[0, 70], [72, 70], [144, 70]], 2)   // 末位
+    const m = f.make()
+    m.handleOffset(-40)
+    expect(m.snapThresholdPx()).toBe(36)      // 平均槽距 72 的一半
+  })
+})
+
+describe('createTabStripThumb · 落位（三种时机各自的动画策略）', () => {
+  it('place(index, true)：清空内联过渡交回 CSS（点击 / 松手吸附要看得见滑动）', () => {
+    const f = fixture()
+    f.make().place(2, true)
+    expect(f.thumb.style.transition).toBe('')
+    expect(f.thumb.style.width).toBe('70px')
+    expect(num(f.thumb.style.transform)).toBe(156)
+  })
+
+  it('place(index, false)：瞬时落位，且**不得留下内联 transition:none 残留**', () => {
+    const f = fixture()
+    f.make().place(1, false)
+    // 残留的 none 会一直压着 CSS 过渡 → 之后点击/松手落位全变瞬移（真机踩到过）
+    expect(f.thumb.style.transition, '内联 transition:none 残留').toBe('')
+    expect(f.thumb.style.width).toBe('82px')
+    expect(num(f.thumb.style.transform)).toBe(72)
+  })
+
+  it('place 清掉基准缓存：下一次手势按**当前**索引重新量（换组/切 tab 后不沿用旧滑块位）', () => {
+    const f = fixture()
+    const m = f.make()
+    m.handleOffset(-40)          // 缓存 base@index0
+    f.setIndex(1)
+    m.place(1, false)
+    m.handleOffset(-10)          // 必须按 index1 重新量（x = 72）
+    expect(num(f.thumb.style.transform)).toBe(62)
+  })
+
+  it('滑块未挂载 / 轨道缺失时不抛错（浮层收起、首帧），阈值退回兜底', () => {
+    const m = createTabStripThumb({ trackRef: ref(null), thumbRef: ref(null), getIndex: () => 0 })
+    expect(() => { m.handleOffset(30); m.place(0, true) }).not.toThrow()
     expect(m.snapThresholdPx()).toBe(FALLBACK_SLOT / 2)
-    expect(m.visualMapper(10)).toBe(10)
-  })
-
-  it('handleOffset：内容层跟手位移（钳制）+ 进度按槽距归一化到 [-1,1]', () => {
-    const f = makeFixture()
-    const m = createTabStripMotion(f)
-
-    // 钳制以内 1:1
-    m.handleOffset(15)
-    expect(f.content.style.transform).toBe('translate3d(15px, 0, 0)')
-    // 内容层钳制：超过 CONTENT_FOLLOW_CLAMP 后强递减，远离 40px 内边距
-    m.handleOffset(300)
-    const shifted = Math.abs(Number(/translate3d\((-?[\d.]+)px/.exec(f.content.style.transform)![1]))
-    expect(shifted).toBeLessThan(40)
-    expect(shifted).toBeGreaterThan(CONTENT_FOLLOW_CLAMP)
-    // 进度：位移 75px（一个槽距）= 满格；再拖因橡胶仅略超 1 并被 clamp
-    m.handleOffset(75)
-    expect(Number(f.root.style.getPropertyValue('--swipe-progress'))).toBe(1)
-    m.handleOffset(-75)
-    expect(Number(f.root.style.getPropertyValue('--swipe-progress'))).toBe(-1)
-    m.handleOffset(-100000)
-    expect(Number(f.root.style.getPropertyValue('--swipe-progress'))).toBe(-1)
-  })
-
-  it('handleOffset：位移很小时进度同步很小（progress 与位移同源，不会先亮后动）', () => {
-    const f = makeFixture()
-    createTabStripMotion(f).handleOffset(7.5)
-    expect(Number(f.root.style.getPropertyValue('--swipe-progress'))).toBeCloseTo(0.1, 5)
-  })
-
-  it('begin 让内容层零过渡（否则跟手位移滞后于指针）', () => {
-    const f = makeFixture()
-    createTabStripMotion(f).begin()
-    expect(f.content.style.transition).toBe('none')
-  })
-
-  it('reset 清掉内联位移/过渡与进度（归位动画交回 CSS 过渡），并重新量槽距', () => {
-    const f = makeFixture()
-    const m = createTabStripMotion(f)
-    m.handleOffset(40)
-    m.begin()
-    m.reset()
-    expect(f.content.style.transform).toBe('')
-    expect(f.content.style.transition).toBe('')
-    expect(f.root.style.getPropertyValue('--swipe-progress')).toBe('0')
-  })
-
-  it('缺内容层（浮层未挂载）时不抛错，仅跳过位移', () => {
-    const f = makeFixture()
-    const m = createTabStripMotion({ trackRef: f.trackRef, rootRef: f.rootRef })
-    expect(() => { m.begin(); m.handleOffset(30); m.reset() }).not.toThrow()
-    expect(Number(f.root.style.getPropertyValue('--swipe-progress'))).toBe(0)
   })
 })
