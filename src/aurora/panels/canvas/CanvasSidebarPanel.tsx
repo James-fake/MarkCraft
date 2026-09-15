@@ -85,10 +85,15 @@ export function CanvasSidebarPanel({ engine, onOpenFile, initialTab }: CanvasSid
     onOffsetChange: handleSwipeOffset,
     // 位移落到内容区（tab 行本身不位移，只做指示器联动）
     targetRef: bodyRef,
+    // 吸附基准按内容区（侧栏体）尺寸算
+    measureRef: bodyRef,
   })
   useEffect(() => {
     if (!swipe.dragging) rootRef.current?.style.setProperty('--swipe-progress', '0')
   }, [swipe.dragging])
+
+  /** tab 行手势绑定：吃掉横滑松手后按钮的 click，避免「滑完又点回去」 */
+  const bind = useMemo(() => swipe.makeBind(), [swipe])
   const [miniZoom, setMiniZoom] = useState(0.5)
 
   const { getBacklinks, getOutgoingLinks } = useLinkIndex()
@@ -217,7 +222,7 @@ const [shapes, setShapes] = useState<ParsedShape[]>([])
   return (
     <div className="aurora-csp" ref={rootRef}>
       <div className="aurora-csp__head">
-        <div className="aurora-csp__tabs" role="tablist" data-swiping={swipe.dragging || undefined} {...swipe.bind}>
+        <div className="aurora-csp__tabs" role="tablist" data-swiping={swipe.dragging || undefined} {...bind}>
           {TABS.map((t) => {
             const IconComp = Icon[t.icon as keyof typeof Icon]
             return (

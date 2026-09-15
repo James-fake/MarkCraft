@@ -1182,10 +1182,15 @@
 /* 左侧栏面板（5 Tab） */
 .aurora-csp { display: flex; flex-direction: column; height: 100%; overflow: hidden; }
 .aurora-csp__head { display: flex; align-items: stretch; border-bottom: 1px solid var(--mc-border-subtle); }
-.aurora-csp__tabs { display: flex; align-items: center; gap: 2px; padding: 8px 8px 0; flex: 1; border-bottom: none; touch-action: pan-y; }
+/* 横滑 tab 行：x 轴手势区（纵向交回浏览器），横滑时不选中 tab 文案 */
+.aurora-csp__tabs { display: flex; align-items: center; gap: 2px; padding: 8px 8px 0; flex: 1; border-bottom: none; touch-action: pan-y; user-select: none; }
 /* 滑动进度变量（挂侧栏根，供 tab 指示器与内容层边缘遮罩消费） */
 .aurora-csp { --swipe-progress: 0; }
 /* 滑动切换（横滑 tab 行）：位移落在内容区，tab 行只做指示器联动 */
+/* 跟手期间给出「正在拖动」的光标语言（静止态不设 grab，避免与点击语义打架） */
+.aurora-csp__tabs[data-swiping] {
+  cursor: grabbing;
+}
 .aurora-csp__tabs[data-swiping] .aurora-csp__tab--active {
   transform: translateX(calc(var(--swipe-progress) * 6px));
   transition: none;

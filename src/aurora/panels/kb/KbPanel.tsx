@@ -314,6 +314,8 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
   /* 内容区滑动切 Tab：内容区容器接收事件，内层包裹层承载位移 */
   const rootRef = useRef<HTMLDivElement>(null)
   const swipeLayerRef = useRef<HTMLDivElement>(null)
+  /** 吸附判定基准（内容区可视宽度），手势从 subbar tab 栏起手时也按它算 */
+  const contentRef = useRef<HTMLDivElement>(null)
   const handleOffsetChange = useCallback((offset: number) => {
     const root = rootRef.current
     if (!root) return
@@ -326,10 +328,14 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
     onIndexChange: (next) => setTab(TABS[next].id),
     onOffsetChange: handleOffsetChange,
     targetRef: swipeLayerRef,
+    measureRef: contentRef,
   })
   useEffect(() => {
     if (!swipe.dragging) rootRef.current?.style.setProperty('--swipe-progress', '0')
   }, [swipe.dragging])
+
+  /** 手势同时挂到 subbar tab 栏与内容区（tab 栏那份吃掉横滑后的 click） */
+  const bind = useMemo(() => swipe.makeBind(), [swipe])
 
   const { rootFolder, renameNode, deleteNode, createFile, openFile } = useFileManager()
   const { openCommandPalette } = useCommandPalette()
@@ -493,7 +499,7 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
           </div>
 
           <div className="aurora-kb-subbar__center">
-            <div className="aurora-kb-subbar-tabs" role="tablist" aria-label="知识库功能切换" data-swiping={swipe.dragging || undefined}>
+            <div className="aurora-kb-subbar-tabs" role="tablist" aria-label="知识库功能切换" data-swiping={swipe.dragging || undefined} {...bind}>
               {TABS.map((t) => {
                 const I = Icon[t.icon]
                 return (
@@ -523,7 +529,8 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
 
         <div
           className={`aurora-kb-content ${swipe.dragging ? 'is-swiping' : ''}`}
-          {...swipe.bind}
+          ref={contentRef}
+          {...bind}
         >
           <div className="aurora-kb-content__body" ref={swipeLayerRef}>
             {!loaded ? (

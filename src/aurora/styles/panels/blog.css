@@ -77,6 +77,10 @@
   padding-left: 9px;
   border-left: 1px solid var(--mc-border-subtle);
   min-width: 0;
+  /* 滑动切「组内子面板」：手势已同时绑在 subseg 与浮层内容体，
+   * subseg 也必须是 x 轴手势区，否则横滑被浏览器抢走。 */
+  touch-action: pan-y;
+  user-select: none;
 }
 .aurora-blog__subseg-btn {
   display: inline-flex;
@@ -100,6 +104,11 @@
   background: var(--mc-bg-elevated);
   font-weight: 600;
   box-shadow: var(--mc-shadow-inset);
+}
+
+/* 跟手期间给出「正在拖动」的光标语言（静止态不设 grab，避免与点击语义打架） */
+.aurora-blog__subseg[data-swiping] {
+  cursor: grabbing;
 }
 
 .aurora-blog__subbar-right {

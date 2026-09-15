@@ -1030,41 +1030,65 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
   const dragRef = useRef<{ startX: number; startLeft: number; lastX: number; lastT: number; vx: number } | null>(null)
 
   /**
-   * 浮层内容体滑动切「组内子面板」。
+   * 滑动切「组内子面板」。手势**同时**挂到顶栏 segmented（`.aurora-blog__subseg`）
+   * 与浮层内容体（`.aurora-blog__panelzone-body`）两处。
    *
    * 博客与设置/知识库的本质差异：
    *   - 设置/知识库：tab → 可切换的内容主体（内容区即 tab 的载体）
    *   - 博客：tab → **浮层面板**，主体是预览 iframe
    *
-   * 因此博客的手势接入点必须是「浮层内容体」而非预览区：
-   *   1. 预览区是 iframe —— pointer 事件被 iframe 吞掉，手势无法生效；
-   *   2. 浮层表头已有「甩丢停靠」拖拽手势 —— 手势区重叠会互相打架；
-   *   3. 浮层默认收起（专注预览）—— 收起时无内容可切，故此时禁用。
+   * 因此各自的取舍：
+   *   1. **不挂预览区** —— 预览区是 iframe，pointer 事件被 iframe 吞掉，手势无法生效；
+   *   2. **浮层表头不挂** —— 表头已有「甩丢停靠」拖拽手势，重叠会互相打架；
+   *   3. **手势必须常驻可用**（`enabled: true`）—— 顶栏 tab 行始终可见，
+   *      用户在该行左右滑就该切子面板；若跟 `panelOpen` 绑定，浮层默认收起时
+   *      （`useState(false)`）滑动会完全无响应 —— 这正是「tab 栏滑不动」的根因。
+   *      位移目标在收起时为空，由 hook 内部空判兜住（不位移但照常切 tab）。
    *
    * 只滑「组内」（DesignBrief §4.2 D2）：跨组会同时改 group + panel 两个状态，
    * 动画目标不唯一且语义跳跃大（主题 ↔ 高级），故跨组必须点 tab。
+   * 组内只有 2 项时，到边后继续同向滑会被边界阻尼回弹 —— 预期行为。
    */
   const blogPanelBodyRef = useRef<HTMLDivElement>(null)
+  /**
+   * 吸附判定基准（始终存在）。
+   *
+   * ⚠️ 不能直接用 `blogPanelBodyRef` 作 measure：浮层内容体在 `panelOpen=false`
+   * 时条件渲染、不挂载 → ref.current 为 null → 手势会退回用 99px 宽的 tab 行
+   * 做 32% 阈值基准，从 tab 行起手时「轻轻一划」就被误判翻页。
+   * 预览区（`.aurora-blog__stage`）常驻，用它的宽度作基准才是稳定的。
+   */
+  const blogMeasureRef = useRef<HTMLDivElement>(null)
   const handleBlogOffset = useCallback((offset: number) => {
     const root = rootRef.current
     if (!root) return
-    const width = blogPanelBodyRef.current?.clientWidth || 1
+    const width = (blogPanelBodyRef.current ?? blogMeasureRef.current)?.clientWidth || 1
     root.style.setProperty('--swipe-progress', String(Math.max(-1, Math.min(1, offset / width))))
   }, [])
   const blogSwipe = useSwipeTabs({
     index: Math.max(0, PANEL_GROUPS.find((g) => g.items.includes(panel))!.items.indexOf(panel)),
     count: PANEL_GROUPS.find((g) => g.items.includes(panel))!.items.length,
-    enabled: panelOpen,
+    // 顶栏 tab 行**常驻可见** → 手势必须始终可用（不受浮层开合影响）。
+    // 位移目标（targetRef）在浮层收起时为 null，由 applyOffset 内部空判兜住。
+    enabled: true,
     onIndexChange: (next) => {
       const g = PANEL_GROUPS.find((x) => x.items.includes(panel))!
       setPanel(g.items[next])
     },
     onOffsetChange: handleBlogOffset,
-    targetRef: blogPanelBodyRef,
+    // 只位移浮层内容体（预览区不该跟着抖）
+    targetRef: panelOpen ? blogPanelBodyRef : undefined,
+    measureRef: blogMeasureRef,
   })
   useEffect(() => {
     if (!blogSwipe.dragging) rootRef.current?.style.setProperty('--swipe-progress', '0')
   }, [blogSwipe.dragging])
+
+  /**
+   * 手势同时挂到 subbar 的**子面板 segmented** 与**浮层内容体**两处。
+   * segmented 那份额外吃掉横滑后的 click（否则会把刚滑到的子面板又点回去）。
+   */
+  const blogBind = useMemo(() => blogSwipe.makeBind(), [blogSwipe])
 
   // 最右贴边 = 博客界面内容区宽度 − 功能列表宽度
   const edgeMax = () => Math.max(0, (rootRef.current?.offsetWidth ?? 0) - (panelRef.current?.offsetWidth ?? 0))
@@ -1220,7 +1244,7 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
               )
             })}
           </div>
-          <div className="aurora-blog__subseg" role="tablist" aria-label="子面板切换">
+          <div className="aurora-blog__subseg" role="tablist" aria-label="子面板切换" data-swiping={blogSwipe.dragging || undefined} {...blogBind}>
             {activeGroup.items.map((key) => {
               const p = PANELS.find((x) => x.key === key)!
               return (
@@ -1273,7 +1297,7 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
             <div
               className={`aurora-blog__panelzone-body ${blogSwipe.dragging ? 'is-swiping' : ''}`}
               ref={blogPanelBodyRef}
-              {...blogSwipe.bind}
+              {...blogBind}
             >
               {renderPanel()}
             </div>
@@ -1281,7 +1305,8 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
         </div>
 
         {/* 中央预览区（占据剩余空间） */}
-        <div className="aurora-blog__stage">
+        {/* 注：此节点常驻 → 兼作滑动手势的吸附判定基准（见 blogMeasureRef） */}
+        <div className="aurora-blog__stage" ref={blogMeasureRef}>
           <div className="aurora-blog__preview">
             <div className="aurora-blog__preview-stage">
               <div className={`aurora-blog__frame aurora-blog__frame--${device}`}>

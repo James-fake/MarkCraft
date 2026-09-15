@@ -35,6 +35,11 @@
   padding: 3px;
   background: var(--mc-bg-pressed);
   border-radius: var(--mc-radius-md);
+  /* 滑动切 Tab：手势已同时绑在 tab 栏与内容区，tab 栏也必须是 x 轴手势区，
+   * 否则横滑会被浏览器当作页面横滚/回退手势抢走。纵向仍交回浏览器代管。 */
+  touch-action: pan-y;
+  /* 横滑时不要选中 tab 文案 */
+  user-select: none;
 }
 
 .aurora-settings__nav-tab {
@@ -159,6 +164,9 @@
 
 .aurora-settings__nav-tabs[data-swiping] {
   transition: none;
+  /* 跟手期间给出「正在拖动」的光标语言（静止态不设 grab：
+   * tab 是按钮，静止态显示 grab 会与点击语义打架） */
+  cursor: grabbing;
 }
 
 @media (prefers-reduced-motion: reduce) {

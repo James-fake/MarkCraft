@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useRef, useCallback } from 'react'
+﻿import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { PageFrame } from '../../components/shell/PageFrame'
 import { useCommandPalette } from '../../components/command-palette/CommandPaletteContext'
 import { Icon } from '../../icons'
@@ -77,6 +77,8 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
   /** 内容区滑动切 Tab（跟手拖拽 / 触控板双指横滑） */
   const rootRef = useRef<HTMLDivElement>(null)
   const swipeLayerRef = useRef<HTMLDivElement>(null)
+  /** 吸附判定基准（内容区可视宽度），手势从 tab 栏起手时也按它算 */
+  const contentRef = useRef<HTMLDivElement>(null)
 
   /**
    * 进度联动：把位移映射为 --swipe-progress ∈ [-1,1]，
@@ -97,7 +99,19 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
     onOffsetChange: handleOffsetChange,
     // 位移落到内层无 padding 的包裹层，避免把 padding 一起推走
     targetRef: swipeLayerRef,
+    // 吸附阈值恒按内容区宽度算（不是 tab 栏宽度）
+    measureRef: contentRef,
   })
+
+  /**
+   * 手势同时挂在**顶栏 tab 栏**与**内容区**两处。
+   *
+   * 用户要求「顶栏的功能切换 tab 支持左右滑动」—— 起手位置必须在
+   * tab 栏内也能生效。两处共享同一 hook 状态，不会互相干扰。
+   * tab 栏那份额外带 onClickCapture：横滑松手后吃掉按钮的 click，
+   * 否则会把刚滑到的 tab 又点回去。
+   */
+  const bind = useMemo(() => swipe.makeBind(), [swipe])
 
   /** 拖拽结束后归零指示器进度 */
   useEffect(() => {
@@ -163,6 +177,7 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
             role="tablist"
             aria-label="设置分类"
             data-swiping={swipe.dragging || undefined}
+            {...bind}
           >
             {CATEGORIES.map((cat, i) => {
               const IconComp = Icon[cat.icon]
@@ -189,10 +204,11 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
           </div>
         </div>
 
-        {/* 内容区（滑动切 Tab 手势绑定于此） */}
+        {/* 内容区（滑动切 Tab 手势同样绑定于此，与顶栏 tab 栏并列可起手） */}
         <div
           className={`aurora-settings__content ${swipe.dragging ? 'is-swiping' : ''}`}
-          {...swipe.bind}
+          ref={contentRef}
+          {...bind}
         >
           <div className="aurora-settings__swipe-layer" ref={swipeLayerRef}>
             <div className="aurora-settings__header">

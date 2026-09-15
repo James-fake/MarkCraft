@@ -86,6 +86,14 @@ export interface UseSwipeTabsOptions {
    * 此时应把位移落到**内层无 padding 的包裹层**。
    */
   targetRef?: React.RefObject<HTMLElement>
+  /**
+   * 吸附判定基准元素（可选）。
+   *
+   * 手势可能从窄小的 tab 栏起手（如设置页 nav-tabs 宽 676px，
+   * 而内容区宽 1350px）。32% 吸附阈值必须恒定按**内容区**算，
+   * 否则从 tab 栏起手时「划 216px」就被判翻页，手感过灵。
+   */
+  measureRef?: React.RefObject<HTMLElement>
 }
 
 export interface UseSwipeTabsResult {
@@ -93,6 +101,19 @@ export interface UseSwipeTabsResult {
   bind: {
     onPointerDown: (e: React.PointerEvent) => void
     onWheel: (e: React.WheelEvent) => void
+  }
+  /**
+   * 生成一组可挂到**任意元素**上的手势绑定。
+   *
+   * 用途：同一面板里「tab 栏」与「内容区」是两棵并列的 DOM 子树，
+   * 用户可能在任一处起手滑动 —— 需要把同一套手势同时挂到两处。
+   * 多份绑定共享同一 `gestureRef` / `offsetRef`，因此不会互相干扰
+   * （pointerup 一旦结束，activeRef 复位，另一处不会接着跑）。
+   */
+  makeBind: () => {
+    onPointerDown: (e: React.PointerEvent) => void
+    onWheel: (e: React.WheelEvent) => void
+    onClickCapture: (e: React.MouseEvent) => void
   }
   /** 是否正在跟手（供 CSS 加类名降级） */
   dragging: boolean
@@ -112,6 +133,7 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
     onOffsetChange,
     onSettle,
     targetRef,
+    measureRef,
   } = options
 
   const [dragging, setDragging] = useState(false)
@@ -122,8 +144,8 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
   const activeRef = useRef(false)
 
   /** 最新 props 快照，供 document 监听器（闭包）读取，避免闭包陷阱 */
-  const latestRef = useRef({ index, count, onIndexChange, axis, onOffsetChange, onSettle, targetRef })
-  latestRef.current = { index, count, onIndexChange, axis, onOffsetChange, onSettle, targetRef }
+  const latestRef = useRef({ index, count, onIndexChange, axis, onOffsetChange, onSettle, targetRef, measureRef })
+  latestRef.current = { index, count, onIndexChange, axis, onOffsetChange, onSettle, targetRef, measureRef }
 
   /** 手势元数据 */
   const gestureRef = useRef({
@@ -142,6 +164,15 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
 
   /** 触控板累积状态 */
   const wheelStateRef = useRef(createWheelState())
+
+  /**
+   * 刚发生过位移型手势的标记。
+   *
+   * 手势挂在 tab 栏容器上（子节点是 tab `<button>`），松手后浏览器仍会
+   * 在按钮上派发一次 click → 会把刚滑到的 tab 又点回去。此标记让
+   * `onClickCapture` 捕获阶段吃掉那一次 click。
+   */
+  const suppressClickRef = useRef(false)
 
   /** 位移应用目标元素（优先 targetRef，否则退回 measure） */
   const applyTarget = useCallback((): HTMLElement | null => {
@@ -237,6 +268,12 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
       endVelocity,
     })
 
+    // 发生过真实位移型手势 → 吃掉随后由同一按键序列派发的 click，
+    // 否则 tab 按钮的 onClick 会把刚滑到的 tab 又拉回去。
+    if (Math.abs(offset) > DIRECTION_SLOP) {
+      suppressClickRef.current = true
+    }
+
     if (decision.passed && decision.targetIndex !== next.index) {
       next.onIndexChange(decision.targetIndex)
     }
@@ -260,7 +297,9 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
       axisLocked: 'undecided',
       samples: [{ offset: 0, time: 0 }],
       container: el,
-      measure: el,
+      // 吸附判定基准始终用**内容区**尺寸：手势可能从窄 tab 栏起手，
+      // 若用 tab 栏宽度做 32% 阈值会把"轻微一划"误判为翻页。
+      measure: latestRef.current.measureRef?.current ?? el,
       target: latestRef.current.targetRef?.current ?? el,
     }
     // 先不置 active，等方向判定明确后再抢占
@@ -385,8 +424,27 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
     }
   }, [applyTarget])
 
+  /* ---------------------------------------------------------------- *
+   * 多点位绑定工厂
+   * ---------------------------------------------------------------- */
+  const makeBind = useCallback((): {
+    onPointerDown: (e: React.PointerEvent) => void
+    onWheel: (e: React.WheelEvent) => void
+    onClickCapture: (e: React.MouseEvent) => void
+  } => ({
+    onPointerDown,
+    onWheel,
+    onClickCapture: (e: React.MouseEvent) => {
+      if (!suppressClickRef.current) return
+      suppressClickRef.current = false
+      e.preventDefault()
+      e.stopPropagation()
+    },
+  }), [onPointerDown, onWheel])
+
   return {
     bind: { onPointerDown, onWheel },
+    makeBind,
     dragging,
   }
 }

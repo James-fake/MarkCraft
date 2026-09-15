@@ -80,6 +80,11 @@
   padding: 3px;
   background: var(--mc-bg-pressed);
   border-radius: var(--mc-radius-md);
+  /* 滑动切 Tab：手势已同时绑在 tab 栏与内容区，tab 栏也必须是 x 轴手势区。
+   * 本栏 overflow-x:auto（tab 多时溢出）——溢出内容由「横滑切 tab」抵达，
+   * 触摸下不再走原生横滚；桌面鼠标仍可 Shift+滚轮横滚。 */
+  touch-action: pan-y;
+  user-select: none;
 }
 .aurora-kb-subbar-tabs::-webkit-scrollbar { display: none; }
 .aurora-kb-subbar-tab {
@@ -285,6 +290,11 @@
 }
 .aurora-kb-content.is-swiping .aurora-kb-content__body::after {
   opacity: clamp(0, calc(var(--swipe-progress, 0) * -1), 1);
+}
+
+/* 跟手期间给出「正在拖动」的光标语言（静止态不设 grab，避免与点击语义打架） */
+.aurora-kb-subbar-tabs[data-swiping] {
+  cursor: grabbing;
 }
 
 /* 顶栏 tab 指示器：按进度做微位移联动 */
