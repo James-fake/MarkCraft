@@ -43,6 +43,11 @@ dev 端口 **5174**：`node node_modules/vite/bin/vite.js --port 5174 --host`。
 - **CSS「无某声明」断言必须先剥离注释**（`css.replace(/\/\*[\s\S]*?\*\//g,'')`），否则注释文字自命中；
   断言「全仓无残留消费者」须排除 `docs[\\/]design`、`.test.tsx?$`、测试自身文件。
 - 静态断言锚点用**带引号的完整字面量**（`className="aurora-x"`），裸类名 `indexOf` 会先命中注释里的同名串。
+- **末段速度采样会被 jsdom 的 dt≈0 放大**：同步连发 `pointermove`（中间不 sleep）时
+  `computeEndVelocity` 的 `dt` 极小 → 速度被算成极大 → **甩掷路径误判为通过**（dt=0 时又返回 0，两个极端都不稳）。
+  凡"**期望不切换**"的手势用例，必须让末段**真实慢速**（如每步 `await sleep(300)`，末段速度≈0.17 < 0.3），
+  否则结论可能只是靠"越界护栏"碰巧成立 —— 方向一改就崩（09-15 踩到）。
+  同理：用例若靠"首/末 tab 越界"作为不切换的保障，一旦断言的方向变了就失去保障，要显式选中间 index。
 - 读文件断言用 `readFileSync(resolve(__dirname, ...))`，**别用 `new URL(..., import.meta.url)`**。
 - 命令：`node node_modules/vitest/vitest.mjs run [pattern]`；`node node_modules/typescript/bin/tsc --noEmit -p tsconfig.json`。
 
