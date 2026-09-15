@@ -22,12 +22,25 @@
  *   滑块位置 = **基准定位**（随选中项变化，量 tab 的几何）+ **手势位移**（跟手）
  *   两者必须写进**同一个 transform**，否则松手瞬间「基准跳变 + 位移清零」
  *   会被浏览器拆成两段动画（先弹回旧 tab 再滑向新 tab）。
+ *
+ * 需求 N 第六轮（用户原话）：
+ *   「现在要求可以连续滑动，例如在知识库功能 tab 可以直接从概况，直接滑动到
+ *     最后一个导出，就不需要一个一个滑动过去」
+ *   → 两处从「单步」放开成「连续」：
+ *     ① 位移映射：判据从「一格限幅」改为「落点是否还在轨道内」（`mapTrackOffset`）
+ *        —— 旧公式每跨一格阻尼一次，第二格起几乎不动，物理上拖不到后面的 tab；
+ *     ② 吸附判定：从「±1 单步」改为「**落点最近的中心位即目标**」（`decideSnap`）。
+ *   唯一保留的单步语义是**甩掷兜底**：快速轻拨时至少推进一格（否则轻拨无响应）。
  */
 import type React from 'react'
-import { mapStripOffset } from './swipeTabsCore'
-
-/** 量不到几何时的兜底槽距（px）：约一个中等宽度 tab + 间距 */
-export const FALLBACK_SLOT = 72
+import {
+  DIRECTION_SLOP,
+  FLICK_MIN_DISTANCE,
+  FLICK_VELOCITY,
+  mapTrackOffset,
+  type SnapDecision,
+  type SnapDecisionInput,
+} from './swipeTabsCore'
 
 /** tab 元素默认选择器（四条栏的 tab 都带 role="tab"，滑块自身无 role） */
 export const TAB_SELECTOR = '[role="tab"]'
@@ -79,13 +92,6 @@ export function measureTabCenters(track: HTMLElement | null, selector: string = 
   })
 }
 
-/** 平均槽距（首末中心距 / (n-1)）；几何退化时返回 null */
-function averageSlotOf(centers: number[]): number | null {
-  if (centers.length < 2) return null
-  const avg = (centers[centers.length - 1] - centers[0]) / (centers.length - 1)
-  return avg > 0 ? avg : null
-}
-
 export interface TabStripThumbOptions {
   /** tab 轨道元素（其内第一个孩子是滑块，其余是 role="tab" 的按钮） */
   trackRef: React.RefObject<HTMLElement>
@@ -95,8 +101,6 @@ export interface TabStripThumbOptions {
   getIndex: () => number
   /** tab 选择器 */
   tabSelector?: string
-  /** 兜底槽距（px） */
-  fallbackSlot?: number
 }
 
 export interface TabStripThumb {
@@ -105,8 +109,13 @@ export interface TabStripThumb {
    * 每帧调用，内部不触发 React re-render，仅直写 style。
    */
   handleOffset: (raw: number) => void
-  /** 交给 `useSwipeTabs({ snapThresholdPx })`：松手阈值 = 半个「本方向真实中心距」 */
-  snapThresholdPx: () => number
+  /**
+   * 交给 `useSwipeTabs({ snapDecider })`：松手吸附判定。
+   *
+   * **落点（基准中心 + 位移）最近的中心位即目标** —— 可一次跨多格。
+   * 单步约束已在第六轮废除（用户要求「从概况直接拖到导出」）。
+   */
+  decideSnap: (input: SnapDecisionInput) => SnapDecision
   /**
    * 把滑块落到第 index 个 tab 上（宽度也换成该 tab 的宽度）。
    *
@@ -124,44 +133,20 @@ export interface TabStripThumb {
  * （tab 增删 / 换组后仍准）。
  */
 export function createTabStripThumb(o: TabStripThumbOptions): TabStripThumb {
-  const fallback = o.fallbackSlot ?? FALLBACK_SLOT
   const selector = o.tabSelector ?? TAB_SELECTOR
 
   /** 本次手势的基准盒（手势首次位移时量取，松手后清空） */
   let base: TabBox | null = null
   /** 本次手势的中心位缓存 */
   let centers: number[] | null = null
-  /** 松手前最后一次位移（用于按方向算阈值） */
-  let lastRaw = 0
 
   const centersOf = (): number[] => {
     if (!centers) centers = measureTabCenters(o.trackRef.current, selector)
     return centers
   }
 
-  /**
-   * 当前位移方向到相邻 tab 的**真实中心距**。
-   *
-   * 为什么不能用平均槽距：滑块跟手一格的视觉距离就是这两个 tab 的中心距，
-   * 用平均值会让「限幅到不了目标中心」（滑块滑一半就被阻尼卡住），阈值也
-   * 与视觉不符。方向由位移符号决定，且**位移方向即目标方向**
-   * （向右/向下 → 下一个 tab），与 decideSnap 的吸附方向严格同源；
-   * 符号穿越 0 时位移本身≈0，无跳变。
-   * 边界（该方向没有相邻 tab）退回平均槽距，让越界仍有可感知的橡胶阻尼。
-   */
-  const distanceOf = (offset: number): number => {
-    const cs = centersOf()
-    const idx = o.getIndex()
-    const cur = cs[idx]
-    if (cur == null) return fallback
-    const tgt = cs[offset < 0 ? idx - 1 : idx + 1]
-    const d = tgt == null ? 0 : Math.abs(tgt - cur)
-    return d > 0 ? d : (averageSlotOf(cs) ?? fallback)
-  }
-
   return {
     handleOffset: (raw) => {
-      lastRaw = raw
       const thumb = o.thumbRef.current
       if (!thumb) return
 
@@ -173,16 +158,56 @@ export function createTabStripThumb(o: TabStripThumbOptions): TabStripThumb {
         thumb.style.width = `${base.w}px`
       }
 
-      const shift = mapStripOffset(raw, distanceOf(raw))
+      // 落点在轨道内 → 严格 1:1（连续滑动：跨几格都跟手）；越界才阻尼
+      const cs = centersOf()
+      const baseCenter = base.x + base.w / 2
+      const shift = mapTrackOffset(
+        raw,
+        baseCenter,
+        cs.length ? cs[0] : baseCenter,
+        cs.length ? cs[cs.length - 1] : baseCenter,
+      )
       thumb.style.transform = `translate3d(${base.x + shift}px, 0, 0)`
     },
 
-    snapThresholdPx: () => distanceOf(lastRaw) / 2,
+    /**
+     * 松手吸附：**滑块落点最近的中心位即目标**（可一次跨多格）。
+     *
+     * 单步约束已废除（需求 N 第六轮）—— 用户要「从概况直接拖到导出」，
+     * 若仍按 ±1 收敛，拖再远也只挪一格。
+     *
+     * 甩掷（快速轻拨）单独兜底：落点仍停在起点格内时，至少沿位移方向推进一格，
+     * 否则"轻拨一下"会变成无响应。**刻意不做位置外推** —— 惯性外推会让
+     * "想切一格"甩过两格，与「落点即所见」自相矛盾。
+     */
+    decideSnap: ({ offset, index, count, endVelocity }) => {
+      const cs = centersOf()
+      const start = Math.max(0, Math.min(index, Math.max(cs.length, count) - 1))
+      const stay: SnapDecision = { passed: false, targetIndex: start }
+      if (cs.length < 2 || Math.abs(offset) < DIRECTION_SLOP) return stay
+
+      const landing = (cs[start] ?? 0) + offset
+      let target = start
+      let best = Infinity
+      for (let i = 0; i < cs.length; i++) {
+        const d = Math.abs(cs[i] - landing)
+        if (d < best) {
+          best = d
+          target = i
+        }
+      }
+
+      const isFlick =
+        Math.abs(endVelocity ?? 0) > FLICK_VELOCITY && Math.abs(offset) > FLICK_MIN_DISTANCE
+      if (target === start && isFlick) target = start + Math.sign(offset)
+      target = Math.max(0, Math.min(target, cs.length - 1))
+
+      return target === start ? stay : { passed: true, targetIndex: target }
+    },
 
     place: (index, animated = true) => {
       base = null
       centers = null
-      lastRaw = 0
       const thumb = o.thumbRef.current
       const box = measureTabBox(o.trackRef.current, index, selector)
       if (!thumb || !box) return

@@ -285,55 +285,57 @@ export function toVisualOffset(raw: number, clamp: number = VISUAL_CLAMP): numbe
 }
 
 /* ------------------------------------------------------------------ *
- * tab 轨道跟手位移（需求 N 第三轮）
+ * 轨道连续性位移映射（需求 N 第六轮：连续滑动）
  * ------------------------------------------------------------------ */
 
 /**
- * 越界橡胶增益：整排位移超过一个槽距后，每多拖 1px 只再让 0.18px。
- * 目的是让"拖不动了"的阻力可被手掌感知，而不是硬停。
+ * 越界最大可见增量（px）。
+ *
+ * ⚠️ 连续滑动**不能**沿用「限幅 × 比例」的硬顶：当滑块可以拖到任意一格时，
+ * 中间起手所对应的「到端点距离」可能是几百 px，按比例硬顶会让滑块一路冲出轨道。
+ * 改用绝对上限 —— 越界后最多再多走这么多，手感是"顶到墙"而不是"拖出去了"。
  */
-export const STRIP_RUBBER_GAIN = 0.18
-
-/** 整排位移硬顶 = 槽距 × 该比例（一个槽距再多 1/4） */
-export const STRIP_MAX_RATIO = 1.25
-
-/**
- * 把真实手势位移映射为 **tab 整排跟手位移**。
- *
- * 与 `toVisualOffset`（内容层 18px 微位移）的本质区别：
- * 用户按住的是 tab 方块**本身**，它必须 1:1 跟着走 —— 0.x px 的位移
- * 在人眼里等于"完全没动"（2026-09-15 CDP 实测：拖 150px 时方块只挪 0.7px，
- * 这正是「滑动效果没有显示出来」的直接原因）。
- *
- * 限幅取**一个槽距**（当前 tab → 相邻 tab 中心距）：
- *   - ±limit 内严格 1:1（跟手真实）
- *   - 越界后阻尼（橡胶感），硬顶 limit × 1.25
- * 为什么必须限幅：桌面端不预渲染相邻页，无限制平移会让 tab 整排出框漏白。
- *
- * @param raw 真实位移（px）
- * @param limit 一个槽距（px）；≤0 时原样返回（量不到几何时不做假动作）
- */
-export function mapStripOffset(raw: number, limit: number): number {
-  if (!(limit > 0)) return raw
-  const abs = Math.abs(raw)
-  if (abs <= limit) return raw
-  const extra = Math.min((abs - limit) * STRIP_RUBBER_GAIN, limit * (STRIP_MAX_RATIO - 1))
-  return Math.sign(raw) * (limit + extra)
-}
+export const OVERSCROLL_MAX = 28
 
 /**
- * 量取「平均槽距」= 首末 tab 中心距 /（n - 1）。
+ * 把真实手势位移映射为**轨道内跟手位移**（连续滑动）。
  *
- * 用平均而不是逐对相邻距：逐对会让位移限幅随方向反转跳变（方块宽 70/82 不等），
- * 平均槽距与方向无关，跟手过程中反向拖不会突跳。
+ * 判据从「一格限幅」改为「**落点是否还在轨道内**」：
+ *   - 落点 ∈ [首中心, 末中心] → **严格 1:1**（跨几格都跟手，中途不被阻尼吃掉）
+ *   - 落点越界 → 越界部分 × `EDGE_RESISTANCE`（橡胶），增量绝对封顶 `OVERSCROLL_MAX`
  *
- * @returns 平均槽距（px）；tab 少于 2 个或几何退化时返回 fallback
+ * 为什么必须改成连续：用户原话「可以直接从概况，直接滑动到最后一个导出，
+ * 就不需要一个一个滑动过去」。旧公式每跨一格就阻尼一次，第二格起几乎不动，
+ * 物理上"拖不到"后面的 tab。
+ *
+ * 与内容层 `toVisualOffset`（钳到 18px 的微位移暗示）的本质区别不变：
+ * 用户按住的是滑块**本身**，1:1 才叫跟手。
+ *
+ * @param raw 真实位移（px，带符号）
+ * @param baseCenter 手势起点 tab 的中心（轨道坐标系）
+ * @param minCenter 首个 tab 的中心
+ * @param maxCenter 末个 tab 的中心
+ * @param edgeResistance 越界阻尼系数
+ * @param overscrollMax 越界最大增量（px）
  */
-export function averageSlot(centers: number[], fallback = 0): number {
-  if (centers.length < 2) return fallback
-  const span = centers[centers.length - 1] - centers[0]
-  const slot = span / (centers.length - 1)
-  return slot > 0 ? slot : fallback
+export function mapTrackOffset(
+  raw: number,
+  baseCenter: number,
+  minCenter: number,
+  maxCenter: number,
+  edgeResistance: number = EDGE_RESISTANCE,
+  overscrollMax: number = OVERSCROLL_MAX,
+): number {
+  const landing = baseCenter + raw
+  if (landing < minCenter) {
+    const over = minCenter - landing
+    return (minCenter - baseCenter) - Math.min(over * edgeResistance, overscrollMax)
+  }
+  if (landing > maxCenter) {
+    const over = landing - maxCenter
+    return (maxCenter - baseCenter) + Math.min(over * edgeResistance, overscrollMax)
+  }
+  return raw
 }
 
 /* ------------------------------------------------------------------ *

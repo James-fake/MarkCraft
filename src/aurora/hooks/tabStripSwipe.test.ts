@@ -12,85 +12,38 @@
  * 两者必须合成到**同一个 transform**（否则松手瞬间「基准跳变 + 位移清零」会被拆成两段动画）。
  *
  * 本文件锁死四条「所见即所得」不变量：
- *   1. 位移：一个槽距内**严格 1:1**（用户按住的滑块必须跟着手指走），越界才阻尼；
- *   2. 阈值：**半个「该方向的真实中心距」**（拖过一半就切），与看得见的位移一致；
- *   3. 宽度：滑块宽度恒等于**当前所压那个 tab** 的宽度（tab 宽窄不一时不能塌）；
+ *   1. 位移：落点在**轨道内**严格 1:1（连续滑动 —— 跨几格都跟手），拖出两端才阻尼；
+ *   2. 吸附：**落点最近的中心位即目标**（可一次跨多格），甩掷时至少推进一格；
+ *   3. 宽度：滑块宽度恒等于**起手那个 tab** 的宽度（tab 宽窄不一时不能塌）；
  *   4. 落位：松手/点击/首帧/resize 三种时机各自的动画策略（带过渡 / 瞬时）。
+ *
+ * 第六轮（用户原话：「可以直接从概况，直接滑动到最后一个导出，就不需要
+ * 一个一个滑动过去」）把第 1、2 条从「单步」放开成「连续」——
+ * 旧的「一格限幅 + ±1 单步」物理上拖不到后面的 tab。
  */
 import { describe, it, expect } from 'vitest'
 import type React from 'react'
 import {
-  FALLBACK_SLOT,
   TAB_SELECTOR,
   createTabStripThumb,
   measureTabBox,
   measureTabCenters,
   tabElements,
 } from './tabStripSwipe'
-import { STRIP_MAX_RATIO, averageSlot, decideSnap, mapStripOffset } from './swipeTabsCore'
+import {
+  DIRECTION_SLOP,
+  FLICK_MIN_DISTANCE,
+  FLICK_VELOCITY,
+  OVERSCROLL_MAX,
+  decideSnap,
+} from './swipeTabsCore'
 
 /* ------------------------------------------------------------------ *
- * mapStripOffset · 滑块跟手位移映射（核心公式）
- * ------------------------------------------------------------------ */
-
-describe('mapStripOffset · 滑块跟手位移（1:1 跟手 + 越界橡胶）', () => {
-  const LIMIT = 75
-
-  it('槽距（一个 limit）内严格 1:1 —— 所见即所得，这是主反馈的全部意义', () => {
-    expect(mapStripOffset(0, LIMIT)).toBe(0)
-    expect(mapStripOffset(10, LIMIT)).toBe(10)
-    expect(mapStripOffset(-30, LIMIT)).toBe(-30)
-    expect(mapStripOffset(LIMIT, LIMIT)).toBe(LIMIT)
-    expect(mapStripOffset(-LIMIT, LIMIT)).toBe(-LIMIT)
-  })
-
-  it('越界后阻尼（0.18 增益），而非硬停 —— 让「拖不动了」可被手掌感知', () => {
-    // 150px 拖拽、槽距 75 → 75 + 75 × 0.18 = 88.5
-    expect(mapStripOffset(150, LIMIT)).toBeCloseTo(88.5, 5)
-    expect(mapStripOffset(-150, LIMIT)).toBeCloseTo(-88.5, 5)
-  })
-
-  it('硬顶 limit × 1.25 —— 滑块不得被拖出凹槽太远（出框会压到别处/漏白）', () => {
-    const cap = LIMIT * STRIP_MAX_RATIO
-    expect(mapStripOffset(100000, LIMIT)).toBeCloseTo(cap, 5)
-    expect(mapStripOffset(-100000, LIMIT)).toBeCloseTo(-cap, 5)
-  })
-
-  it('保号：位移方向与手势方向一致（不吞符号，否则左右拖同向）', () => {
-    expect(mapStripOffset(-500, LIMIT)).toBeLessThan(0)
-    expect(mapStripOffset(500, LIMIT)).toBeGreaterThan(0)
-  })
-
-  it('量不到几何（limit ≤ 0）时原样返回，不做假动作', () => {
-    expect(mapStripOffset(150, 0)).toBe(150)
-    expect(mapStripOffset(-150, -1)).toBe(-150)
-  })
-})
-
-/* ------------------------------------------------------------------ *
- * averageSlot · 槽距量取
- * ------------------------------------------------------------------ */
-
-describe('averageSlot · 平均槽距', () => {
-  it('首末中心距 /（n-1）—— 用平均而非逐对相邻距，避免反向拖动时限幅突跳', () => {
-    expect(averageSlot([439, 511, 583])).toBe(72)
-    // 方块宽不等（70/82）时，平均来自首末，与方向无关
-    expect(averageSlot([0, 72, 156, 228])).toBeCloseTo(76, 5)
-  })
-
-  it('tab 少于 2 个 → 返回 fallback（量不出槽距）', () => {
-    expect(averageSlot([], 72)).toBe(72)
-    expect(averageSlot([100], 72)).toBe(72)
-  })
-
-  it('几何退化（跨度 0 或负）→ 返回 fallback，不返回 0 免得下游除零', () => {
-    expect(averageSlot([50, 50, 50], 72)).toBe(72)
-    expect(averageSlot([50, 40], 72)).toBe(72)
-  })
-})
-
-/* ------------------------------------------------------------------ *
- * decideSnap · 阈值覆盖
+ * decideSnap · 通用层默认策略（单步 ±1）
+ *
+ * ⚠️ 这里测的是 `swipeTabsCore` 的**默认**吸附判定，服务于内容区翻页路径。
+ * strip（分段控件滑块）路径已在第六轮改用 `createTabStripThumb.decideSnap`
+ * ——「落点最近中心位即目标」，可一次跨多格（见本文件下半部分）。
  * ------------------------------------------------------------------ */
 
 describe('decideSnap · thresholdPx 覆盖（半个槽距）', () => {
@@ -202,10 +155,10 @@ function fixture(boxes: Array<[number, number]> = [[0, 70], [72, 82], [156, 70]]
 describe('createTabStripThumb · 滑块跟手（所见即所得）', () => {
   it('首次位移量基准：宽度 = 当前 tab 宽，位置 = 基准 + 1:1 位移', () => {
     const f = fixture()
-    f.make().handleOffset(-40)
+    f.make().handleOffset(40)                       // 落点仍在轨道内 → 严格 1:1
     expect(f.thumb.style.width).toBe('70px')
     expect(f.thumb.style.transition).toBe('none')   // 跟手期间必须零过渡
-    expect(num(f.thumb.style.transform)).toBe(-40)  // base.x = 0 + (-40)
+    expect(num(f.thumb.style.transform)).toBe(40)   // base.x = 0 + 40
   })
 
   it('一次手势内只量一次几何（不在每帧 getBoundingClientRect → 不触发同步布局）', () => {
@@ -221,10 +174,29 @@ describe('createTabStripThumb · 滑块跟手（所见即所得）', () => {
     expect(measureCount).toBe(f.tabs.length + 1)
   })
 
-  it('越界橡胶：拖 150px 时位移 = 一个槽距 + 阻尼（不是硬停，也不是无限跟）', () => {
-    const f = fixture()   // 中心 35 / 113 → 槽距 78
-    f.make().handleOffset(-150)
-    expect(num(f.thumb.style.transform)).toBeCloseTo(-(78 + (150 - 78) * 0.18), 5)
+  it('轨道内跟手 1:1 —— 跨格不打折（连续滑动核心；旧「一格限幅」在第二格起就几乎不动）', () => {
+    const f = fixture()   // 中心 35 / 113 / 191（末中心 191）
+    const m = f.make()
+    m.handleOffset(150)   // 落点 185 < 191 → 仍在轨道内
+    expect(num(f.thumb.style.transform)).toBe(150)
+  })
+
+  it('一路拖到末格中心仍 1:1（位移恰好等于首末中心距）', () => {
+    const f = fixture()
+    f.make().handleOffset(156)      // 35 + 156 = 191 = 末中心
+    expect(num(f.thumb.style.transform)).toBe(156)
+  })
+
+  it('拖出轨道端点才阻尼，且增量封顶 OVERSCROLL_MAX（不会一路拖出轨道）', () => {
+    const f = fixture()   // 首格 base.x=0；末格 base.x=156
+    const m = f.make()
+    m.handleOffset(-150)                       // 落点 -115 < 首中心 35 → 越界
+    expect(num(f.thumb.style.transform)).toBeCloseTo(-OVERSCROLL_MAX, 5)
+
+    f.setIndex(2)
+    m.place(2, false)
+    m.handleOffset(100)                        // 末格向右 → 越界
+    expect(num(f.thumb.style.transform)).toBeCloseTo(156 + OVERSCROLL_MAX, 5)
   })
 
   it('起点不在 0 时位移带基准（滑块压在哪个 tab 上就从哪个 tab 起滑）', () => {
@@ -234,30 +206,77 @@ describe('createTabStripThumb · 滑块跟手（所见即所得）', () => {
     expect(num(f.thumb.style.transform)).toBe(72 - 30)
   })
 
-  it('snapThresholdPx = 该方向真实中心距的一半（拖过一半就切）', () => {
-    const f = fixture([[0, 70], [72, 70], [144, 70]], 0)   // 中心 35 / 107 / 179 → 每格 72
+  it('跟手期间宽度恒取**起手那个 tab**（跨格拖动中不换宽 → 不抖动）', () => {
+    const f = fixture([[0, 70], [72, 82], [156, 70]], 0)
     const m = f.make()
-    m.handleOffset(40)                        // 向右 → 目标 index 1（中心距 72）
-    expect(m.snapThresholdPx()).toBe(36)
+    m.handleOffset(140)                            // 已跨到第二格之上
+    expect(f.thumb.style.width).toBe('70px')
+  })
+})
+
+/* ------------------------------------------------------------------ *
+ * createTabStripThumb · 松手吸附（落点最近中心位，可跨多格）
+ * ------------------------------------------------------------------ */
+
+describe('createTabStripThumb · 连续滑动吸附（需求 N 第六轮）', () => {
+  /** 三格轨道：中心 35 / 113 / 191 */
+  const input = (m: ReturnType<typeof createTabStripThumb>, offset: number, extra: Partial<{
+    index: number; count: number; endVelocity: number
+  }> = {}) => m.decideSnap({
+    offset,
+    elapsed: 500,
+    size: 1358,
+    index: 0,
+    count: 3,
+    endVelocity: 0,
+    ...extra,
   })
 
-  it('阈值按**方向**取相邻格，而不是平均槽距（方块不等宽时两者不同）', () => {
-    // 中心 35 / 113 / 179 / 251 → 向右格 66、向左格 78、均值 72
-    const f = fixture([[0, 70], [72, 82], [138, 82], [210, 82]], 1)
+  it('**一次跨多格**：从第一格拖到第三格 → 目标直接是 2（不再一格一格挪）', () => {
+    const f = fixture()
     const m = f.make()
-
-    m.handleOffset(-40)                       // 向左 = 上一个（中心距 78）
-    expect(m.snapThresholdPx()).toBe(39)
-
-    m.handleOffset(40)                        // 向右 = 下一个（中心距 66）
-    expect(m.snapThresholdPx()).toBe(33)
+    const r = input(m, 150)          // 落点 185 → 最近中心 191 = index 2
+    expect(r.passed).toBe(true)
+    expect(r.targetIndex).toBe(2)
   })
 
-  it('边界方向无相邻 tab → 退回平均槽距（越界仍有可感的橡胶阻尼）', () => {
-    const f = fixture([[0, 70], [72, 70], [144, 70]], 2)   // 末位
+  it('拖过一半才切：40px（半格 39）→ 切；30px → 回弹', () => {
+    const f = fixture()
     const m = f.make()
-    m.handleOffset(40)                        // 末位继续向右 = 越界方向
-    expect(m.snapThresholdPx()).toBe(36)      // 平均槽距 72 的一半
+    expect(input(m, 40).targetIndex).toBe(1)       // 落点 75，距 113 更近
+    expect(input(m, 30).passed).toBe(false)        // 落点 65，距 35 更近
+  })
+
+  it('拖到轨道外仍夹在两端（首格往左、末格往右都不通过）', () => {
+    const f = fixture()
+    const m = f.make()
+    expect(input(m, -100).passed).toBe(false)                       // 首格往左
+    expect(input(m, -100).targetIndex).toBe(0)
+    expect(input(m, 10000).targetIndex).toBe(2)                     // 末格（夹住）
+    expect(input(m, 10000, { index: 2 }).passed).toBe(false)        // 已在末格 → 不切换
+  })
+
+  it('位移低于方向阈值 → 不切换（手抖不翻页）', () => {
+    const f = fixture()
+    const m = f.make()
+    expect(input(m, DIRECTION_SLOP - 1).passed).toBe(false)
+  })
+
+  it('甩掷兜底：落点仍在起点格内，但末段速度够快 → 至少推进一格', () => {
+    const f = fixture()
+    const m = f.make()
+    // 25px 只到格内（< 半格），但 0.5 px/ms > 0.3 且 > 20px → 应切一格
+    const r = input(m, 25, { endVelocity: FLICK_VELOCITY + 0.2 })
+    expect(r.passed).toBe(true)
+    expect(r.targetIndex).toBe(1)
+    expect(FLICK_MIN_DISTANCE).toBeLessThan(25)
+  })
+
+  it('几何量不到（无 tab）→ 不切换、不抛错', () => {
+    const m = createTabStripThumb({ trackRef: ref(null), thumbRef: ref(null), getIndex: () => 0 })
+    const r = input(m, 300)
+    expect(r.passed).toBe(false)
+    expect(r.targetIndex).toBe(0)
   })
 })
 
@@ -289,9 +308,10 @@ describe('createTabStripThumb · 落位（三种时机各自的动画策略）',
     expect(num(f.thumb.style.transform)).toBe(62)
   })
 
-  it('滑块未挂载 / 轨道缺失时不抛错（浮层收起、首帧），阈值退回兜底', () => {
+  it('滑块未挂载 / 轨道缺失时不抛错（浮层收起、首帧）', () => {
     const m = createTabStripThumb({ trackRef: ref(null), thumbRef: ref(null), getIndex: () => 0 })
     expect(() => { m.handleOffset(30); m.place(0, true) }).not.toThrow()
-    expect(m.snapThresholdPx()).toBe(FALLBACK_SLOT / 2)
+    // 几何量不到 → 不切换（不猜目标），也不崩
+    expect(m.decideSnap({ offset: 300, elapsed: 400, size: 800, index: 0, count: 3 }).passed).toBe(false)
   })
 })

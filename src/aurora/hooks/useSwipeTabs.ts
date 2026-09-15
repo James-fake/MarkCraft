@@ -47,6 +47,8 @@ import {
   resolveAxis,
   stepWheel,
   toVisualOffset,
+  type SnapDecision,
+  type SnapDecisionInput,
   type SwipeAxis,
   type VelocitySample,
 } from './swipeTabsCore'
@@ -124,6 +126,21 @@ export interface UseSwipeTabsOptions {
    * 因此提供 manual 模式，由面板统一写。
    */
   manualOffset?: boolean
+  /**
+   * 覆盖内置边界阻尼（默认 `applyEdgeResistance`：按「index ± 1」判越界）。
+   *
+   * 为什么需要它：连续滑动（一次拖过多格）时，"越界"要看**落点是否还在轨道内**，
+   * 而不是"是否还能往当前方向的相邻 tab 去"。strip 路径由此让位给
+   * `createTabStripThumb` 的轨道端点阻尼（并显式传恒等，避免双重阻尼）。
+   */
+  dampenOffset?: (raw: number) => number
+  /**
+   * 覆盖内置吸附判定（默认 `decideSnap`：单步 ±1）。
+   *
+   * 为什么需要它：滑块形态下「跟手滑到哪就选中哪」，拖过多格必须一次跨到
+   * 落点最近的 tab，单步约束会让"从第一个直接拖到最后一个"变成挪一格。
+   */
+  snapDecider?: (input: SnapDecisionInput) => SnapDecision
 }
 
 export interface UseSwipeTabsResult {
@@ -167,6 +184,8 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
     visualMapper,
     snapThresholdPx,
     manualOffset = false,
+    dampenOffset,
+    snapDecider,
   } = options
 
   const [dragging, setDragging] = useState(false)
@@ -177,8 +196,8 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
   const activeRef = useRef(false)
 
   /** 最新 props 快照，供 document 监听器（闭包）读取，避免闭包陷阱 */
-  const latestRef = useRef({ index, count, onIndexChange, axis, onOffsetChange, onSettle, targetRef, measureRef, visualMapper, snapThresholdPx, manualOffset })
-  latestRef.current = { index, count, onIndexChange, axis, onOffsetChange, onSettle, targetRef, measureRef, visualMapper, snapThresholdPx, manualOffset }
+  const latestRef = useRef({ index, count, onIndexChange, axis, onOffsetChange, onSettle, targetRef, measureRef, visualMapper, snapThresholdPx, manualOffset, dampenOffset, snapDecider })
+  latestRef.current = { index, count, onIndexChange, axis, onOffsetChange, onSettle, targetRef, measureRef, visualMapper, snapThresholdPx, manualOffset, dampenOffset, snapDecider }
 
   /** 手势元数据 */
   const gestureRef = useRef({
@@ -308,7 +327,9 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
       ? next.snapThresholdPx()
       : next.snapThresholdPx
 
-    const decision = decideSnap({
+    // 吸附判定：默认单步 ±1；strip 路径覆盖为「落点最近中心位」（可跨多格）
+    const decide = next.snapDecider ?? decideSnap
+    const decision = decide({
       offset,
       elapsed,
       size,
@@ -398,13 +419,18 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
 
       const raw = latestRef.current.axis === 'x' ? dx : dy
       const measureEl = g.measure
-      const damped = applyEdgeResistance(
-        raw,
-        latestRef.current.index,
-        latestRef.current.count,
-        latestRef.current.axis === 'x' ? (measureEl?.clientWidth ?? 0) : (measureEl?.clientHeight ?? 0),
-        latestRef.current.axis,
-      )
+      // 越界阻尼：默认按「index ± 1」单步语义；strip 路径由外部覆盖
+      // （连续滑动下"越界"是"落点出了轨道"，不是"没有相邻 tab"）
+      const dampen = latestRef.current.dampenOffset
+      const damped = dampen
+        ? dampen(raw)
+        : applyEdgeResistance(
+            raw,
+            latestRef.current.index,
+            latestRef.current.count,
+            latestRef.current.axis === 'x' ? (measureEl?.clientWidth ?? 0) : (measureEl?.clientHeight ?? 0),
+            latestRef.current.axis,
+          )
 
       applyOffset(damped)
 

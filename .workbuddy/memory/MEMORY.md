@@ -1,124 +1,94 @@
-# MarkCraft · Aurora 记忆（铁律only；案例/细节见 `memory/YYYY-MM-DD.md`）
+# MarkCraft · Aurora 记忆（铁律only；案例/细节见 `memory/YYYY-MM-DD.md` 与 `artifacts/DESIGNBRIEF-*.md`）
 
 ## 定位
 Vite5+React18+TS；CodeMirror6+TipTap3；白板 Excalidraw(canvas-v2)；Dexie/IndexedDB。
 dev 端口 **5174**：`node node_modules/vite/bin/vite.js --port 5174 --host`。
-入口 `index.html(#aurora-root)` → `src/aurora/aurora-main.tsx`（真实 `#view=` 路由）。**Aurora = 真实运行界面**（非演示壳）。
+入口 `src/aurora/aurora-main.tsx`（真实 `#view=` 路由）。**Aurora = 真实运行界面**（非演示壳）。
 战略：网页 UI → **桌面端软件范式**（窗口 chrome / 命令菜单 / 右键菜单 / 密度 / 键盘优先）。
 
-## Aurora 铁律（`src/aurora/`）
+## Aurora 铁律
 ① Aurora 即真实界面；② 禁增功能（边界 = 真实已有能力）；③ 视觉只用 `styles/tokens.css` 的 `--mc-*`；
-④ UI 落 `src/aurora/`，`src/features/*` 是逻辑层（D4 单一数据源，不平行 mock），`src/components/ui` 可直接 import；
-⑤ 依赖只向下：Aurora → features/stores → 基础设施，**0 反向依赖**。
+④ UI 落 `src/aurora/`，`src/features/*` 是逻辑层（D4 单一数据源），`src/components/ui` 可直接 import；
+⑤ 依赖只向下，**0 反向依赖**。
 
 ## 关键坑（防回归）
-- **Path depth**：panels 引 features/stores/types 用 `../../../`；components/ui·app 用 `../../`。
-- 新类**必须同批交付 CSS**；BEM 名两端字面一致。同文件多处 Edit **必须串行**，改完 grep 核验。
-- z-index 单源 = `tokens.css §14`；Modal 单源 = `@components/ui/Modal`；Button/Confirm/Switch 走 `@components/ui/*`。
-- **布局属性越权**：迁 features 组件入 Aurora 时，颜色 token 之外 **position/inset/z-index 同样会越权重生效**；
-  复位须三类同时设 + `contain:paint`（测试 `panels/kb/kbPanelLayout.test.ts`）。
-- **拖拽闭包陷阱**：`mouseup` 监听是拖拽开始时的闭包 → 落盘必须读 `xxxRef.current`，读 state 是旧值。
-- **指针捕获吞 click**：`<svg>` 上 `setPointerCapture` 后子节点 `click`/`dblclick` 被重定向到捕获元素 →
-  子元素交互挂 **pointerup**（`NODE_CLICK_SLOP=4px` 区分拖拽）；「点空白清空选中」靠**手势来源标记**。
-- **视图上下文单源** = `useAuroraShell.nav` 的 param→params 映射表（canvas→canvasId / kb→kbId / **blog→kbId**）；
-  新增带上下文跳转必须登记，漏一行 = 参数静默丢失。侧栏「设置」在**默认收起的「更多」分组**里。
-- **React 17+ `onWheel` 是 passive** → `preventDefault()` **无效**。阻止横滚/回退只能靠 CSS
-  `touch-action: pan-y` + `overscroll-behavior-x`。**别指望 JS 拦 wheel**。
-- **「改 CSS 不改 JS」双向陷阱**：位移由 JS 内联样式驱动时只改 CSS 过渡 → 位移**彻底失效**；
-  反之 CSS 规则若 JSX 无承载者 = **死代码**。契约测试一律**两侧同断言**，且断言 `getBoundingClientRect()` **落点**。
-- **改任何东西前先验证「目标有真实承载者」**：类名 → TSX 引用数、组件 → import 点；零引用 = 死代码。
-- **滚动显隐必须「常驻 DOM + 类折叠」**：条件渲染的挂载/卸载 → 高度跳变 → 钳制伪滚动 → **自激振荡闪烁**
-  （搜索框须在滚动容器**外**作兄弟节点）。用户语境「列表往上滑动」= `scrollTop` **减小**（回滚）。
-- **内联 `transition` 残留**：瞬时落位若把 `style.transition='none'` 留在元素上 → 永久压住 CSS 过渡，
-  后续落位全变瞬移。瞬时分支必须 `apply(); void el.offsetWidth; el.style.transition=''` 恢复。
-- 动效只动 **transform/opacity**；永不用 `scale(0)`（起手 0.96/0.97）；进出不对称「出更快」。
+- **Path depth**：panels→features/stores 用 `../../../`；components/ui·app 用 `../../`。
+- 新类**必须同批交付 CSS**；同文件多处 Edit**必须串行**，改完 grep 核验。
+- 单源：z-index = `tokens.css §14`；Modal = `@components/ui/Modal`；Button/Confirm/Switch = `@components/ui/*`。
+- **布局属性越权**：迁 features 组件入 Aurora 时 position/inset/z-index 同样越权生效 → 复位须三类同设 + `contain:paint`。
+- **拖拽闭包陷阱**：监听闭包在拖拽开始时注册 → 落盘必须读 `xxxRef.current`。
+- **指针捕获吞 click**：子元素交互挂 **pointerup**（`NODE_CLICK_SLOP=4px` 区分拖拽）。
+- **视图上下文单源** = `useAuroraShell.nav` 的 param→params 映射表（canvas→canvasId / kb→kbId / blog→kbId）；
+  漏登记 = 参数静默丢失。侧栏「设置」在**默认收起的「更多」分组**里。
+- **React 17+ `onWheel` 是 passive** → `preventDefault()` 无效；拦横滚只能靠 CSS `touch-action`/`overscroll-behavior-x`。
+- **「改 CSS 不改 JS」双向陷阱** → 契约测试**两侧同断言**且断言 `getBoundingClientRect()` **落点**。
+- **改任何东西前先验证「有真实承载者」**：类名 → TSX 引用数、组件 → import 点；零引用 = 死代码。
+- **滚动显隐用「常驻 DOM + 类折叠」**（条件渲染 → 高度跳变 → 伪滚动 → 自激振荡闪烁）；「列表往上滑」= `scrollTop` **减小**。
+- **内联 `transition` 残留**：瞬时落位后必须 `apply(); void el.offsetWidth; el.style.transition=''`。
+- 动效只动 **transform/opacity**；永不用 `scale(0)`；进出不对称「出更快」。
 
 ## 测试铁律
-- 严禁同时 `vi.mock` TagIndexStore 与 LinkIndexStore（循环依赖静默崩溃）→ 改真实 Provider 包裹。
-- **jsdom 不实现指针捕获重定向** → 凡「拖拽里 setPointerCapture」的组件，真机节点 `onClick` 收不到事件；
-  `fireEvent.click` 是**假路径**（全绿但真机无反应）。必须走 `pointerdown → pointerup`；
-  jsdom 无 `PointerEvent` → 用 `MouseEvent` 承载同名指针事件才有 button/clientX。
-- **几何断言必须等稳态**：冷启动索引异步填充期采样会假失败；先「连续两次快照一致」再采。
-  jsdom 里 `getBoundingClientRect` 全 0 → 依赖几何的逻辑必须留 **fallback 常量**才可测（如桩 `stubGeometry`）。
-- **CSS「无某声明」断言必须先剥离注释**（`css.replace(/\/\*[\s\S]*?\*\//g,'')`），否则注释文字自命中；
-  断言「全仓无残留消费者」须排除 `docs[\\/]design`、`.test.tsx?$`、测试自身文件。
-- 静态断言锚点用**带引号的完整字面量**（`className="aurora-x"`），裸类名 `indexOf` 会先命中注释里的同名串。
-- **末段速度采样会被 jsdom 的 dt≈0 放大**：同步连发 `pointermove`（中间不 sleep）时
-  `computeEndVelocity` 的 `dt` 极小 → 速度被算成极大 → **甩掷路径误判为通过**（dt=0 时又返回 0，两个极端都不稳）。
-  凡"**期望不切换**"的手势用例，必须让末段**真实慢速**（如每步 `await sleep(300)`，末段速度≈0.17 < 0.3），
-  否则结论可能只是靠"越界护栏"碰巧成立 —— 方向一改就崩（09-15 踩到）。
-  同理：用例若靠"首/末 tab 越界"作为不切换的保障，一旦断言的方向变了就失去保障，要显式选中间 index。
-- 读文件断言用 `readFileSync(resolve(__dirname, ...))`，**别用 `new URL(..., import.meta.url)`**。
-- 命令：`node node_modules/vitest/vitest.mjs run [pattern]`；`node node_modules/typescript/bin/tsc --noEmit -p tsconfig.json`。
+- 严禁同时 `vi.mock` TagIndexStore 与 LinkIndexStore（循环依赖静默崩溃）→ 用真实 Provider 包裹。
+- **jsdom 不实现指针捕获重定向** → 一律 `pointerdown → pointerup`；jsdom 无 `PointerEvent` → 用 `MouseEvent` 承载。
+- **几何断言等稳态**；jsdom `getBoundingClientRect` 全 0 → 必须打桩（`stubGeometry`）。
+- **CSS「无某声明」断言先剥注释**；「全仓无残留消费者」须排除 `docs[\\/]design`、`.test.tsx?$`。
+- 静态断言锚点用**带引号的完整字面量**（裸类名 `indexOf` 会先命中注释）。
+- **末段速度采样会被 jsdom 的 dt≈0 放大** → 同步连发 `pointermove` 会误判甩掷；「期望不切换」的用例必须
+  **真实慢速**（每步 sleep 300ms）+ 位移 < 20px（甩掷最小位移），别靠"越界护栏"碰巧成立。
+- 读文件断言用 `readFileSync(resolve(__dirname, ...))`。
+- 命令：`node node_modules/vitest/vitest.mjs run [pattern]`；`tsc --noEmit -p tsconfig.json`。
+  ⚠️ tsconfig **不含** `*.test.*` → tsc 干净 ≠ 测试文件无类型错，测试必须实跑。
 
 ## git / 沙箱
-PortableGit 真实路径 `/c/Users/HJN/.workbuddy/binaries/PortableGit/versions/1.2.0/{cmd,usr/bin,mingw64/bin}`；
-bash 每条命令内联 `export PATH="<上述三目录>:/c/Users/HJN/.workbuddy/binaries/node/versions/22.22.2-3:/c/Windows/System32"`。
-- 远端 `https://gitee.com/James-fake/markcraft.git`。推送：`git -c credential.helper= push "https://<user>:<token>@gitee.com/James-fake/markcraft.git" master`。
-- ⚠️ **push 后 `origin/master` 不更新、`git fetch` 也不落盘** → 兜底
-  `printf '%s\n' "$(git rev-parse master)" > .git/refs/remotes/origin/master`，再用 `git rev-list --left-right --count master...origin/master` 验 `0 0`。
-- 🚨 **绝对禁止在单条 bash 里跑 `git stash`**。SIGTERM 会让对象库半写 → 09-14 丢了几乎全部 `.pack`。
-  要暂存 → `git diff > x.patch` 或复制文件。
-- **工作区可能被外部清空** → `git restore --source=HEAD --worktree -- <路径>`。
-  ⚠️ 判定删除状态**必须用 `git -c core.quotepath=false status --porcelain`**（shell 判 `[ -e ]` 会因中文名转八进制误判）。
-  **频繁提交是唯一可靠防线**。`.workbuddy` 仅 `memory/`、`artifacts/` 入库。
-- **删除劫持**：`rm`/`Remove-Item` 都被转回收站 → 唯一可靠解 = robocopy 镜像法
-  `mkdir _empty && robocopy _empty <目标> /MIR /NFL /NDL /NJH /NJS /NP /R:0 /W:0`（exit 0–7 都算成功）→ `rmdir` 空根。
-  ⚠️ **必须相对路径**（cwd 已在项目根）。**绝不要拼 `"$PROJ\\$d"`**（Git Bash 双引号里 `\\$` 塌成字面 `$d` → robocopy 静默 exit 0 什么都不做）。
-  镜像后必自检 `find <目标> -type f | wc -l` 为 0，**别只看 exit code**。
+PortableGit 路径 `/c/Users/HJN/.workbuddy/binaries/PortableGit/versions/1.2.0/{cmd,usr/bin,mingw64/bin}`；
+bash 每条内联 `export PATH="<三目录>:/c/Users/HJN/.workbuddy/binaries/node/versions/22.22.2-3:/c/Windows/System32"`。
+- 远端 `gitee.com/James-fake/markcraft.git`；推送 `git -c credential.helper= push "https://<user>:<token>@gitee.com/..." master`。
+- ⚠️ push 后 `origin/master` 不更新 → `printf '%s\n' "$(git rev-parse master)" > .git/refs/remotes/origin/master` 再验 `0 0`。
+- 🚨 **禁止在单条 bash 里跑 `git stash`**（SIGTERM 半写对象库 → 丢 `.pack`）。要暂存 → `git diff > x.patch`。
+- 工作区可能被外部清空 → `git restore --source=HEAD --worktree -- <路径>`；判删除状态必须用
+  `git -c core.quotepath=false status --porcelain`（shell `[ -e ]` 会因中文名转八进制误判）。**频繁提交是唯一防线**。
+- **删除劫持**：`rm`/`Remove-Item` 转回收站 → 用 robocopy 镜像法（`/MIR`，相对路径，**别拼 `"$PROJ\\$d"`**），
+  镜像后自检 `find <目标> -type f | wc -l` 为 0。`.workbuddy` 仅 `memory/`、`artifacts/` 入库。
 
-## CDP 验证（细节在 skill `cdp-ui-interaction-verify` + `artifacts/cdp-eval.mjs`）
-- 布局故障判定靠**几何**不靠印象：`getBoundingClientRect` + `elementFromPoint`；坐标 = **CSS px**。
-- **Edge 必须与脚本同一次「前台」bash 启动**（后台 bash 会收编并杀子进程）；须新 profile（防 Vite 模块缓存喂回旧 CSS）。
-- 三陷阱：① 首启引导 `.aurora-audience`（fixed 全屏）吞指针 → **先给 `#aurora-root` 打 `[data-audience-skip]` 或移除节点**；
-  ② **窗口激活吞掉最早几次鼠标事件**（先打唤醒点击 + 对拖动重试）；③ 无焦时合成按键打不进 app。
-  **判据用 `.aurora-sidebar-item`**（`.aurora-page` 过早为真）。深链 `#view=` 只认**启动 URL**，页面内改 hash 无效。
-- 验证**视觉**可注入同 className 的 inline HTML；**手势/交互类不能靠注入** → 走真机拖动或契约测试。
-- 判断"做没做"必须**量视觉位移像素**（`getBoundingClientRect` 落点），`data-swiping=true` 只证明"识别了"。
+## CDP 验证（细节在 skill `cdp-ui-interaction-verify`）
+- **Edge 必须与脚本同一次「前台」bash 启动**；须新 profile。布局判定靠**几何**（CSS px）。
+- 三陷阱：① `.aurora-audience`（fixed 全屏）吞指针 → 先 dismiss；② **窗口激活吞最早几次鼠标事件**（唤醒点击 + 重试）；
+  ③ 无焦时合成按键打不进（改走真实鼠标点侧栏）。就绪判据用 `.aurora-sidebar-item`；深链 `#view=` 只认**启动 URL**。
+- 「做没做」必须量**视觉位移像素**；`data-swiping=true` 只证明"识别了"。
+- 「看得见」别用 `elementFromPoint`（`pointer-events:none` 不参与命中测试 → **假阴性**）→ 断言 opacity/visibility/背景/面积。
+- ⚠️ **拖动中的截图不可信**：窗口不前台时合成被节流，`captureScreenshot` 返回**上一帧**（sleep/rAF/bringToFront 都修不好）
+  → 拖动只用量数值证明，截图只证**落位后**。
+- 手势/交互不能靠注入 HTML 验证（需真实 React 绑定）→ 真机拖动或契约测试。合成拖拽要**慢**（末段 <0.3px/ms）才走落点吸附。
+- 探针留可复用开关（`ONLY=<面板名>`），别写死全量。
 
-## 动效语言（09-11 定稿 · 09-14 审计 · 四项全 ✅）
-- 分层：⚡即时 100–160ms／🚶标准 150–250ms／🛋从容 320–500ms。token 单源 = `tokens.css §11`（`--mc-dur-*`、`--mc-ease-out/mac/in`）。
-- **外壳（MenuBar/Sidebar/StatusBar）永不参与视图切换动画**（PageFrame 在各面板内渲染，包整屏必致「整体闪一下」）。
-- reduced-motion = 「更少更柔非归零」：时长减半 + 位移型入场降级 `mc-rm-fade`、**退场必须 `mc-rm-fade-out`**。
-- 关键帧单源 = `components.css`；Aurora 全量 CSS 经 `aurora-main.tsx` 静态加载。dock 浮层用独立 `translate` 属性承载位移。
-- 四项（✅）：① 指针门控（`@media (hover:none),(pointer:coarse)` 只归零**纯位移/缩放型** hover，**复合 transform 必须豁免**）；
-  ② 布局属性合成器化（博客浮层 `left`→`translateX`）；③ 命令面板去 200ms 入场；④ 六个 `:active` 补 `scale(0.97)`。
+## 动效语言（09-11 定稿，四项全 ✅）
+- 分层 ⚡100–160／🚶150–250／🛋320–500ms；token 单源 `tokens.css §11`；关键帧单源 `components.css`。
+- **外壳（MenuBar/Sidebar/StatusBar）永不参与视图切换动画**。
+- reduced-motion = 「更少更柔非归零」：时长减半，入场降级 `mc-rm-fade`、**退场 `mc-rm-fade-out`**。
+- 指针门控只归零**纯位移/缩放型** hover，**复合 transform 必须豁免**。
 
-## 需求 N：tab 栏滑动切 Tab（**五轮定稿，R5 为现行**）
-**用户定案语义**：仿 Apple **分段控件**。① 一条**常驻滑块 thumb** 压在选中项上（非按住才浮起）；
-② 按住任一 tab 横拖 → **只有滑块跟手走，tab 文字一个像素都不动**；③ 松手滑块过渡吸到最近 tab（拖过一半即切）；
-④ **内容区零位移**；⑤ 栏**不滚动**（`scrollLeft` 恒 0）；⑥ **位移方向 = 目标方向**（向右/向下拖 → 下一个）。
-- **⑥ 是 R5 修的 bug**：滑块是**选中指示器**，位置即真相。R1–R4 沿用「内容翻页」约定
-  （`nextSign = -1`：向左拖 = 下一个）→ 滑块向左跟手滑到左 tab 上，松手却选中其**右邻居**
-  → 滑块在松手瞬间"弹回"右侧（用户反馈「往右滑动 tab 却去到左侧」）。
-  **铁律：位移保号与目标取反不能并存于一条链路**。方向单源 = `swipeTabsCore.ts` 三处 `nextSign`
-  （`applyEdgeResistance`/`decideSnap`/`stepWheel`）+ `tabStripSwipe.ts#distanceOf` 取邻方向，均须 `+1`；
-  `mapStripOffset`（滑块位移映射）**不动** —— 它本来就对，错的只是"位移 → 目标索引"的翻译。
-- 演进：R1 内容区滑动（错：方位词是**手势起手区**规格）→ R2 手势挂 tab 栏但仍"看不见"（位移被内容区宽稀释成 0.7px）→
-  R3 整排轨道跟手（药丸底/分隔线留外层、位移落内层）→ **R4 选中态"搬家"到独立 thumb**（不是加动画，是换承载者）。
-- 共享层：`hooks/tabStripSwipe.ts`（纯逻辑 `createTabStripThumb`：`handleOffset`/`snapThresholdPx`/`place`；
-  `mapStripOffset` 一个槽距内严格 1:1、越界 `STRIP_RUBBER_GAIN=0.18`、硬顶 `1.25×槽距`；`measureTabBox` 在**轨道 padding box** 坐标系；滑块不计入 tab 量取）
-  + `hooks/useTabStripThumb.ts`（React 壳：`{trackRef,thumbRef,bind,dragging}`，`useSwipeTabs({manualOffset:true})` 只回调；
-  `useLayoutEffect` 首帧/选中变化落位 + `ResizeObserver` 尺寸变化瞬时落位）。
-- **滑块位置 = 基准定位 + 手势位移，合成到同一个 `transform`**（拆成两段 → 松手瞬间基准跳变+位移清零的视觉裂缝）。
-- `snapThresholdPx` = **该方向真实中心距的一半**（非平均槽距，因方块宽不等 70/82），"拖过一半就切"与视觉一致。
-- 四栏：设置页 `__nav-track/-thumb`、知识库 `__subbar-track/-thumb`、博客 `__subseg-track/-thumb`（`enabled:true` 常驻，
-  浮层收起也能拖）用**圆角块**；白板 `__tabs-track/-thumb`（`height:2px;bottom:0`）用**下划线**（沿用全站 `.aurora-csp__tab` 同源语言）。
-- 手势**只挂 tab 栏**（`makeBind()` 的 `onClickCapture` 吃掉横滑后那次 click）；内容区不挂、无 `is-swiping`、无 `--swipe-progress`。
-- 测试：`hooks/tabStripSwipe.test.ts`（26）、`panels/settings/tabBarSwipeBinding.test.tsx`（22）、`styles/swipeTabBarSurface.test.ts`（~50，CSS+JSX 两侧同断言）。
-- 探针：`artifacts/probe-swipe-thumb.mjs`（量四栏"谁动了谁没动"：thumb rest/mid/after、激活 tab left 指纹、内容层 left、`scrollLeft`）。
-- ⚠️ 白板左栏是 hover overlay、知识库需先建库 → 空库时 tab 栏不渲染；CDP 覆盖这两条要先满足前置条件。
-- R3 旧法（`mapStripOffset` 位移落内层轨道、`visualMapper`、边缘压暗）**已废弃**，勿回退。
+## 需求 N：tab 栏滑动切 Tab（**六轮定稿，R6 现行**）
+形态 = **Apple 分段控件**：常驻滑块 thumb 压在选中项上；按住 tab 横拖 → **只有滑块跟手，tab 文字与内容区零位移**；
+栏不滚动（`scrollLeft` 恒 0）；**位移方向 = 目标方向**；**连续滑动**（轨道内 1:1，可跨多格，落点最近中心位即目标）。
+- 单源 = `hooks/tabStripSwipe.ts` + `swipeTabsCore.ts`（纯逻辑）+ `useTabStripThumb.ts`（React 壳）；四面板同接入，手势只挂 tab 栏。
+- 滑块位置 = **基准定位 + 手势位移，合成到同一个 `transform`**（拆两段 → 松手瞬间视觉裂缝）。
+- `mapTrackOffset(raw, baseCenter, minCenter, maxCenter)`：轨道内 1:1；越界 ×`EDGE_RESISTANCE` + **绝对封顶 28px**
+  （**不能用 limit×比例** —— 中间起手时到端点距离可达数百 px，会冲出轨道）。`decideSnap` = 落点最近中心位 +
+  甩掷兜底一格（**不做惯性外推**）。
+- hook 侧必须传 `dampenOffset`（恒等）+ `snapDecider` 覆盖内置「index±1」单步语义 —— 否则双重阻尼，跨格拖不动。
+- 方向铁律：**位移保号与目标取反不能并存**（滑块 = 指示器，位置即真相）；单源 = `swipeTabsCore` 三处 `nextSign`。
+- 四栏：设置/知识库/博客用**圆角块**（博客 `enabled:true` 常驻，浮层收起也能拖）；白板用**下划线**。
+- 测试 4 份（`tabStripSwipe` / `useSwipeTabs` / `tabBarSwipeBinding` / `swipeTabBarSurface`）+ 探针 3 个。
+- ⚠️ 白板左栏是 hover overlay、知识库空库时 tab 栏不渲染；建库后**不自动进详情**，要再点卡片；
+  提交按钮选择器须限定 `.aurora-kb-modal` 内（宽正则会命中底层）。
+- R1–R3 旧法（内容区滑动 / 整排轨道位移 / `visualMapper` / 边缘压暗 / `--swipe-progress`）**已废弃，勿回退**。
 
-## 其他已锁死项（细节见日志）
-- 右栏「辅助」Tab = 发布为博客 + 添加到知识库（`panels/editor/AuroraPublish.tsx`）；知识库列表**只有一个家**在那；
-  ⌘K / 标签右键召唤 = **「钉住右栏 + 切辅助 Tab + 展开列表」三连**；`setBlogEntryFileId` = **单篇发布语义**
-  （单篇下 `setAllDocs` 必须走 `scopedDocs`）。浮层壳 264px 曾截右栏 → 右侧改 `width:fit-content`。
-- 知识库「笔记 Tab」头部 / 博客「主题市场」文案与滚轮鼓筛选 / 博客筛选行拉满宽 + 搜索框回顶显隐（`hasLeftTop` 滞回）。
+## 其他已锁死项
+- 右栏「辅助」Tab = 发布为博客 + 添加到知识库；知识库列表**只有一个家**在那；⌘K/标签右键 = **钉住右栏 + 切辅助 Tab + 展开列表**；
+  `setBlogEntryFileId` = 单篇语义（单篇下 `setAllDocs` 走 `scopedDocs`）；右侧宽度 `fit-content`（浮层壳曾截右栏）。
+- 知识库「笔记 Tab」头部 / 博客「主题市场」滚轮鼓筛选 / 博客筛选行拉满宽 + 搜索框回顶显隐（`hasLeftTop` 滞回）。
 
 ## 当前状态
-- 全仓 vitest **1100 passed / 3 failed / 2 skipped**。3 项失败**经对照确认为预存**（与需求 N 无关）：
-  `commandWiring`(45vs48) / `KbPanel.smoke`(`getByText('编辑')` 多元素) / `blogCssRefs`(KeyframeEditor 汉化)。
-- 最新提交 **`065889d`**（需求 N 第三轮 DesignBrief 增补）。**R4 尚未提交**（工作区 15 改 + 3 新）。
-- 待决：R4 提交推送；KB tab 栏 CDP 端到端（前置 = 先 dismiss audience overlay 再建库）；
-  3 项预存失败是否排查；`--mc-dur-lazy` 删除或消费；`memory/` 下 ~30 个 >30 天旧日志待蒸馏归档。
+- vitest **1109 passed / 3 failed / 2 skipped**，tsc 干净。3 项失败**预存**（与需求 N 无关）：
+  `commandWiring` / `KbPanel.smoke`(`getByText('编辑')` 多元素) / `blogCssRefs`(KeyframeEditor 汉化)。
+- 需求 N 六轮已全部落地推送。待决：3 项预存失败排查；`--mc-dur-lazy` 处置；>30 天旧日志蒸馏归档。

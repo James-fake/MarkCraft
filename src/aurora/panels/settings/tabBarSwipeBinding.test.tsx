@@ -6,21 +6,23 @@ import { RealProviders } from '../../app/RealProviders'
 import { SettingsPanel } from './SettingsPanel'
 import { KbPanel } from '../kb/KbPanel'
 import { CanvasSidebarPanel } from '../canvas/CanvasSidebarPanel'
-import { mapStripOffset } from '../../hooks/swipeTabsCore'
 
 /**
- * 顶栏功能切换 tab「按住方块左右滑」契约测试（需求 N 第四轮定案）
+ * 顶栏功能切换 tab「按住方块左右滑」契约测试（需求 N 第四轮定案 + 第六轮连续滑动）
  *
  * 用户诉求（第三次返工后的定案口径）：
  *   「滑动只有功能 tab 栏中的功能 tab 进行滑动 …… 摁住这个功能 tab 就有一个
  *     方块的感觉，然后可以进行一个滑动 …… 内容区域不要 …… 工具 tab 栏也是
  *     不需要进行滚动的」
+ * 第六轮补充：
+ *   「可以直接从概况，直接滑动到最后一个导出，就不需要一个一个滑动过去」
+ *   → 位移与吸附都从「单步」放开为「连续」：**拖过几格就落几格**。
  *
  * 即 **Apple 分段控件（Segmented Control）** 形态：
  *   ① 一条**常驻滑块**压在选中项上；
  *   ② 按住任一 tab 拖动 → **只有滑块**跟手滑，**tab 文字一个像素都不动**；
  *   ③ **内容区零位移**（第三轮那 22px「呼应位移」已删）；
- *   ④ 松手滑块落到目标 tab（宽度也换成目标 tab 的宽度）；
+ *   ④ 松手滑块落到**落点最近**的 tab（宽度也换成目标 tab 的宽度），可跨多格；
  *   ⑤ 栏**不滚动**（scrollLeft 恒为 0）。
  *
  * ⚠️ jsdom 无布局引擎（getBoundingClientRect 全 0），所以这里显式给轨道与 tab
@@ -195,7 +197,6 @@ describe('第四轮：分段控件滑块（按住方块必须看得见地动，�
       // 起始索引从 DOM 推（不写死：设置页默认落在「通用」= index 1，不是 0）
       const startIdx = geo.tabs.findIndex((t) => t.el.getAttribute('aria-selected') === 'true')
       expect(startIdx, `${p.name} 没有 aria-selected=true 的 tab`).toBeGreaterThanOrEqual(0)
-      const slot = Math.abs(geo.centers[startIdx + 1] - geo.centers[startIdx])
       return {
         container,
         bar,
@@ -203,7 +204,6 @@ describe('第四轮：分段控件滑块（按住方块必须看得见地动，�
         thumb,
         geo,
         startIdx,
-        slot,
         content: container.querySelector(p.content) as HTMLElement | null,
       }
     }
@@ -217,18 +217,21 @@ describe('第四轮：分段控件滑块（按住方块必须看得见地动，�
       expect(geo.tabs).toHaveLength(track.querySelectorAll('[role="tab"]').length)
     })
 
-    it(`${p.name}：跟手期间滑块位移 = 基准 + 1:1 映射（≥30px，0.7px 那种回归会被拦下）`, () => {
-      const { bar, thumb, geo, startIdx, slot } = setup()
+    it(`${p.name}：跟手期间滑块位移 = 基准 + 1:1（≥30px，0.7px 那种回归会被拦下）`, () => {
+      const { bar, thumb, geo, startIdx } = setup()
       const base = geo.tabs[startIdx]
+      const lastCenter = geo.centers[geo.centers.length - 1]
+      // 前提：150px 之后落点仍在轨道内 → 严格 1:1（越界另有专门用例）
+      expect(base.x + base.w / 2 + 150, `${p.name} 用例前提：150px 未越出轨道`).toBeLessThan(lastCenter)
 
       dragRight(bar, 150)
 
       expect(bar.hasAttribute('data-swiping'), `${p.name} 跟手态未出现 data-swiping`).toBe(true)
       expect(thumb.style.transition, `${p.name} 跟手期间滑块必须零过渡`).toBe('none')
       expect(thumb.style.width, `${p.name} 滑块宽度未跟随当前 tab`).toBe(`${base.w}px`)
-      // 基准 = 起始 tab 的 x；位移 = mapStripOffset(+150, 向右一格的槽距)
-      const expected = base.x + mapStripOffset(150, slot)
-      expect(shiftOf(thumb.style.transform), `${p.name} 滑块位移与映射公式不符`)
+      // 基准 = 起始 tab 的 x；轨道内 1:1 → 位移就是 150
+      const expected = base.x + 150
+      expect(shiftOf(thumb.style.transform), `${p.name} 滑块位移与跟手公式不符`)
         .toBeCloseTo(expected, 5)
       expect(Math.abs(shiftOf(thumb.style.transform) - base.x), `${p.name} 滑块位移太小（用户会认为没动）`)
         .toBeGreaterThanOrEqual(30)
@@ -262,26 +265,45 @@ describe('第四轮：分段控件滑块（按住方块必须看得见地动，�
     it(`${p.name}：松手滑块落到目标 tab（位置 + 宽度都跟着目标），且内容切换`, () => {
       const { container, bar, thumb, geo, startIdx } = setup()
       const before = p.activeOf(container)
-      const t1 = geo.tabs[startIdx + 1]
+      // 150px 在 70/82 交替的几何下跨过 2 格（落点距 startIdx+2 更近）
+      const t2 = geo.tabs[startIdx + 2]
 
       dragRight(bar, 150)
       endDrag(150)
 
       expect(p.activeOf(container), `${p.name} 松手未切换`).not.toBe(before)
+      expect(p.activeOf(container), `${p.name} 未按落点落到第 +2 格`).toBe(t2.el.textContent?.trim())
       // 滑块落位：x = 目标 tab 的 x，宽度 = 目标 tab 的宽度
-      expect(shiftOf(thumb.style.transform), `${p.name} 滑块未落到目标 tab`).toBeCloseTo(t1.x, 5)
-      expect(thumb.style.width, `${p.name} 滑块宽度未换成目标 tab 的宽度`).toBe(`${t1.w}px`)
+      expect(shiftOf(thumb.style.transform), `${p.name} 滑块未落到目标 tab`).toBeCloseTo(t2.x, 5)
+      expect(thumb.style.width, `${p.name} 滑块宽度未换成目标 tab 的宽度`).toBe(`${t2.w}px`)
       // 落位后交回 CSS 过渡（清空内联过渡）
       expect(thumb.style.transition, `${p.name} 松手后内联过渡未清空`).toBe('')
       expect(bar.hasAttribute('data-swiping'), `${p.name} 松手后 data-swiping 未移除`).toBe(false)
+    })
+
+    it(`${p.name}：连续滑动 —— 一次从当前 tab 拖到**最后一格**（不必逐格挪）`, () => {
+      const { container, bar, thumb, geo, startIdx } = setup()
+      const last = geo.tabs.length - 1
+      if (startIdx === last) return   // 已在末位，无方向可去（设置页/白板默认都不是）
+
+      const target = geo.tabs[last]
+      const span = geo.centers[last] - geo.centers[startIdx]   // 直拖到末格中心的距离
+
+      dragRight(bar, span)
+      endDrag(span)
+
+      expect(p.activeOf(container), `${p.name} 未一次拖到最后一格`).toBe(target.el.textContent?.trim())
+      expect(shiftOf(thumb.style.transform), `${p.name} 滑块未落到最后一格`).toBeCloseTo(target.x, 5)
+      expect(thumb.style.width).toBe(`${target.w}px`)
     })
 
     it(`${p.name}：未够吸附阈值 → 滑块滑回原 tab（不切换）`, () => {
       const { container, bar, thumb, geo, startIdx } = setup()
       const before = p.activeOf(container)
 
-      dragRight(bar, 20)
-      endDrag(20)
+      // 14px：已过方向阈值（8px）但远不足半格，也不构成甩掷（<20px）
+      dragRight(bar, 14)
+      endDrag(14)
 
       expect(p.activeOf(container), `${p.name} 轻拖不应切换`).toBe(before)
       expect(shiftOf(thumb.style.transform), `${p.name} 未切换时滑块未回到原 tab`)

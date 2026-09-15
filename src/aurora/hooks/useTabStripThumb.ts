@@ -15,6 +15,13 @@ import type React from 'react'
 import { createTabStripThumb } from './tabStripSwipe'
 import { useSwipeTabs, type SwipeAxis } from './useSwipeTabs'
 
+/**
+ * 恒等位移映射：strip 路径的边界阻尼由 `createTabStripThumb` 按**轨道端点**
+ * 统一处理（落点在轨道内严格 1:1），hook 内置的 `applyEdgeResistance`
+ * 是按「index ± 1」判越界的单步语义，连续滑动下会让跨格拖不动，必须让位。
+ */
+const IDENTITY = (raw: number): number => raw
+
 export interface UseTabStripThumbOptions {
   /** 当前索引（受控，与面板 tab 状态单一数据源） */
   index: number
@@ -28,8 +35,6 @@ export interface UseTabStripThumbOptions {
   axis?: SwipeAxis
   /** tab 选择器（默认 [role="tab"]） */
   tabSelector?: string
-  /** 兜底槽距（px，量不到几何时用） */
-  fallbackSlot?: number
 }
 
 export interface UseTabStripThumbResult {
@@ -48,7 +53,7 @@ export interface UseTabStripThumbResult {
 }
 
 export function useTabStripThumb(options: UseTabStripThumbOptions): UseTabStripThumbResult {
-  const { index, count, onIndexChange, enabled, axis, tabSelector, fallbackSlot } = options
+  const { index, count, onIndexChange, enabled, axis, tabSelector } = options
 
   const trackRef = useRef<HTMLDivElement>(null)
   const thumbRef = useRef<HTMLSpanElement>(null)
@@ -62,9 +67,8 @@ export function useTabStripThumb(options: UseTabStripThumbOptions): UseTabStripT
       thumbRef,
       getIndex: () => indexRef.current,
       tabSelector,
-      fallbackSlot,
     }),
-    [tabSelector, fallbackSlot],
+    [tabSelector],
   )
 
   const swipe = useSwipeTabs({
@@ -78,7 +82,13 @@ export function useTabStripThumb(options: UseTabStripThumbOptions): UseTabStripT
     onOffsetChange: motion.handleOffset,
     // 松手统一在此落位（含"没切"的情况 → 滑回原 tab）
     onSettle: (target) => motion.place(target, true),
-    snapThresholdPx: motion.snapThresholdPx,
+    // 连续滑动（需求 N 第六轮）：hook 的两条内置策略都是「单步 + 按 index±1 判越界」，
+    // 与"一次拖到最后一格"冲突，故双双覆盖：
+    //   · dampenOffset —— 边界阻尼改由 strip 按**轨道端点**处理（落点在轨道内严格 1:1）；
+    //     这里显式置为恒等，避免 hook 再按 index±1 阻尼一次（双重阻尼会让跨格拖不动）。
+    //   · snapDecider —— 吸附改为**落点最近中心位**，可一次跨多格。
+    dampenOffset: IDENTITY,
+    snapDecider: motion.decideSnap,
   })
 
   /** 时机①：选中项变化 → 带过渡落位；首帧瞬时（否则从 x=0 飘进来） */

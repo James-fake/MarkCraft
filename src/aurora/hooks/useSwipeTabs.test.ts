@@ -14,12 +14,14 @@ import {
   FLICK_MIN_DISTANCE,
   FLICK_SAMPLE_WINDOW,
   EDGE_RESISTANCE,
+  OVERSCROLL_MAX,
   VISUAL_CLAMP,
   WHEEL_SNAP_THRESHOLD,
   WHEEL_COOLDOWN,
   WHEEL_IDLE_RESET,
   resolveAxis,
   applyEdgeResistance,
+  mapTrackOffset,
   decideSnap,
   computeEndVelocity,
   toVisualOffset,
@@ -104,6 +106,74 @@ describe('applyEdgeResistance · 边界阻尼', () => {
   it('仅 1 个 tab → 两个方向都阻尼', () => {
     expect(applyEdgeResistance(100, 0, 1, 800)).toBeCloseTo(100 * EDGE_RESISTANCE)
     expect(applyEdgeResistance(-100, 0, 1, 800)).toBeCloseTo(-100 * EDGE_RESISTANCE)
+  })
+})
+
+/* ================================================================== *
+ * mapTrackOffset · 轨道连续性位移映射（需求 N 第六轮：连续滑动）
+ * ================================================================== */
+
+describe('mapTrackOffset · 落点在轨道内严格 1:1（可跨多格）', () => {
+  // 三格轨道：中心 35 / 107 / 179（宽 70、间距 2）→ 首中心 35、末中心 179
+  const MIN = 35
+  const MAX = 179
+
+  it('单格内 1:1（从**中间格**起手时两侧都还在轨道内）', () => {
+    expect(mapTrackOffset(0, 107, MIN, MAX)).toBe(0)
+    expect(mapTrackOffset(30, 107, MIN, MAX)).toBe(30)
+    expect(mapTrackOffset(-30, 107, MIN, MAX)).toBe(-30)
+  })
+
+  it('**跨格仍严格 1:1** —— 这是"连续滑动"的全部意义（旧公式第二格起就几乎不动）', () => {
+    // 从首格一路拖到末格中心：位移 144px，落点恰好 179
+    expect(mapTrackOffset(144, 35, MIN, MAX)).toBe(144)
+    // 途中任意位置都不得被打折
+    expect(mapTrackOffset(100, 35, MIN, MAX)).toBe(100)
+  })
+
+  it('从中间格起手向两端都 1:1（不是"只有从第一格起手才能连着拖"）', () => {
+    expect(mapTrackOffset(72, 107, MIN, MAX)).toBe(72)    // 到末中心
+    expect(mapTrackOffset(-72, 107, MIN, MAX)).toBe(-72)  // 到首中心
+  })
+
+  it('恰好落在两端中心 → 仍算"在轨道内"（边界不外溢）', () => {
+    expect(mapTrackOffset(MAX - 35, 35, MIN, MAX)).toBe(MAX - 35)
+    expect(mapTrackOffset(MIN - 35, 35, MIN, MAX)).toBe(MIN - 35)
+  })
+})
+
+describe('mapTrackOffset · 越界阻尼（橡胶 + 绝对上限）', () => {
+  const MIN = 35
+  const MAX = 179
+
+  it('越界部分按 EDGE_RESISTANCE 衰减（未触顶时）', () => {
+    // 首格往左拖 50 → 越界 50 × 0.28 = 14
+    expect(mapTrackOffset(-50, 35, MIN, MAX)).toBeCloseTo(-50 * EDGE_RESISTANCE, 5)
+  })
+
+  it('**首格往左 / 末格往右立即算越界**（滑块不许滑到轨道外一格），阻尼而非 1:1', () => {
+    // 旧公式以「一格槽距」为限幅 → 首格往左仍能 1:1 走一格（滑块跑到轨道外空白处）。
+    // 连续滑动后判据是「落点是否在轨道内」，所以这里立刻阻尼。
+    expect(mapTrackOffset(-30, 35, MIN, MAX)).toBeCloseTo(-30 * EDGE_RESISTANCE, 5)
+    expect(mapTrackOffset(30, 179, MIN, MAX)).toBeCloseTo(30 * EDGE_RESISTANCE, 5)
+  })
+
+  it('越界增量**绝对封顶 OVERSCROLL_MAX** —— 不能用"到端点距离 × 比例"，中间起手会冲出轨道', () => {
+    // 首格往左拖 150 → 未封顶时 42px > 28 → 封顶
+    expect(mapTrackOffset(-150, 35, MIN, MAX)).toBeCloseTo(-OVERSCROLL_MAX, 5)
+    // 末格往右拖 1000
+    expect(mapTrackOffset(1000, 179, MIN, MAX)).toBeCloseTo(OVERSCROLL_MAX, 5)
+  })
+
+  it('中间格起手拖到端外：停在末中心 + 封顶增量（不会一路拖出轨道）', () => {
+    // base 107 → 到末中心 72；越界部分封顶 28 → 100
+    expect(mapTrackOffset(1000, 107, MIN, MAX)).toBeCloseTo(72 + OVERSCROLL_MAX, 5)
+    expect(mapTrackOffset(-1000, 107, MIN, MAX)).toBeCloseTo(-72 - OVERSCROLL_MAX, 5)
+  })
+
+  it('只有一个 tab（min === max）→ 两侧都按越界处理，滑块只能晃出封顶量', () => {
+    expect(mapTrackOffset(1000, 35, 35, 35)).toBeCloseTo(OVERSCROLL_MAX, 5)
+    expect(mapTrackOffset(-1000, 35, 35, 35)).toBeCloseTo(-OVERSCROLL_MAX, 5)
   })
 })
 
