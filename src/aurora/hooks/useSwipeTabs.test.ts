@@ -83,22 +83,22 @@ describe('applyEdgeResistance · 边界阻尼', () => {
     expect(applyEdgeResistance(-100, 1, 3, 800)).toBe(-100)
   })
 
-  it('首 tab 继续右滑（上一个方向）→ 施加阻尼', () => {
-    const out = applyEdgeResistance(100, 0, 3, 800)
-    expect(out).toBeCloseTo(100 * EDGE_RESISTANCE)
-  })
-
-  it('首 tab 左滑（下一个方向）→ 不阻尼', () => {
-    expect(applyEdgeResistance(-100, 0, 3, 800)).toBe(-100)
-  })
-
-  it('末 tab 继续左滑（下一个方向）→ 施加阻尼', () => {
-    const out = applyEdgeResistance(-100, 2, 3, 800)
+  it('首 tab 继续左滑（上一个方向）→ 施加阻尼', () => {
+    const out = applyEdgeResistance(-100, 0, 3, 800)
     expect(out).toBeCloseTo(-100 * EDGE_RESISTANCE)
   })
 
-  it('末 tab 右滑（上一个方向）→ 不阻尼', () => {
-    expect(applyEdgeResistance(100, 2, 3, 800)).toBe(100)
+  it('首 tab 右滑（下一个方向）→ 不阻尼', () => {
+    expect(applyEdgeResistance(100, 0, 3, 800)).toBe(100)
+  })
+
+  it('末 tab 继续右滑（下一个方向）→ 施加阻尼', () => {
+    const out = applyEdgeResistance(100, 2, 3, 800)
+    expect(out).toBeCloseTo(100 * EDGE_RESISTANCE)
+  })
+
+  it('末 tab 左滑（上一个方向）→ 不阻尼', () => {
+    expect(applyEdgeResistance(-100, 2, 3, 800)).toBe(-100)
   })
 
   it('仅 1 个 tab → 两个方向都阻尼', () => {
@@ -114,8 +114,8 @@ describe('applyEdgeResistance · 边界阻尼', () => {
 describe('decideSnap · 吸附判定', () => {
   const base = { size: 800, index: 1, count: 5 }
 
-  it('位移超过 32% → 通过，目标 +1', () => {
-    const r = decideSnap({ ...base, offset: -300, elapsed: 500 })
+  it('向右滑过 32%（下一个方向）→ 通过，目标 +1', () => {
+    const r = decideSnap({ ...base, offset: 300, elapsed: 500 })
     expect(r.passed).toBe(true)
     expect(r.targetIndex).toBe(2)
   })
@@ -144,7 +144,7 @@ describe('decideSnap · 吸附判定', () => {
 
   it('位移不足但快速甩掷 → 通过', () => {
     // 60px / 100ms = 0.6 px/ms > 0.3，且 60 > 20
-    const r = decideSnap({ ...base, offset: -60, elapsed: 100 })
+    const r = decideSnap({ ...base, offset: 60, elapsed: 100 })
     expect(r.passed).toBe(true)
     expect(r.targetIndex).toBe(2)
   })
@@ -162,25 +162,25 @@ describe('decideSnap · 吸附判定', () => {
   })
 
   it('单步约束：位移远超一屏 → 仍只移动 1 个', () => {
-    const r = decideSnap({ ...base, offset: -1600, elapsed: 500 })
+    const r = decideSnap({ ...base, offset: 1600, elapsed: 500 })
     expect(r.passed).toBe(true)
     expect(r.targetIndex).toBe(2)
   })
 
-  it('反向滑动 → 目标 index - 1', () => {
-    const r = decideSnap({ ...base, offset: 300, elapsed: 500 })
+  it('向左滑 → 目标 index - 1（**方向与位移同号**，滑块跟手到哪就选中哪）', () => {
+    const r = decideSnap({ ...base, offset: -300, elapsed: 500 })
     expect(r.passed).toBe(true)
     expect(r.targetIndex).toBe(0)
   })
 
-  it('首 tab 反向滑（越界方向）→ 不通过', () => {
-    const r = decideSnap({ ...base, index: 0, offset: 400, elapsed: 300 })
+  it('首 tab 继续向左滑（越界方向）→ 不通过', () => {
+    const r = decideSnap({ ...base, index: 0, offset: -400, elapsed: 300 })
     expect(r.passed).toBe(false)
     expect(r.targetIndex).toBe(0)
   })
 
-  it('末 tab 正向滑（越界方向）→ 不通过', () => {
-    const r = decideSnap({ ...base, index: 4, offset: -400, elapsed: 300 })
+  it('末 tab 继续向右滑（越界方向）→ 不通过', () => {
+    const r = decideSnap({ ...base, index: 4, offset: 400, elapsed: 300 })
     expect(r.passed).toBe(false)
     expect(r.targetIndex).toBe(4)
   })
@@ -328,34 +328,34 @@ describe('stepWheel · 触控板累积与节流', () => {
     expect(r.state.acc).toBe(-30)
   })
 
-  it('累积超过 60（负向=下一个）→ 切到 +1', () => {
+  it('累积超过 60（正向 = 下一个）→ 切到 +1', () => {
     const s = createWheelState()
-    let r = stepWheel({ state: s, delta: -30, now: 1000, index: 1, count: 5 })
-    r = stepWheel({ state: r.state, delta: -35, now: 1020, index: 1, count: 5 })
+    let r = stepWheel({ state: s, delta: 30, now: 1000, index: 1, count: 5 })
+    r = stepWheel({ state: r.state, delta: 35, now: 1020, index: 1, count: 5 })
     expect(r.targetIndex).toBe(2)
   })
 
-  it('累积超过 60（正向=上一个）→ 切到 -1', () => {
+  it('累积超过 60（负向 = 上一个）→ 切到 -1', () => {
     const s = createWheelState()
-    let r = stepWheel({ state: s, delta: 30, now: 1000, index: 2, count: 5 })
-    r = stepWheel({ state: r.state, delta: 35, now: 1020, index: 2, count: 5 })
+    let r = stepWheel({ state: s, delta: -30, now: 1000, index: 2, count: 5 })
+    r = stepWheel({ state: r.state, delta: -35, now: 1020, index: 2, count: 5 })
     expect(r.targetIndex).toBe(1)
   })
 
   it('冷却期内继续滚动 → 不再切换（一次扫动只切一次）', () => {
     const s = createWheelState()
-    let r = stepWheel({ state: s, delta: -70, now: 1000, index: 1, count: 5 })
+    let r = stepWheel({ state: s, delta: 70, now: 1000, index: 1, count: 5 })
     expect(r.targetIndex).toBe(2)
     // 冷却期内再来一大波
-    r = stepWheel({ state: r.state, delta: -200, now: 1000 + WHEEL_COOLDOWN - 50, index: 2, count: 5 })
+    r = stepWheel({ state: r.state, delta: 200, now: 1000 + WHEEL_COOLDOWN - 50, index: 2, count: 5 })
     expect(r.targetIndex).toBeNull()
   })
 
   it('冷却结束后恢复响应', () => {
     const s = createWheelState()
-    let r = stepWheel({ state: s, delta: -70, now: 1000, index: 1, count: 5 })
+    let r = stepWheel({ state: s, delta: 70, now: 1000, index: 1, count: 5 })
     expect(r.targetIndex).toBe(2)
-    r = stepWheel({ state: r.state, delta: -70, now: 1000 + WHEEL_COOLDOWN + 10, index: 2, count: 5 })
+    r = stepWheel({ state: r.state, delta: 70, now: 1000 + WHEEL_COOLDOWN + 10, index: 2, count: 5 })
     expect(r.targetIndex).toBe(3)
   })
 
@@ -377,17 +377,17 @@ describe('stepWheel · 触控板累积与节流', () => {
     expect(r.state.acc).toBe(-20)
   })
 
-  it('末 tab 继续下一个方向 → 切换取消且不进冷却', () => {
+  it('末 tab 继续下一个方向（向右/正）→ 切换取消且不进冷却', () => {
     const s = createWheelState()
-    const r = stepWheel({ state: s, delta: -200, now: 1000, index: 4, count: 5 })
+    const r = stepWheel({ state: s, delta: 200, now: 1000, index: 4, count: 5 })
     expect(r.targetIndex).toBeNull()
     expect(r.state.cooldownUntil).toBe(0)
     expect(r.state.acc).toBe(0)
   })
 
-  it('首 tab 继续上一个方向 → 切换取消', () => {
+  it('首 tab 继续上一个方向（向左/负）→ 切换取消', () => {
     const s = createWheelState()
-    const r = stepWheel({ state: s, delta: 200, now: 1000, index: 0, count: 5 })
+    const r = stepWheel({ state: s, delta: -200, now: 1000, index: 0, count: 5 })
     expect(r.targetIndex).toBeNull()
   })
 

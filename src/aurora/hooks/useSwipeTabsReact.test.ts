@@ -48,6 +48,8 @@ function up() {
   document.dispatchEvent(new Event('pointerup'))
 }
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
+
 describe('useSwipeTabs · 多点位绑定（tab 栏 + 内容区）', () => {
   it('makeBind 可重复调用，两份绑定都能触发起手', () => {
     const onIndexChange = vi.fn()
@@ -62,7 +64,7 @@ describe('useSwipeTabs · 多点位绑定（tab 栏 + 内容区）', () => {
     expect(typeof bindA.onClickCapture).toBe('function')
   })
 
-  it('内容区宽度作为吸附基准：从窄 tab 栏起手也按内容区算阈值', () => {
+  it('内容区宽度作为吸附基准：从窄 tab 栏起手也按内容区算阈值', async () => {
     const onIndexChange = vi.fn()
 
     // 内容区宽 1000px → 32% 阈值 = 320px
@@ -84,12 +86,15 @@ describe('useSwipeTabs · 多点位绑定（tab 栏 + 内容区）', () => {
       bind.onPointerDown(e)
     })
 
-    // 横滑 150px：若误用 tab 栏 400px 作基准 → 150/400 = 37.5% > 32% 会翻页
-    // 正确用内容区 1000px → 150/1000 = 15% < 32% 且速度不足 → 应回弹
-    act(() => {
-      move(50)
-      move(100)
-      move(150)
+    // 向右**慢速**拖 150px（每步间隔 300ms → 末段速度 ≈ 0.17 px/ms < 0.3），
+    // 使判定只能走「位移比例」路径（甩掷路径必须不参与，否则测不到阈值来源）：
+    // 若误用 tab 栏 400px 作基准 → 150/400 = 37.5% > 32% 会翻页；
+    // 正确用内容区 1000px → 150/1000 = 15% < 32% 且速度不足 → 应回弹。
+    await act(async () => {
+      for (const x of [50, 100, 150]) {
+        move(x)
+        await sleep(300)
+      }
       up()
     })
 
@@ -112,9 +117,9 @@ describe('useSwipeTabs · 多点位绑定（tab 栏 + 内容区）', () => {
     act(() => {
       bind.onPointerDown({ ...pd(0), currentTarget: contentEl } as unknown as React.PointerEvent)
     })
-    // 向左滑 400px（> 1000*0.32=320）→ 下一个
+    // 向右滑 400px（> 1000*0.32=320）→ 下一个（位移方向即目标方向）
     act(() => {
-      for (let x = -40; x >= -400; x -= 40) move(x)
+      for (let x = 40; x <= 400; x += 40) move(x)
       up()
     })
 
@@ -232,9 +237,9 @@ describe('useSwipeTabs · 回归：浮层收起时 tab 行仍可滑', () => {
     act(() => {
       bind.onPointerDown({ ...pd(0), currentTarget: measureEl } as unknown as React.PointerEvent)
     })
-    // 左滑 400px > 1000 * 0.32 = 320 → 切到下一项
+    // 右滑 400px > 1000 * 0.32 = 320 → 切到下一项（位移方向即目标方向）
     act(() => {
-      for (let x = -40; x >= -400; x -= 40) move(x)
+      for (let x = 40; x <= 400; x += 40) move(x)
       up()
     })
 

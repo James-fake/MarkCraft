@@ -100,16 +100,17 @@ describe('decideSnap · thresholdPx 覆盖（半个槽距）', () => {
     // 拖 40px：size × 32% = 434px 判不过，但半个槽距（37.5px）应判过
     expect(decideSnap({ ...base, offset: -40 }).passed).toBe(false)
     expect(decideSnap({ ...base, offset: -40, thresholdPx: 37.5 }).passed).toBe(true)
-    expect(decideSnap({ ...base, offset: -40, thresholdPx: 37.5 }).targetIndex).toBe(2)
+    // 向左滑 = 上一个方向 → 目标 index - 1（**方向与位移同号**，滑块跟手到哪就选中哪）
+    expect(decideSnap({ ...base, offset: -40, thresholdPx: 37.5 }).targetIndex).toBe(0)
   })
 
   it('未达阈值仍不切换（避免误触/手抖翻页）', () => {
     expect(decideSnap({ ...base, offset: -20, thresholdPx: 37.5 }).passed).toBe(false)
   })
 
-  it('边界方向护栏仍生效（首 tab 往右、末 tab 往左都不通过）', () => {
-    expect(decideSnap({ ...base, index: 0, offset: 60, thresholdPx: 37.5 }).passed).toBe(false)
-    expect(decideSnap({ ...base, index: 4, offset: -60, thresholdPx: 37.5 }).passed).toBe(false)
+  it('边界方向护栏仍生效（首 tab 往左、末 tab 往右都不通过）', () => {
+    expect(decideSnap({ ...base, index: 0, offset: -60, thresholdPx: 37.5 }).passed).toBe(false)
+    expect(decideSnap({ ...base, index: 4, offset: 60, thresholdPx: 37.5 }).passed).toBe(false)
   })
 })
 
@@ -236,26 +237,26 @@ describe('createTabStripThumb · 滑块跟手（所见即所得）', () => {
   it('snapThresholdPx = 该方向真实中心距的一半（拖过一半就切）', () => {
     const f = fixture([[0, 70], [72, 70], [144, 70]], 0)   // 中心 35 / 107 / 179 → 每格 72
     const m = f.make()
-    m.handleOffset(-40)
+    m.handleOffset(40)                        // 向右 → 目标 index 1（中心距 72）
     expect(m.snapThresholdPx()).toBe(36)
   })
 
   it('阈值按**方向**取相邻格，而不是平均槽距（方块不等宽时两者不同）', () => {
-    // 中心 35 / 113 / 179 / 251 → 前向格 66、后向格 78、均值 72
+    // 中心 35 / 113 / 179 / 251 → 向右格 66、向左格 78、均值 72
     const f = fixture([[0, 70], [72, 82], [138, 82], [210, 82]], 1)
     const m = f.make()
 
-    m.handleOffset(-40)                       // 向左 = 下一个（中心距 66）
-    expect(m.snapThresholdPx()).toBe(33)
-
-    m.handleOffset(40)                        // 向右 = 上一个（中心距 78）
+    m.handleOffset(-40)                       // 向左 = 上一个（中心距 78）
     expect(m.snapThresholdPx()).toBe(39)
+
+    m.handleOffset(40)                        // 向右 = 下一个（中心距 66）
+    expect(m.snapThresholdPx()).toBe(33)
   })
 
   it('边界方向无相邻 tab → 退回平均槽距（越界仍有可感的橡胶阻尼）', () => {
     const f = fixture([[0, 70], [72, 70], [144, 70]], 2)   // 末位
     const m = f.make()
-    m.handleOffset(-40)
+    m.handleOffset(40)                        // 末位继续向右 = 越界方向
     expect(m.snapThresholdPx()).toBe(36)      // 平均槽距 72 的一半
   })
 })

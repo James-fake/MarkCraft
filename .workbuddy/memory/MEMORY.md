@@ -79,10 +79,16 @@ bash 每条命令内联 `export PATH="<上述三目录>:/c/Users/HJN/.workbuddy/
 - 四项（✅）：① 指针门控（`@media (hover:none),(pointer:coarse)` 只归零**纯位移/缩放型** hover，**复合 transform 必须豁免**）；
   ② 布局属性合成器化（博客浮层 `left`→`translateX`）；③ 命令面板去 200ms 入场；④ 六个 `:active` 补 `scale(0.97)`。
 
-## 需求 N：tab 栏滑动切 Tab（**四轮定稿，R4 为现行**）
+## 需求 N：tab 栏滑动切 Tab（**五轮定稿，R5 为现行**）
 **用户定案语义**：仿 Apple **分段控件**。① 一条**常驻滑块 thumb** 压在选中项上（非按住才浮起）；
 ② 按住任一 tab 横拖 → **只有滑块跟手走，tab 文字一个像素都不动**；③ 松手滑块过渡吸到最近 tab（拖过一半即切）；
-④ **内容区零位移**；⑤ 栏**不滚动**（`scrollLeft` 恒 0）。
+④ **内容区零位移**；⑤ 栏**不滚动**（`scrollLeft` 恒 0）；⑥ **位移方向 = 目标方向**（向右/向下拖 → 下一个）。
+- **⑥ 是 R5 修的 bug**：滑块是**选中指示器**，位置即真相。R1–R4 沿用「内容翻页」约定
+  （`nextSign = -1`：向左拖 = 下一个）→ 滑块向左跟手滑到左 tab 上，松手却选中其**右邻居**
+  → 滑块在松手瞬间"弹回"右侧（用户反馈「往右滑动 tab 却去到左侧」）。
+  **铁律：位移保号与目标取反不能并存于一条链路**。方向单源 = `swipeTabsCore.ts` 三处 `nextSign`
+  （`applyEdgeResistance`/`decideSnap`/`stepWheel`）+ `tabStripSwipe.ts#distanceOf` 取邻方向，均须 `+1`；
+  `mapStripOffset`（滑块位移映射）**不动** —— 它本来就对，错的只是"位移 → 目标索引"的翻译。
 - 演进：R1 内容区滑动（错：方位词是**手势起手区**规格）→ R2 手势挂 tab 栏但仍"看不见"（位移被内容区宽稀释成 0.7px）→
   R3 整排轨道跟手（药丸底/分隔线留外层、位移落内层）→ **R4 选中态"搬家"到独立 thumb**（不是加动画，是换承载者）。
 - 共享层：`hooks/tabStripSwipe.ts`（纯逻辑 `createTabStripThumb`：`handleOffset`/`snapThresholdPx`/`place`；

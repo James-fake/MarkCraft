@@ -144,7 +144,9 @@ export function createTabStripThumb(o: TabStripThumbOptions): TabStripThumb {
    *
    * 为什么不能用平均槽距：滑块跟手一格的视觉距离就是这两个 tab 的中心距，
    * 用平均值会让「限幅到不了目标中心」（滑块滑一半就被阻尼卡住），阈值也
-   * 与视觉不符。方向由位移符号决定 —— 符号穿越 0 时位移本身≈0，无跳变。
+   * 与视觉不符。方向由位移符号决定，且**位移方向即目标方向**
+   * （向右/向下 → 下一个 tab），与 decideSnap 的吸附方向严格同源；
+   * 符号穿越 0 时位移本身≈0，无跳变。
    * 边界（该方向没有相邻 tab）退回平均槽距，让越界仍有可感知的橡胶阻尼。
    */
   const distanceOf = (offset: number): number => {
@@ -152,7 +154,7 @@ export function createTabStripThumb(o: TabStripThumbOptions): TabStripThumb {
     const idx = o.getIndex()
     const cur = cs[idx]
     if (cur == null) return fallback
-    const tgt = cs[offset <= 0 ? idx + 1 : idx - 1]
+    const tgt = cs[offset < 0 ? idx - 1 : idx + 1]
     const d = tgt == null ? 0 : Math.abs(tgt - cur)
     return d > 0 ? d : (averageSlotOf(cs) ?? fallback)
   }

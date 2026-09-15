@@ -107,7 +107,7 @@ export function resolveAxis(
  * @param index 当前索引
  * @param count 总数
  * @param size 容器尺寸（宽或高，px）
- * @param axis 手势主轴（决定符号语义：x 模式向左为负=下一个）
+ * @param axis 手势主轴（决定符号语义：**位移方向即目标方向** —— 向右/向下 = 下一个）
  */
 export function applyEdgeResistance(
   offset: number,
@@ -118,8 +118,9 @@ export function applyEdgeResistance(
 ): number {
   if (count <= 1) return offset * EDGE_RESISTANCE
 
-  // 「下一个」方向的符号：x 轴向左滑为负 → 下一个；y 轴向上滑为负 → 下一个
-  const nextSign = -1
+  // 「下一个」方向的符号。**位移方向即目标方向**（滑块跟手滑到哪，松手就选中哪）：
+  // x 轴向右为 `+` → 下一个；y 轴向下为 `+` → 下一个。
+  const nextSign = 1
   const movingToNext = Math.sign(offset) === nextSign
 
   const atFirst = index <= 0
@@ -187,8 +188,13 @@ export function decideSnap(input: SnapDecisionInput): SnapDecision {
   if (absOffset < 1) return stay
 
   // 越界方向直接不通过（阻尼已把位移压小，这里做语义护栏）
+  //
+  // 「下一个」= 位移方向（x 向右 / y 向下为正）。**必须与滑块的跟手方向一致** ——
+  // 滑块是选中状态的可见承载者，跟手滑到哪就必须选中哪；若反过来（旧行为：
+  // 向左滑 → index + 1），用户看到的是"往右拖，松手却跳到左边那个"，滑块还会
+  // 在松手瞬间弹回另一侧。2026-09-15 用户反馈的"方向反了"即此。
   const direction = Math.sign(offset)
-  const nextSign = -1
+  const nextSign = 1
   if (direction === nextSign && index >= count - 1) return stay
   if (direction !== nextSign && index <= 0) return stay
 
@@ -393,8 +399,8 @@ export function stepWheel(input: WheelStepInput): { state: WheelAccumulatorState
   }
 
   acc += delta
-  // 触控板「自然滚动」方向：双指左滑 deltaX 为负 → 下一个 tab
-  const nextSign = -1
+  // 与拖动保持同一语义：**位移方向即目标方向** → 双指右滑（deltaX 为正）= 下一个 tab
+  const nextSign = 1
   const movingToNext = Math.sign(acc) === nextSign
 
   if (Math.abs(acc) <= WHEEL_SNAP_THRESHOLD) {

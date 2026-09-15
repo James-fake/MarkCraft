@@ -65,14 +65,20 @@ function stubGeometry(track: HTMLElement) {
   return { tabs, centers }
 }
 
-/** 在给定 tab 栏内合成一次「按住方块向左横滑 dist px」的真实轨迹 */
-function dragLeft(bar: HTMLElement, dist: number) {
+/**
+ * 在给定 tab 栏内合成一次「按住方块向右横滑 dist px」的真实轨迹。
+ *
+ * ⚠️ 方向必须与「目标 tab 在右侧」对应：**位移方向即切换方向**
+ * （向右 → index + 1）。2026-09-15 用户反馈「往右滑动 tab 却去到左侧」——
+ * 这条向右轨迹就是该回归的闸门：向右拖必须落到 startIdx + 1。
+ */
+function dragRight(bar: HTMLElement, dist: number) {
   const target = bar.querySelector('button') ?? bar
   fireEvent(target, pointer('pointerdown', 600))
-  for (let i = 1; i <= 18; i++) fireEvent(document, pointer('pointermove', 600 - (dist * i) / 18))
+  for (let i = 1; i <= 18; i++) fireEvent(document, pointer('pointermove', 600 + (dist * i) / 18))
 }
 
-const endDrag = (dist: number) => fireEvent(document, pointer('pointerup', 600 - dist))
+const endDrag = (dist: number) => fireEvent(document, pointer('pointerup', 600 + dist))
 
 const shiftOf = (transform: string) => {
   const m = /translate3d\((-?[\d.]+)px/.exec(transform || '')
@@ -215,13 +221,13 @@ describe('第四轮：分段控件滑块（按住方块必须看得见地动，�
       const { bar, thumb, geo, startIdx, slot } = setup()
       const base = geo.tabs[startIdx]
 
-      dragLeft(bar, 150)
+      dragRight(bar, 150)
 
       expect(bar.hasAttribute('data-swiping'), `${p.name} 跟手态未出现 data-swiping`).toBe(true)
       expect(thumb.style.transition, `${p.name} 跟手期间滑块必须零过渡`).toBe('none')
       expect(thumb.style.width, `${p.name} 滑块宽度未跟随当前 tab`).toBe(`${base.w}px`)
-      // 基准 = 起始 tab 的 x；位移 = mapStripOffset(-150, 一格的槽距)
-      const expected = base.x + mapStripOffset(-150, slot)
+      // 基准 = 起始 tab 的 x；位移 = mapStripOffset(+150, 向右一格的槽距)
+      const expected = base.x + mapStripOffset(150, slot)
       expect(shiftOf(thumb.style.transform), `${p.name} 滑块位移与映射公式不符`)
         .toBeCloseTo(expected, 5)
       expect(Math.abs(shiftOf(thumb.style.transform) - base.x), `${p.name} 滑块位移太小（用户会认为没动）`)
@@ -232,7 +238,7 @@ describe('第四轮：分段控件滑块（按住方块必须看得见地动，�
       const { bar, geo, content } = setup()
       const styleBefore = geo.tabs.map((t) => t.el.getAttribute('style'))
 
-      dragLeft(bar, 150)
+      dragRight(bar, 150)
 
       // tab 元素不得被写入任何内联样式（位移写的是滑块，不是文字）
       expect(geo.tabs.map((t) => t.el.getAttribute('style')), `${p.name} 有 tab 被写入了内联样式`)
@@ -247,7 +253,7 @@ describe('第四轮：分段控件滑块（按住方块必须看得见地动，�
 
     it(`${p.name}：栏不滚动（scrollLeft 恒为 0，横滑只切换不浏览）`, () => {
       const { bar } = setup()
-      dragLeft(bar, 150)
+      dragRight(bar, 150)
       expect(bar.scrollLeft, `${p.name} 拖动中栏被滚动了`).toBe(0)
       endDrag(150)
       expect(bar.scrollLeft, `${p.name} 松手后栏被滚动了`).toBe(0)
@@ -258,7 +264,7 @@ describe('第四轮：分段控件滑块（按住方块必须看得见地动，�
       const before = p.activeOf(container)
       const t1 = geo.tabs[startIdx + 1]
 
-      dragLeft(bar, 150)
+      dragRight(bar, 150)
       endDrag(150)
 
       expect(p.activeOf(container), `${p.name} 松手未切换`).not.toBe(before)
@@ -274,7 +280,7 @@ describe('第四轮：分段控件滑块（按住方块必须看得见地动，�
       const { container, bar, thumb, geo, startIdx } = setup()
       const before = p.activeOf(container)
 
-      dragLeft(bar, 20)
+      dragRight(bar, 20)
       endDrag(20)
 
       expect(p.activeOf(container), `${p.name} 轻拖不应切换`).toBe(before)

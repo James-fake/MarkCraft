@@ -312,7 +312,10 @@ for (const p of PANELS) {
   if (geo.count < 2) { console.log('  ⊘ 组内仅 1 tab，无法验证切换'); results.push({ name: p.name, skipped: true, reason: '仅 1 tab' }); continue }
 
   const target = geo.tabs[geo.activeIdx]
-  const dir = geo.activeIdx >= geo.count - 1 ? 1 : -1
+  // 新语义（2026-09-15 修正）：**位移方向 = 目标方向** —— 向右拖（dir = +1）→ 下一个 tab。
+  // 末位无处可去 → 改向左拖，验证「向左 = 上一个」。
+  const dir = geo.activeIdx >= geo.count - 1 ? -1 : 1
+  const expectIdx = geo.activeIdx + dir
   const dx = dir * Math.max(60, Math.round(geo.slot * 0.9))
 
   const SNAP = `(() => {
