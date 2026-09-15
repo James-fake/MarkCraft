@@ -4,14 +4,20 @@
  * 铁律：所有根容器 box-sizing: border-box + min-width:0，防溢出
  * ========================================================== */
 
-/* ---------- Subbar（最顶栏下方的知识库子栏）---------- */
+/* ---------- Subbar（最顶栏下方的知识库子栏）----------
+ * 2026-09-15：栏高 46 → 52px。用户反馈「左上角的文字太贴近上方」——
+ * 该栏是「返回 + 库名 + 健康度徽章 + 7 个功能 Tab + 3 个操作按钮」的复合工具条，
+ * 信息量远超普通工具栏；46px 时返回按钮（28px）距上下各仅 9px、库名为 13px，
+ * 视觉上知识库名顶住上方 TitleBar。52px 让两侧留白升到 12/15px，
+ * 仍属紧凑桌面密度（VS Code 顶栏 35px + 标签栏 35px 相若），不破坏面板间节奏。
+ * 左右内边距 12 → 14px 与栅格 4px 倍数保持一致。 */
 .aurora-kb-subbar {
   display: flex;
   align-items: center;
-  gap: 12px;
-  height: 46px;
+  gap: 14px;
+  height: 52px;
   flex-shrink: 0;
-  padding: 0 12px;
+  padding: 0 14px;
   background: var(--mc-bg-content);
   border-bottom: 1px solid var(--mc-border-subtle);
   box-sizing: border-box;
@@ -21,7 +27,7 @@
 .aurora-kb-subbar__left {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
   min-width: 0;
 }
@@ -45,7 +51,7 @@
 .aurora-kb-subbar__title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   min-width: 0;
 }
 .aurora-kb-subbar__name {
@@ -840,6 +846,24 @@
  * 用 --mc-radius-sm 落地），并把 head 顶部留白从 4px 加到 12px 让按钮不再贴顶。
  * 「库内笔记」升到 font-base + weight 600 + --mc-text-primary，对应 section 范式。
  */
+/*
+ * 依赖 Tab 引导标题（2026-09-15）
+ * 事故：原实现直接把 `.aurora-kb-card__title` + 内联 `style={{marginBottom:12}}`
+ * 塞进 `.aurora-kb-notes`，而该容器顶部内边距只有 2px（它是为「自带 __head 的
+ * 笔记 Tab」设计的，2px + head 12px = 14px 才是完整节奏）——依赖 Tab 没有 head，
+ * 于是「依赖分析 · 选择文件查看出链 / 入链 / 删除影响」实际只距 subbar 下沿 2px，
+ * 表现为左上角文字贴顶。
+ * 修复：独立 __lead 承担自己的顶部留白（容器 2px + 本类 12px = 14px，
+ * 与笔记 Tab 头部完全一致），视觉沿用 section header 范式。同时消除内联样式。
+ */
+.aurora-kb-notes__lead {
+  padding: 12px 6px 0;
+  margin-bottom: 10px;
+  font-size: var(--mc-font-base);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  letter-spacing: 0.01em;
+}
 .aurora-kb-notes__head {
   display: flex;
   align-items: center;

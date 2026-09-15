@@ -621,7 +621,11 @@ function DependencyTab({ files, onSelect }: { files: FileNode[]; onSelect: (id: 
   }
   return (
     <div className="aurora-kb-notes">
-      <div className="aurora-kb-card__title" style={{ marginBottom: 12 }}>
+      {/* 引导标题：由 .aurora-kb-notes__lead 自带顶部留白。
+          容器 `.aurora-kb-notes` 顶内边距仅 2px（为「自带 __head 的笔记 Tab」设计），
+          依赖 Tab 没有 head，复用 .aurora-kb-card__title + 内联 margin 会令标题
+          贴住 subbar 下沿 —— 见 kb.css 中 __lead 的说明。 */}
+      <div className="aurora-kb-notes__lead">
         依赖分析 · 选择文件查看出链 / 入链 / 删除影响
       </div>
       {files.map((f) => (
