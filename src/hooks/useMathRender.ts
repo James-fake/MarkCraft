@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { renderMathInHtml, renderMathInHtmlAsync } from '../features/shared/utils/mathRenderer'
+import { renderMathInHtml, renderMathInHtmlAsync } from '@utils/mathRenderer'
 import { logger } from '../utils/logger'
 
 /**

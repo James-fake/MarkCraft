@@ -9,8 +9,8 @@ import {
   checkHorizontalRules,
 } from './rules'
 
-export type { LintIssue } from '../shared/utils/lintTypes'
-import type { LintIssue } from '../shared/utils/lintTypes'
+export type { LintIssue } from '@utils/lintTypes'
+import type { LintIssue } from '@utils/lintTypes'
 
 export function lintMarkdown(text: string, t?: Translations): LintIssue[] {
   const issues: LintIssue[] = [];

@@ -1,6 +1,6 @@
 import { linter, Diagnostic } from '@codemirror/lint'
 import { EditorView } from '@codemirror/view'
-import type { LintIssue } from '../../shared/utils/lintTypes'
+import type { LintIssue } from '@utils/lintTypes'
 import type { Translations } from '@src/types/translations'
 
 // 创建 Lint 扩展

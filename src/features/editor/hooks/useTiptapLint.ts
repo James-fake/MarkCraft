@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import type { LintIssue } from '../../shared/utils/lintTypes'
+import type { LintIssue } from '@utils/lintTypes'
 import type { Translations } from '@src/types/translations'
 
 export interface UseTiptapLintParams {

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import type { LintIssue } from '../../shared/utils/lintTypes'
+import type { LintIssue } from '@utils/lintTypes'
 import type { Translations } from '@src/types/translations'
 import { scrollToLine } from '../editorHelpers'
 

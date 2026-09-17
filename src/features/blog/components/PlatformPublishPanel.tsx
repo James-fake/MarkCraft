@@ -6,7 +6,7 @@
  * 元数据经 P1-2 的 deriveSeoMeta 推导后交给适配器，缺失的 slug/描述/标签会自动补齐。
  */
 import { useMemo, useState } from 'react'
-import { parseFrontMatter } from '../../shared/utils/frontMatter'
+import { parseFrontMatter } from '@utils/frontMatter'
 import { deriveSeoMeta, toPublishMeta } from '../services/seoMeta'
 import {
   generatePlatformExport,

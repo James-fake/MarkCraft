@@ -7,7 +7,7 @@ dev 端口 **5174**：`node node_modules/vite/bin/vite.js --port 5174 --host`。
 **Aurora = 真实运行界面**；战略：网页 UI → **桌面端软件范式**（窗口 chrome／命令菜单／密度／键盘优先）。
 ① Aurora 即真实界面；② 禁增功能（边界 = 真实已有能力）；③ 视觉只用 `styles/tokens.css` 的 `--mc-*`；
 ④ UI 三层分置：壳层 UI 落 `aurora/`；通用 UI 落 `components/ui`；**业务专属 UI 随 `features/*` 自包含**（feature-sliced 变体，2026-09-17 拍板，不整体迁 aurora）。
-⑤ 依赖只向下，**0 跨层反向依赖**。⑥ **分层**（解耦后）：`types|utils` → **`core`** → `components/ui+locales` → `stores` → `services` → `features/*` → `aurora/*`。
+⑤ 依赖只向下，**0 跨层反向依赖**。⑥ **分层**（解耦后）：`types|utils` → **`core`** → `components/ui+locales` → `stores` → `services` → `features/*` → `aurora/*`。**底座向上依赖 = 0**（守卫 `no-base-to-upper` 锁死）。
 
 ## 关键坑（防回归）
 - **Path depth**：panels→features/stores `../../../`；components/ui·app `../../`。
@@ -63,6 +63,7 @@ dev 端口 **5174**：`node node_modules/vite/bin/vite.js --port 5174 --host`。
 
 ## git / 沙箱
 PortableGit `/c/Users/HJN/.workbuddy/binaries/PortableGit/versions/1.2.0/{cmd,usr/bin,mingw64/bin}`；bash 每条内联 `export PATH="<三目录>:/c/Users/HJN/.workbuddy/binaries/node/versions/22.22.2-3:/c/Windows/System32"`。
+- 🚨 **禁止在 `node -e "..."` / `bash -c` 内联字符串里出现反引号**（尤其 Markdown 行内代码 `` `x` ``）—— bash 会把 `` ` `` 当**命令替换执行后替换为空**，且**静默成功**（实测掏空 MEMORY.md 两行，stderr 只留下 `§4.1: command not found` 这种弱信号）。`${}`、`$()` 同理。**凡待写内容含反引号 → 一律走脚本文件**（先 Write 一个 `.cjs`，再 `node 该文件`），不要图省事内联。
 - 远端 `gitee.com/James-fake/markcraft.git`；推送 `git push origin master`。推送后 `origin/master` ref 不更新 → `printf '%s\n' "$(git rev-parse master)" > .git/refs/remotes/origin/master`，再验 `git rev-list --left-right --count master...origin/master` = `0 0`。
 - 🚨 **禁止在单条 bash 里跑 `git stash`**（SIGTERM 半写对象库 → 丢 `.pack`）。要暂存 → `git diff > x.patch`。
 - 工作区可能被外部清空 → `git restore --source=HEAD --worktree -- <路径>`；判删除状态用 `git -c core.quotepath=false status --porcelain`（`[ -e ]` 因中文名转八进制误判）。**频繁提交是唯一防线**。
@@ -84,12 +85,12 @@ PortableGit `/c/Users/HJN/.workbuddy/binaries/PortableGit/versions/1.2.0/{cmd,us
 **病灶一句**：**跨模块共享能力被就近寄居在上层模块 → 下层反向引用 → 必然成环。**基线 **8 个模块级环**。
 **三处寄居**：① 业务工具寄居 `features/*` → 环 #3#4#5；② 持久化基建寄居 `stores/storage/` → 环 #2；③ 导航共享态寄居 `aurora/app/navReturn` → 环 #7#8。
 **方向判定**：`stores→services` 4 处是**领域操作函数** → 自然保留；`hooks→stores` 保留，`stores→hooks` 1 处**需反转**。
-**进度**（细节见方案文档）：✅ **P0** 地基（core 骨架〔**刻意不建根 barrel**〕+ `@core` 别名 **4 处同改** + 3 守卫 warn）→ ✅ **P1** 断 #2（`stores/storage/*`→`@core/storage/*`，目录**整删不做 re-export 壳**）→ ✅ **P2** 断 #4 #5 + #3 直接形态（**7→5**：6 文件下沉 `core/*`；**`stores`/`services`→`features` = 0**〔最硬信号〕）→ ✅ **P3** 断 #7 #8（**5→3**：`navReturn`→`aurora/navigation/`、`UserAccountNav`→`components/shell/`、`RealProviders`→`aurora/providers/`；新增守卫 `no-reverse-to-aurora-app` **落地即 error·零例外**）→ ⏳ **P4** `features/shared` 拆三类（靶心 = 断**反向边 `shared→stores`**）｜**P5** toolbar **并入 `features/editor/toolbar/`** + 反转 `stores→hooks` 断 #6#1｜**P6** 后置。
-**基线（P3 后）**：tsc 0｜vitest **113 文件 / 1505 passed · 2 skipped · 0 failed**｜守卫 **0 违规**（671 文件实扫）｜`vite build` 成功（3514 modules）｜**3 环**。
-  残留环（3）：`features/editor>toolbar>editor`（P5）、`stores>hooks>stores`、**`stores>hooks>features/shared>stores`（P2 新暴露，方案未预见）** —— 后两条 P4/P5 任一即断（交集）。
-- 🚨 **`_depgraph.cjs` 已加固**：原**硬编码别名表**未登记 `@core` → 导入**静默丢边 → 漏报环**（实测 `core` 边数 = 0）。**最危险的失败方向是「图看起来更干净了」**。现从 `vite.config.ts` 派生（失败即 fail-fast）+ 根路径按脚本位置推算 + 「本项目别名漏登记」自检段。
-- **关键判据**：① 宣布「某环已消除」前**先确认该环涉及模块在边列表中有非零边数**（否则可能是工具没看见）；② **含大体积静态数据的子图禁建 barrel**（桶会把它连带挂进每个消费者 —— `core/files` 若做桶，4859 行种子文档会拖进所有 `recentFiles` 使用者）；③ 迁移保真三件套：字节级比对 + EOL 探针 + **BOM 位置**；④ **定靶心前枚举「双侧边」（源码 + 测试）** —— 模块级环**只计源码**（`_depgraph.cjs:72` 排除 `.test`），只看环会误判「搬 1 处就够」（实测 `panels→app` 17 处里 **14 处是测试边**）；⑤ **守卫要为某类文件开例外时，先问「能否移动模块」**（移动优于例外：`RealProviders` 寄居 `aurora/app` 会逼守卫为 12 个测试开例外 → 迁 `aurora/providers/` 后**零例外**）；⑥ 守卫作用域用**全量 glob + 规则内 `exempt`**（工厂已支持），**忌 `overrides.files` 列举子目录** —— 列举 = 新目录即盲区。
-- 入度基线 stores 102／types 79／components/ui 54／shared 52；出度 aurora/panels **165**／features/editor **95**。
+**进度 / 基线**：细节全在方案文档（`§4.1` 改动面、`§4.2` 基线表、`§4.G` 残留、`§6` 执行顺序）+ 每日日志逐阶段复盘。
+当前 = **P4 完成**：**2 环**（`features/editor>toolbar>editor`〔P5.1〕、`stores>hooks>stores`〔P5.2〕）；守卫 **5 条全 error**；tsc 0｜vitest 113 文件/1505 pass｜build 3514 modules。
+- 🚨 **`_depgraph.cjs` 已加固**：原**硬编码别名表**未登记 `@core` → **静默丢边 → 漏报环**（实测 `core` 边数 = 0）。**最危险的失败方向是「图看起来更干净了」**。现从 `vite.config.ts` 派生 + 根路径按脚本位置推算 + 「本项目别名漏登记」自检段。
+- **关键判据**：① 宣布「某环已消除」前**先确认该环涉及模块在边列表中有非零边数**（否则可能是工具没看见）；② **含大体积静态数据的子图禁建 barrel**（桶会把它连带挂进每个消费者 —— `core/files` 若做桶，4859 行种子文档会拖进所有 `recentFiles` 使用者）；③ 迁移保真三件套：字节级比对 + EOL 探针 + **BOM 位置**；④ **定靶心前枚举「双侧边」（源码 + 测试）** —— 模块级环**只计源码**（`_depgraph.cjs:72` 排除 `.test`），只看环会误判「搬 1 处就够」（实测 `panels→app` 17 处里 **14 处是测试边**）；⑤ **守卫要为某类文件开例外时，先问「能否移动模块」**（移动优于例外：`RealProviders` 寄居 `aurora/app` 会逼守卫为 12 个测试开例外 → 迁 `aurora/providers/` 后**零例外**）；⑥ 守卫作用域用**全量 glob + 规则内 `exempt`**（工厂已支持），**忌 `overrides.files` 列举子目录** —— 列举 = 新目录即盲区。⑦ **搬文件有第二件事：被搬文件自身的引用基准** —— 其内部 `../x` 搬后按**新位置**求值，可能悬空（P4 实测 1 处，tsc `TS2307` 抓出）；修法 = 用**旧位置**重解析。⑧ **引用重写必须「解析成路径再按表映射」，且**查表两端**都要枚举扩展名** —— 形态匹配必然在某形态**静默失明**（P4 别名形态漏做候选 → 46 处静默漏 5 处）；源文件搬走后磁盘已无，**靠 `existsSync` 补扩展名必落空**（须枚举映射表的**键**）。同族：查表键「相对 vs 绝对」不匹配 → 静默退化成别名（**同目录却写 `@core/...`：全绿、只有"看"才能发现**）。
+- **底座需上层能力时，正解 = 反向安置，不是加例外**：状态逻辑留 `stores`/`features`；常量下沉 `@core/constants`（plantuml 先例）；UI 落 `components/ui` 或消费方 feature。⚠️ **「按字面语义归类」与「层级纪律」冲突时后者优先** —— `plantumlEncoder` 字面像 utils，但依赖 L1 的 `@core/constants/plantuml`，落 `src/utils/`（L0「只允许 utils→types」）即新增 `utils→core` 越权边。
+- 入度基线 stores 102／types 79／components/ui 54／shared 52（**P4 后 features/shared 已不存在**）；出度 aurora/panels **165**／features/editor **95**。
 
 ## 专题铁律（细节见 artifacts / 每日日志）
 - **动效语言**：分层 ⚡100–160／🚶150–250／🛋320–500ms；**外壳（MenuBar/Sidebar/StatusBar）永不参与视图切换动画**；reduced-motion =「更少更柔非归零」（入场 `mc-rm-fade`、**退场 `mc-rm-fade-out`**）；指针门控只归零**纯位移/缩放型** hover，**复合 transform 必须豁免**。

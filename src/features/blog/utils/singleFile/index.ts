@@ -5,7 +5,7 @@
 
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-import { FrontMatter } from '@features/shared/utils/frontMatter'
+import { FrontMatter } from '@utils/frontMatter'
 import {
   BlogConfig,
   BlogPost,
@@ -13,7 +13,7 @@ import {
   DEFAULT_BLOG_CONFIG,
   ThemeStyle,
 } from '../../templates'
-import { textToStorage } from '@features/shared/storage/imageStore'
+import { textToStorage } from '@core/storage/imageStore'
 import {
   extractTitleFromContent,
   inferTagsFromContent,

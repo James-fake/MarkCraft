@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { generateBlog, downloadBlogAsZip, generateSingleFileBlog, BlogGenerationResult } from './blogGenerator'
 import { BlogConfig, DEFAULT_BLOG_CONFIG } from './templates'
-import { parseFrontMatter } from '../shared/utils/frontMatter'
+import { parseFrontMatter } from '@utils/frontMatter'
 import { useLanguage } from '../../stores/LanguageStore'
 import BlogConfigForm from './components/BlogConfigForm'
 import FilePreviewPanel from './components/FilePreviewPanel'

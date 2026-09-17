@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { parseMarkdownHeadings } from '../../shared/utils/headingIdUtils'
-import { generateHeadingId } from '../../shared/utils/headingIdUtils'
+import { parseMarkdownHeadings } from '@utils/headingIdUtils'
+import { generateHeadingId } from '@utils/headingIdUtils'
 
 describe('parseMarkdownHeadings 工具函数', () => {
   describe('基本解析', () => {

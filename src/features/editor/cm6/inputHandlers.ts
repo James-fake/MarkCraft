@@ -11,7 +11,7 @@ import {
   isInsideCodeBlock,
   getCodeBlockInfo,
 } from '../markdownAutocomplete'
-import { findImageMarkRange } from '../../shared/utils/imageHelpers'
+import { findImageMarkRange } from '@utils/imageHelpers'
 
 /**
  * CM6 输入处理器扩展

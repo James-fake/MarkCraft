@@ -1,13 +1,13 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, beforeEach } from 'vitest'
 import Outline from '../Outline'
-import { OutlineItem } from '../../shared/utils/headingIdUtils'
+import { OutlineItem } from '@utils/headingIdUtils'
 
-vi.mock('../../shared/utils/headingIdUtils', () => ({
+vi.mock('@utils/headingIdUtils', () => ({
   parseMarkdownHeadings: vi.fn()
 }))
 
-import { parseMarkdownHeadings } from '../../shared/utils/headingIdUtils'
+import { parseMarkdownHeadings } from '@utils/headingIdUtils'
 
 const mockHeadings: OutlineItem[] = [
   {

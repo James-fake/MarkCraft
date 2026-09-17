@@ -1,5 +1,11 @@
+// Phase 4（2026-09-18）自 features/shared/ui/ **原样迁入**（内容一字未改）。
+// 定位：编辑器业务 UI（读 @stores/LanguageStore 取文案），唯一消费者是
+// features/editor/EditorSlots.tsx。
+// 🎯 它是「环 #3 残余形态」两条反向边之一：寄居 features/shared 时构成
+// features/shared → stores，使 stores > hooks > features/shared > stores 成环。
+// 归位到消费方 feature 后，该边变为 features/editor → stores —— 合法（L5 → L3 向下）。
 import { useState, useEffect } from 'react'
-import { parseFrontMatter, generateFrontMatter } from '../utils/frontMatter'
+import { parseFrontMatter, generateFrontMatter } from '@utils/frontMatter'
 import { useLanguage } from '@stores/LanguageStore'
 import { AuroraSelect } from '@components/ui/AuroraSelect'
 

@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { generateSingleFileBlog, generateBlog, downloadBlogAsZip, BlogGenerationResult } from '../blogGenerator'
 import { BlogConfig, ThemeStyle, RewardConfig, FriendLink, AboutConfig, SeriesConfig } from '../templates'
-import { parseFrontMatter } from '../../shared/utils/frontMatter'
+import { parseFrontMatter } from '@utils/frontMatter'
 import { useLanguage } from '@stores/LanguageStore'
 import { recordPublish, type PublishTraceEntry } from '../services/publishTrace'
 import type { PostStatus } from '../services/postStatus'

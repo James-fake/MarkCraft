@@ -1,3 +1,7 @@
+// Phase 4（2026-09-18）自 features/shared/utils/ **原样迁入**（内容一字未改）。
+// 定位：TipTap Mark 扩展（Highlight.extend(...)），与同目录的 AbbreviationMark /
+// CommentMark / SubscriptMark / SuperscriptMark 同类 —— 原先仅因「utils」这个字面
+// 归类被放错位置，并非通用工具。
 import Highlight from '@tiptap/extension-highlight'
 
 export const HIGHLIGHT_COLORS: Record<string, string> = {

@@ -1,6 +1,6 @@
 import { marked } from 'marked'
 import TurndownService from 'turndown'
-import type { ImageStoreAPI } from '../shared/storage/imageStoreTypes'
+import type { ImageStoreAPI } from '@core/storage/imageStoreTypes'
 
 function convertTaskListsForTiptap(html: string): string {
   return html.replace(

@@ -2,7 +2,7 @@ import domToImage from 'dom-to-image-more'
 import { downloadBlob } from '../exportUtils'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
-import { textToStorage } from '../../shared/storage/imageStore'
+import { textToStorage } from '@core/storage/imageStore'
 import { EXPORT_CSS } from './exportCss'
 
 export interface ExportImageOptions {

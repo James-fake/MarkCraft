@@ -3,7 +3,7 @@
  * 复用项目的 marked 配置、数学渲染、DOMPurify、主题色板。
  */
 import { marked } from '@services/markedConfig'
-import { renderMathInHtml } from '../../shared/utils/mathRenderer'
+import { renderMathInHtml } from '@utils/mathRenderer'
 import DOMPurify from 'dompurify'
 import { CARD_COLORS_V2, formatRelativeTime } from '../theme/canvasTheme'
 

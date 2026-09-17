@@ -3,7 +3,7 @@ import { useLanguage } from '../../stores/LanguageStore'
 import { useRef, useCallback, useEffect, forwardRef, ForwardedRef } from 'react'
 import DOMPurify from 'dompurify'
 import morphdom from 'morphdom'
-import ScrollButtons from '../shared/ui/ScrollButtons'
+import ScrollButtons from '@components/ui/ScrollButtons'
 import { savePreviewScroll } from '../../services/scrollPositionManager'
 
 interface PreviewProps {

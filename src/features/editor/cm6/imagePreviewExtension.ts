@@ -1,6 +1,6 @@
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate, WidgetType } from '@codemirror/view'
 import { RangeSetBuilder } from '@codemirror/state'
-import type { ImageStoreAPI } from '../../shared/storage/imageStoreTypes'
+import type { ImageStoreAPI } from '@core/storage/imageStoreTypes'
 
 /**
  * 图片内联预览扩展

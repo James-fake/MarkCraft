@@ -1,3 +1,7 @@
+// Phase 4（2026-09-18）自 features/shared/utils/ **原样迁入**（内容一字未改）。
+// 定位：Mermaid SVG 渲染缓存，唯一消费者是同目录的 MermaidBlockView。
+// 未下沉 L0：它静态依赖 mermaid（重库），底座层应保持零领域/重依赖。
+// 同目录已有 CodeHighlightConfig.ts 这类「视图配套文件」先例。
 import mermaid from 'mermaid'
 import { simpleHash } from '@utils/hash'
 

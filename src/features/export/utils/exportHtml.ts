@@ -1,8 +1,8 @@
 import DOMPurify from 'dompurify';
-import { textToStorage } from '../../shared/storage/imageStore'
+import { textToStorage } from '@core/storage/imageStore'
 import { marked } from 'marked'
 import type { Token } from 'marked'
-import { getFlatHeadingList, generateHeadingId } from '../../shared/utils/headingIdUtils'
+import { getFlatHeadingList, generateHeadingId } from '@utils/headingIdUtils'
 import { EXPORT_CSS } from './exportCss'
 
 export { EXPORT_CSS } from './exportCss'

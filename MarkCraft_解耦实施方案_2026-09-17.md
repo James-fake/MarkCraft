@@ -434,25 +434,156 @@ components -> app   2 处   ← UserAccountNav 1 处（源码）+ RealProviders 
 
 ---
 
-### Phase 4 —— `features/shared` 按内容分层拆分 → 断环 #3 残部/#1
+### Phase 4 —— `features/shared` 解散：按「消费者层级」四分归位 → 消环 #3 残余 ✅ 已完成（2026-09-18）
 
-> **靶心已按 Phase 2 实测校准**（见 Phase 2 §2.z）：要断的是 **`features/shared → stores`（2 处反向边）**，
-> 而不是 `stores → features/shared`（实测已归零）。靶心错位会让整步做无用功。
+> **靶心校准确认**：方案 Phase 2 时定位的根因边 `features/shared → stores`（2 处）本轮实测**正是**
+> `ui/FrontMatterPanel.tsx` 与 `ui/OptimizeImagesModal.tsx` 各自 `import @stores/LanguageStore`。
+> 另实测出**第二个可用断点**：`hooks → features/shared`（2 处 —— `useMarkdownRenderer`→`headingIdUtils`、
+> `useMathRender`→`mathRenderer`）。环上三条边任一消除即可断环，本轮两条反向边**都已消除**。
 
-| 内容类 | 现状 | 目标 |
-|--------|------|------|
-| `utils/*`（**10 文件**：`mathRenderer`、`frontMatter`、`headingIdUtils`、`mermaidCache`、`imageHelpers`、`emojiData`、`ShortcutManager`、`HighlightMark`、`lintTypes`、`plantumlEncoder`） | 寄居 features | `src/utils/` 或 `src/core/utils/`（按是否含领域语义）。原列 11 文件中的 `plantumlConstants` **已于 Phase 2 迁 `core/constants/plantuml`** |
-| `ui/*`（5 文件：`EmojiPicker`、`ErrorBoundary`、`FrontMatterPanel`、`OptimizeImagesModal`、`ScrollButtons`） | 寄居 features | 通用件（`ErrorBoundary`/`ScrollButtons`）→ `components/ui/`；业务件 → 归入消费方 feature（如 `features/editor`） |
-| `storage/imageStore(.ts \| Types.ts)` | 寄居 features | `core/storage/imageStore` 或 `services/` |
-| `__tests__/plantumlEncoder.test.ts` | 随迁 | 跟随被测文件 |
+#### §4.A 归类判据 —— 本步真正的决策（方案表只给到「utils / ui / storage 三批」的粗粒度）
 
-**收尾**：`features/shared/` 目录**清空后删除**（或仅保留真正「跨 feature 业务共享」，且**禁止**再被 `stores`/`services` 依赖）。
-**验收**：`features/shared → stores` = **0**（`_depgraph` 出边复核）；环 `stores > hooks > features/shared > stores` 消失；全绿 + 守卫零违规。
-**风险**：🟡 中高。`shared` 被 **52 处**引用 → 建议按「类」分批（utils 一批、ui 一批、storage 一批）**三次提交**，每批独立验证。
+| 判据 | 归属 | 命中 |
+|------|------|------|
+| 零依赖纯工具，且**迁出前**被 ≥2 个顶层模块消费 | `src/utils/`（L0） | 5 |
+| 零依赖纯类型（跨层共享） | `src/utils/`（L0） | 1 |
+| 仅 1 个模块消费 → 就近；或含**框架扩展**语义 | 消费方 feature | 4 |
+| 通用 UI（无业务语义、无 store 依赖） | `src/components/ui/`（L2） | 2 |
+| 业务 UI（读 store / 含业务语义） | 消费方 feature | 2 |
+| 跨模块持久化基建 | `src/core/storage/`（L1） | 2 |
+| 测试 | 随被测文件 | 1 |
 
-> 💡 **与 Phase 5.2 的交集**：环 #3 间接形态的通路是 `stores → hooks → features/shared → stores`，
-> 故 **Phase 4（断反向边 `shared→stores`）与 Phase 5.2（断正向边 `stores→hooks`）任一完成都能消除它**。
-> 若 Phase 5.2 先行，Phase 4 的这条验收会自动满足 —— 但该步仍要做，因为 `shared→stores` 本身是**方向错误**的依赖。
+> 🚨 **方案字面目标被实测否决 1 项 —— `plantumlEncoder` 不能落 `src/utils/`。**
+> 它依赖 **L1 的 `@core/constants/plantuml`**，而 §2.1 层级图明确 L0「只允许 `utils → types`」；
+> 落 `src/utils/` 就等于新增一条 `utils → core` 越权边，且会与刚建好的底座守卫直接冲突。
+> 故改用「单消费者就近」：它唯一消费者是 `features/editor/extensions/PlantUmlBlockView`。
+> 同一判据下 `mermaidCache`（静态依赖 mermaid 重库）与 `ShortcutManager`（5 个消费者全在 toolbar）一并就近安置。
+> ——这条修正说明：**「按文件字面语义归类」会与「层级纪律」冲突，后者优先。**
+
+#### §4.B 搬运明细（18 文件；实测 7 个字节级一致 / 11 个仅两类改动）
+
+| # | 从 | 到 | 消费方（实测） |
+|---|----|----|--------------|
+| 4a-1 | `shared/utils/emojiData.ts` | `src/utils/emojiData.ts` | editor/cm6 + toolbar |
+| 4a-2 | `shared/utils/frontMatter.ts` | `src/utils/frontMatter.ts` | blog×5 + editor |
+| 4a-3 | `shared/utils/headingIdUtils.ts` | `src/utils/headingIdUtils.ts` | aurora + editor×3 + export + outline×4 + hooks |
+| 4a-4 | `shared/utils/imageHelpers.ts` | `src/utils/imageHelpers.ts` | editor×2 + OptimizeImagesModal |
+| 4a-5 | `shared/utils/mathRenderer.ts` | `src/utils/mathRenderer.ts` | canvas-v2 + hooks |
+| 4a-6 | `shared/utils/lintTypes.ts` | `src/utils/lintTypes.ts` | aurora×2 + editor×10 + lint |
+| 4a-7 | `shared/utils/HighlightMark.ts` | `features/editor/extensions/` | editor/hooks + toolbar（TipTap 扩展，与 4 个兄弟 `*Mark.ts` 同类） |
+| 4a-8 | `shared/utils/mermaidCache.ts` | `features/editor/extensions/` | MermaidBlockView（同目录） |
+| 4a-9 | `shared/utils/plantumlEncoder.ts` | `features/editor/extensions/` | PlantUmlBlockView（同目录）；**不可入 L0**（见 §4.A） |
+| 4a-10 | `shared/utils/ShortcutManager.ts` | `src/features/toolbar/` | toolbar×5（Phase 5 随迁） |
+| 4a-11 | `shared/__tests__/plantumlEncoder.test.ts` | `features/editor/extensions/__tests__/` | —（随被测文件） |
+| 4b-1 | `shared/ui/ErrorBoundary.tsx` | `src/components/ui/` | editor（通用件） |
+| 4b-2 | `shared/ui/ScrollButtons.tsx` | `src/components/ui/` | editor + preview（通用件，跨 feature） |
+| 4b-3 | `shared/ui/EmojiPicker.tsx` | `features/toolbar/` | 两个 toolbar |
+| 4b-4 | `shared/ui/FrontMatterPanel.tsx` | `src/features/editor/` | EditorSlots　🎯 **反向边 1** |
+| 4b-5 | `shared/ui/OptimizeImagesModal.tsx` | `src/features/editor/` | EditorSlots　🎯 **反向边 2** |
+| 4c-1 | `shared/storage/imageStore.ts` | `src/core/storage/` | 6 个模块 / 16 处（editor·blog·export·aurora） |
+| 4c-2 | `shared/storage/imageStoreTypes.ts` | `src/core/storage/` | editor×6（与实现同置） |
+
+**字节比对的准确结论（提交前复核订正）**：18 个搬迁文件里 **7 个 `Buffer.compare` 字节级一致**
+（`emojiData` / `frontMatter` / `headingIdUtils` / `imageHelpers` / `mathRenderer` / `ErrorBoundary` / `ScrollButtons`）。
+另 **11 个**因两类改动而不一致，已逐文件出全量差异核验 —— **差异仅此两类，零逻辑改动**：
+
+| 改动类型 | 命中 | 说明 |
+|---------|------|------|
+| ① 搬迁溯源注释头 | 9 文件（3–6 行） | 只加在**「落点不自明」**的文件上：`lintTypes`（为何不入 `src/types`）、`imageStore`（为何升 L1）、`plantumlEncoder`（为何**不可**入 L0）、`HighlightMark`（名为 utils 实为 TipTap Mark）、`FrontMatterPanel`/`OptimizeImagesModal`（🎯 反向边成因）等。落点自明的通用件（如 `ErrorBoundary`→`components/ui`）不加，避免噪音 |
+| ② import specifier 改写 | 11 文件 | `../utils/emojiData` → `@utils/emojiData`、`../storage/imageStore` → `@core/storage/imageStore`、`../plantumlEncoder` → 同目录相对（风格归一）—— 与 §4.C 同源 |
+
+> ⚠️ **教训**：早期记录的「18 文件全部字节级一致」**不成立**。当时只对「纯工具类」抽样比对就外推到了全量。
+> 正解是**逐文件 `git show HEAD:<旧> | git hash-object` 比对，并把不一致者逐个出 diff** —— 因为「文件被移动」与「文件被改动」是两件事，
+> 只看 `Buffer.compare` 通过的那几个，会把「11 个有改动」掩成「全绿」。这与 §7「空输出 / 零违规必须先排除根本没扫到东西」是同一类误判。
+**收尾**：`src/features/shared/` 四层子目录（`utils/` `ui/` `storage/` `__tests__/`）全部清空并删除目录本身。
+`features/shared` 字符串全仓命中 = **16 行**（`src/` 13 + `scripts/` 3），**全部是 `//` 注释**，
+**零 import / 零路径解析残留**（12 行 Phase 4 溯源头 + `plantuml.ts` 与两条守卫文件的「历史来源」说明，均正确保留）。
+
+#### §4.C 引用改写：81 处 specifier（方案估 ~52），最终引用面 72 import 点 / 55 文件
+
+改写**不是字符串替换**，而是「解析成绝对路径 → 按表映射 → 按新位置生成 specifier」，覆盖 6 种形态：
+
+| 形态 | 例 |
+|------|-----|
+| 别名 | `@features/shared/utils/lintTypes` |
+| 跨层相对 | `../features/shared/utils/headingIdUtils` |
+| 同 feature 相对 | `../../shared/utils/frontMatter` |
+| 同父目录相对 | `../shared/ui/ErrorBoundary` |
+| 同目录相对（shared 内部互引） | `./imageStoreTypes` |
+| 工具调用 | `await import('../shared/storage/imageStore')` |
+
+#### §4.D 过程中挖出 3 个真实缺陷（方案均未预见）
+
+**① 🚨 别名形态被静默跳过（5 处漏改）**
+自建搬迁引擎对**相对路径**做了扩展名候选解析（`../x` → 试 `../x.ts`），但对**别名形态**只把剩余段
+直接拼成路径 → 得到不带扩展名的绝对路径 → 查表失败 → **静默跳过**。
+症状：4a 首轮改写 43 处后，「残留自检」仍报 `@features/shared/utils/lintTypes` 等 5 处。
+修法有两步，缺一不可：① 别名形态同样做扩展名候选；② **查表端也要枚举扩展名** ——
+因为源文件此时已被搬走，磁盘上不存在，靠 `existsSync` 补扩展名必然落空。
+
+> 这与 Phase 2 的「必须同时搜 `./X` 同层相对形态」是同一类坑的镜像：
+> **凡靠字符串/形态匹配定位的扫描，都会在某一种形态上静默失明**；判别式应当是「解析成路径再比对」。
+
+**② 🚨 文件自身搬走后，它的内部相对引用会「改换基准」**
+`shared/ui/OptimizeImagesModal.tsx` 内部写着 `import ... from '../storage/imageStore'`。
+4a 轮次处理它时，该 specifier 解析到 `shared/storage/imageStore.ts`（不在 4a 范围内）→ **正确地跳过**；
+但 4b 把它搬到 `features/editor/` 后，同一个 `'../storage/imageStore'` 变成按 `features/` 求值
+→ **指向不存在的目录**。由 `tsc` 精确捕获（`TS2307`，全仓仅此 1 处）。
+修法：对**自身也搬迁过**的文件，用**旧位置**重解析悬空 specifier。
+
+> 教训：搬文件不是「改引用」一件事，还有**「被搬文件自己的引用基准」**这一项。
+
+**③ 查表键不匹配 → 风格退化（同目录却写别名），且不会触发任何检查**
+引擎用 `NEW_OF.get(file)` 取 importer 新位置，但 `file` 来自相对遍历（`src/features/...`）
+而查表键是绝对路径 → 取不到 → 退化成别名形态。结果 2 处：
+`core/storage/imageStore.ts` 里把同目录的 `./imageStoreTypes` 写成 `@core/storage/imageStoreTypes`；
+搬迁后的测试文件把 `../plantumlEncoder` 写成 `@features/editor/extensions/plantumlEncoder`。
+**功能正确、tsc/vitest 全绿，但违反本仓「同目录用相对路径」的约定** —— 属只有"看"才能发现的缺陷。已做风格归一。
+
+#### §4.E 新增守卫 `no-base-to-upper`（落地即 error）
+
+方案 Phase 4 **未要求**新增守卫，但本步成果必须锁死 —— 否则 `features/shared` 必然换个名字复活。
+落点选在「底座层」：
+
+- **作用域**：`src/utils/**` + `src/core/**`
+- **禁止项**：8 个上层目录（components / hooks / locales / stores / services / features / aurora / app）
+- **落地时存量违规 = 0**（实测 `src/utils` 与 `src/core` 的向上依赖均为 0）→ 直接 error，无 warn 过渡期
+
+它锁住的正是 `features/shared` 的成因：**自称「共享层」却引用 `@stores/LanguageStore`**。
+若底座确需上层能力，正确解法是**反向安置**而非加例外：状态相关逻辑留 `stores`/`features`、
+常量下沉 `@core/constants`（Phase 2 的 plantuml 已是先例）、UI 相关文件落 `components/ui` 或消费方 feature。
+
+**未纳入**两处（均实测为 0，但各有技术障碍，留待单独决策）：
+
+| 层 | 障碍 |
+|----|------|
+| `src/components/ui/**` | 其禁止项若含 `src/components`，会**误伤 ui 内部相对互引**（`./Input` 解析到 `src/components/ui/Input`，被判为落在 `src/components` 下）→ 需独立规则，不能与 utils/core 共用一条 |
+| `src/types/**` | `src/types/translations.ts` 存在**预存的 `types → locales` 边（L0 → L2）**，属独立历史遗留，需单独决策 |
+
+**附带卫生修正**：Phase 3 新建的 `no-reverse-to-aurora-app.cjs` 曾以 LF 落盘，与同目录其余 5 个文件
+的 CRLF 不一致 → 已归一（纯 EOL 变更，无内容改动）。
+
+#### §4.F 验证（八条链路）
+
+| # | 链路 | 结果 |
+|---|------|------|
+| ① | `tsc --noEmit -p tsconfig.json` | **0 错** |
+| ② | vitest 全量 | **113 文件 / 1505 passed · 2 skipped · 0 failed**（与 P2/P3 基线逐项一致 ⇒ 零回归） |
+| ③ | 守卫真阻断 | 671 文件实扫 **0 违规**；**10/10 注入探针** —— 别名 + 相对双形态 × utils/core 两层；3 个负向探针不误报（同目录互引 / 向下 `core→utils` / 作用域外 aurora）；Phase 3 守卫回归仍生效；探针后复跑 `exit=0` 无污染 |
+| ④ | 架构体检 | **模块级环 5 → 2**；`features/shared` 从出边表消失；`utils` 出边为空（纯叶子层） |
+| ⑤ | 生产构建 | `vite build` 成功（走 `vite.config.ts` 别名，与 ② 是不同解析链路） |
+| ⑥ | 真机 CDP | **本步不适用**（判据见 §7：仅当迁移物是导航/手势/焦点上下文、或行为依赖真实 `nav()` 跳转时才必须）—— 本步迁移物为纯函数 / 工具 / UI 组件，jsdom 覆盖充分 |
+| ⑦ | 文件集合差 | `git` 集合差核对：**18 删 = 18 增，1:1 全对**（**不用 diff 行数判删除** —— 大段删除会让 `git diff -U0` 把未删除的相邻行报成 `-`） |
+| ⑧ | 残留扫描 | `features/shared` 命中 16 行 —— **全部是 `//` 注释**（溯源头 + 历史来源），零 import 残留；另加**字节级搬迁比对**：7 字节一致 / 11 两类改动（见 §4.B） |
+
+#### §4.G 残留（交 Phase 5）
+
+| 项 | 现状 | 归属 |
+|----|------|------|
+| 环 `features/editor > features/toolbar > features/editor` | `editor→toolbar` 2 处 / `toolbar→editor` 2 处 | Phase 5.1（工具条并入 `features/editor/toolbar/`） |
+| 环 `stores > hooks > stores` | `stores → hooks` 1 处（`ThemeStore` re-export `useTheme` / `ThemeProvider`） | Phase 5.2 |
+| `hooks → features/themes` 1 处 | 非环，但方向可疑（hooks 是被 stores/features 共用的下层） | 建议 Phase 5 一并审视 |
+| `src/types/translations.ts → @locales/zh` 1 处 | **L0 → L2 向上边**（本轮守卫未纳入 types 的原因） | 待决（建议随 Phase 5/6 处理） |
 
 ---
 
@@ -471,6 +602,11 @@ components -> app   2 处   ← UserAccountNav 1 处（源码）+ RealProviders 
 - 反转 `stores → hooks` 的 1 处（`stores` 不应调用 React hook；若为 hook 化逻辑，应改为纯函数放 `core`）。
 - 保留 `hooks → stores`（hook 读状态，方向正确）。
 - ⚠️ 实测该 `stores → hooks` 边（1 处）**同时是环 #3 间接形态的通路之一**（`stores → hooks → features/shared → stores`），故本步是 Phase 4 之外的**第二个断点**（详见 Phase 4 交集注）。
+- ✅ **Phase 4 完成后**：`stores → hooks → features/shared → stores` 已随 `features/shared` 解散而消失（5 → 2 环），
+  故本步现在**只需**处理 `stores > hooks > stores` 这一条环，不再承担 Phase 4 的替代断点职责。
+- 🔍 **Phase 4 新发现（建议本步一并审视）**：`hooks → features/themes` 1 处。它不是环，但方向可疑 ——
+  `hooks` 是被 `stores` 与多个 `features` 共用的下层，若继续向上引用 feature，会为「`stores → hooks → features`」
+  埋下通路。处理选项：把 `features/themes` 的该能力下沉 `@core`，或把该 hook 移入 `features/themes`。
 
 **验收**：环 #1 #6 消失；**8 环全部清零**（`_depgraph.cjs` 复核 `MODULE-LEVEL CYCLES = (none)`）。
 **风险**：🟡 中。Phase 5 完成后应做**一次完整真机回归**（四视图 + 编辑器工具栏交互）。
@@ -497,23 +633,25 @@ components -> app   2 处   ← UserAccountNav 1 处（源码）+ RealProviders 
 | Phase 0 | 0 | 0 | `core/*` 骨架 5 个 + 守卫规则 3 个 | 🟢 无 |
 | Phase 1 | **4**（实测）✅ | **8 处 / 7 文件**（实测）✅ | 0 | 🟢 低 |
 | Phase 2 | **6**（实测）✅ | **33 处 / 25 文件**（实测）✅ | 0 | 🟢 低（实测） |
-| Phase 3 | 1 | ~6（含 4 测试） | 0 | 🟡 中 |
-| Phase 4 | 17 | ~52 | 0 | 🟡 中高 |
+| Phase 3 | **4**（3 迁 + 1 删，实测）✅ | **21 处 / 17 文件**（实测）✅ | 1 | 🟢 低（实测） |
+| Phase 4 | **18**（实测）✅ | **81 处**（实测；案例 55 文件，最终引用面 72 import 点）✅ | 1 | 🟢 低（实测） |
 | Phase 5 | 25（若选 A） | ~5 | 0 | 🟡 中 |
 | Phase 6 | — | — | 面板注册表等 | 🟠 中高 |
-| **合计（P0–P2）** | **~51 文件迁移** | **~84 处 import 更新** | **~8** | — |
+| **合计（P0–P4 已完成部分）** | **32 文件迁移**（实测） | **143 处 import 更新**（实测） | **5 条守卫** | — |
 
 ### 4.2 对现有质量基线的预期影响
 
-| 指标 | 基线 | 现状（Phase 3 完成后） |
+| 指标 | 基线 | 现状（Phase 4 完成后） |
 |------|------|---------------------|
-| 模块级循环 | 8 个 | **3 个**（Phase 1 消 #2；Phase 2 消 #4 / #5 + #3 直接形态；**Phase 3 消 #7 #8**）→ 目标 0（Phase 5 后） |
+| 模块级循环 | 8 个 | **2 个**（Phase 1 消 #2；Phase 2 消 #4 / #5 + #3 直接形态；Phase 3 消 #7 #8；**Phase 4 解散 `features/shared`，消 #3 残余形态**）→ 仅剩 `editor↔toolbar` 与 `stores↔hooks`，目标 0（Phase 5 后） |
 | `stores`/`services` → `features` 违规 | 9 + 4 处 | **0** ✅（Phase 2 达成，且守卫升 error 锁死） |
+| **底座层向上依赖**（`src/utils` / `src/core`） | 未度量 | **0** ✅（Phase 4 实测，并新增 `no-base-to-upper` 守卫锁死） |
+| `features/shared` 目录 | 19 文件 / 52 处引用 | **已解散** ✅（18 文件按消费者层级四分归位；目录删除） |
 | 反向依赖（逻辑层→UI 层） | 0（已守） | 保持 **0** ✅ |
 | 测试用例 | 1499 passed / 2 skipped / 0 failed | **1505 passed / 2 skipped / 0 failed** ✅（+6 契约测试；断言零放宽） |
 | `tsc` | 干净 | 保持干净 ✅ |
-| 生产构建 | — | `vite build` 成功（3525 modules）✅ —— **Phase 2 新增的验证链路，Phase 3 复跑通过** |
-| 运行时行为 / 视觉 | — | **零变化** ✅（纯结构迁移）。**Phase 3 已补真机链路验证**：编辑器↔知识库返回 14/14（CDP 探针，真实鼠标点击）；其余交互的完整回归留待 Phase 5 后 |
+| 生产构建 | — | `vite build` 成功（Phase 2 起纳入常规验收，P2/P3/P4 连续通过）✅ |
+| 运行时行为 / 视觉 | — | **零变化** ✅（纯结构迁移）。**Phase 3 已补真机链路验证**（编辑器↔知识库返回 14/14，CDP 探针、真实鼠标点击）；**Phase 4 判定 CDP 不适用**（迁移物非交互上下文，§4.F ⑥）；其余交互的完整回归留待 Phase 5 后 |
 
 ### 4.3 性能影响
 - 迁移**不新增**运行时开销（只是文件位置与 import 路径变化）。
@@ -561,7 +699,7 @@ Phase 2  业务工具下沉 → 断环 #4 #5 + #3 直接形态                  
    ↓
 Phase 3  Aurora 解环 → 断环 #7 #8                                  ✅ 完成    【里程碑 M3 ✅：外壳无环；5→3 环 + 真机 14/14】
    ↓
-Phase 4  features/shared 分层拆分 → 断反向边 shared→stores（环 #3 残部）  ← 1.5 天
+Phase 4  features/shared 解散：按消费者层级四分归位 → 消环 #3 残余      ✅ 完成    【3→2 环；底座向上依赖归零并加守卫】
    ↓
 Phase 5  toolbar 归属 + hooks/stores 收敛 → 断环 #6 #1              ← 1 天     【里程碑 M4：8 环全清零 + 真机回归】
    ↓
@@ -577,7 +715,7 @@ Phase 6  结构性重构（editor 内部分层 / panels 契约层 / fileManager 
 **验证工具**：`scripts/_depgraph.cjs`（模块耦合矩阵 / 环检测，常备架构体检工具）
 **契约测试**：`src/aliasSync.test.ts`（6 例）看守「别名表 4 处同改」——不只比键集合，还比目标目录
 
-**验证链路（六条必须全跑 —— 缺一条就可能放过只在特定链路暴露的失败）**
+**验证链路（七条必须全跑 —— 缺一条就可能放过只在特定链路暴露的失败）**
 
 | # | 链路 | 命令 | 为什么不能省 |
 |---|------|------|-------------|
@@ -587,6 +725,7 @@ Phase 6  结构性重构（editor 内部分层 / panels 契约层 / fileManager 
 | ④ | 架构 | `node scripts/_depgraph.cjs` | 「环是否真消失」的唯一判据 |
 | ⑤ | **生产构建** | `node node_modules/vite/bin/vite.js build` | 走 `vite.config.ts` 别名，**与 ② 是不同的解析链路** —— Phase 2 起纳入常规验收 |
 | ⑥ | **真机 CDP** | 见 `.workbuddy/artifacts/cdp-verify-*.mjs`（须与 Edge 同一次前台 bash 启动） | **jsdom 覆盖不到的那一层**：真实浏览器 + 真实 IndexedDB + 真实 hash 路由。凡「迁移物是导航/手势/焦点上下文」或「行为依赖真实 `nav()` 跳转」时必须跑 —— Phase 3 起纳入「涉交互迁移」的常规验收 |
+| ⑦ | **文件集合差** | `git ls-tree -r --name-only HEAD -- src` vs 工作区实际文件 | **判「删没删」只能用集合差，不能用 diff 行数** —— 大段删除会让 `git diff -U0` 把**未删除的相邻行**报成 `-`（实测曾把活着的关键帧报成已删）。Phase 4 起纳入常规验收 |
 
 > ⚠️ **判据（Phase 1 血的教训）**：**休眠配置的绿灯不算证明。** 新增别名 / 守卫后必须有一次**真实引用**，才能证明它真的生效；
 > 反之，空输出 / 零违规也必须先排除「根本没扫到东西」才能采信。
@@ -609,8 +748,12 @@ Phase 6  结构性重构（editor 内部分层 / panels 契约层 / fileManager 
 | 2 | `local/no-service-to-feature` | `services/**` → `features/**` | ✅ **Phase 2 已升 error**（基线 4 处归零；同上探针实测阻断） |
 | 3 | `local/no-service-to-store` | `services/**` → `stores/**` | ✅ **Phase 1 已升 error**（存量 3 处清零；注入探针实测阻断 exit=1） |
 | 4 | `local/no-reverse-to-aurora-app` | aurora 子模块 → `aurora/app/**`（**单向**；app 自身与入口豁免） | ✅ **Phase 3 新增，落地即 error**（作用域 `src/aurora/**` **含测试、零例外**；671 文件实扫 0 违规；**7/7 注入探针**含 2 个豁免反向验证） |
-| 4 | `local/no-app-panels-cycle` | `aurora/app` ⇄ `aurora/panels` 互禁 | ⏳ Phase 3 落地 |
-| 5 | `local/no-aurora-ui-import` | `features/stores/services` → `aurora/**` | ✅ 既有规则，保持不变（error，当前 0 违规） |
+| 5 | `local/no-base-to-upper` | **底座层**（`utils/**`、`core/**`）→ 任意上层（components/hooks/locales/stores/services/features/aurora/app） | ✅ **Phase 4 新增，落地即 error**（实测存量违规 = 0；671 文件实扫 0 违规；**10/10 注入探针**含别名+相对双形态与 3 个负向不误报） |
+| 6 | `local/no-aurora-ui-import` | `features/stores/services` → `aurora/**` | ✅ 既有规则，保持不变（error，当前 0 违规） |
+
+> ⚠️ **原计划的 `local/no-app-panels-cycle`（`aurora/app` ⇄ `aurora/panels` 互禁）已作废**：
+> Phase 3 枚举 aurora 内部全部边后确认 `app → panels` 11 处是**装配层的正当职责**（AuroraShell 的职责就是渲染各面板），
+> 双向禁止会产生 11 处误报。实际落地为**单向** `no-reverse-to-aurora-app`（即上表第 4 条）。
 
 > 1–3 均覆盖 5 种形态：`import` / `import type` / 动态 `import()` / `require()` / `export ... from`。
 

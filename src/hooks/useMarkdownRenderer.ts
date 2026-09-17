@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { marked } from 'marked'
 import type { Token } from 'marked'
-import { getFlatHeadingList, generateHeadingId } from '../features/shared/utils/headingIdUtils'
+import { getFlatHeadingList, generateHeadingId } from '@utils/headingIdUtils'
 import { useLanguage } from '../stores/LanguageStore'
 import { useMathRender } from './useMathRender'
 import { logger } from '../utils/logger'

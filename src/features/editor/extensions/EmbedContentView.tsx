@@ -4,7 +4,7 @@ import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useFileManager } from '@stores/FileStore'
 import { findNode } from '@services/fileService'
 import { markdownToHtml } from '../markdownConvert'
-import { imageStore } from '../../shared/storage/imageStore'
+import { imageStore } from '@core/storage/imageStore'
 
 /** Parse target like "笔记#第三章" → { fileName: '笔记', heading: '第三章' }
  *  Also supports line ranges: "file#L10-L20" or "file#L10"

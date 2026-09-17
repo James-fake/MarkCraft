@@ -1,7 +1,7 @@
 import { CompletionContext, autocompletion } from '@codemirror/autocomplete'
 import { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
-import { getAllEmojis } from '../../shared/utils/emojiData'
+import { getAllEmojis } from '@utils/emojiData'
 import type { FileNode } from '@src/types/fileManager'
 import {
   buildFootnoteAppendix,

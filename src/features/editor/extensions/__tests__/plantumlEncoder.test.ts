@@ -8,7 +8,7 @@ import {
   normalizePlantUmlEndpoint,
   buildPlantUmlUrl,
   DEFAULT_PLANTUML_ENDPOINT,
-} from '../utils/plantumlEncoder'
+} from '../plantumlEncoder'
 
 const ALPHABET_RE = /^[0-9A-Za-z_-]*$/
 

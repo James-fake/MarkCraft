@@ -3,8 +3,9 @@
 // 设计要点：
 // 1. 故意【不 extends】任何预设（eslint:recommended / @typescript-eslint/recommended /
 //    react-hooks 等），因此完全不触碰项目既有的 ~200 条 lint 债 —— 提交不会被旧债卡死。
-// 2. 仅加载 @typescript-eslint/parser + 本地插件 local，并只对逻辑/状态/基础设施层
-//    （features / stores / services）启用 local/no-aurora-ui-import 这一条反向依赖守卫。
+// 2. 仅加载 @typescript-eslint/parser + 本地插件 local，并只对结构性层级启用 local/* 守卫：
+//    底座层（utils / core）、逻辑/状态/基础设施层（features / stores / services）、
+//    aurora 子模块。
 // 3. lint-staged 以 `eslint --no-eslintrc -c .eslintrc.guard.cjs` 调用，只认本文件，
 //    不会加载根目录 .eslintrc.cjs，从而保证「只拦守卫、不碰债」。
 //
@@ -81,6 +82,19 @@ module.exports = {
       files: ['src/aurora/**/*.{ts,tsx}'],
       rules: {
         'local/no-reverse-to-aurora-app': 'error',
+      },
+    },
+    // ── Phase 4（2026-09-18）新增：底座层禁止向上依赖 ──
+    {
+      // src/utils（L0）与 src/core（L1）不得 import 任何上层 —— **落地即 error**（实测存量违规 = 0）
+      // 依据：Phase 4 把 features/shared 的 6 个共享工具下沉 src/utils、imageStore 基建
+      // 下沉 src/core/storage 后，底座两层的向上依赖实测全部归零。
+      // 它锁住的正是 features/shared 的成因：自称「共享层」却引用 @stores/LanguageStore；
+      // 故一旦底座需要状态或业务语义，本条会直接拦下，逼出「反向安置」这个正确解法。
+      // 未纳入 src/components/ui 与 src/types 的原因写在规则文件头部（各有技术障碍）。
+      files: ['src/utils/**/*.{ts,tsx}', 'src/core/**/*.{ts,tsx}'],
+      rules: {
+        'local/no-base-to-upper': 'error',
       },
     },
   ],

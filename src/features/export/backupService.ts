@@ -11,7 +11,7 @@
  */
 import JSZip from 'jszip'
 import type { FileNode } from '../../types/fileManager'
-import { getBase64Image } from '../shared/storage/imageStore'
+import { getBase64Image } from '@core/storage/imageStore'
 import { downloadBlob } from './exportUtils'
 
 /** 图片引用解析结果 */

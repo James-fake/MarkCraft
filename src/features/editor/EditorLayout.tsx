@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, lazy, Suspense, forwardRef, useImperativeHandle } from 'react'
 import { createPortal } from 'react-dom'
 import type { Editor as TiptapEditorType } from '@tiptap/react'
-import ErrorBoundary from '../shared/ui/ErrorBoundary'
+import ErrorBoundary from '@components/ui/ErrorBoundary'
 import { Icon } from '../../components/ui'
 import { EditorView } from '@codemirror/view'
 import { undo as cmUndo, redo as cmRedo } from '@codemirror/commands'

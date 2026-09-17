@@ -89,7 +89,7 @@ describe('collectFiles / collectFolders / resolveRelativePath', () => {
 describe('buildWorkspaceZip（F1 一键导出集成）', () => {
   it('导出 ZIP：目录结构 / md 内容 / 图片落盘 / README / manifest', async () => {
     // 注入内存图片，用实际返回的 id 构造占位符
-    const { storeBase64Image, removeBase64Image } = await import('../shared/storage/imageStore')
+    const { storeBase64Image, removeBase64Image } = await import('@core/storage/imageStore')
     const id = storeBase64Image('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==')
 
     const tree = folder('root', '工作区', [

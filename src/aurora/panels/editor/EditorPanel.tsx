@@ -10,7 +10,7 @@ import { Icon } from '../../icons'
 import '../../styles/panels/editor.css'
 // —— 语法检查：Aurora 层集成（复用真实 lintMarkdown + fixIssue 引擎；D4 单一数据源）
 import { lintMarkdown, fixIssue } from '@features/lint/markdownLinter'
-import type { LintIssue } from '@features/shared/utils/lintTypes'
+import type { LintIssue } from '@utils/lintTypes'
 import { AuroraLintList } from './AuroraLintList'
 // —— 字数统计：复用真实 features/editor/stats 单一数据源（D4，不维护平行实现）——
 import { countWords } from '@features/editor/stats'
@@ -42,7 +42,7 @@ import { useMarkdownRenderer } from '@hooks/useMarkdownRenderer'
 import { useAppLayout } from '@hooks/useAppLayout'
 import { usePresence, OVERLAY_EXIT_MS } from '@components/ui/usePresence'
 import { useAppLogic } from '@app/useAppLogic'
-import { textFromStorage, textToStorage } from '@features/shared/storage/imageStore'
+import { textFromStorage, textToStorage } from '@core/storage/imageStore'
 
 /** Aurora 弹层开关（由 AuroraShell 以单一数据源持有，命令与编辑器 UI 共用；方案 B 就近归属渲染） */
 export interface AuroraModalControls {

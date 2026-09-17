@@ -1,6 +1,6 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { EMOJI_DATA } from '../utils/emojiData'
+import { EMOJI_DATA } from '@utils/emojiData'
 
 interface EmojiPickerProps {
   onSelect: (emoji: string) => void

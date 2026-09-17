@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { markdownToHtml, htmlToMarkdown } from '../markdownConvert'
-import type { ImageStoreAPI } from '../../shared/storage/imageStoreTypes'
+import type { ImageStoreAPI } from '@core/storage/imageStoreTypes'
 
 // markdownToHtml 仅用 imageStore 解析图片占位符；PDF 测试无需真实图片库
 const mockImageStore = { getBase64Image: () => null } as unknown as ImageStoreAPI

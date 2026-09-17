@@ -11,14 +11,14 @@ import TableGridSelector from './TableGridSelector'
 import MoreDropdown from './groups/MoreDropdown'
 import { buildSharedMoreItems } from './groups/sharedMoreItems'
 import MindmapPopover from './MindmapPopover'
-import EmojiPicker from '../shared/ui/EmojiPicker'
+import EmojiPicker from './EmojiPicker'
 import { useLanguage } from '../../stores/LanguageStore'
 import { useLinkIndex } from '../../stores/LinkIndexStore'
 import { useFileManager } from '../../stores/FileStore'
 import { getRecentFiles } from '@core/files/recentFiles'
 import { buildRecentWikilink, buildReferenceTemplate, buildRelatedTemplate, buildBackindexTemplate, buildTodayWikilink, buildBacklinksList } from './groups/linkTemplates'
-import { getShortcutLabel } from '../shared/utils/ShortcutManager'
-import { HIGHLIGHT_COLORS, HIGHLIGHT_COLOR_OPTIONS } from '../shared/utils/HighlightMark'
+import { getShortcutLabel } from './ShortcutManager'
+import { HIGHLIGHT_COLORS, HIGHLIGHT_COLOR_OPTIONS } from '@features/editor/extensions/HighlightMark'
 
 interface WysiwygToolbarProps {
   editor: Editor | null

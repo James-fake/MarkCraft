@@ -1,5 +1,5 @@
 import { useMemo, useState, useCallback, useEffect } from 'react'
-import { parseMarkdownHeadings, OutlineItem } from '../shared/utils/headingIdUtils'
+import { parseMarkdownHeadings, OutlineItem } from '@utils/headingIdUtils'
 import { useLanguage } from '../../stores/LanguageStore'
 
 interface OutlineProps {

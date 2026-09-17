@@ -6,7 +6,7 @@ import {
   resetAllShortcuts,
   checkConflict,
   ShortcutBinding,
-} from '@features/shared/utils/ShortcutManager'
+} from '@features/toolbar/ShortcutManager'
 import ShortcutRecorder from '@features/settings/ShortcutRecorder'
 import { Button } from '@components/ui/Button'
 import { useSettingsQuery } from '../settingsSearch'

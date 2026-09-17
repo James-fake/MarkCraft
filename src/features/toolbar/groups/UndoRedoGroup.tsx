@@ -1,6 +1,6 @@
 import type { Translations } from '@src/types/translations'
 import { ToolbarButton } from './shared'
-import { getShortcut } from '../../shared/utils/ShortcutManager'
+import { getShortcut } from '../ShortcutManager'
 
 function formatShortcut(key: string): string {
   return key

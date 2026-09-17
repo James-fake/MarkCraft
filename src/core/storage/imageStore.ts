@@ -1,3 +1,7 @@
+// Phase 4（2026-09-18）自 features/shared/storage/ **原样迁入**（内容一字未改）。
+// 定位：图片占位符内存仓库（Map + djb2 哈希索引），零 React / 零状态依赖，
+// 仅依赖 @utils/hash（L0）。被 editor / blog / export / aurora 共 19 处消费，
+// 属跨模块基建 → 归 L1 src/core/storage（与 Phase 1 的 db / migrate / blobStore 同层）。
 import { djb2HashToString } from '@utils/hash'
 
 const IMAGE_STORE = new Map<string, string>()

@@ -11,7 +11,7 @@ import InsertGroup from './groups/InsertGroup'
 import MoreDropdown from './groups/MoreDropdown'
 import { buildSharedMoreItems } from './groups/sharedMoreItems'
 import MindmapPopover from './MindmapPopover'
-import EmojiPicker from '../shared/ui/EmojiPicker'
+import EmojiPicker from './EmojiPicker'
 import { useLanguage } from '../../stores/LanguageStore'
 import { useBookmark } from '../../stores/BookmarkStore'
 import { useFileManager } from '../../stores/FileStore'
@@ -20,7 +20,7 @@ import { getRecentFiles } from '@core/files/recentFiles'
 import { buildRecentWikilink, buildReferenceTemplate, buildRelatedTemplate, buildBackindexTemplate, buildTodayWikilink, buildBacklinksList } from './groups/linkTemplates'
 import { cm6InsertTemplate } from '../editor/cm6/autocompleteExtension'
 import { findNode } from '../../services/fileService'
-import { getShortcut } from '../shared/utils/ShortcutManager'
+import { getShortcut } from './ShortcutManager'
 
 function formatShortcut(key: string): string {
   return key

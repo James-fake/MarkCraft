@@ -4,7 +4,7 @@
 
 import { marked, Marked } from 'marked'
 import DOMPurify from 'dompurify'
-import { parseFrontMatter, FrontMatter, ParsedDocument } from '../../shared/utils/frontMatter'
+import { parseFrontMatter, FrontMatter, ParsedDocument } from '@utils/frontMatter'
 import {
   BlogConfig,
   BlogPost,
@@ -18,7 +18,7 @@ import {
   DEFAULT_BLOG_CONFIG,
   extractAdmonitionsFromMarkdown,
 } from '../templates'
-import { textToStorage } from '../../shared/storage/imageStore'
+import { textToStorage } from '@core/storage/imageStore'
 import {
   extractTitleFromContent,
   inferTagsFromContent,

@@ -1,5 +1,5 @@
 import { RefObject } from 'react'
-import type { LintIssue } from '../shared/utils/lintTypes'
+import type { LintIssue } from '@utils/lintTypes'
 import type { Translations } from '../../types/translations'
 import { DocumentStats } from './stats'
 import { WordCountMode } from './hooks/useEditorState'

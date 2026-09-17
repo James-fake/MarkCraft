@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { usePresenceValue, POPOVER_EXIT_MS } from '@components/ui/usePresence'
 import { Icon } from '../../icons'
 import { useLanguage } from '@stores/LanguageStore'
-import { parseMarkdownHeadings, findHeadingLine, type OutlineItem } from '@features/shared/utils/headingIdUtils'
+import { parseMarkdownHeadings, findHeadingLine, type OutlineItem } from '@utils/headingIdUtils'
 
 // 搜索框滚动显隐迟滞阈值：同向累计滚动超过该值（px）才展开/收起。
 // 取值 < 单行高 26px，吸收触摸板微调/惯性/展开动画 clamp 造成的方向抖动。

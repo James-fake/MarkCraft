@@ -1,6 +1,6 @@
 import { Extension } from '@tiptap/core'
 import { Plugin, PluginKey } from '@tiptap/pm/state'
-import { generateHeadingId } from '../../shared/utils/headingIdUtils'
+import { generateHeadingId } from '@utils/headingIdUtils'
 
 const headingIdKey = new PluginKey('headingIdAssign')
 

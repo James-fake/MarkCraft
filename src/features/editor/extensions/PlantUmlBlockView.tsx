@@ -2,7 +2,7 @@ import { NodeViewWrapper } from '@tiptap/react'
 import type { NodeViewProps } from '@tiptap/react'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { useSettings } from '@stores/SettingsStore'
-import { buildPlantUmlUrl, ensurePlantUmlWrapper } from '../../shared/utils/plantumlEncoder'
+import { buildPlantUmlUrl, ensurePlantUmlWrapper } from './plantumlEncoder'
 
 type RenderState = 'idle' | 'loading' | 'ok' | 'failed'
 

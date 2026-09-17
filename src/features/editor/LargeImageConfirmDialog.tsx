@@ -1,4 +1,4 @@
-import { formatFileSize } from '../shared/utils/imageHelpers'
+import { formatFileSize } from '@utils/imageHelpers'
 import type { Translations } from '../../types/translations'
 
 interface LargeImageConfirmDialogProps {

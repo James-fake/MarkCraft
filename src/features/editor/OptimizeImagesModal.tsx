@@ -1,6 +1,10 @@
+// Phase 4（2026-09-18）自 features/shared/ui/ **原样迁入**（内容一字未改）。
+// 定位：编辑器业务 UI（读 @stores/LanguageStore 取文案），唯一消费者是
+// features/editor/EditorSlots.tsx。
+// 🎯 同 FrontMatterPanel，是「环 #3 残余形态」的另一条反向边（features/shared → stores）。
 import { useState, useEffect, useCallback } from 'react'
-import { findAllBase64Images, extractBase64Info, saveBase64ToFile, formatFileSize, base64SizeInBytes, ImageMarkRange } from '../utils/imageHelpers'
-import { getBase64Image } from '../storage/imageStore'
+import { findAllBase64Images, extractBase64Info, saveBase64ToFile, formatFileSize, base64SizeInBytes, ImageMarkRange } from '@utils/imageHelpers'
+import { getBase64Image } from '@core/storage/imageStore'
 import { useLanguage } from '@stores/LanguageStore'
 
 interface OptimizeImagesModalProps {

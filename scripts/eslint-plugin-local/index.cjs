@@ -21,5 +21,11 @@ module.exports = {
     // 它同时覆盖测试文件（无例外），依赖 src/aurora/providers 承接原寄居 app/ 的测试夹具。
     // 见《MarkCraft_解耦实施方案_2026-09-17.md》Phase 3.4。
     'no-reverse-to-aurora-app': require('../eslint-local-rules/no-reverse-to-aurora-app.cjs'),
+
+    // Phase 4（2026-09-18）新增：底座层（L0 src/utils、L1 src/core）禁止向上依赖。
+    // 同样是**落地即 error**（实测存量违规 = 0）。它锁住 Phase 1/2/4 的成果：
+    // 「共用能力下沉到底座」之后，底座不得再反向牵引 stores/features 而把环造回来。
+    // 见《MarkCraft_解耦实施方案_2026-09-17.md》Phase 4。
+    'no-base-to-upper': require('../eslint-local-rules/no-base-to-upper.cjs'),
   },
 };

@@ -1,5 +1,5 @@
 import DOMPurify from 'dompurify';
-import { textToStorage } from '../../shared/storage/imageStore'
+import { textToStorage } from '@core/storage/imageStore'
 import { marked } from 'marked'
 import { EXPORT_CSS } from './exportCss'
 import html2pdf from 'html2pdf.js'

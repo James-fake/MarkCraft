@@ -2,7 +2,7 @@ import { useCallback, useRef, type MutableRefObject } from 'react'
 import type { Editor } from '@tiptap/react'
 import { djb2Hash } from '@utils/hash'
 import { markdownToHtml } from '../markdownConvert'
-import { imageStore } from '../../shared/storage/imageStore'
+import { imageStore } from '@core/storage/imageStore'
 import type { useUndoRedo } from '@stores/UndoRedoStore'
 
 interface UseTiptapUndoRedoParams {

@@ -1,7 +1,7 @@
 import { NodeViewWrapper } from '@tiptap/react'
 import type { NodeViewProps } from '@tiptap/react'
 import { useCallback, useRef, useState } from 'react'
-import { getBase64Image } from '../../shared/storage/imageStore'
+import { getBase64Image } from '@core/storage/imageStore'
 import { getImageHostConfig } from '../../imageUpload/imageHostConfig'
 import { notifyUploadStatus } from '../../imageUpload/uploadNotifier'
 import { logger } from '@utils/logger'

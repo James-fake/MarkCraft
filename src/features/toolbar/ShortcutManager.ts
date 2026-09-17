@@ -1,3 +1,7 @@
+// Phase 4（2026-09-18）自 features/shared/utils/ **原样迁入**（内容一字未改）。
+// 定位：快捷键绑定表 + 用户自定义绑定的 localStorage 持久化；5 个消费者全在
+// features/toolbar/（MarkdownToolbar / WysiwygToolbar / groups/{Format,Insert,UndoRedo}Group）。
+// 单 feature 消费 → 就近安置（Phase 5 合并 toolbar 入 editor 时随迁）。
 export interface ShortcutBinding {
   id: string
   label: string

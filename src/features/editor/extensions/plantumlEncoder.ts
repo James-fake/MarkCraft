@@ -1,3 +1,7 @@
+// Phase 4（2026-09-18）自 features/shared/utils/ **原样迁入**（内容一字未改）。
+// 定位：PlantUML 编码器，唯一消费者是同目录的 PlantUmlBlockView。
+// ⚠️ 它依赖 @core/constants/plantuml（L1），因此**不可**下沉 src/utils（L0）——
+// 层级纪律要求 L0「只允许 utils → types」，落下去即新增 utils → core 越权边。
 import { deflateRaw } from 'pako'
 import { DEFAULT_PLANTUML_ENDPOINT } from '@core/constants/plantuml'
 

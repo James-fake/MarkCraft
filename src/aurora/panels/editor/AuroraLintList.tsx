@@ -12,7 +12,7 @@
  * 设计：Aurora 桌面语言（深色玻璃面板 / --mc-* token / 发丝分隔 / 非卡片化）
  */
 
-import type { LintIssue } from '@features/shared/utils/lintTypes'
+import type { LintIssue } from '@utils/lintTypes'
 import { Icon } from '../../icons'
 
 interface AuroraLintListProps {

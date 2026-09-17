@@ -6,7 +6,8 @@
 // 动机：stores 是全仓入度最高的地基（入度 102），却被寄居在 features 里的
 // 「业务工具」反向牵引（collectAllFiles / createInitialFileTree /
 // recentFilesManager / defaultDocsZh·En / tagExtractor / plantumlConstants），
-// 由此形成 stores ⇄ features/shared 等模块级环。
+// 由此形成 stores ⇄ features/shared 等模块级环（Phase 2 归零并升 error；
+// Phase 4 进一步解散 features/shared 目录本身，该环的残余形态一并消失）。
 //
 // 目标状态：这些能力下沉到 @core 后，stores 对 features 的依赖 = 0。
 // 见《MarkCraft_解耦实施方案_2026-09-17.md》Phase 2。

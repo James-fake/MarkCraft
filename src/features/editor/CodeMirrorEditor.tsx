@@ -10,8 +10,8 @@ import {
   cm6InsertImage, cm6InsertMathTemplate, cm6InsertMermaidBlock,
 } from './cm6/autocompleteExtension'
 import { lintMarkdown, fixIssue } from '../lint/markdownLinter'
-import { imageStore, registerRelativePath } from '../shared/storage/imageStore'
-import { findHeadingLine } from '../shared/utils/headingIdUtils'
+import { imageStore, registerRelativePath } from '@core/storage/imageStore'
+import { findHeadingLine } from '@utils/headingIdUtils'
 import { smoothScrollTo } from '../../utils/smoothScroll'
 // P3-3.4 E5：富文本粘贴 → 规范 Markdown（Word/网页/Notion，turndown 已就绪，此处接线）
 import { htmlToMarkdown } from './markdownConvert'

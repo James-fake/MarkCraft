@@ -3,7 +3,7 @@ import type { Editor } from '@tiptap/react'
 import type { EditorView } from '@tiptap/pm/view'
 import type { Slice } from '@tiptap/pm/model'
 import type { Translations } from '@src/types/translations'
-import { imageStore, registerRelativePath } from '../../shared/storage/imageStore'
+import { imageStore, registerRelativePath } from '@core/storage/imageStore'
 import { useToast } from '@components/ui/ToastProvider'
 
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024 // 2MB
