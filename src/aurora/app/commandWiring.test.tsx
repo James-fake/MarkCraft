@@ -49,7 +49,11 @@ describe('Phase 3 命令接线（共享 catalog + 适配器，D4 单一数据源
     })
 
     const adapted = adaptCommands(commandRegistry.getAll())
-    expect(adapted.length).toBe(COMMAND_CATALOG.length)
+    // catalog 全量 ≠ 面板可见条数：窗口菜单三条（最小化 / 缩放 / 全部移至最前）是
+    // 「菜单专属」命令（visible:false 的 web no-op，仅由 MenuBar 的 MENUS 渲染，不进命令面板）。
+    // 故断言改为「可见命令一条不丢」——按 id 逐条对齐，比裸计数更能挡住静默丢失。
+    const visibleMeta = COMMAND_CATALOG.filter((m) => (m.visible ? m.visible() : true))
+    expect(adapted.map((c) => c.id)).toEqual(visibleMeta.map((m) => m.id))
 
     // file.save 在 catalog 中带 shortcut 'Ctrl+S' → 适配器应解析为 ['Ctrl','S']
     const save = adapted.find((c) => c.id === 'file.save')!

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 
 // 真实数据桩：替换 stores/kbStore，使 jsdom 下可确定性验证
 vi.mock('../../../stores/kbStore', () => ({
@@ -35,6 +35,17 @@ function renderPanel() {
       <KbPanel />
     </RealProviders>,
   )
+}
+
+/**
+ * 顶栏动作按钮（编辑 / 发布博客 / 删除）作用域。
+ * RealProviders 会一并渲染外壳（菜单栏里也有个同名的「编辑」顶级菜单），
+ * 全局 getByText('编辑') 会命中多个 → 一律限定在子栏动作区内查找。
+ */
+function subbarActions() {
+  const el = document.querySelector('.aurora-kb-subbar-actions')
+  if (!el) throw new Error('知识库子栏动作区未渲染')
+  return within(el as HTMLElement)
 }
 
 describe('KbPanel 接真实知识库数据（kbStore + LinkIndex + TagIndex）', () => {
@@ -115,7 +126,7 @@ describe('KbPanel 接真实知识库数据（kbStore + LinkIndex + TagIndex）',
   it('点「编辑」顶栏按钮打开真实编辑对话框（已接 renameKb/updateDescription，非 toast 桩）', async () => {
     renderPanel()
     await screen.findAllByText('测试知识库 X')
-    fireEvent.click(screen.getByText('编辑'))
+    fireEvent.click(subbarActions().getByText('编辑'))
     expect(await screen.findByText('编辑知识库')).toBeTruthy()
     // 含名称输入，证明是真实表单而非提示弹窗
     expect(document.querySelector('.aurora-kb-input')).toBeTruthy()
@@ -124,7 +135,7 @@ describe('KbPanel 接真实知识库数据（kbStore + LinkIndex + TagIndex）',
   it('点「删除」顶栏按钮打开真实删除确认对话框（已接 deleteKb，非 toast 桩）', async () => {
     renderPanel()
     await screen.findAllByText('测试知识库 X')
-    fireEvent.click(screen.getByText('删除'))
+    fireEvent.click(subbarActions().getByText('删除'))
     expect(await screen.findByText('删除知识库')).toBeTruthy()
   })
 
@@ -136,7 +147,7 @@ describe('KbPanel 接真实知识库数据（kbStore + LinkIndex + TagIndex）',
       </RealProviders>,
     )
     await screen.findAllByText('测试知识库 X')
-    fireEvent.click(screen.getByText('发布博客'))
+    fireEvent.click(subbarActions().getByText('发布博客'))
     expect(mockNav).toHaveBeenCalledWith('blog', expect.any(String))
   })
 

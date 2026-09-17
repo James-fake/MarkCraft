@@ -82,8 +82,29 @@ describe('KeyframeEditor (动画时间轴编辑器)', () => {
     expect(screen.getByText('实时预览（生成的 CSS 代码）')).toBeTruthy()
     // 功能说明提示存在
     expect(screen.getByText(/为指定元素添加进入动画/)).toBeTruthy()
-    // 选项带中文注解，且底层 CSS 值保持不变
+
+    // 选项带中文注解：AuroraSelect 已由原生 <select> 换成自定义滚轮浮层
+    // → 关闭态 DOM 里只有「当前值」一项，其余选项须展开滚轮后才挂载。
+    // 故分两步验：① 触发器显示的值文本即中文注解；② 展开后全部选项（含注解）都在 DOM 中。
+    // 注意：触发器（button）与展开后的滚轮浮层（dialog）带同一个 aria-label
+    // → 取触发器必须限定 button 角色，否则浮层退场窗口内会命中两个元素。
+    const trigger = (name: string) => screen.getByRole('button', { name })
+
+    expect(trigger('缓动方式').textContent).toContain('平滑（ease）')
+    expect(trigger('播放次数').textContent).toContain('1 次（播放一次）')
+
+    fireEvent.click(trigger('缓动方式'))
     expect(screen.getByText('匀速（linear）')).toBeTruthy()
+    expect(screen.getByText('渐入渐出（ease-in-out）')).toBeTruthy()
+
+    // 中文注解只是 label，底层 CSS 值仍是关键字：选「匀速」→ 预览 CSS 里是 linear 而非中文
+    fireEvent.click(screen.getByText('匀速（linear）'))
+    expect(trigger('缓动方式').textContent).toContain('匀速（linear）')
+    expect(screen.getByText(/animation:[^;]*\slinear\s/)).toBeTruthy()
+
+    fireEvent.click(trigger('播放次数'))
     expect(screen.getByText('无限循环（infinite）')).toBeTruthy()
+    fireEvent.click(screen.getByText('无限循环（infinite）'))
+    expect(screen.getByText(/animation:[^;]*\sinfinite;/)).toBeTruthy()
   })
 })

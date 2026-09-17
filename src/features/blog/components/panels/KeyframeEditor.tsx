@@ -331,6 +331,7 @@ ${anim.targetSelector} {
                 value={anim.duration}
                 onChange={(v) => setAnim(prev => ({ ...prev, duration: v }))}
                 options={DURATION_OPTIONS.map(d => ({ value: d, label: d }))}
+                ariaLabel="动画时长"
                 className="aurora-select--block"
               />
             </div>
@@ -340,6 +341,7 @@ ${anim.targetSelector} {
                 value={anim.timingFunction}
                 onChange={(v) => setAnim(prev => ({ ...prev, timingFunction: v }))}
                 options={TIMING_FUNCTIONS}
+                ariaLabel="缓动方式"
                 className="aurora-select--block"
               />
             </div>
@@ -349,6 +351,7 @@ ${anim.targetSelector} {
                 value={anim.iterationCount}
                 onChange={(v) => setAnim(prev => ({ ...prev, iterationCount: v }))}
                 options={ITERATION_OPTIONS}
+                ariaLabel="播放次数"
                 className="aurora-select--block"
               />
             </div>

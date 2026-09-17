@@ -27,6 +27,14 @@ Vite5+React18+TS；CodeMirror6+TipTap3；白板 Excalidraw；Dexie/IndexedDB。d
 - **滚动显隐用「常驻 DOM + 类折叠」**（条件渲染 → 高度跳变 → 伪滚动 → 自激振荡闪烁）；「列表往上滑」= `scrollTop` **减小**。
 - **内联 `transition` 残留**：瞬时落位后必须 `void el.offsetWidth; el.style.transition=''`。
 - 动效只动 **transform/opacity**；永不用 `scale(0)`（起手 0.96/0.97）；进出不对称「出更快」。
+- **`AuroraSelect` 触发器（button）与展开后的浮层（dialog）共用同一个 `aria-label`** → 退场窗口内两者同时在 DOM，
+  `getByLabelText` 会报多元素；取触发器一律 `getByRole('button', { name })`。
+- **自定义滚轮/浮层把「原生元素常驻 DOM」的假设打破**：原生 `<select>` 的 `<option>` 恒在 DOM，
+  `AuroraSelect` 只在展开时挂载选项 → 断言选项文案必须先展开（并把「底层 value 是否仍是裸关键字」一并断言）。
+- **外壳会污染面板测试的全局查询**：`RealProviders` 一并渲染菜单栏 → 面板内同名文案（「编辑」「删除」）
+  必须限定作用域（`within(.aurora-kb-subbar-actions)`），否则 `getByText` 多元素假红。
+- **`COMMAND_CATALOG` 全量 ≠ 命令面板条数**：`visible:()=>false` 的命令（窗口菜单：最小化/缩放/全部移至最前）
+  是**菜单专属**，仅由 MenuBar 的 `MENUS` 渲染。断言「一条不丢」按**可见子集**逐 id 对齐，别用裸计数。
 
 ## 测试铁律
 - 严禁同时 `vi.mock` TagIndexStore 与 LinkIndexStore（循环依赖静默崩溃）→ 用真实 Provider 包裹。
@@ -120,7 +128,10 @@ reduced-motion = 「更少更柔非归零」（时长减半；入场 `mc-rm-fade
   `setBlogEntryFileId` = 单篇语义；右侧宽度 `fit-content`。
 
 ## 当前状态
-- vitest **1233 passed / 3 failed / 2 skipped**，tsc 干净。3 项**预存**失败（与需求 N、KB 顶部间距、退场动效均无关）：
-  `commandWiring` / `KbPanel.smoke`(`getByText('编辑')` 多元素) / `blogCssRefs`(KeyframeEditor 汉化)。
-- 待决：3 项预存失败；其他面板是否同步 52px subbar（博客 46／白板 42）；`--mc-dur-lazy` 处置；
+- vitest **1236 passed / 0 failed / 2 skipped**（110 文件全绿），tsc 干净。**已无预存失败**
+  （09-17 清剿：三项全是「测试契约跟不上实现演进」，非产品 Bug —— `commandWiring` 窗口命令 `visible:false`
+  属菜单专属；`KbPanel.smoke` 的 `getByText('编辑')` 撞上菜单栏同名顶级菜单 → 收敛到 `.aurora-kb-subbar-actions`；
+  `blogCssRefs` 因 `KeyframeEditor` 换 `AuroraSelect` 滚轮→选项不再常驻 DOM，改为展开后再验）。
+- 待决：其他面板是否同步 52px subbar（博客 46／白板 42）；`--mc-dur-lazy` 处置；
   `.aurora-tooltip` 死 CSS（`components.css` 零消费者）处置；>30 天旧日志蒸馏。
+- ⚠️ **未推送**：`187be15`（KB 顶部间距）+ `1e08d65`（浮层退场）+ 本轮修复，均仅本地。环境无 Gitee 凭据。
