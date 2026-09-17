@@ -10,14 +10,16 @@
  * 信息量远超普通工具栏；46px 时返回按钮（28px）距上下各仅 9px、库名为 13px，
  * 视觉上知识库名顶住上方 TitleBar。52px 让两侧留白升到 12/15px，
  * 仍属紧凑桌面密度（VS Code 顶栏 35px + 标签栏 35px 相若），不破坏面板间节奏。
- * 左右内边距 12 → 14px 与栅格 4px 倍数保持一致。 */
+ * 左右内边距 12 → 14px 与栅格 4px 倍数保持一致。
+ * 2026-09-17：栏高与左右内缩上收为 --mc-subbar-h / --mc-subbar-pad-x 单源
+ * （博客子栏、白板顶栏同源引用），见 tokens.css §12。 */
 .aurora-kb-subbar {
   display: flex;
   align-items: center;
   gap: 14px;
-  height: 52px;
+  height: var(--mc-subbar-h);
   flex-shrink: 0;
-  padding: 0 14px;
+  padding: 0 var(--mc-subbar-pad-x);
   background: var(--mc-bg-content);
   border-bottom: 1px solid var(--mc-border-subtle);
   box-sizing: border-box;

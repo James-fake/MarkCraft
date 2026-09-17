@@ -29,6 +29,14 @@ const panel = readFileSync(resolve(__dirname, 'KbPanel.tsx'), 'utf-8')
 const cssRaw = readFileSync(resolve(__dirname, '../../styles/panels/kb.css'), 'utf-8')
 const css = cssRaw.replace(/\/\*[\s\S]*?\*\//g, '')
 
+// 2026-09-17：栏高与左右内缩已上收为 tokens.css §12 的单源 token
+// （--mc-subbar-h / --mc-subbar-pad-x，三面板二级栏同源，见 styles/subbarUnify.test.ts）。
+// 故本文件改断言「引用单源 token + 解析后的值」，保留原有防回退意图、不放松阈值。
+const tokensCss = readFileSync(resolve(__dirname, '../../styles/tokens.css'), 'utf-8')
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+const tokenPx = (name: string) =>
+  Number(tokensCss.match(new RegExp(`${name}\\s*:\\s*(\\d+)px`))?.[1])
+
 const rule = (selector: string) => {
   const esc = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   return css.match(new RegExp(`${esc}\\s*\\{([\\s\\S]*?)\\}`))?.[1] ?? ''
@@ -65,16 +73,26 @@ describe('知识库详情页顶部间距契约（左上角文字不贴顶）', (
   it('subbar 高度 ≥ 52px（知识库名不再顶住上方 TitleBar）', () => {
     const block = rule('.aurora-kb-subbar')
     expect(block).not.toBe('')
-    const m = block.match(/height:\s*(\d+)px/)
-    expect(m, 'subbar 必须是固定 px 高度').not.toBeNull()
-    expect(Number(m![1])).toBeGreaterThanOrEqual(52)
+    // 栏高必须是固定值：要么内联 px，要么引用单源 token（不得退化成 auto / min-height）
+    const m = block.match(/height:\s*(\d+px|var\(--mc-subbar-h\))/)
+    expect(m, 'subbar 必须是固定高度（px 或 --mc-subbar-h）').not.toBeNull()
+    if (/^var\(/.test(m![1])) {
+      // 引用 token 时，阈值改由 token 定义承担 —— 断言解析值，魔法数不得回流
+      expect(tokenPx('--mc-subbar-h')).toBeGreaterThanOrEqual(52)
+    } else {
+      expect(Number(m![1].replace('px', ''))).toBeGreaterThanOrEqual(52)
+    }
   })
 
-  it('subbar 左右内边距 ≥ 14px（与 4px 栅格倍数一致）', () => {
+  it('subbar 左右内边距 ≥ 14px（与二级栏单源内缩一致）', () => {
     const block = rule('.aurora-kb-subbar')
-    const m = block.match(/padding:\s*0\s+(\d+)px/)
-    expect(m, 'subbar 必须是 `padding: 0 Npx`').not.toBeNull()
-    expect(Number(m![1])).toBeGreaterThanOrEqual(14)
+    const m = block.match(/padding:\s*0\s+(\d+px|var\(--mc-subbar-pad-x\))/)
+    expect(m, 'subbar 必须是 `padding: 0 Npx`（或引用 --mc-subbar-pad-x）').not.toBeNull()
+    if (/^var\(/.test(m![1])) {
+      expect(tokenPx('--mc-subbar-pad-x')).toBeGreaterThanOrEqual(14)
+    } else {
+      expect(Number(m![1].replace('px', ''))).toBeGreaterThanOrEqual(14)
+    }
   })
 
   it('subbar 左侧组与「库名 + 徽章」组内间距 ≥ 10px', () => {

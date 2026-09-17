@@ -189,6 +189,16 @@
   --mc-wincontrol-w:        46px;
   --mc-toolbar-h:           36px;
 
+  /* 二级栏（副栏）：KbPanel 子栏 / BlogPanel 子栏 / CanvasTopbar 顶栏 —— 同源单值。
+   * 三者同属「左身份 + 中分段滑块 + 右操作」的复合工具条，必须等高、同左右内缩，
+   * 否则跨视图切换时二级栏会跳高（2026-09-17 前：kb 52 / blog 42 / canvas 42，
+   * 知识库 → 博客一栏矮 10px；旧的「compact 下与 42px titlebar 等高」基准已作废）。
+   * 派生偏移（如 blog 功能浮层的 top）必须引用本 token，禁止再写魔法数。
+   * 不随密度档变化：栏内分段控件的行高差异已由 --mc-inspector-tab-h 承担
+   * （compact 28 / comfortable 32），栏高恒定才能保证跨视图的 chrome 高度一致。 */
+  --mc-subbar-h:            52px;
+  --mc-subbar-pad-x:        14px;
+
   /* ==========================================================
    * 12.1 列表/导航项高度（密度核心维度，P1-3）
    * 基准值 = 舒适（comfortable），[data-density='compact'] 块重定义为更紧值；

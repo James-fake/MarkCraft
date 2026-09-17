@@ -16,16 +16,18 @@
 }
 
 /* ============================================================
- * 顶部子栏（对齐 KbPanel 子栏，替代内部图标栏）
+ * 顶部子栏（与 KbPanel 子栏 / CanvasTopbar 顶栏同源等高）
+ * 2026-09-17：46px → var(--mc-subbar-h)（52px），左右内缩 12 → var(--mc-subbar-pad-x)。
+ * 三面板二级栏统一到 tokens.css §12 单源，跨视图切换不再跳高。
  * ========================================================== */
 .aurora-blog__subbar {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 46px;
+  height: var(--mc-subbar-h);
   flex-shrink: 0;
-  padding: 0 12px;
+  padding: 0 var(--mc-subbar-pad-x);
   background: var(--mc-bg-content);
   border-bottom: 1px solid var(--mc-border-subtle);
   box-sizing: border-box;
@@ -190,7 +192,7 @@
 
 .aurora-blog__subbar-right {
   position: absolute;
-  right: 12px;
+  right: var(--mc-subbar-pad-x);   /* 与子栏左右内缩同源，右对齐不脱槽 */
   top: 50%;
   transform: translateY(-50%);
   display: flex;
@@ -240,7 +242,7 @@
  * ========================================================== */
 .aurora-blog__panelzone {
   position: absolute;
-  top: 46px;   /* 紧贴顶栏（46px）下方，预览区即从此开始 */
+  top: var(--mc-subbar-h);   /* 紧贴二级栏下方（派生偏移必须引用单源，禁止魔法数） */
   bottom: 0;   /* 高度 = 预览区高度 */
   left: 0;     /* 基准位（最左贴边）；横向停靠位移由 JS 写 transform 承载（audit 2026-09-14 #2） */
   z-index: 30;
@@ -1212,10 +1214,11 @@
 .spin { animation: aurora-blog-spin 0.9s linear infinite; }
 @keyframes aurora-blog-spin { to { transform: rotate(360deg); } }
 
-/* 紧凑密度微调 */
-[data-density='compact'] .aurora-blog__subbar { height: 42px; }
+/* 紧凑密度微调
+   2026-09-17：子栏高度与功能浮层 top 的 compact 覆写（42px）已删除 ——
+   二级栏高度统一由 --mc-subbar-h 单源承载，不随密度档变化。
+   密度差异改由栏内分段控件行高 --mc-inspector-tab-h（28→32）承担。 */
 [data-density='compact'] .aurora-blog__panelzone-head { height: 34px; }
-[data-density='compact'] .aurora-blog__panelzone { top: 42px; }
 
 /* 发布来源提示条（知识库 → 博客工作室带入来源） */
 .aurora-blog-source-bar {

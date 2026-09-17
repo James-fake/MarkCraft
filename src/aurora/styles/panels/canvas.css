@@ -1143,13 +1143,14 @@
 .aurora-ctop {
   position: relative;
   display: flex; align-items: center; justify-content: space-between;
-  height: 46px; padding: 0 12px;
+  height: var(--mc-subbar-h); padding: 0 var(--mc-subbar-pad-x);
   background: var(--mc-bg-elevated);
   border-bottom: 1px solid var(--mc-border-subtle);
   flex-shrink: 0; z-index: 60;
 }
-/* 密度对齐（P1-6）：紧凑档与 blog 子栏同为 42px（P1-3 密度体系） */
-[data-density='compact'] .aurora-ctop { height: 42px; }
+/* 2026-09-17：栏高改由 --mc-subbar-h 单源承载（与 KbPanel 子栏 / BlogPanel 子栏同值），
+   原 [data-density='compact'] 42px 覆写删除 —— 二级栏高度不再随密度档变化，
+   密度差异由栏内分段控件的 --mc-inspector-tab-h 承担。 */
 .aurora-ctop__left { display: flex; align-items: center; gap: 12px; }
 .aurora-ctop__right { display: flex; align-items: center; gap: 12px; }
 .aurora-ctop__name {

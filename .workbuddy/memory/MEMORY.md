@@ -35,6 +35,12 @@ Vite5+React18+TS；CodeMirror6+TipTap3；白板 Excalidraw；Dexie/IndexedDB。d
   必须限定作用域（`within(.aurora-kb-subbar-actions)`），否则 `getByText` 多元素假红。
 - **`COMMAND_CATALOG` 全量 ≠ 命令面板条数**：`visible:()=>false` 的命令（窗口菜单：最小化/缩放/全部移至最前）
   是**菜单专属**，仅由 MenuBar 的 `MENUS` 渲染。断言「一条不丢」按**可见子集**逐 id 对齐，别用裸计数。
+- **二级栏高度 = `--mc-subbar-h`（tokens.css §12，52px）+ 内缩 `--mc-subbar-pad-x`（14px）**，
+  三面板同源：`.aurora-kb-subbar` / `.aurora-blog__subbar` / `.aurora-ctop`。**不参与密度切换**
+  （密度差异由栏内控件的 `--mc-inspector-tab-h` 承担）。⚠️ **栏高会被复制进派生偏移**
+  （`blog__panelzone.top`、`subbar-right.right`）→ 改栏高必须同改，且一律用 `var()`，禁止魔法数。
+- ⚠️ **`densityStore` 默认广播 `compact`**（非 comfortable）→ 排查「实际渲染值」时先确认密度档：
+  只读声明值会把 42 当成 46。**新写的守卫/契约断言必须先做「负向验证」**（注入回归看是否真报红）再用。
 
 ## 测试铁律
 - 严禁同时 `vi.mock` TagIndexStore 与 LinkIndexStore（循环依赖静默崩溃）→ 用真实 Provider 包裹。
@@ -128,10 +134,12 @@ reduced-motion = 「更少更柔非归零」（时长减半；入场 `mc-rm-fade
   `setBlogEntryFileId` = 单篇语义；右侧宽度 `fit-content`。
 
 ## 当前状态
-- vitest **1236 passed / 0 failed / 2 skipped**（110 文件全绿），tsc 干净。**已无预存失败**
+- vitest **1247 passed / 0 failed / 2 skipped**（111 文件全绿），tsc 干净。**已无预存失败**
   （09-17 清剿：三项全是「测试契约跟不上实现演进」，非产品 Bug —— `commandWiring` 窗口命令 `visible:false`
   属菜单专属；`KbPanel.smoke` 的 `getByText('编辑')` 撞上菜单栏同名顶级菜单 → 收敛到 `.aurora-kb-subbar-actions`；
   `blogCssRefs` 因 `KeyframeEditor` 换 `AuroraSelect` 滚轮→选项不再常驻 DOM，改为展开后再验）。
-- 待决：其他面板是否同步 52px subbar（博客 46／白板 42）；`--mc-dur-lazy` 处置；
-  `.aurora-tooltip` 死 CSS（`components.css` 零消费者）处置；>30 天旧日志蒸馏。
-- ⚠️ **未推送**：`187be15`（KB 顶部间距）+ `1e08d65`（浮层退场）+ 本轮修复，均仅本地。环境无 Gitee 凭据。
+- 二级栏已三面板同源（kb / blog / ctop = 52px，真机几何取证通过），见上「关键坑」。
+- 待决：`--mc-dur-lazy` 处置；`.aurora-tooltip` 死 CSS（`components.css` 零消费者）处置；
+  `.aurora-filetree__topbar`(36) / `.aurora-outline__header`(36) 这类「侧栏小标题栏」是否也要统一高度；>30 天旧日志蒸馏。
+- ✅ 已推送至 `origin/master` 的历史：`187be15` / `1e08d65` / `988c406`。
+  二级栏同源化（本项）**已提交待推送**；Gitee 令牌不入库、不落盘（用户曾贴出令牌，已建议其轮换）。
