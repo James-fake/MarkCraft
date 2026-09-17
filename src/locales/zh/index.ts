@@ -107,13 +107,6 @@ export interface Translations {
   }
   welcome: {
     subtitle: string
-    audienceTitle: string
-    audienceWriter: string
-    audienceWriterDesc: string
-    audienceBlogger: string
-    audienceBloggerDesc: string
-    audienceStudent: string
-    audienceStudentDesc: string
     createFile: string
     createFileDesc: string
     blogStudio: string

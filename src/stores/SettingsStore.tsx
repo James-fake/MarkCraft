@@ -54,10 +54,6 @@ export interface AppSettings {
   // Diagram (E3)
   /** PlantUML 渲染端点（SVG 输出）。留空则禁用远程渲染，图表降级为代码块。 */
   plantumlEndpoint: string
-
-  // Audience (P0-3 首启叙事+默认收口)
-  /** 首启身份选择：知识型写作者 / 独立博主 / 学生·终身学习者。null 表示尚未选择。 */
-  audience: 'writer' | 'blogger' | 'student' | null
 }
 
 const SETTINGS_KEY = 'markcraft_settings'
@@ -102,7 +98,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultExportFormat: 'html',
   defaultExportStyle: 'default',
   plantumlEndpoint: DEFAULT_PLANTUML_ENDPOINT,
-  audience: null,
 }
 
 export function loadSettings(): AppSettings {
@@ -189,22 +184,6 @@ export function updateSetting(key: keyof AppSettings, value: AppSettings[keyof A
   const updated = { ...current, [key]: value }
   saveSettings(updated)
   return updated
-}
-
-/**
- * P0-3 首启默认收口：根据首启身份选择返回应套用的默认设置。
- * 纯函数，便于单元测试覆盖正常/边界路径。
- * - 知识型写作者 / 独立博主 / 学生·终身学习者：默认开启大纲（PKM 友好），其余沿用默认。
- * - null / 未知：返回空对象，不改变任何设置。
- */
-export function applyAudienceDefaults(audience: AppSettings['audience']): Partial<AppSettings> {
-  if (audience !== 'writer' && audience !== 'blogger' && audience !== 'student') {
-    return {}
-  }
-  return {
-    audience,
-    outlineVisible: true,
-  }
 }
 
 interface SettingsContextType {

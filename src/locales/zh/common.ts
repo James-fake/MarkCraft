@@ -7,13 +7,6 @@ export const app = {
 
 export const welcome = {
   subtitle: '本地优先的个人知识与写作发布平台——为注重数据自主的知识型写作者，把记、连、思、发收进一个不上云的工具',
-  audienceTitle: '你主要用 MarkCraft 来做些什么？',
-  audienceWriter: '知识型写作者',
-  audienceWriterDesc: '记笔记、连想法、沉淀个人知识库',
-  audienceBlogger: '独立博主 / 自媒体',
-  audienceBloggerDesc: '写作并发布成美观文章或站点',
-  audienceStudent: '学生 / 终身学习者',
-  audienceStudentDesc: '整理课程、日记与阅读笔记',
   createFile: '创建新文件',
   createFileDesc: '开启全新的创作旅程',
   blogStudio: '博客工作室',

@@ -92,13 +92,6 @@ export const en: Translations = {
   },
   welcome: {
     subtitle: 'A local-first personal knowledge & writing platform — for knowledge writers who value data ownership, keeping capture, connect, think and publish in one tool that never touches the cloud',
-    audienceTitle: 'What will you mainly use MarkCraft for?',
-    audienceWriter: 'Knowledge Writer',
-    audienceWriterDesc: 'Take notes, connect ideas, build a personal knowledge base',
-    audienceBlogger: 'Independent Blogger / Creator',
-    audienceBloggerDesc: 'Write and publish beautiful articles or sites',
-    audienceStudent: 'Student / Lifelong Learner',
-    audienceStudentDesc: 'Organize courses, journals and reading notes',
     createFile: 'Create New File',
     createFileDesc: 'Start a new creative journey',
     blogStudio: 'Blog Studio',

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { ToastProvider, useToast } from '../../components/ui/ToastProvider'
-import { useAuroraShell, shouldAutoOpenWelcome } from './useAuroraShell'
+import { useAuroraShell } from './useAuroraShell'
 import { RealProviders } from '../providers/RealProviders'
 import { CommandPalette, type CommandItem, type FileSearchItem } from '../components/command-palette/CommandPalette'
 import { CommandPaletteContext } from '../components/command-palette/CommandPaletteContext'
@@ -35,7 +35,6 @@ import { KbManagePanel } from '../panels/kb/KbManagePanel'
 import { GraphPanel } from '../panels/kb/GraphPanel'
 import { BlogPanel } from '../panels/blog/BlogPanel'
 import { DiaryPanel } from '../panels/diary/DiaryPanel'
-import { AudienceOnboarding } from './AudienceOnboarding'
 import { UserAccountNavContext } from '../components/shell/UserAccountNav'
 import { buildAuroraActions } from './auroraActions'
 
@@ -120,16 +119,6 @@ function ShellInner() {
   // —— 弹层开关（Phase 3d · 方案 B：单一数据源在 AuroraShell，面板就近渲染）——
   const [modals, setModals] = useState<Partial<Record<AuroraModalId, boolean>>>({})
   const [isDragOver, setIsDragOver] = useState(false)
-  // —— P1 · 2.3 受众首启引导：首次进入展示身份选择（对齐 LegacyApp 首启检测）——
-  // 与 S11 同一谓词 shouldAutoOpenWelcome：深链（#view=…）/ 已 seen 时不弹，
-  // 避免冷启动带深链时被受众模态盖住目标视图（审计 P2-1 回归修复）。
-  const [showAudience, setShowAudience] = useState(() => {
-    try {
-      return shouldAutoOpenWelcome()
-    } catch {
-      return false
-    }
-  })
 
   // —— P0 · 1.4 崩溃恢复：备份写入已由 useAppLogic S1(useAutoSave) 覆盖，此处仅补恢复入口 ——
   const [crashBackup, setCrashBackup] = useState<CrashBackup | null>(() => {
@@ -426,9 +415,6 @@ function ShellInner() {
           拖放 .md / .markdown / .txt 文件以打开
         </div>
       )}
-
-      {/* P1 · 2.3 受众首启引导（置顶浮层，选择后标记 seen 不再弹出） */}
-      {showAudience && <AudienceOnboarding onDone={() => setShowAudience(false)} />}
 
       {/* P0 · 1.4 崩溃恢复模态：检测到自动备份时弹窗，恢复/放弃（Aurora chrome） */}
       {crashBackup && (

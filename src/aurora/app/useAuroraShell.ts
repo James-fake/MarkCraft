@@ -24,31 +24,6 @@ const SIDEBAR_ORDER: string[] = [
 const STANDARD_VIEWS: MainView[] = ['editor', 'diary', 'canvas', 'graph', 'kb', 'blog']
 
 /**
- * 首启欢迎逻辑（纯函数，可单测）。
- *
- * 返回 true ⇔ 应当自动打开欢迎页，仅满足以下**全部**条件时：
- * 1. 未曾在 `localStorage['markcraft.onboarding.seen']` 标记过（首启判定）；
- * 2. URL **不**含 `#view=...` 深链（深链优先级高于欢迎，保留深链可达性）；
- * 3. sessionStorage `markcraft_blog_studio=1` 未设置（已恢复博客工作室状态的，保留其上下文）。
- *
- * 此函数取代 S11 原 `if (!seen) { ... }` 的硬条件——后者会让首访的深链（#view=blog）被自动改写为
- * welcome 视图，深链失效。审计 P2-1：headless 截图需 warm profile 才能越过首启拦截，本谓词使该拦截
- * 不再对深链用户生效；seen 已设置的二次进入也不会再误触欢迎。
- */
-export function shouldAutoOpenWelcome(): boolean {
-  try {
-    if (typeof localStorage !== 'undefined' && localStorage.getItem('markcraft.onboarding.seen')) return false
-  } catch { /* ignore */ }
-  try {
-    if (typeof location !== 'undefined' && location.hash.startsWith('#view=')) return false
-  } catch { /* ignore */ }
-  try {
-    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('markcraft_blog_studio') === '1') return false
-  } catch { /* ignore */ }
-  return true
-}
-
-/**
  * AuroraShell 的核心逻辑 hook（Phase 1 "抽 App.tsx 副作用为逻辑层"的 Aurora 侧对应物）。
  *
  * 职责：
@@ -77,19 +52,6 @@ export function useAuroraShell() {
       window.removeEventListener('hashchange', onHash)
       window.removeEventListener('popstate', onHash)
     }
-  }, [])
-
-  // —— S11 首启引导（对齐 App.tsx App.tsx:301-319）——
-  // 仅首次加载（localStorage 'markcraft.onboarding.seen' 未设置）自动打开欢迎页；
-  // 标记写入后后续不再提示。Aurora 无独立受众选择弹层，等价物为欢迎面板（快速启动 + 成长概览）。
-  // 深链（#view=…）与已恢复的博客工作室状态优先于欢迎——见 shouldAutoOpenWelcome。
-  useEffect(() => {
-    try {
-      if (shouldAutoOpenWelcome()) {
-        localStorage.setItem('markcraft.onboarding.seen', '1')
-        setAuxView('welcome')
-      }
-    } catch { /* ignore */ }
   }, [])
 
   /**

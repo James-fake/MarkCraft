@@ -1,66 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { shouldAutoOpenWelcome, useAuroraShell } from './useAuroraShell'
+import { useAuroraShell } from './useAuroraShell'
 import { viewNav } from '../../features/navigation/viewState'
-
-/**
- * 审计 P2-1 · 首启欢迎逻辑（`shouldAutoOpenWelcome` 纯函数）固化单测。
- *
- * 守卫项：
- * 1. 首启 + 无深链 + 无博客工作室恢复 → true（自动打开欢迎）
- * 2. 已设置 seen → false（已跳过）
- * 3. URL 含 `#view=...` 深链 → false（深链优先，保留可达性）
- * 4. sessionStorage 标记博客工作室恢复 → false（保留博客上下文）
- * 5. 不抛异常（localStorage/sessionStorage 在禁用环境下 throw 也能降级）
- */
-describe('P2-1 shouldAutoOpenWelcome · 首启欢迎判定', () => {
-  beforeEach(() => {
-    try { localStorage.removeItem('markcraft.onboarding.seen') } catch { /* ignore */ }
-    try { sessionStorage.removeItem('markcraft_blog_studio') } catch { /* ignore */ }
-    if (typeof location !== 'undefined') {
-      // jsdom 默认 hash 为空；显式清空避免上一测残留
-      window.history.replaceState(null, '', '/')
-    }
-  })
-
-  afterEach(() => {
-    try { localStorage.removeItem('markcraft.onboarding.seen') } catch { /* ignore */ }
-    try { sessionStorage.removeItem('markcraft_blog_studio') } catch { /* ignore */ }
-    if (typeof location !== 'undefined') {
-      window.history.replaceState(null, '', '/')
-    }
-  })
-
-  it('首启 + 无深链 + 无博客恢复 → true', () => {
-    expect(shouldAutoOpenWelcome()).toBe(true)
-  })
-
-  it('已设置 seen → false（二次进入不弹）', () => {
-    localStorage.setItem('markcraft.onboarding.seen', '1')
-    expect(shouldAutoOpenWelcome()).toBe(false)
-  })
-
-  it('URL 含 #view=blog 深链 → false（深链优先，保留可达性）', () => {
-    window.history.replaceState(null, '', '/#view=blog')
-    expect(shouldAutoOpenWelcome()).toBe(false)
-  })
-
-  it('URL 含 #view=graph 等其它深链 → false', () => {
-    window.history.replaceState(null, '', '/#view=graph')
-    expect(shouldAutoOpenWelcome()).toBe(false)
-  })
-
-  it('sessionStorage 标记博客工作室恢复 → false', () => {
-    sessionStorage.setItem('markcraft_blog_studio', '1')
-    expect(shouldAutoOpenWelcome()).toBe(false)
-  })
-
-  it('深链 + 已 seen 双重条件下仍为 false（短路过早命中）', () => {
-    localStorage.setItem('markcraft.onboarding.seen', '1')
-    window.history.replaceState(null, '', '/#view=editor')
-    expect(shouldAutoOpenWelcome()).toBe(false)
-  })
-})
 
 /**
  * nav() 的 param 语义（视图来源上下文）。
