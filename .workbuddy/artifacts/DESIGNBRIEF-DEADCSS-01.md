@@ -626,3 +626,138 @@ const scopeToCSSClass = (name, { prefix }) => { … `${x}${"_".repeat(i + 1)}` �
 - **有意不做 code 侧断言**：`canvasTheme.ts` 注释里仍会出现这些类名、`.tl-container` 还留在注入字符串中待决策 → 加了会误红。等 §8.4 落地后再补。
 
 **负向验证**：恢复 2 个文件 + 造 `.cv-pill-btn` / `.tl-toolbar` 样本 → **4 项精确报红** → 撤除后静态守卫 67 passed；全量 vitest **1320 passed / 2 skipped / 0 failed**，tsc 干净。
+
+---
+
+# §9 批 2.5-C 执行记录（2026-09-17 已落地 ✅）
+
+**命题**：`src/features/knowledgeBase/kb-ui.css` 的 **66 个零承载者类**成员级清剿。
+
+## 9.0 为什么 2.5-A 与 2.5-C 不可互替（方法论）
+
+| | 2.5-A | 2.5-C |
+|---|---|---|
+| 对象 | **孤儿文件**（零 import） | **成员**（文件仍在加载闭包内） |
+| 判据 | 可达性闭包：不可达 = 整文件候选 | 词边界 token：零承载者 = 成员候选 |
+| 处置 | 删**整个文件** | 删**成员**，文件留下 |
+| 做错的代价 | — | 对活文件做整文件删 → 面板直接崩 |
+
+`kb-ui.css` 可达（← `panels/kb/KbPanel.tsx`），但 116 类里只有 46 类有真实承载者。
+**「文件可达」≠「文件里每个类都活」** —— 这是本轮与 2.5-A 的分水岭。
+
+## 9.1 落地清单（净 −267 行，116 类 → 46 类）
+
+| 文件 | 变化 |
+|---|---|
+| `src/features/knowledgeBase/kb-ui.css` | 632 → 362 行，删 66 类 + 3 个 `@media` 空壳 + 2 个孤儿 `@keyframes` + 族注释 |
+| `src/aurora/styles/tokens.css` | 指针门控块内两条**悬空选择器** `.kb-kbcard:hover` / `.kb-note:hover` 移除；抬头注释的名录同步校正 |
+| `src/features/knowledgeBase/kbDensity.test.ts` | **断言升级**（见 9.3） |
+| `src/aurora/styles/pointerGating.test.ts` | **B 组 → A 组迁移**（见 9.3） |
+| `src/aurora/styles/deadCssPurge.test.ts` | 新增 66×2 自动生成断言 + 32 条反向护栏 + 4 组锚点自检（96 → 243 例） |
+
+**集合差取证**（比 `git diff` 行数可靠）：`git show HEAD:<f>` 与工作区各抽类名 → 差集
+**删 70 / 增 0**，其中 66 = 守卫声明项，另 4 个（`is-collapsed` / `is-empty` / `ok` / `err`）
+是**只附在已删属主上**的状态/限定类，随属主一并消失 —— 属预期连带，非误删。
+
+## 9.2 三类连带处置（同批交付，最易漏）
+
+1. **消费侧悬空引用（跨文件）**：`tokens.css` 的指针门控块里有两条订着 `.kb-kbcard:hover` /
+   `.kb-note:hover` 的规则。类删了、规则还在 = 死选择器常驻。**必须同批清**，否则守卫
+   自己的 A 组断言（「全仓 CSS 零定义」）会立刻变红 —— 这也正是它该起的作用。
+2. **孤儿 `@keyframes`**：`kbFadeUp`（引用者 `.kb-stat` / `.kb-kbcard` 全删）、
+   `kbSpin`（`.kb-spin` 已删）。**块解析抓不到 `@keyframes`（无类名）**，须单独按
+   `animation:` 引用计数判定。`kbShellIn` / `kbTabIn` / `kbPop` 仍有活引用，保留。
+3. **`@media` 空壳**：`max-width: 820px`（仅 `.kb-grid-2`）、`860px`（整个 `.kb-nav` 族）、
+   `620px`（全为已删类）→ 三块删到空，须**连容器一起删**，否则留下空 `@media`。
+
+## 9.3 「仅测试引用」10 类：先升级断言，再删（本轮最值的一条）
+
+批 2 扫描出 10 个类**只在 `.test.ts` 里出现**：`kb-topbar` / `kb-manage` / `kb-nav` /
+`kb-nav-item` / `kb-content` / `kb-stat` / `kb-kbcard` / `kb-tpl-card` / `kb-note` / `kb-row`。
+
+**它们不是活类，是「测试制造的维护假象」**：两侧断言把旧整窗外壳类名当成
+「密度载体 / 门控成员」来验，让死类名看起来**被测试覆盖**，从而躲过清剿。
+
+| 测试 | 旧断言（护着死类） | 升级后 |
+|---|---|---|
+| `kbDensity.test.ts` | 密度载体 = `.kb-topbar` `.kb-nav` `.kb-nav-item` `.kb-content` `.kb-manage` `.kb-row` | 改指 **6 条真实载体**：`.kb-btn` `.kb-icon-btn` `.kb-searchpanel-top` `.kb-searchpanel-filter` `.kb-searchpanel-list` `.kb-result-head` |
+| `pointerGating.test.ts` | `cases` 收 `.kb-kbcard:hover` / `.kb-note:hover`；`retiredButAlive`（B 组，断言「有定义」）含 `kb-stat` `kb-tpl-card` | `cases` 摘掉两条；`kb-stat` `kb-tpl-card` **迁入 A 组**（断言「零定义」）；B 组只剩 `aurora-card--hoverable` |
+
+⚠️ **迁组是升级，不是放宽**：B 组断言「仍有定义」，会在删除时变红并提示迁移；
+A 组断言「全仓零定义」，强度更高。测试文件里的那段说明本身就是这条迁移路径的
+**自述文档** —— 本轮只是照着走。
+
+## 9.4 真机取证（`probe-deadcss-batch2.5c.mjs`，五视角）
+
+`kb-ui.css` 仍在渲染路径上，所以验证不只是"删干净了"，更要证明"**没删错**"。
+
+```
+视角 默认 / editor / blog / kb(管理) / kb-detail
+✅ CSSOM 读取有效：83 表 / 587743 字符（防"空扫描假绿"）
+✅ kb-ui.css 仍在模块图（本批是成员级删，文件须保留；dev style 28 个）
+✅ 66 个已删类在 CSSOM 零命中 / 在 DOM 零命中          （删干净了）
+✅ 反向护栏：26 个活类仍在 CSSOM
+✅ .aurora-kb.kb-shell 复合覆盖仍生效：contain=paint      ← 最强信号
+✅ 外壳已收回文档流：position=relative / z-index=auto
+✅ --kb-* 令牌链有值：primary=#7C8CFF border=#292E30 glass=#1A1C24 radius=8px
+ℹ️ 令牌重映射对照：:root --mc-accent=#7C8CFF → .kb-shell --kb-primary=#7C8CFF
+✅ .kb-shell 几何正常：1185×560 px @top=42（非 0 ⇒ 未塌陷/未铺满视口）
+✅ KB 二级栏渲染：1185×52 px（= --mc-subbar-h，未被密度误伤）
+ℹ️ 搜索面板 DOM：.kb-searchpanel ×1（搜索子标签已激活）
+✅ 零新增错误 / 零未捕获异常 / 零 Log error
+```
+
+**为什么盯 `contain: paint`**：它由 `panels/kb.css` 的复合选择器 `.aurora-kb.kb-shell`
+（权重 0/2/0）设置，同时依赖「kb-ui.css 的 `.kb-shell` 还在」+「kb.css 的复合块还在」
+**两侧**。任一侧被误删，`contain` 立刻不再是 `paint`，而面板会重新铺满视口、被侧栏
+与顶栏裁切（历史事故，见 kb.css 注释）。这是本批唯一能同时验证两侧的**单点信号**。
+令牌链同理：`--kb-primary` 实测 `#7C8CFF` 与 `:root --mc-accent` **相等**，
+证明「Aurora 的 `--mc-*` 重映射」仍压过 kb-ui.css 的浅色 fallback。
+
+**深链限制（新踩到）**：`#view=` **只携带视图名**（`viewState.ts` 用
+`location.hash.slice('#view='.length)` 直取 `MainView`），kbId **不在 hash 里**
+⇒ 进 KB 详情只能**真实点击库卡片**。而全新 profile 的 IndexedDB 是空的 → 管理页空态
+→ 无卡片可点 ⇒ 探针必须先**真实走一遍「新建知识库」**（点空态按钮 → 弹窗 →
+原生 setter + `input` 事件填受控 input → 点「创建知识库」）。
+
+## 9.5 守卫同批交付 + 负向验证（13/13）
+
+`deadCssPurge.test.ts`：66 项**自动生成**正反两套断言（CSS 侧 + code 侧），
+外加——**保留类反向护栏 32 例** / **令牌源 2 例** / **孤儿关键帧 2+3 例** /
+**门控块净化 1 例** / **锚点自检 4 例** / **清单规模锚定 1 例**。
+
+⚠️ **锚点必须处理「死类是活类的真前缀」**：
+`kb-content` 是**活类** `kb-content-inner` 的真前缀，而本文件其它组惯用
+`\.name(?![a-zA-Z0-9])`（尾部允许 `-` 以网住 BEM 后代）→ 会命中活类 ⇒ 断言恒真 = **假绿**。
+故对 `kb-content` / `kb-pop` 改用「**精确排除已知活扩展**」`(?!-inner)` / `(?!-mask)`：
+既保住 BEM 后代覆盖（`.kb-content__body` 仍被网住），又不误伤活类
+（`.kb-content-inner__x` 也不误伤 —— 排除写的是**裸后缀**，护住整个分支）。
+
+**负向验证 13 组注入全部精确报红，且 6 个关联文件逐字节零残留**。它抓到 **3 个真守卫缺陷**：
+1. 门控块净化正则写成 `\bkb-[\w-]*\s*(?=[,{])` → 漏掉 `.kb-kbcard:hover,`（`[\w-]*` 停在 `:` 前，
+   `\s*` 又要求紧跟分隔符）⇒ **恒绿**。改为允许伪类后缀 `\.kb-[\w-]*(?::[\w-]+)*\s*[,{]`。
+2. `kb-shell 仍是 --kb-* 令牌源` 用 `toContain('--kb-text')` → 被 `--kb-text-main:` **满足**，
+   令牌真被掏空也照样绿。改为断言**声明** `toContain('--kb-text:')`。
+3. 两处负向样本自身太弱（`.kb-content-inner` 有 2 处、`.kb-shell` 有 10 处出现，
+   只改第一处时守卫**本就不该报红**）→ 样本必须**整类抹除**。
+
+**教训**：守卫最常见的失败不是「漏检」而是「**断言写瞎后恒真**」。
+只有注入回归看它红不红，才能区分「守卫通过」与「守卫根本没在工作」。
+另：负向脚本用 `vitest -t "<用例名>"` 定向跑时，**`-t` 是正则** —— 用例名里的
+`kb-*` 会被当量词，导致整条匹配不上、243 例全 skip 而**假绿**。过滤串必须避开 `*`。
+
+## 9.6 回归与提交
+
+- 全量 vitest：**112 文件 / 1499 passed / 2 skipped / 0 failed**（本轮 +179 例）
+- `tsc --noEmit`：干净
+- 真机：`PROBE_RC=0`
+- 提交 `style(kb): 清剿 kb-ui.css 66 个死类（116→46）+ 消费侧悬空引用处置 · 2.5-C`
+
+## 9.7 后续可选（未动）
+
+| 项 | 内容 | 主要风险 |
+|---|---|---|
+| **3.5** | `desktop-chrome.css` 死 token + `components.css` 7 类 | token 单源治理，非纯删；**本轮已为它备好一条输入**：清剿后 `--kb-*` 里出现仅剩声明、无消费者的令牌（如 `--kb-radius-pill` / `--kb-bg-card` / `--kb-warning-*`），属 3.5 的采集面 |
+| **批 3** | `aurora-editor` 23 类旧自绘 DOM | 需先建 L3 真机采集器 |
+| **2.5-B** | `mermaid.css` 35 类（含 7 处混合块） | 与 2.5-C 同型，可直接复用本轮全套脚本与判据 |
+| **断链题** | `canvasTheme.ts` 注入选择器改挂 `:root` | 会改白板浮层观感，待拍板（§8.4） |

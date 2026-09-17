@@ -342,18 +342,16 @@ html[data-density='comfortable'] {
  *    凡 transform 与状态复合（如 switch 打开态 translateX(16px)、
  *    katex tooltip 的 translateX(-50%) 居中）一律不得归零，
  *    否则会破坏状态定位 —— 本块显式排除。
- * ⚠️ 仅列 TSX 真实在用的选择器；已退役/死 CSS
- *    （aurora-card--hoverable / aurora-sticky / aurora-kanban__card /
- *    aurora-mindmap__node / kb-stat / kb-tpl-card）不予收录——
+ * ⚠️ 仅列 TSX 真实在用的选择器。已退役/死 CSS 不予收录 ——
+ *    aurora-card--hoverable / aurora-sticky / aurora-kanban__card / aurora-mindmap__node，
+ *    以及 2026-09-17 批 2.5-C 整族删除的 kb-stat / kb-tpl-card / kb-kbcard / kb-note。
  *    门槛只应约束真实界面，避免给「已死规则」制造维护假象。
  * ========================================================== */
 @media (hover: none), (pointer: coarse) {
   /* 卡片 / 磁贴 / 列表项：悬停轻微上浮（仅列真实在用的选择器） */
   .aurora-blog-theme:hover,
   .aurora-blog-color:hover,
-  .aurora-welcome__tile:hover,
-  .kb-kbcard:hover,
-  .kb-note:hover {
+  .aurora-welcome__tile:hover {
     transform: none;
   }
 

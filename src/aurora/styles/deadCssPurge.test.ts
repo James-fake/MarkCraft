@@ -120,6 +120,93 @@ const PURGED: Purged[] = [
   { name: '@keyframes aurora-timeline-pulse', css: /@keyframes\s+aurora-timeline-pulse\b/, code: /(?<![\w-])aurora-timeline-pulse\b/ },
 ]
 
+/**
+ * ── 批 2.5-C 死类**成员级**清剿 · kb-ui.css（2026-09-17，116 类 → 46 类）──────
+ * 与 2.5-A 的区别（两者处置方式**不可互替**）：
+ *   · 2.5-A 删的是**孤儿文件** —— 零 import（不可达闭包）→ 删整个文件；
+ *   · 2.5-C 删的是**成员** —— `kb-ui.css` 仍在加载闭包内（← `panels/kb/KbPanel.tsx`），
+ *     但其 66 个类零承载者 → 只能成员级摘除。
+ *
+ * 判死依据（沿用批 2 口径：词边界 token + className 上下文 + 库命名空间豁免）：
+ *   · 56 类在全仓非测试 TS/TSX **零出现**；
+ *   · 10 类（topbar / manage / nav / nav-item / content / stat / kbcard / tpl-card /
+ *     note / row）一度「**仅测试引用**」。那是**测试制造的维护假象**，不是活 ——
+ *     旧断言把它们当"密度载体/门控成员"来验，反而让死类名看起来被覆盖、躲过清剿。
+ *     本轮**先升级两侧断言**（`kbDensity.test.ts` 改指真实载体、
+ *     `pointerGating.test.ts` 把 B 组条目迁入 A 组）**再删**，故现在应零定义。
+ *   · 保留 46 类全部有真实承载者：`.kb-shell`（由 `aurora/styles/panels/kb.css` 的
+ *     复合选择器 `.aurora-kb.kb-shell` 接管令牌重映射）+ 搜索子系统
+ *     `.kb-searchpanel-*` / `.kb-result-*` / `.kb-match*` / `.kb-modal*` / `.kb-empty*`。
+ *
+ * 连带处置（消费侧悬空引用，同批交付）：
+ *   · `tokens.css` 指针门控块内的 `.kb-kbcard:hover` / `.kb-note:hover` 两条已移除；
+ *   · 两个**孤儿 `@keyframes`**：`kbFadeUp`（引用者 .kb-stat/.kb-kbcard 全删）、
+ *     `kbSpin`（.kb-spin 已删）。`kbShellIn` / `kbTabIn` / `kbPop` 仍有活引用，保留。
+ *   · 三个**@media 空壳**：`max-width: 820px`（仅 .kb-grid-2）、
+ *     `max-width: 860px`（整个 .kb-nav 族）、`max-width: 620px`（全为已删类）。
+ *
+ * ⚠️ **锚点必须处理「死类是活类的真前缀」（超串陷阱第三形态）**：
+ *    本文件其它组惯用 `\.name(?![a-zA-Z0-9])` —— 尾部**允许** `-`/`_` 以便网住
+ *    BEM 后代。但对 `kb-content` 而言，`.kb-content-inner` 是**活类**，
+ *    该锚点会命中它 ⇒ 断言永远为真 = **假绿**。`kb-pop` / `.kb-pop-mask` 同理。
+ *    故这两项改用「**精确排除已知活扩展**」：既保住 BEM 后代覆盖，又不误伤活类。
+ *    （反例说明：`kb-search` 与活类 `kb-searchpanel-*` 之间接的是字母 `p`，
+ *      两种锚点都能正确拒绝，无需特殊处理。）
+ */
+const EXCLUDE_LIVE_SUFFIX: Record<string, string[]> = {
+  'kb-content': ['-inner'], // .kb-content-inner —— 内容容器（活）
+  'kb-pop': ['-mask'],      // .kb-pop-mask —— 门户化遮罩（活）
+}
+
+/**
+ * 转义为字面量并构造「排除已知活扩展」尾部；无豁免项时退回本文件惯用尾部。
+ * ⚠️ 排除写的是**裸后缀** `(?!-inner)` 而非 `(?!-inner(?![a-zA-Z0-9_-]))`：
+ *    后者只护住 `.kb-content-inner` 本体，护不住它的 BEM 变体
+ *    （`.kb-content-inner__x` 会被判成 `.kb-content` → 假阳性报红）。
+ *    护住 `-inner` 整个分支才能覆盖该活类的全部后代/修饰符形态。
+ */
+function tailFor(name: string): string {
+  const ex = EXCLUDE_LIVE_SUFFIX[name]
+  if (!ex || !ex.length) return '(?![a-zA-Z0-9])'
+  return `(?!${ex.join('|')})`
+}
+
+/** 2.5-C 已清剿的 66 个类名（裸名，不含前导点） */
+const PURGED_25C_NAMES = [
+  // — 文字工具类（保留 .kb-faint）—
+  'kb-h1', 'kb-h2', 'kb-muted',
+  // — 顶栏 / 品牌 —
+  'kb-topbar', 'kb-spacer', 'kb-brand', 'kb-logo',
+  // — 按钮 / 输入（保留 .kb-input）—
+  'kb-btn-ghost-danger', 'kb-search', 'kb-textarea', 'kb-select', 'kb-label',
+  // — 表面 / 布局 / 导航 —
+  'kb-card', 'kb-body', 'kb-manage', 'kb-manage-inner',
+  'kb-nav', 'kb-nav-item', 'kb-nav-label', 'kb-nav-group', 'kb-nav-foot',
+  'kb-nav-toggle', 'kb-nav-ind',
+  // — 内容 / 统计 / 标签 / 进度 —
+  'kb-content', 'kb-search-wrap', 'kb-stats', 'kb-stat',
+  'kb-stat-ico', 'kb-stat-val', 'kb-stat-lbl', 'kb-tag', 'kb-meter', 'kb-pill',
+  // — 知识库卡片 / 模板卡片 / 笔记卡片 / 列表行 —
+  'kb-kb-grid', 'kb-kbcard', 'kb-cover', 'kb-cover-ico', 'kb-cardbody',
+  'kb-name', 'kb-desc', 'kb-meta', 'kb-tpl-card', 'kb-tpl-chip',
+  'kb-note-grid', 'kb-note', 'kb-note-head', 'kb-note-sum', 'kb-note-tags', 'kb-note-foot',
+  'kb-row', 'kb-row-ico', 'kb-row-main', 'kb-row-sub',
+  // — 弹出层 / 选项 / 提示条 / 工具条 —
+  'kb-pop', 'kb-pop-title', 'kb-opt', 'kb-opt-ico', 'kb-opt-title', 'kb-opt-desc',
+  'kb-alert', 'kb-toolbar', 'kb-count',
+  // — 网格 / 间距 / 加载 / 紧凑图标按钮 —
+  'kb-grid-2', 'kb-stack', 'kb-spin', 'kb-btn-icon',
+]
+
+const PURGED_25C: Purged[] = PURGED_25C_NAMES.map((n) => ({
+  name: `.${n}`,
+  css: new RegExp(`\\.${n}${tailFor(n)}`),
+  code: new RegExp(`(?<![\\w-])${n}${tailFor(n)}`),
+}))
+
+/** 全量清单：2.5-A 之前的批次 + 2.5-C */
+const ALL_PURGED: Purged[] = [...PURGED, ...PURGED_25C]
+
 /** 在若干文件中找首个命中（用于给出可定位的报错文件名） */
 function firstHit(files: string[], re: RegExp, stripComments: boolean): string | null {
   for (const f of files) {
@@ -131,7 +218,7 @@ function firstHit(files: string[], re: RegExp, stripComments: boolean): string |
 }
 
 describe('死 CSS 清剿：已删选择器不得回流', () => {
-  for (const { name, css } of PURGED) {
+  for (const { name, css } of ALL_PURGED) {
     it(`${name} 在全仓 CSS 中零定义`, () => {
       // 剥注释：各 CSS 顶部的中文说明里会写着这些名字，不能算「定义」
       expect(firstHit(cssFiles, css, true)).toBe(null)
@@ -140,7 +227,7 @@ describe('死 CSS 清剿：已删选择器不得回流', () => {
 })
 
 describe('死 CSS 清剿：已删选择器不得残留消费者', () => {
-  for (const { name, code } of PURGED) {
+  for (const { name, code } of ALL_PURGED) {
     it(`${name} 在全仓 TS/TSX 中零引用`, () => {
       expect(firstHit(codeFiles, code, false)).toBe(null)
     })
@@ -179,7 +266,7 @@ describe('死组件与 barrel 导出', () => {
 
 describe('清单自身健康度', () => {
   it('清单无重复项', () => {
-    expect(new Set(PURGED.map((p) => p.name)).size).toBe(PURGED.length)
+    expect(new Set(ALL_PURGED.map((p) => p.name)).size).toBe(ALL_PURGED.length)
   })
 
   it('扫描确实覆盖到了样式与源码（防路径写错导致空扫描假绿）', () => {
@@ -286,5 +373,127 @@ describe('孤儿 CSS 文件清剿（2.5-A）：不得复活', () => {
     for (const re of [/\.tl-container/, /\.tl-toolbar/, /\.tl-watermark/]) {
       expect(firstHit(cssFiles, re, true)).toBe(null)
     }
+  })
+})
+
+/**
+ * ── 2.5-C 配套守卫（成员级清剿的「不误伤」侧）────────────────────────────
+ * 上面两组 `ALL_PURGED` 只证明"删掉了、没回来"。下面这组证明**删对了**：
+ * 该活的还在、令牌源没断、孤儿关键帧清了、消费侧悬空引用收了、锚点真能咬人。
+ */
+const KB_CSS = resolve(srcRoot, 'features/knowledgeBase/kb-ui.css')
+const TOKENS_CSS = resolve(stylesDir, 'tokens.css')
+
+/** kb-ui.css 剥注释后的全文（定义判定只看规则，不看说明文字） */
+const kbCss = strip(readFile(KB_CSS))
+/** tokens.css 剥注释后的全文（门控块切片用） */
+const TOKENS_CSS_TEXT = strip(readFile(TOKENS_CSS))
+
+describe('2.5-C 反向护栏：保留类不得被连带删除', () => {
+  // 46 类中承担「令牌源 / 搜索子系统骨架」的关键代表 —— 删错一个，面板即肉眼可见地崩
+  const mustStay = [
+    'kb-shell',            // --kb-* 令牌源 + Aurora 外壳（复合选择器 .aurora-kb.kb-shell 依赖它）
+    'kb-content-inner',    // ← kb-content 被删后唯一的同前缀活类（锚点自检的靶子）
+    'kb-searchpanel', 'kb-searchpanel-top', 'kb-searchpanel-filter', 'kb-searchpanel-list',
+    'kb-searchpanel-mode', 'kb-searchpanel-actions-tray',
+    'kb-result', 'kb-result-head', 'kb-result-badge', 'kb-result-toggle',
+    'kb-match', 'kb-match-ln', 'kb-match-text', 'kb-hl',
+    'kb-modal', 'kb-modal-mask', 'kb-pop-mask', 'kb-empty', 'kb-empty-ico', 'kb-empty-sub',
+    'kb-input', 'kb-btn', 'kb-btn-primary', 'kb-btn-active', 'kb-icon-btn',
+    'kb-panel', 'kb-section-title', 'kb-faint', 'kb-chatpanel-input',
+  ]
+
+  it.each(mustStay)('%s 仍有 CSS 定义（活类未被误删）', (cls) => {
+    expect(new RegExp(`\\.${cls}(?![a-zA-Z0-9_-])`).test(kbCss)).toBe(true)
+  })
+
+  it('kb-shell 仍是 --kb-* 令牌源（面板与覆盖层的配色全靠它）', () => {
+    // 少一个都会让 kb.css 的 --mc-* 重映射失去落点。
+    // ⚠️ 必须断言**声明**（带冒号），不能只断言名字 ——
+    //    `toContain('--kb-text')` 会被 `--kb-text-main:` 满足，令牌真被删掉也照样绿
+    //    （由负向验证抓出：掏空 5 个令牌后守卫仍绿）。
+    for (const tok of ['--kb-text', '--kb-border', '--kb-primary', '--kb-glass-strong', '--kb-radius-md']) {
+      expect(kbCss).toContain(`${tok}:`)
+    }
+    // 锚点自检：带冒号的断言不会被同类前缀令牌满足
+    expect('  --kb-text-main: var(--cv-text-main);'.includes('--kb-text:')).toBe(false)
+  })
+
+  it('Aurora 侧的 .aurora-kb.kb-shell 复合选择器仍在（令牌重映射 + 布局回收的落点）', () => {
+    // 这两个复合块是 Aurora 把 kb-ui.css 的「整窗外壳假设」收回文档流的关键；
+    // 一旦有人"顺手清理"掉，面板会重新铺满视口并被侧栏/顶栏裁切。
+    const auroraKb = strip(readFile(resolve(stylesDir, 'panels/kb.css')))
+    expect(auroraKb).toContain('.aurora-kb.kb-shell')
+    expect(auroraKb).toContain('contain: paint')
+  })
+})
+
+describe('2.5-C 连带处置：孤儿关键帧与消费侧悬空引用', () => {
+  it.each(['kbFadeUp', 'kbSpin'])('孤儿 @keyframes %s 在全仓 CSS 中零定义', (kf) => {
+    expect(firstHit(cssFiles, new RegExp(`@keyframes\\s+${kf}\\b`), true)).toBe(null)
+  })
+
+  it.each(['kbShellIn', 'kbTabIn', 'kbPop'])('仍有活引用的 @keyframes %s 保留', (kf) => {
+    expect(new RegExp(`@keyframes\\s+${kf}\\b`).test(kbCss)).toBe(true)
+  })
+
+  it('tokens.css 指针门控块不得再收 kb-* 选择器（门槛只约束真实界面）', () => {
+    // 2026-09-17 前此处残留 `.kb-kbcard:hover, .kb-note:hover` 两条死选择器。
+    // ⚠️ 正则必须容忍伪类后缀 —— 写成 `\bkb-[\w-]*\s*(?=[,{])` 会漏掉
+    //    `.kb-kbcard:hover,`（`[\w-]*` 停在 `:hover` 前，`\s*` 又要求紧跟 `,`/`{`），
+    //    于是守卫恒绿。由负向验证抓出（注入后仍绿）。改为允许 `:pseudo` 再接分隔符。
+    const gate = TOKENS_CSS_TEXT.slice(TOKENS_CSS_TEXT.indexOf('@media (hover: none), (pointer: coarse)'))
+    const body = gate.slice(0, gate.indexOf('\n}\n'))
+    expect(body).not.toMatch(/\.kb-[\w-]*(?::[\w-]+)*\s*[,{]/)
+    // 锚点自检（负向验证的内建版）
+    expect(/\.kb-[\w-]*(?::[\w-]+)*\s*[,{]/.test('.kb-kbcard:hover,')).toBe(true)  // 须命中
+    expect(/\.kb-[\w-]*(?::[\w-]+)*\s*[,{]/.test('.kb-note:hover {')).toBe(true)   // 须命中
+    expect(/\.kb-[\w-]*(?::[\w-]+)*\s*[,{]/.test('.aurora-blog-theme:hover,')).toBe(false) // 他名不误伤
+    // 门控块确实被切出来了（防止 indexOf 落空 → 空串 → 永远通过）
+    expect(body).toContain('.aurora-blog-theme:hover')
+    expect(body).toContain('.scroll-btn:hover')
+  })
+})
+
+describe('2.5-C 锚点自检：死类是活类的真前缀不得假绿', () => {
+  const anchor = (n: string) => ALL_PURGED.find((p) => p.name === `.${n}`)!.css
+
+  it('.kb-content 锚点命中自身，但不吃活类 .kb-content-inner（含其 BEM 变体）', () => {
+    const re = anchor('kb-content')
+    expect(re.test('.kb-content {')).toBe(true)
+    expect(re.test('.kb-content-inner {')).toBe(false)      // ← 写成 `(?![a-zA-Z0-9])` 这里会红
+    expect(re.test('.kb-content-inner__x {')).toBe(false)   // 活类的 BEM 变体同样不得误伤
+    expect(re.test('.kb-content__body {')).toBe(true)       // 死类自己的 BEM 后代仍要被网住
+  })
+
+  it('.kb-pop 锚点命中自身，但不吃活类 .kb-pop-mask', () => {
+    const re = anchor('kb-pop')
+    expect(re.test('.kb-pop {')).toBe(true)
+    expect(re.test('.kb-pop-mask {')).toBe(false)
+    expect(re.test('.kb-pop-title {')).toBe(true) // 同族死类仍被网住
+  })
+
+  it('.kb-search 锚点不吃活类 .kb-searchpanel-*（字母接续，两种锚点都可拒）', () => {
+    const re = anchor('kb-search')
+    expect(re.test('.kb-search {')).toBe(true)
+    expect(re.test('.kb-searchpanel-top {')).toBe(false)
+  })
+
+  it('前缀族语义：连字符接续被允许（网住同族），字母接续被拒绝（不误伤他名）', () => {
+    const re = anchor('kb-stat')
+    expect(re.test('.kb-stat {')).toBe(true)
+    // 连字符接续 → 本文件惯用尾部 `(?![a-zA-Z0-9])` **有意允许**：`.kb-stat-ico` 是同族兄弟，
+    // 同批一起删，网住它是对的（也是 `.kb-content` 必须做活扩排除的根本原因）。
+    expect(re.test('.kb-stat-ico {')).toBe(true)
+    // 字母接续 → 拒绝：`.kb-stats` 是另一个类，靠它自己的条目去管
+    expect(re.test('.kb-stats {')).toBe(false)
+    expect(anchor('kb-stats').test('.kb-stats {')).toBe(true)
+    expect(anchor('kb-stat-ico').test('.kb-stat-ico {')).toBe(true)
+  })
+
+  it('清单规模锚定（防"清单被删空 → 守卫假绿"）', () => {
+    expect(PURGED_25C_NAMES.length).toBe(66)
+    expect(PURGED_25C.length).toBe(66)
+    expect(ALL_PURGED.length).toBe(PURGED.length + 66)
   })
 })

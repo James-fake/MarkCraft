@@ -87,11 +87,13 @@ describe('指针门控 · 真实在用的位移/缩放型 hover 被覆盖', () =
     '.aurora-blog-theme:hover',
     '.aurora-blog-color:hover',
     '.aurora-welcome__tile:hover',
-    '.kb-kbcard:hover',
-    '.kb-note:hover',
     '.aurora-cip__swatch:hover',
     '.scroll-btn:hover',
   ]
+  // ⚠️ 2026-09-17 批 2.5-C：`.kb-kbcard:hover` / `.kb-note:hover` 两条已从本用例
+  //    与 tokens.css 门控块**一并移除** —— 这两个类是旧版「整窗知识库外壳」的卡片，
+  //    Aurora 已用 .aurora-kb-* 重建，非测试代码零承载者。门控块只约束真实界面，
+  //    留着等于给死规则发维护假象（且会让下面的 A 组断言自相矛盾）。
 
   it.each(cases)('%s 在门控块内被归零', (selector) => {
     expect(gatingBlock()).toContain(selector)
@@ -125,11 +127,19 @@ describe('指针门控 · 不收录死 CSS / 不用通配符', () => {
   })
 
   // 门槛只约束**真实界面**。但「退役」有两种落点，旧版把两者混在一个数组里断言，
-  // 掩盖了真相 —— 2026-09-17 批 1 死 CSS 清剿后拆成两组：
-  //   A) 已**整族删除**（批 1）→ 现在应当**全仓零定义**；
+  // 掩盖了真相 —— 2026-09-17 死 CSS 清剿后拆成两组：
+  //   A) 已**整族删除** → 现在应当**全仓零定义**；
   //   B) 仅**视觉退役**、类仍存活于代码（属后续批次范畴）→ 只能断言"不被门槛收录"。
-  const deletedInPurge = ['aurora-sticky', 'aurora-kanban__card', 'aurora-mindmap__node'] // A
-  const retiredButAlive = ['aurora-card--hoverable', 'kb-stat', 'kb-tpl-card'] // B
+  // 批 1（aurora-*）与批 2.5-C（kb-*）分列，便于定位是哪一批兑现的。
+  const deletedInPurge1 = ['aurora-sticky', 'aurora-kanban__card', 'aurora-mindmap__node'] // A
+  // 批 2.5-C：kb-ui.css 旧「整窗知识库外壳」整族清剿（kb-ui.css 116 类 → 46 类）。
+  // 这四个类同时是门控块里 .kb-kbcard:hover / .kb-note:hover 的来源；本批次把
+  // 「CSS 里的死规则」与「门控块里的死选择器」一并收口，故由 B 组迁入 A 组。
+  // 迁组动作本身是**升级**，不是放宽：B 组断言「有定义」（会随删除变红并提示迁移），
+  // A 组断言「零定义」，强度更高。
+  const deletedInPurge25C = ['kb-stat', 'kb-tpl-card', 'kb-kbcard', 'kb-note'] // A
+  const deletedInPurge = [...deletedInPurge1, ...deletedInPurge25C]
+  const retiredButAlive = ['aurora-card--hoverable'] // B
 
   it.each([...deletedInPurge, ...retiredButAlive])(
     '已退役选择器 %s 不收录（门槛只约束真实界面）',
@@ -138,7 +148,7 @@ describe('指针门控 · 不收录死 CSS / 不用通配符', () => {
     },
   )
 
-  it.each(deletedInPurge)('A 组 %s 已被批 1 清除 → 全仓 CSS 零定义', (sel) => {
+  it.each(deletedInPurge)('A 组 %s 已被清剿 → 全仓 CSS 零定义', (sel) => {
     // 由旧版「不在门控块里」的弱断言**升级**而来，与 deadCssPurge.test.ts 的 PURGED
     // 清单互为正反面：那边钉"整族不得回流"，这边钉"本黑名单条目确已兑现"。
     // （剥注释是关键 —— tokens.css 的门控块说明里就写着这几个名字。）
