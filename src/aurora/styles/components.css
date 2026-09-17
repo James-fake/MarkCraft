@@ -577,8 +577,6 @@
  * ========================================================== */
 .aurora-select,
 .aurora-settings__select,
-.aurora-blog-select select,
-.aurora-ctop__select select,
 .aurora-cip__select,
 .aurora-graph__grp-input,
 .save-as-select {
@@ -600,8 +598,6 @@
 
 .aurora-select:hover,
 .aurora-settings__select:hover,
-.aurora-blog-select select:hover,
-.aurora-ctop__select select:hover,
 .aurora-cip__select:hover,
 .aurora-graph__grp-input:hover,
 .save-as-select:hover {
@@ -611,8 +607,6 @@
 .aurora-select:focus,
 .aurora-select:focus-visible,
 .aurora-settings__select:focus,
-.aurora-blog-select select:focus,
-.aurora-ctop__select select:focus,
 .aurora-cip__select:focus,
 .aurora-graph__grp-input:focus,
 .save-as-select:focus {

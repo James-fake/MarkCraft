@@ -83,6 +83,41 @@ const PURGED: Purged[] = [
   { name: '.mc-lazy-*', css: /\.mc-lazy-/, code: /(?<![\w-])mc-lazy-/ },
   { name: '@keyframes mc-spin', css: /@keyframes\s+mc-spin\b/, code: /(?<![\w-])mc-spin\b/ },
   { name: '@keyframes mc-fade-in', css: /@keyframes\s+mc-fade-in\b/, code: /(?<![\w-])mc-fade-in\b/ },
+
+  // ── 批 1 死 CSS 清剿（2026-09-17，4 文件 → 净 −868 行）─────────────────
+  // 覆盖：canvas.css（白板结构化视图 8 族）/ editor.css（旧编辑器 DOM 2 族）/
+  //       blog.css（博客旧功能区 4 族）/ components.css（共享 <select> 组内的 blog 成员）。
+  // 判死依据：族内**全部**类名在非测试 TS/TSX 中零引用（token 边界匹配，非裸子串）。
+  // 集合差取证（HEAD 类名 764 → 668，真增 0）：96 个类名被删，**100% 落在下列族内**，
+  //   无任何族外误删；同时 15 族在「全 src 所有 .css（28 个，含 12 个扫描盲区文件）」零定义。
+  //
+  // ⚠️ 两处锚点形态特殊，改清单时勿照抄：
+  //   ① `aurora-blog-platform` 家族**同时**含 `…-platform` 与 `…-platforms` 两个类 →
+  //      尾部写成 `platforms?`，否则漏掉复数形态（复活时会静默漏检）。
+  //   ② `aurora-token-` 是**前缀族**（类名形如 `aurora-token-bold`）→ 尾部**不能**挂
+  //      `(?![a-zA-Z0-9])`，那会把族内所有成员一起拒掉（守卫假绿）；只用 `\.aurora-token-`。
+  //   ③ `.aurora-pen` 尾部拒绝字母数字 → 命中 `.aurora-pen-path`，但不误吃 `.aurora-pending`。
+  { name: '.aurora-kanban*', css: /\.aurora-kanban(?![a-zA-Z0-9])/, code: /(?<![\w-])aurora-kanban(?![a-zA-Z0-9])/ },
+  { name: '.aurora-timeline*', css: /\.aurora-timeline(?![a-zA-Z0-9])/, code: /(?<![\w-])aurora-timeline(?![a-zA-Z0-9])/ },
+  { name: '.aurora-sticky*', css: /\.aurora-sticky(?![a-zA-Z0-9])/, code: /(?<![\w-])aurora-sticky(?![a-zA-Z0-9])/ },
+  { name: '.aurora-mindmap*', css: /\.aurora-mindmap(?![a-zA-Z0-9])/, code: /(?<![\w-])aurora-mindmap(?![a-zA-Z0-9])/ },
+  { name: '.aurora-shape*', css: /\.aurora-shape(?![a-zA-Z0-9])/, code: /(?<![\w-])aurora-shape(?![a-zA-Z0-9])/ },
+  { name: '.aurora-connection*', css: /\.aurora-connection(?![a-zA-Z0-9])/, code: /(?<![\w-])aurora-connection(?![a-zA-Z0-9])/ },
+  { name: '.aurora-freewrap*', css: /\.aurora-freewrap(?![a-zA-Z0-9])/, code: /(?<![\w-])aurora-freewrap(?![a-zA-Z0-9])/ },
+  { name: '.aurora-pen*', css: /\.aurora-pen(?![a-zA-Z0-9])/, code: /(?<![\w-])aurora-pen(?![a-zA-Z0-9])/ },
+  { name: '.aurora-token-*', css: /\.aurora-token-/, code: /(?<![\w-])aurora-token-/ },
+  { name: '.aurora-goto-dialog*', css: /\.aurora-goto-dialog(?![a-zA-Z0-9])/, code: /(?<![\w-])aurora-goto-dialog(?![a-zA-Z0-9])/ },
+  { name: '.aurora-blog-code*', css: /\.aurora-blog-code(?![a-zA-Z0-9])/, code: /(?<![\w-])aurora-blog-code(?![a-zA-Z0-9])/ },
+  { name: '.aurora-blog-deploy*', css: /\.aurora-blog-deploy(?![a-zA-Z0-9])/, code: /(?<![\w-])aurora-blog-deploy(?![a-zA-Z0-9])/ },
+  { name: '.aurora-blog-platform(s)*', css: /\.aurora-blog-platforms?(?![a-zA-Z0-9])/, code: /(?<![\w-])aurora-blog-platforms?(?![a-zA-Z0-9])/ },
+  { name: '.aurora-blog-tree*', css: /\.aurora-blog-tree(?![a-zA-Z0-9])/, code: /(?<![\w-])aurora-blog-tree(?![a-zA-Z0-9])/ },
+  { name: '.aurora-blog-select*', css: /\.aurora-blog-select(?![a-zA-Z0-9])/, code: /(?<![\w-])aurora-blog-select(?![a-zA-Z0-9])/ },
+  // 连带删除的族专属关键帧（无类名，块解析抓不到，须单独钉）。
+  // ⚠️ 只钉**真删**的那一个：`@keyframes aurora-blog-shimmer` / `aurora-blog-spin` 一度被
+  //    `git diff -U0` 的行统计报成"已删"，实为**大段删除导致的 diff 重排假象**——两者仍在
+  //    blog.css，且分别被 `.aurora-blog-generate.is-loading::after` 与 `.spin` 引用（两者都活）。
+  //    故此处**不得**收录，否则守卫会自己变红。教训：判定"删没删"要用**集合差**，不能用 diff 行。
+  { name: '@keyframes aurora-timeline-pulse', css: /@keyframes\s+aurora-timeline-pulse\b/, code: /(?<![\w-])aurora-timeline-pulse\b/ },
 ]
 
 /** 在若干文件中找首个命中（用于给出可定位的报错文件名） */
@@ -180,5 +215,24 @@ describe('清单自身健康度', () => {
   it('styles 目录锚点正确（本文件所在目录即 aurora/styles）', () => {
     expect(existsSync(resolve(stylesDir, 'tokens.css'))).toBe(true)
     expect(existsSync(resolve(stylesDir, 'components.css'))).toBe(true)
+  })
+
+  it('批 1 族锚点边界有效（三处特殊形态，防"顺手简化"把守卫改瞎）', () => {
+    // ① `.aurora-pen` 尾部拒绝字母数字 → 命中 BEM 后代，却不误吃 `aurora-pending`
+    const pen = PURGED.find((p) => p.name === '.aurora-pen*')!.css
+    expect(pen.test('.aurora-pen-path {')).toBe(true)
+    expect(pen.test('.aurora-pen {')).toBe(true)
+    expect(pen.test('.aurora-pending {')).toBe(false) // ← 若把锚点简化成裸 `.aurora-pen`，这里会红
+
+    // ② 复数形态必须网住（`…-platforms` 与 `…-platform` 同族同删）
+    const plat = PURGED.find((p) => p.name === '.aurora-blog-platform(s)*')!.css
+    expect(plat.test('.aurora-blog-platform {')).toBe(true)
+    expect(plat.test('.aurora-blog-platforms {')).toBe(true)
+    expect(plat.test('.aurora-blog-platformx {')).toBe(false)
+
+    // ③ 前缀族尾部**不得**挂边界：挂了会连族内成员一起拒掉（守卫静默假绿）
+    const tok = PURGED.find((p) => p.name === '.aurora-token-*')!.css
+    expect(tok.test('.aurora-token-heading-1 {')).toBe(true)
+    expect(tok.test('.aurora-token {')).toBe(false) // 前缀锚需要那个连字符
   })
 })

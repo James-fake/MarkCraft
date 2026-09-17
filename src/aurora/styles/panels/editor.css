@@ -72,53 +72,6 @@
   color: var(--mc-accent);
 }
 
-/* 语法高亮 */
-.aurora-token-heading {
-  color: var(--mc-accent);
-  font-weight: 600;
-}
-
-.aurora-token-heading-1 { font-size: 1.6em; }
-.aurora-token-heading-2 { font-size: 1.4em; }
-.aurora-token-heading-3 { font-size: 1.2em; }
-
-.aurora-token-bold {
-  color: var(--mc-text-primary);
-  font-weight: 700;
-}
-
-.aurora-token-italic {
-  color: var(--mc-accent-text);
-  font-style: italic;
-}
-
-.aurora-token-code {
-  color: var(--mc-code);
-  background: var(--mc-code-soft);
-  padding: 1px 4px;
-  border-radius: var(--mc-radius-sm);
-}
-
-.aurora-token-link {
-  color: var(--mc-accent-text);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.aurora-token-list-marker {
-  color: var(--mc-accent);
-}
-
-.aurora-token-quote {
-  color: var(--mc-text-secondary);
-  font-style: italic;
-}
-
-.aurora-token-comment {
-  color: var(--mc-text-tertiary);
-  font-style: italic;
-}
-
 /* 代码块 */
 .aurora-editor__code-block {
   background: var(--mc-bg-elevated);
@@ -644,48 +597,6 @@
   color: var(--mc-text-tertiary);
   opacity: 0.6;
 }
-
-
-/* ============================================================
- * 跳转到行对话框（GoToLineDialog）
- * ========================================================== */
-.aurora-goto-dialog {
-  width: 300px;
-  padding: 20px;
-}
-.aurora-goto-dialog__title { font-size: var(--mc-font-md); font-weight: 600; color: var(--mc-text-primary); }
-.aurora-goto-dialog__desc { font-size: var(--mc-font-sm); color: var(--mc-text-tertiary); margin: 4px 0 16px; }
-.aurora-goto-dialog__input-wrap {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid var(--mc-border-medium);
-  border-radius: var(--mc-radius-md);
-  padding: 0 12px;
-  background: var(--mc-bg-elevated);
-}
-.aurora-goto-dialog__input-wrap--error { border-color: var(--mc-danger); }
-.aurora-goto-dialog__prefix { font-size: var(--mc-font-base); color: var(--mc-text-tertiary); font-family: var(--mc-font-mono); }
-.aurora-goto-dialog__input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  padding: 12px 0;
-  font-size: var(--mc-font-md);
-  color: var(--mc-text-primary);
-  font-family: var(--mc-font-mono);
-}
-.aurora-goto-dialog__hint { font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); margin-top: 8px; }
-.aurora-goto-dialog__error {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--mc-font-xs);
-  color: var(--mc-danger);
-  margin-top: 8px;
-}
-.aurora-goto-dialog__actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
 
 /* ══════════════════════════════════════════════════════════
    Aurora 文件管理器（左侧文件树）

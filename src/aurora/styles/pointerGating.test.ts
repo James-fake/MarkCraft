@@ -14,11 +14,32 @@
  *  3) **复合 transform 必须豁免**——switch 打开态拇指的 translateX(16px) 是状态位移，
  *     若被 `transform:none` 误伤会破坏开关定位（这是本方案最易踩的坑）。
  */
-import { readFileSync } from 'fs'
-import { resolve } from 'path'
+import { readFileSync, readdirSync } from 'fs'
+import { resolve, join } from 'path'
 import { describe, it, expect } from 'vitest'
 
 const tokens = readFileSync(resolve(__dirname, 'tokens.css'), 'utf-8')
+
+const srcRoot = resolve(__dirname, '../..')
+
+/** 递归收集 src/ 下全部 .css（与 deadCssPurge 守卫同源，避免各扫各的）。 */
+function walkCss(dir: string, acc: string[] = []): string[] {
+  for (const e of readdirSync(dir, { withFileTypes: true })) {
+    const abs = join(dir, e.name)
+    if (e.isDirectory()) {
+      if (e.name !== 'node_modules') walkCss(abs, acc)
+    } else if (e.name.endsWith('.css')) acc.push(abs)
+  }
+  return acc
+}
+
+/** 某选择器（无前导点的裸类名）在全仓 CSS 中是否仍有定义。剥注释：说明文字里的名字不算定义。 */
+function definedAnywhere(sel: string): boolean {
+  const re = new RegExp(`\\.${sel}(?![a-zA-Z0-9])`)
+  return walkCss(srcRoot).some((f) =>
+    re.test(readFileSync(f, 'utf-8').replace(/\/\*[\s\S]*?\*\//g, '')),
+  )
+}
 
 /** 取出指针门控块全文（从 @media 到与之配对的收尾大括号）。 */
 function gatingBlock(): string {
@@ -103,15 +124,30 @@ describe('指针门控 · 不收录死 CSS / 不用通配符', () => {
     expect(gatingBlock()).not.toMatch(/\*:hover/)
   })
 
-  const dead = [
-    'aurora-card--hoverable',
-    'aurora-sticky',
-    'aurora-kanban__card',
-    'aurora-mindmap__node',
-    'kb-stat',
-    'kb-tpl-card',
-  ]
-  it.each(dead)('已退役选择器 %s 不收录（门槛只约束真实界面）', (sel) => {
-    expect(gatingBlock()).not.toContain(sel)
+  // 门槛只约束**真实界面**。但「退役」有两种落点，旧版把两者混在一个数组里断言，
+  // 掩盖了真相 —— 2026-09-17 批 1 死 CSS 清剿后拆成两组：
+  //   A) 已**整族删除**（批 1）→ 现在应当**全仓零定义**；
+  //   B) 仅**视觉退役**、类仍存活于代码（属后续批次范畴）→ 只能断言"不被门槛收录"。
+  const deletedInPurge = ['aurora-sticky', 'aurora-kanban__card', 'aurora-mindmap__node'] // A
+  const retiredButAlive = ['aurora-card--hoverable', 'kb-stat', 'kb-tpl-card'] // B
+
+  it.each([...deletedInPurge, ...retiredButAlive])(
+    '已退役选择器 %s 不收录（门槛只约束真实界面）',
+    (sel) => {
+      expect(gatingBlock()).not.toContain(sel)
+    },
+  )
+
+  it.each(deletedInPurge)('A 组 %s 已被批 1 清除 → 全仓 CSS 零定义', (sel) => {
+    // 由旧版「不在门控块里」的弱断言**升级**而来，与 deadCssPurge.test.ts 的 PURGED
+    // 清单互为正反面：那边钉"整族不得回流"，这边钉"本黑名单条目确已兑现"。
+    // （剥注释是关键 —— tokens.css 的门控块说明里就写着这几个名字。）
+    expect(definedAnywhere(sel)).toBe(false)
+  })
+
+  it.each(retiredButAlive)('B 组 %s 仍存活于代码 → 只是未归门槛管（诚实绊线）', (sel) => {
+    // 反向绊线：B 组的前提是"它确实还有定义，只是暂不归门槛管"。
+    // 一旦有人真删了它，本行会变红 → 提示把条目**迁到 A 组**，而不是让名单静默失真。
+    expect(definedAnywhere(sel)).toBe(true)
   })
 })

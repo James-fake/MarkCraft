@@ -76,6 +76,13 @@ bash 每条内联 `export PATH="<三目录>:/c/Users/HJN/.workbuddy/binaries/nod
   `git -c core.quotepath=false status --porcelain`（shell `[ -e ]` 因中文名转八进制误判）。**频繁提交是唯一防线**。
 - **删除劫持**：`rm`/`Remove-Item` 转回收站 → robocopy 镜像法（`/MIR`、相对路径、**别拼 `"$PROJ\\$d"`**），
   镜像后自检 `find <目标> -type f | wc -l` 为 0。`.workbuddy` 仅 `memory/`、`artifacts/` 入库。
+- **判「删没删」用集合差，不用 diff 行数**：大段删除会让 `git diff -U0` 把**未删除**的相邻行报成 `-`
+  （实测 `@keyframes aurora-blog-shimmer/-spin` 被报「已删」实则仍在、且被活规则引用）。
+  正解 `git show HEAD:<f>` 与工作区各抽类名 → `comm`。
+- 🚨 **回写文件必须保真换行符**：本仓混用（`blog.css`/`components.css` 是 **CRLF**，`canvas/editor.css` 是 LF，无 `.gitattributes`、
+  `core.autocrlf=false`）。脚本用 `split('\n')`+`join('\n')` 回写 CRLF 文件 → **整文件 diff**（`1/120` 变 `1157/1276`）。
+  正解：探 `raw.includes('\r\n')` → 拆 `/\r?\n/` → 回写原 EOL。核对也**不能比 CR 计数**（删行后 CR 自然变少 → 假警报），
+  要按「CR==LF ⇒ CRLF」判**风格**再逐文件比 HEAD。
 
 ## CDP 验证（细节在 skill `cdp-ui-interaction-verify`）
 - **Edge 必须与脚本同一次「前台」bash 启动**；须新 profile。布局判定靠**几何**（CSS px）。
@@ -92,6 +99,15 @@ bash 每条内联 `export PATH="<三目录>:/c/Users/HJN/.workbuddy/binaries/nod
   用户截图坐标**不能直接当 CSS px**：先求截图↔真机偏移量。
 - 手势/交互不能靠注入 HTML 验证（需真实 React 绑定）→ 真机拖动或契约测试。合成拖拽要**慢**（末段 <0.3px/ms）才走落点吸附。
 - 探针留可复用开关（`ONLY=<面板名>`），别写死全量。
+- **新探针必须跑一次「HEAD 阳性对照」**：把目标源文件临时还原到 HEAD（**先 `cp` 备份**）再跑同一条探针，
+  若目标检查项**全部正确报「仍在」**，才证明正式跑的「零命中」不是探针自身失效导致的**假绿**。
+  还原后复核：内容 md5（`tr -d '\r'` 归一后）一致 + `git diff --numstat` 回到原值。（批 1 清剿实测 16/16 正确报「仍残留」。）
+- 「零错误」要**逐视图归属**：全程累计会把「某视图报错」掩盖成看不出落点。做法：每次 navigate 前后取 `errors.length` 切片。
+  ⚠️ 首次/冷 profile 与二次/热 profile 的错误集**不同**（首启引导、`unload` Permissions-Policy 等）；
+  判「是否本次引入」靠 A/B，不靠直觉。
+- ⚠️ **同 profile 二次启动会失败**（上一实例未退净 → 新实例挂到旧会话，`CDP not ready`）。
+  解：`cp -r <profile> <新名>` 后用副本启动（保留 localStorage）。另：`&` 之后 shell **会丢 PATH**（`grep/sleep: command not found`）→
+  后台启动后**重新 export PATH**，或把输出重定向到文件、另起一次调用读。
 
 ## 动效语言（09-11 定稿，四项全 ✅；细节 `components.css` / `tokens.css §11`）
 分层 ⚡100–160／🚶150–250／🛋320–500ms。**外壳（MenuBar/Sidebar/StatusBar）永不参与视图切换动画**。
@@ -145,16 +161,44 @@ reduced-motion = 「更少更柔非归零」（时长减半；入场 `mc-rm-fade
   `setBlogEntryFileId` = 单篇语义；右侧宽度 `fit-content`。
 
 ## 当前状态
-- vitest **1275 passed / 0 failed / 2 skipped**（112 文件全绿），tsc 干净。**已无预存失败**
+- vitest **1314 passed / 0 failed / 2 skipped**（112 文件全绿），tsc 干净。**已无预存失败**
   （09-17 清剿：三项全是「测试契约跟不上实现演进」，非产品 Bug —— `commandWiring` 窗口命令 `visible:false`
   属菜单专属；`KbPanel.smoke` 的 `getByText('编辑')` 撞上菜单栏同名顶级菜单 → 收敛到 `.aurora-kb-subbar-actions`；
   `blogCssRefs` 因 `KeyframeEditor` 换 `AuroraSelect` 滚轮→选项不再常驻 DOM，改为展开后再验）。
 - 二级栏已三面板同源（kb / blog / ctop = 52px，真机几何取证通过），见上「关键坑」。
 - tooltip 平行遗留**已清剿**（`.aurora-tooltip` + `.mc-tooltip` + `Tooltip.tsx` + `.mc-lazy-*`，
   净 −273 行；守卫 `styles/deadCssPurge.test.ts` 28 例；真机取证零回归）。唯一悬停提示机制 = 原生 `title=`。
-- 待决：**死代码存量 191 条 A 档高危候选**（白板迁 canvas-v2 后旧自绘 CSS 整族废墟：kanban/sticky/timeline/
-  mindmap/shape/pen-path/connection/freewrap + editor 老内核 dash/split/token + `<list-item>` + goto-dialog …）
-  —— 需单独一轮逐族复核；`components/ui` 的 `Input.tsx` / `EmptyState.tsx` 零消费者（但样式经桶间接下发）；
-  `--mc-dur-lazy` 处置；`.aurora-filetree__topbar`(36) / `.aurora-outline__header`(36) 侧栏小标题栏是否统一；>30 天旧日志蒸馏。
-- ✅ 已推送至 `origin/master` 的历史：`187be15` / `1e08d65` / `988c406` / `30fc95f`。
-  死 CSS 清剿（本项）**已提交待推送**；Gitee 令牌不入库、不落盘（用户曾贴出令牌，已建议其轮换）。
+- 死代码存量方案见 `artifacts/DESIGNBRIEF-DEADCSS-01.md §6`（量化工具 `.workbuddy/deadcss-impact.mjs`）。
+  A 档 **183 类 / 1359 行** = 已扫 CSS(12499 行) 的 **10.9%**。
+  **⚠️ 「5 处父活子死混合块」是错的（已推翻）**：源于 `includes` 子串假阳性（`aurora-kanban__card` 含 `aurora-kanban`）
+  → 判死**一律走 token 边界** `/(?<![\w-])((?:aurora|mc)-[a-zA-Z0-9_-]+)/g`，重判后**混合块 = 0**。
+- ✅ **批 1 死 CSS 已清剿**（净 **−868 行**；守卫 87 例全绿；全量 1314 passed；真机四视图零回归）。
+  4 文件：`canvas.css` −653（白板 8 族）／`editor.css` −89（`aurora-token-*`+`aurora-goto-dialog*`）／
+  `blog.css` −119（`blog-code/deploy/platform(s)/tree/select`）／`components.css` −7（共享 `<select>` 组内 blog 死成员）。
+  **真实删除 = 96 个类名**（HEAD 764 → 668，集合差取证），**100% 落在批 1 族内、族外误删 0**。
+  守卫同批交付：`deadCssPurge.test.ts` PURGED 增 15 族 + 1 真删关键帧（`@keyframes aurora-timeline-pulse`）；
+  `pointerGating.test.ts` 的 `dead` 数组**拆 A/B 组** —— A 组（批 1 已整族删）升级为「全仓零定义」，
+  B 组（`aurora-card--hoverable`／`kb-stat`／`kb-tpl-card` 仍存活于代码）保留弱断言 + 加「诚实绊线」（真删则报红提示迁 A 组）。
+  ⚠️ 锚点三处特殊形态：`aurora-blog-platform**s?**`（复数同族）／`aurora-token-` 是**前缀族**（尾部不能挂边界，否则守卫假绿）／
+  `.aurora-pen` 尾部拒字母数字（命中 `-path`、不误吃 `pending`）。
+- ⚠️ **混合选择器组摘成员时，补 `{` 前必须先剥尾逗号**：否则产出 `.x, {`（非法）→ 浏览器**整条丢弃**，
+  活类样式被**静默误杀**（实测 `blog.css` 的 `.aurora-blog-input, .aurora-blog-textarea, {` 让 textarea 基样式失效）。
+  删除后必扫：`,\s*\{`／跨行 `,\n{`／独立 `,` 行／括号配平。**判据只能靠"合并规则带声明存活"**（单看类名会漏，
+  因为兄弟规则 `::placeholder`/`:focus` 仍留着同一个类名）。
+- **不删清单**：B 档 19 条（模板拼接/确认活）、C 档 10 条（仅测试引用）。
+- ⚠️ **扫描器有范围盲区**：只覆盖 `aurora/styles/**` + `components/ui/*.css`，漏了 `src/` 下 **12 个 CSS 文件 / 5310 行**
+  （`styles/tiptap.css`1294 / `styles/mermaid.css`1232 / `knowledgeBase/kb-ui.css`632 · `KbPanel.tsx:29` /
+  `styles/markdown.css`465 / `editor/versionHistory.css`330 / `canvas-v2/components/canvas.css`294（前缀 `.cv`/`.tl`）/
+  `styles/{desktop-chrome,components,syntax,base,scrollbar,fonts}.css` / `index.css`）——**全部有真实 import**。
+  **文件活 ≠ 里面每个类都活**：`kb-ui.css` 的 `.kb-stat*` 正是 `tokens.css §12` 判为「已退役」的那批。
+- **比白板废墟更值的一处**：`aurora-editor` 23 条死类 = **旧自绘编辑器整套 DOM**（`__line*/__source/__wysiwyg/
+  __preview*/__split*/__cursor/__keymap/--zen`；现为 CodeMirror6+TipTap）→ 而 `editor.css`(2717) 是全仓最大样式文件。
+- ✅ **侧栏「小标题栏」结论 = 不统一**（只给结论、未改）。`.aurora-filetree__topbar` / `.aurora-outline__header` 是
+  **面板级**内部标题行（36px + `0 8px 0 12px`，两者**已自洽**），与**视图级**二级栏 52px（`--mc-subbar-h`）**不同层级**；
+  提到 52 会白丢侧栏 16px 纵向空间，且侧栏自有密度尺度（`--mc-sidebar-item-h` 32/40）。
+  P2 可选（本轮不做）：`height:36px` 的面板标题行在 editor(2)/graph(2)/settings(1) 重复 ~5 处 → 可抽 `--mc-panel-head-h`（属**收敛**非统一）。
+- 其他待决：**批 2**（补扫 12 文件 / 5310 行盲区，**只扫不删**）；**批 3**（活族死分支 −400~500 行，**需先建 L3 真机 class 挂载采集器**）；
+  `components/ui` 的 `Input.tsx` / `EmptyState.tsx` 零消费者（但样式经桶间接下发）；`--mc-dur-lazy` 处置；>30 天旧日志蒸馏。
+- ✅ 已推送至 `origin/master`：`187be15` / `1e08d65` / `988c406` / `30fc95f` / `3b3e9b2`（tooltip/lazy 清剿）/ `fb219cc`（方案文档）
+  / 本轮（批 1 死 CSS 清剿 + 守卫同批 + 方案文档 §6.9 执行记录）。
+  Gitee 令牌不入库、不落盘（用户曾贴出令牌，已建议其轮换）。

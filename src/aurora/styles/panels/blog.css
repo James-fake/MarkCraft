@@ -411,8 +411,7 @@
 }
 
 .aurora-blog-input,
-.aurora-blog-textarea,
-.aurora-blog-code__area {
+.aurora-blog-textarea {
   box-sizing: border-box;
   width: 100%;
   background-color: var(--mc-bg-content);
@@ -439,25 +438,6 @@
   line-height: 1.5;
 }
 
-.aurora-blog-select {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-.aurora-blog-select select {
-  box-sizing: border-box;
-  width: 100%;
-  appearance: none;
-  -webkit-appearance: none;
-  padding-right: 28px;
-  cursor: pointer;
-}
-.aurora-blog-select svg {
-  position: absolute;
-  right: 9px;
-  color: var(--mc-text-tertiary);
-  pointer-events: none;
-}
 
 /* 开关 */
 .aurora-blog-toggle {
@@ -962,37 +942,6 @@
   border-radius: var(--mc-radius-sm);
   padding: 7px 12px;
 }
-.aurora-blog-code {
-  border: 1px solid var(--mc-border-medium);
-  border-radius: var(--mc-radius-sm);
-  overflow: hidden;
-  background-color: var(--mc-bg-window);
-}
-.aurora-blog-code__bar {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  height: 30px;
-  padding: 0 8px;
-  border-bottom: 1px solid var(--mc-border-subtle);
-  background-color: var(--mc-bg-elevated);
-}
-.aurora-blog-code__hint { margin-left: auto; font-size: var(--mc-font-xs); color: var(--mc-success-text); }
-.aurora-blog-code__area {
-  box-sizing: border-box;
-  width: 100%;
-  height: 150px;
-  border: none;
-  border-radius: 0;
-  background-color: var(--mc-bg-window);
-  color: var(--mc-text-primary);
-  font-family: var(--mc-font-mono);
-  font-size: var(--mc-font-sm);
-  line-height: 1.5;
-  padding: 12px;
-  resize: vertical;
-}
-.aurora-blog-code__area:focus { outline: none; box-shadow: none; }
 .aurora-blog-empty {
   font-size: var(--mc-font-sm);
   color: var(--mc-text-tertiary);
@@ -1089,74 +1038,6 @@
 .aurora-blog-dl:hover { border-color: var(--mc-accent); background-color: var(--mc-accent-soft); }
 .aurora-blog-dl em { font-style: normal; font-size: var(--mc-font-xs); color: var(--mc-text-tertiary); white-space: nowrap; }
 
-.aurora-blog-platforms {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-.aurora-blog-platform {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  height: 32px;
-  padding: 0 12px;
-  border: 1px solid var(--mc-border-medium);
-  background-color: var(--mc-bg-content);
-  border-radius: var(--mc-radius-sm);
-  color: var(--mc-text-secondary);
-  font-family: inherit;
-  font-size: var(--mc-font-sm);
-  cursor: pointer;
-  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-spring);
-}
-.aurora-blog-platform:hover { color: var(--mc-text-primary); border-color: var(--mc-border-strong); }
-
-.aurora-blog-deploy {
-  width: 100%;
-  height: 32px;
-  border: 1px solid var(--mc-accent);
-  background-color: var(--mc-accent-soft);
-  color: var(--mc-accent-text);
-  border-radius: var(--mc-radius-md);
-  font-family: inherit;
-  font-size: var(--mc-font-base);
-  font-weight: 500;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out), box-shadow var(--mc-dur-fast) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-spring);
-}
-.aurora-blog-deploy:hover { background-color: var(--mc-accent); color: var(--mc-text-inverse); }
-
-.aurora-blog-tree {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px;
-  border: 1px solid var(--mc-border-subtle);
-  border-radius: var(--mc-radius-sm);
-  background-color: var(--mc-bg-window);
-}
-.aurora-blog-tree__row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--mc-font-sm);
-  font-family: var(--mc-font-mono);
-  color: var(--mc-text-secondary);
-}
-.aurora-blog-tree__row .badge-html,
-.aurora-blog-tree__row .badge-css,
-.aurora-blog-tree__row .badge-js,
-.aurora-blog-tree__row .badge-json {
-  font-size: var(--mc-font-xs);
-  font-weight: 700;
-  padding: 1px 5px;
-  border-radius: var(--mc-radius-sm);
-  font-family: var(--mc-font-sans);
-}
 .badge-html { background: var(--mc-danger-soft); color: var(--mc-danger-text); }
 .badge-css { background: var(--mc-info-soft); color: var(--mc-info-text); }
 .badge-js { background: var(--mc-warning-soft); color: var(--mc-warning-text); }
