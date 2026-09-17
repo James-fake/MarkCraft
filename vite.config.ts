@@ -5,8 +5,11 @@ import { existsSync, statSync, createReadStream, mkdirSync, readdirSync, copyFil
 import { join, extname, dirname, basename, resolve } from 'path'
 
 // Batch B 解耦整合：路径别名，与 tsconfig.json paths 保持一致（消除 ../../../ 深相对引用）
+// ⚠️ Phase 0（2026-09-17）新增 @core → src/core（L1 领域基础能力层）。
+// 别名改动必须与 tsconfig.json paths 同步，否则会出现「dev 正常但 tsc 报错」或反之。
 const SRC = resolve(process.cwd(), 'src')
 const alias = {
+  '@core': join(SRC, 'core'),
   '@features': join(SRC, 'features'),
   '@stores': join(SRC, 'stores'),
   '@aurora': join(SRC, 'aurora'),

@@ -15,9 +15,13 @@
     "jsx": "react-jsx",
 
     /* Path aliases — Batch B 解耦整合：用 @alias 替换 ../../../ 深相对引用，移动文件不再爆 import。
-       注意：故意不定义 @types（与 npm @types/* 作用域冲突），src/types 走 @src/types。 */
+       注意：故意不定义 @types（与 npm @types/* 作用域冲突），src/types 走 @src/types。
+       @core（Phase 0 新增，2026-09-17）→ src/core：L1 领域基础能力层（无 UI / 无状态），
+       承载从 features / stores 下沉的跨模块共享能力，见《MarkCraft_解耦实施方案_2026-09-17.md》。 */
     "baseUrl": ".",
     "paths": {
+      "@core": ["src/core"],
+      "@core/*": ["src/core/*"],
       "@features": ["src/features"],
       "@features/*": ["src/features/*"],
       "@stores": ["src/stores"],
