@@ -23,15 +23,30 @@
 const path = require('path');
 
 /**
+ * 判断绝对路径 `norm` 是否落在仓库根相对路径 `d`（目录或文件）之下。
+ * 抽成函数是因为 forbidden 与 exempt 两侧必须用**同一套**路径判定语义 ——
+ * 若两侧不一致，会出现「豁免判不中、禁止判得中」的不对称误报。
+ */
+function inPath(norm, d) {
+  return norm === d || norm.startsWith(d + '/') || norm.includes('/' + d + '/') || norm.endsWith('/' + d);
+}
+
+/**
  * @param {object} opts
  * @param {string} opts.description 规则描述（写入 ESLint meta.docs.description）
  * @param {string} opts.message     报错文案模板；`{{name}}` 会被替换为被禁的来源字符串
  * @param {Array<{alias: RegExp, dir: string}>} opts.forbidden 禁止目标清单
  *        alias — 别名/包名形态，如 /^@features(\/|$)/
  *        dir   — 相对仓库根的 POSIX 目录，如 'src/features'（用于相对路径精确判定）
+ * @param {Array<string>} [opts.exempt] 整体豁免清单（目录或单个文件，相对仓库根 POSIX 路径）
+ *        语义：**当前被检文件**落在其中则不参与本规则判定。
+ *        动机 —— 同层内部互引是正常的（如 aurora/app/A.tsx 引 ./B），
+ *        而 ESLint `overrides.files` 只支持正向 glob 列举；
+ *        若靠列举子目录来排除「自身目录」，则每新增一个目录就再现一次守卫盲区。
+ *        故作用域用全量 glob（如 'src/aurora/**'）+ 此处显式豁免，避免漏登记。
  * @returns {object} ESLint rule
  */
-function createForbiddenImportRule({ description, message, forbidden }) {
+function createForbiddenImportRule({ description, message, forbidden, exempt = [] }) {
   return {
     meta: {
       type: 'problem',
@@ -42,6 +57,10 @@ function createForbiddenImportRule({ description, message, forbidden }) {
 
     create(context) {
       const filename = context.getFilename();
+      const fileNorm = filename.split(path.sep).join('/');
+
+      // 整体豁免：不注册任何 handler（省掉逐节点的无谓判定）
+      if (exempt.some((d) => inPath(fileNorm, d))) return {};
 
       function isForbidden(specifier) {
         if (typeof specifier !== 'string' || specifier.length === 0) return false;
@@ -55,7 +74,7 @@ function createForbiddenImportRule({ description, message, forbidden }) {
             try {
               const abs = path.resolve(path.dirname(filename), specifier);
               const norm = abs.split(path.sep).join('/');
-              if (norm.includes('/' + dir + '/') || norm.endsWith('/' + dir)) return true;
+              if (inPath(norm, dir)) return true;
             } catch {
               // 解析失败不判定为违规 —— 宁可漏报也不误报（守卫误报会卡住正常开发）
             }

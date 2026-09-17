@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react'
-import { RealProviders } from '../../app/RealProviders'
+import { RealProviders } from '../../providers/RealProviders'
 import { GraphPanel } from './GraphPanel'
 import { readGraphSession } from './graphSession'
-import { clearEditorReturn, getEditorReturn } from '../../app/navReturn'
+import { clearEditorReturn, getEditorReturn } from '../../navigation/navReturn'
 import { useFileManager } from '@stores/FileStore'
 import { findNode } from '@core/files/fileTree'
 

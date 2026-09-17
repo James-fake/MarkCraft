@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { SidebarItem, SidebarItemProps } from './SidebarItem'
 import type { IconName } from '../../types'
 import { useUserProfile, userDisplayName, userInitial } from '@stores/UserProfileStore'
-import { useUserAccountNav } from '../../app/UserAccountNav'
+import { useUserAccountNav } from './UserAccountNav'
 
 /**
  * 侧栏导航分组

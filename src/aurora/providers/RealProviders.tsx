@@ -1,3 +1,12 @@
+// aurora/providers —— 真实运行时 Provider 地基（被装配层与测试夹具共同复用）。
+//
+// Phase 3（2026-09-18）自 aurora/app/RealProviders.tsx **原样搬迁**（内容零改动；
+// 本文件对 stores/components/ui 的相对深度与旧位置相同，内部 import 无需调整）：
+// 它被 AuroraShell（真实运行）与 12 个 .smoke.test.tsx（夹具）共用 ——
+// 留在 app/ 会让「测试夹具寄居装配层」长期成立，并逼守卫为测试留例外。
+// 移出后 panels → app / components → app 的边（含测试边）真正归零。
+//
+// 见《MarkCraft_解耦实施方案_2026-09-17.md》Phase 3.3。
 import type { ReactNode } from 'react'
 import { LanguageProvider, useLanguage } from '../../stores/LanguageStore'
 import { ModalProvider } from '../../stores/ModalStore'

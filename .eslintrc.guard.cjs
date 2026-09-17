@@ -69,5 +69,19 @@ module.exports = {
         'local/no-service-to-store': 'error',
       },
     },
+    // ── Phase 3（2026-09-18）新增：aurora 内部反向依赖守卫 ──
+    {
+      // aurora 子模块禁止反向引用装配层 src/aurora/app —— **落地即 error**（存量已清零，无需 warn 过渡）
+      // 依据：navReturn → aurora/navigation、UserAccountNav → aurora/components/shell、
+      // RealProviders → aurora/providers 三处归位后，panels → app 与 components → app
+      // 的边（含 12 处测试边）全部归零，环 #7 #8 消失（5 → 3 环）。
+      // 单向语义：app → panels/components 是装配层的正当职责，不拦；只拦反向。
+      // 作用域用全量 src/aurora/** 而**不列举子目录** —— 列举会让「新增子模块」成为新盲区；
+      // 自身豁免（app 目录 + 入口 aurora-main.tsx）写在规则内 exempt，见 no-reverse-to-aurora-app.cjs。
+      files: ['src/aurora/**/*.{ts,tsx}'],
+      rules: {
+        'local/no-reverse-to-aurora-app': 'error',
+      },
+    },
   ],
 }

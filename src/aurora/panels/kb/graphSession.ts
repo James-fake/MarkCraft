@@ -9,7 +9,7 @@
  * 语义范围严格限定为「空间现场」——节点坐标 + 视口变换 + 布局/模式/中心节点 + 选中节点。
  * 搜索词、标签筛选、显示开关等属"查询态"，不入此列：返回时按用户当前条件重算更符合直觉。
  *
- * 采用模块级单例（与 app/navReturn.ts、BlogPanel.setBlogEntryFileId 同源模式），
+ * 采用模块级单例（与 navigation/navReturn.ts、BlogPanel.setBlogEntryFileId 同源模式），
  * 避免为传递返回上下文而改动 nav() 签名；刷新页面即清空（与 #view= 不带参数的既有约定一致）。
  */
 import type { GraphMode, Layout } from './GraphPanel'

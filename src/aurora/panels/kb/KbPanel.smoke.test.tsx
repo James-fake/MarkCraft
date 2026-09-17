@@ -25,7 +25,7 @@ vi.mock('../../../stores/kbStore', () => ({
   deleteKb: vi.fn(async () => {}),
 }))
 
-import { RealProviders } from '../../app/RealProviders'
+import { RealProviders } from '../../providers/RealProviders'
 import { KbPanel } from './KbPanel'
 import { FileDependencyPanel } from '@features/knowledgeBase/components/FileDependencyPanel'
 

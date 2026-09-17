@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
-import { ToastProvider, useToast } from './ToastProvider'
+import { ToastProvider, useToast } from '../../components/ui/ToastProvider'
 import { useAuroraShell, shouldAutoOpenWelcome } from './useAuroraShell'
-import { RealProviders } from './RealProviders'
+import { RealProviders } from '../providers/RealProviders'
 import { CommandPalette, type CommandItem, type FileSearchItem } from '../components/command-palette/CommandPalette'
 import { CommandPaletteContext } from '../components/command-palette/CommandPaletteContext'
 import { commandRegistry } from '../../features/commandPalette/commandRegistry'
@@ -36,7 +36,7 @@ import { GraphPanel } from '../panels/kb/GraphPanel'
 import { BlogPanel } from '../panels/blog/BlogPanel'
 import { DiaryPanel } from '../panels/diary/DiaryPanel'
 import { AudienceOnboarding } from './AudienceOnboarding'
-import { UserAccountNavContext } from './UserAccountNav'
+import { UserAccountNavContext } from '../components/shell/UserAccountNav'
 import { buildAuroraActions } from './auroraActions'
 
 /**

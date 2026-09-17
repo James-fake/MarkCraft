@@ -11,7 +11,7 @@ beforeAll(() => {
   }
 })
 
-import { RealProviders } from '../../app/RealProviders'
+import { RealProviders } from '../../providers/RealProviders'
 import { CanvasSidebarPanel, CANVAS_FILE_DRAG_MIME, CANVAS_FILE_DRAG_NAME_MIME } from './CanvasSidebarPanel'
 
 // 引擎未就绪（engine=null）时侧栏只读展示，文件 Tab 仍可独立验证（数据来自 useFileManager）

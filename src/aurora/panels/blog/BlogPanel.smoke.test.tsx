@@ -23,7 +23,7 @@ beforeAll(() => {
   }
 })
 
-import { RealProviders } from '../../app/RealProviders'
+import { RealProviders } from '../../providers/RealProviders'
 import { BlogPanel } from './BlogPanel'
 import { FEATURED_THEMES } from '@features/blog/hooks/useBlogGenerator'
 

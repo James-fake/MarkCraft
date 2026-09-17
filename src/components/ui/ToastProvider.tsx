@@ -81,7 +81,8 @@ function KindIcon({ kind }: { kind: ToastKind }) {
  * 全局 Toast 提供器 —— 已与 Aurora 版合并为单一实现（审计 R2 双体系收敛）。
  * 样式单源 = src/aurora/styles/toast.css 的 `.aurora-toast*`（token 化、语义色 currentColor），
  * 支持 info/success/error/warning 四类、多条堆叠、点击关闭、自动移除。
- * aurora/app/ToastProvider 现 re-export 本模块 —— 全站同一 Context、同一视觉。
+ * Phase 3（2026-09-18）已删除 aurora/app/ToastProvider re-export 壳 ——
+ * 原壳是同一 Context 的第二导入源（维护隐患）；AuroraShell 现直引本模块，全站仍同一 Context、同一视觉。
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([])

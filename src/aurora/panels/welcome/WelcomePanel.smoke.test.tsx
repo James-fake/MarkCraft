@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react'
-import { RealProviders } from '../../app/RealProviders'
+import { RealProviders } from '../../providers/RealProviders'
 import { resolveAuroraNav } from '../aurora-nav'
 import { WelcomePanel } from './WelcomePanel'
 

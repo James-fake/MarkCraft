@@ -13,7 +13,7 @@ vi.mock('../../../stores/kbStore', () => ({
   })),
 }))
 
-import { RealProviders } from '../../app/RealProviders'
+import { RealProviders } from '../../providers/RealProviders'
 import { KbManagePanel } from './KbManagePanel'
 
 function renderPanel() {

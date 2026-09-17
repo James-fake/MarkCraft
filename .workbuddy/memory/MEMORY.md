@@ -58,7 +58,7 @@ dev 端口 **5174**：`node node_modules/vite/bin/vite.js --port 5174 --host`。
 - ⚠️ **token 断言须含声明边界**：`toContain('--kb-text')` 被 `--kb-text-main:` 满足 → 用 `toContain('--kb-text:')`。
 - **仅测试引用的类 = 测试制造的维护假象** → **须先升级断言再删**。
 - 命令：`node node_modules/vitest/vitest.mjs run [pattern]`；`node node_modules/typescript/bin/tsc --noEmit -p tsconfig.json`。
-- **验证链路五条（必须全跑，缺一条即可能放过只在特定链路暴露的失败）**：① `tsc --noEmit` ② `vitest run`（走 vitest 别名）③ `eslint --no-eslintrc -c .eslintrc.guard.cjs "src/**/*.{ts,tsx}"` ④ `node scripts/_depgraph.cjs` ⑤ **`vite build`**（走 vite 别名，与 ② 不同链路）。
+- **验证链路六条（必须全跑，缺一条即可能放过只在特定链路暴露的失败）**：① `tsc --noEmit` ② `vitest run`（走 vitest 别名）③ `eslint --no-eslintrc -c .eslintrc.guard.cjs "src/**/*.{ts,tsx}"` ④ `node scripts/_depgraph.cjs` ⑤ **`vite build`**（走 vite 别名，与 ② 不同链路）⑥ **真机 CDP**（`artifacts/cdp-verify-*.mjs`，**须与 Edge 同一次前台 bash**）—— 凡「迁移物是导航/手势/焦点上下文」或「行为依赖真实 `nav()` 跳转」必跑（jsdom 覆盖不到这一层）。
   > ③ 空输出/零违规**须先证明「实扫文件数」非 0**；守卫升 error 后**须注入探针**验证 `exit=1` 且报出预期规则名 → 字节级还原 → 全量复跑 `exit=0`（证明无残留）。只测绿灯验不出守卫死活。
 
 ## git / 沙箱
@@ -84,11 +84,11 @@ PortableGit `/c/Users/HJN/.workbuddy/binaries/PortableGit/versions/1.2.0/{cmd,us
 **病灶一句**：**跨模块共享能力被就近寄居在上层模块 → 下层反向引用 → 必然成环。**基线 **8 个模块级环**。
 **三处寄居**：① 业务工具寄居 `features/*` → 环 #3#4#5；② 持久化基建寄居 `stores/storage/` → 环 #2；③ 导航共享态寄居 `aurora/app/navReturn` → 环 #7#8。
 **方向判定**：`stores→services` 4 处是**领域操作函数** → 自然保留；`hooks→stores` 保留，`stores→hooks` 1 处**需反转**。
-**进度**：✅ **P0** 地基（`864d492`：core 骨架〔**刻意不建根 barrel**〕+ `@core` 别名 4 处同改 + 3 守卫 warn + 修预存缺陷「守卫配置缺 `react-hooks` 插件致 7 处假 error 卡死 pre-commit」）→ ✅ **P1** 环 #2 断（`422116c`：`stores/storage/*`→`@core/storage/*`，实测 8 处引用〔方案只识别 3 处〕，目录**整删不做 re-export 壳**；`core` 出度 = **0**）→ ✅ **P2** 环 #4 #5 + #3 直接形态断（**7→5**：6 文件下沉 `core/{files/fileTree, files/recentFiles, data/defaultDocs/{zh,en}, tags/tagExtractor, constants/plantuml}`，**33 处 specifier / 25 文件**〔方案估「约 15 处」〕；**`stores`/`services` 对 `features` 依赖 = 0**〔最硬信号〕；两守卫升 error 并探针实测阻断；`core/*` 占位 `index.ts` 全删）→ ⏳ **P3** 迁 `navReturn` 断 #7#8｜**P4** `features/shared` 拆三类（靶心 = 断**反向边 `shared→stores`**，2 处）｜**P5** toolbar **并入 `features/editor/toolbar/`** + 反转 `stores→hooks` 断 #6#1｜**P6** 后置。
-**基线（P2 后）**：tsc 0｜vitest **113 文件 / 1505 passed · 2 skipped · 0 failed**｜守卫 **0 违规**（672 文件实扫）｜`vite build` 成功（3525 modules）｜**5 环**。
-  残留环：`aurora/app>panels>app`、`aurora/app>panels>components>app`、`features/editor>toolbar>editor`、`stores>hooks>stores`、**`stores>hooks>features/shared>stores`（P2 新暴露，方案未预见）**。
+**进度**（细节见方案文档）：✅ **P0** 地基（core 骨架〔**刻意不建根 barrel**〕+ `@core` 别名 **4 处同改** + 3 守卫 warn）→ ✅ **P1** 断 #2（`stores/storage/*`→`@core/storage/*`，目录**整删不做 re-export 壳**）→ ✅ **P2** 断 #4 #5 + #3 直接形态（**7→5**：6 文件下沉 `core/*`；**`stores`/`services`→`features` = 0**〔最硬信号〕）→ ✅ **P3** 断 #7 #8（**5→3**：`navReturn`→`aurora/navigation/`、`UserAccountNav`→`components/shell/`、`RealProviders`→`aurora/providers/`；新增守卫 `no-reverse-to-aurora-app` **落地即 error·零例外**）→ ⏳ **P4** `features/shared` 拆三类（靶心 = 断**反向边 `shared→stores`**）｜**P5** toolbar **并入 `features/editor/toolbar/`** + 反转 `stores→hooks` 断 #6#1｜**P6** 后置。
+**基线（P3 后）**：tsc 0｜vitest **113 文件 / 1505 passed · 2 skipped · 0 failed**｜守卫 **0 违规**（671 文件实扫）｜`vite build` 成功（3514 modules）｜**3 环**。
+  残留环（3）：`features/editor>toolbar>editor`（P5）、`stores>hooks>stores`、**`stores>hooks>features/shared>stores`（P2 新暴露，方案未预见）** —— 后两条 P4/P5 任一即断（交集）。
 - 🚨 **`_depgraph.cjs` 已加固**：原**硬编码别名表**未登记 `@core` → 导入**静默丢边 → 漏报环**（实测 `core` 边数 = 0）。**最危险的失败方向是「图看起来更干净了」**。现从 `vite.config.ts` 派生（失败即 fail-fast）+ 根路径按脚本位置推算 + 「本项目别名漏登记」自检段。
-- **关键判据**：① 宣布「某环已消除」前**先确认该环涉及模块在边列表中有非零边数**（否则可能是工具没看见）；② **含大体积静态数据的子图禁建 barrel**（桶会把它连带挂进每个消费者 —— `core/files` 若做桶，4859 行种子文档会拖进所有 `recentFiles` 使用者）；③ 迁移保真三件套：字节级比对 + EOL 探针 + **BOM 位置**。
+- **关键判据**：① 宣布「某环已消除」前**先确认该环涉及模块在边列表中有非零边数**（否则可能是工具没看见）；② **含大体积静态数据的子图禁建 barrel**（桶会把它连带挂进每个消费者 —— `core/files` 若做桶，4859 行种子文档会拖进所有 `recentFiles` 使用者）；③ 迁移保真三件套：字节级比对 + EOL 探针 + **BOM 位置**；④ **定靶心前枚举「双侧边」（源码 + 测试）** —— 模块级环**只计源码**（`_depgraph.cjs:72` 排除 `.test`），只看环会误判「搬 1 处就够」（实测 `panels→app` 17 处里 **14 处是测试边**）；⑤ **守卫要为某类文件开例外时，先问「能否移动模块」**（移动优于例外：`RealProviders` 寄居 `aurora/app` 会逼守卫为 12 个测试开例外 → 迁 `aurora/providers/` 后**零例外**）；⑥ 守卫作用域用**全量 glob + 规则内 `exempt`**（工厂已支持），**忌 `overrides.files` 列举子目录** —— 列举 = 新目录即盲区。
 - 入度基线 stores 102／types 79／components/ui 54／shared 52；出度 aurora/panels **165**／features/editor **95**。
 
 ## 专题铁律（细节见 artifacts / 每日日志）
@@ -98,6 +98,6 @@ PortableGit `/c/Users/HJN/.workbuddy/binaries/PortableGit/versions/1.2.0/{cmd,us
 - **KB 面板**：subbar 52px。⚠️ `.aurora-kb-notes` 顶 padding 仅 2px 是为**自带 `__head` 的 Tab** 设计 → **无 head 的复用者必自带留白**（`__lead`）。基线锁 `kbTopSpacing.test.ts`+`notesTabHeader.test.ts`。⚠️ 空库不渲染 tab 栏、建库后**不自动进详情**；提交按钮选择器须限定 `.aurora-kb-modal` 内。
 
 ## 待办清单（**正文已移出** → `artifacts/TODO-cleanup-audit-2026-09-17.md`）
-- 🔴 **死 CSS 最高待决**：`canvasTheme.ts` 注入选择器 `.tl-container, .canvas-v2-root` **两者皆无 DOM** ⇒ 其独有约 25 个 `--cv-*` **全程未定义**，而 8 个 canvas-v2 文件以**无 fallback** 的 `var(--cv-*)` 消费（`injectCanvasTheme()` **零调用点**）。修法 = 改挂 `:root`，**会改变白板浮层观感**。
+- 🔴 **死 CSS 最高待决**：`canvasTheme.ts` 注入的 `.tl-container, .canvas-v2-root` **皆无 DOM** ⇒ 其独有 ~25 个 `--cv-*` 全程未定义，却被 8 个 canvas-v2 文件以**无 fallback** 的 `var(--cv-*)` 消费（`injectCanvasTheme()` **零调用点**）；修法 = 改挂 `:root`，**会改白板浮层观感**。
 - ⚙️ **结构审计最高优先**：巨型文件 `features/blog/themes/newThemes.ts` **22752 行** → 按主题拆分。
 - 其余（死 CSS 批 2.5-B/批 3/3.5、`Input.tsx`+`EmptyState.tsx` 零消费者、`--mc-dur-lazy`、`tiptap-math-inline` 命名错位、`@workers` 悬空别名、`aurora/docs/design/` 混入 `src/`、`backupService.ts` 同名分裂）见上述 artifacts 文件。

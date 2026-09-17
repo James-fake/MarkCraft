@@ -14,5 +14,12 @@ module.exports = {
     'no-store-to-feature': require('../eslint-local-rules/no-store-to-feature.cjs'),
     'no-service-to-feature': require('../eslint-local-rules/no-service-to-feature.cjs'),
     'no-service-to-store': require('../eslint-local-rules/no-service-to-store.cjs'),
+
+    // Phase 3（2026-09-18）新增：aurora 子模块禁止反向引用装配层 src/aurora/app。
+    // 与前 3 条不同，本条**落地即 error** —— 因为它是在存量清零（环 #7 #8 消失）**之后**
+    // 才建闸口，不存在「被存量卡死」的问题，故无需 warn 过渡期。
+    // 它同时覆盖测试文件（无例外），依赖 src/aurora/providers 承接原寄居 app/ 的测试夹具。
+    // 见《MarkCraft_解耦实施方案_2026-09-17.md》Phase 3.4。
+    'no-reverse-to-aurora-app': require('../eslint-local-rules/no-reverse-to-aurora-app.cjs'),
   },
 };

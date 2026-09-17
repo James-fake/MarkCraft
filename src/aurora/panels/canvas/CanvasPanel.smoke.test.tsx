@@ -32,7 +32,7 @@ vi.mock('../../../features/canvas-v2/engine/ExcalidrawCanvas', () => ({
   ExcalidrawCanvas: () => <div data-testid="excalidraw-canvas">Excalidraw 引擎</div>,
 }))
 
-import { RealProviders } from '../../app/RealProviders'
+import { RealProviders } from '../../providers/RealProviders'
 import { CanvasPanel } from './CanvasPanel'
 
 function renderPanel() {

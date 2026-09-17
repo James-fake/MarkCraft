@@ -2,7 +2,7 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { RealProviders } from '../../../app/RealProviders'
+import { RealProviders } from '../../../providers/RealProviders'
 import { commandRegistry } from '../../../../features/commandPalette/commandRegistry'
 import { MenuBar } from '../MenuBar'
 

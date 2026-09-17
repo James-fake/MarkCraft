@@ -290,17 +290,147 @@ Phase 0 为「目录职责自证」在 `core/{files,tags,constants,data}/index.t
 
 ---
 
-### Phase 3 —— Aurora 外壳解环 → 断环 #7 #8
+### Phase 3 —— Aurora 外壳解环 → 断环 #7 #8 ✅ 已完成（2026-09-18）
 
-| 动作 | 细节 |
-|------|------|
-| 3.1 迁移 | `aurora/app/navReturn.ts` → `aurora/navigation/navReturn.ts` |
-| 3.2 更新引用 | `aurora/panels/kb/KbPanel.tsx:14`、`panels/editor/EditorPanel.tsx:6,7`、`panels/kb/GraphPanel.tsx:20`、相关 `.smoke.test.tsx` → 改相对路径（`../../navigation/navReturn`） |
-| 3.3 清理反向 | 检查 `aurora/components → aurora/app` 的 1 处，若为同类共享物一并归位 |
-| 3.4 加守卫 | 新增规则："`aurora/app` 与 `aurora/panels` 禁止互相 import" → error |
+> **里程碑 M3 达成**：Aurora 内部两类环 `aurora/app > aurora/panels > aurora/app`、
+> `aurora/app > aurora/panels > aurora/components > aurora/app` 全部消失（**模块级环 5 → 3**）。
+> `aurora/app` 由此成为**纯装配层**（只剩 AuroraShell / auroraActions / commandAdapter / AudienceOnboarding / useAuroraShell）。
 
-**验收**：环 #7 #8 消失；Aurora 内 `app`/`panels` 无互相 import；全绿。
-**风险**：🟡 中。涉及 5 处源码 + 多个 smoke 测试；`navReturn` 是导航上下文，**迁移后须跑一次真机 CDP** 验证"编辑器↔知识库返回"链路仍正常。
+**实际动作（较原计划 +2 项，见 §3.x / §3.y）**
+
+| # | 动作 | 实测细节 |
+|---|------|---------|
+| 3.1 | `aurora/app/navReturn.ts` → **`aurora/navigation/navReturn.ts`** | 29 行 · 零依赖模块级单例；字节级保真搬迁（`Buffer.compare` identical / 957B）。新建目录 `aurora/navigation/` |
+| 3.2 | 更新引用 | **6 处 / 5 文件**：源码 3（`EditorPanel.tsx`×2、`GraphPanel.tsx`、`KbPanel.tsx`）+ 测试 2（`EditorPanel.smoke`、`GraphPanel.smoke`）；另 `kb/graphSession.ts:12` 注释里的路径提及同步更新 |
+| 3.3 | `aurora/app/UserAccountNav.ts` → **`aurora/components/shell/`** | 方案原文「`aurora/components → aurora/app` 的 1 处」经枚举确认**就是它**。40 行 ctx + 消费 hook；Provider 在 `AuroraShell`（app）、消费方在 `Sidebar`（components/shell）→ 定义寄居 app 即环 #8 的第三条边。落点有既有先例：`CommandPaletteContext` 同样被 app + panels 共同向下引用 |
+| 3.4 | **`aurora/app/RealProviders.tsx` → `aurora/providers/`** ← 方案未预见 | 被 `AuroraShell`（真实运行）+ **12 个 `.smoke.test.tsx`（夹具）**共用。见 §3.x |
+| 3.5 | **删 `aurora/app/ToastProvider.tsx`（re-export 兼容壳）** | 7 行纯转发 `export { ToastProvider, useToast } from '../../components/ui/ToastProvider'`，唯一消费者是 `AuroraShell`（同目录）。删壳后 `AuroraShell` 直引 `../../components/ui/ToastProvider`。依据同 Phase 2 判据：**双导入源比一次改净更危险** |
+| 3.6 | 新增守卫 **`no-reverse-to-aurora-app`（落地即 error）** | 作用域 `src/aurora/**`（**含测试文件，无例外**）；自身豁免写在规则内 `exempt`。见 §3.y |
+
+**验收实测**
+
+| 验收项 | 目标 | 实测 | 判据 |
+|--------|------|------|------|
+| 模块级环 | 消 #7 #8 | ✅ **5 → 3** | `scripts/_depgraph.cjs` 环清单 |
+| `aurora/panels → aurora/app` | 0 | ✅ **0** | aurora 跨子模块边枚举（源码 + 测试**全 0**） |
+| `aurora/components → aurora/app` | 0 | ✅ **0** | 同上 |
+| `tsc --noEmit` | 0 错 | ✅ **0** | — |
+| 全量测试 | 不减 | ✅ **113 文件 / 1505 passed · 2 skipped · 0 failed** | 与 Phase 2 基线**逐项一致** ⇒ 零回归 |
+| 守卫（静态） | 0 违规 | ✅ **671 文件实扫 / 0 违规**（其中 aurora 109 文件，含 36 个测试文件） | `-f json` 统计，非空输出 |
+| 守卫（真阻断） | 注入即拦 | ✅ **7/7 探针** | 注入 → `exit=1` 精确报规则 → 字节级还原 → 复跑 `exit=0` |
+| 生产构建 | 通过 | ✅ 3525 modules | `vite build` |
+| **真机链路** | 编辑器 ↔ 知识库返回 | ✅ **14/14** | CDP 探针，**全部动作走真实鼠标点击**（见 §3.z） |
+
+**双侧边枚举（本阶段的靶心定位法）**
+
+本阶段没有直接照着方案原文动手，而是先枚举 aurora 四个子模块之间的**全部文件级边**：
+
+```
+app -> panels      11 处   ← 装配层正当职责，保留
+app -> components   4 处   ← 同上，保留
+app -> types        1 处
+panels -> app      17 处   ← 其中 navReturn 3 处（源码）+ RealProviders 12 处（测试）+ navReturn 2 处（测试）
+components -> app   2 处   ← UserAccountNav 1 处（源码）+ RealProviders 1 处（测试）
+```
+
+这一步是必要的：`_depgraph` 的模块级环**只计源码文件**（`_depgraph.cjs:72` 排除 `.test`），
+而 `panels → app` 的 17 处里 **14 处来自测试**。若不先枚举，会得出两种相反的错误结论 ——
+要么以为「搬走 navReturn 就够」，要么以为「测试边也要清但不知道有几条」。
+
+#### §3.w 靶心校正：方案原文「禁止互相 import」不成立 —— 只拦单向
+
+方案 3.4 原文写「`aurora/app` 与 `aurora/panels` 禁止**互相** import」。实测该措辞会**误伤正常架构**：
+
+- `aurora/app → aurora/panels` **11 处**是装配层的**正当职责**（`AuroraShell` 的职责就是组装并渲染所有面板）；
+  若一并禁止，等于让 shell 无法渲染界面。
+- 只有 `panels/components → app` 方向才成环。
+
+故守卫实现为**单向**：`aurora/app` 是 aurora 内的**最高位**，任何子模块不得反向引用它（入口 `aurora-main.tsx` 与 app 自身豁免）。
+**判据**：单向守卫下全量 0 违规且 7/7 探针通过；若按原文双向实现，仅 `app → panels` 就会产生 11 处误报。
+
+#### §3.x `RealProviders` 必须搬：否则守卫只能留「测试例外」这个后门
+
+`RealProviders` 是「精确复刻 `src/App.tsx` Provider 嵌套链」的地基组件，被两类消费者共用：
+**真实运行**（`AuroraShell`）+ **12 个测试文件**（作为 `render` 的 wrapper 夹具）。
+
+它留在 `aurora/app/` 的代价是结构性的：**守卫若想真正封死 `panels → app`，就必须为 `.test.tsx` 开一个例外** ——
+而「测试夹具长期寄居装配层」恰恰会持续激励错误依赖（新测试照抄旧路径）。
+搬到 `aurora/providers/`（一个被 app 与测试**共同向下引用**的地基目录）后：
+
+- `panels → app`、`components → app` 的边**含测试边一并归零**；
+- 守卫得以**零例外**（`src/aurora/**` 全量），测试文件被真实覆盖 —— 探针 5 已验证这一点；
+- `RealProviders` 相对 `stores/`、`components/ui` 的深度与旧位置相同（均为二级），**内部 import 一行未改**。
+
+**一般化判据：当某个模块的存在会迫使守卫开门时，正确的处理是移动模块，而不是给守卫留例外。**
+
+#### §3.y 守卫工厂新增 `exempt` 能力：避免「新增目录即盲区」复发
+
+守卫工厂 `_forbidden-import.cjs` 原本只支持「禁止目标」判定。本阶段给它加了 `exempt`（整体豁免清单），
+带动一处小重构：把路径包含判定抽成 `inPath()`，让 **forbidden 与 exempt 两侧共用同一套语义**
+（两侧不一致会出现「豁免判不中、禁止判得中」的不对称误报）。
+
+为什么需要它：`no-reverse-to-aurora-app` 要排除「app 目录自身」与「入口文件」。
+若改用 `overrides.files` 列举子目录来排除，**每新增一个 aurora 子模块就再现一次同样的盲区**
+（这正是本仓已反复踩过的坑：「扫描盲区的真因是前缀/枚举，不是目录」）。
+最终形态 = **作用域用全量 glob `src/aurora/**` + 豁免写在规则内**，新增目录自动被覆盖。
+**探针 3（在新建的 `aurora/navigation/` 内注入反向引用 → 正确报错）就是这条设计的验收。**
+
+#### §3.z 真机 CDP 验证：14/14 通过（含一条防假绿自检）
+
+方案对该阶段明确要求「迁移后须跑一次真机 CDP 验证编辑器↔知识库返回链路」—— 因为
+`navReturn` 是**模块级单例导航上下文**，jsdom 覆盖不到「真实 `nav()` 路由跳转」这一层。
+探针：`.workbuddy/artifacts/cdp-verify-navreturn-phase3.mjs`（冷 profile，IndexedDB 为空）。
+
+**与 jsdom 的分工（先说清哪条是谁验的）**
+
+| 层 | 覆盖者 | 已验证内容 |
+|----|--------|-----------|
+| 图谱侧登记 | jsdom | `GraphPanel.smoke:196` 断言单击 file 节点后 `getEditorReturn()` = `{view:'graph', label:'双链图谱'}` |
+| 图谱分支芯片 + 回跳 | jsdom | `EditorPanel.smoke:184` 断言 `.aurora-editor__return` 文案 + 点击后回跳 graph 且来源被清除 |
+| **kbId 分支端到端** | **CDP（本探针）** | 建库 → 详情 → 跳编辑器 → 芯片 → **真实鼠标点芯片** → 回详情；`nav('kb', kbId)` 参数映射是否真把 kbId 带回 |
+| 真实路由切换 | **CDP** | hash 实测 `#view=kb` → `#view=editor` → `#view=kb` |
+
+**关键设计：先跑「自检段」，否则下游断言全是假绿**
+
+`getEditorReturn()` 是**模块级单例**，若它永远返回旧值，芯片就会常在 ——
+那么「芯片存在」这条断言无论链路通不通都成立。故探针第一步先导航到**编辑器且不经过任何来源登记**，断言：
+
+- ✅ 自检#0a 编辑器真实挂载（`.aurora-editor*` 节点数 = 2）→ **证明扫描面非空**；
+- ✅ 自检#0b **无来源登记时芯片必须为 `null`** → 证明芯片确由 `returnCtx` **条件渲染**。
+
+**14/14 断言全通过，且全部动作 `via=real`（真实鼠标点击，无一退化到合成 `click()` 兜底）**
+
+| # | 断言 | 实测证据 |
+|---|------|---------|
+| 0a/0b | 自检（扫描面 + 条件渲染） | 节点数=2；芯片 `null` |
+| 1–3b | 落到管理页 → **真实走完建库流程** → 库卡片 → 详情页 | 受控 input 用**原生 setter + `input` 事件**写入（坑 F）；详情库名与卡片一致 |
+| 4 | 点「新建笔记」→ 编辑器出现返回芯片 | hash `#view=kb` → `#view=editor` **真实路由切换** |
+| 5 | 芯片文案精确 = `← 返回 P3返回库-71382` | 与库名逐字一致 |
+| 6 | **真实鼠标点芯片 → 回详情页** | `subbar=true` 且 `manage=false`（非退化为管理页） |
+| 7 | 回跳**带回了 kbId**（同一库，非首项兜底） | 详情库名 === 建库名 |
+| 8 | 回跳后芯片消失（`clearEditorReturn` 生效） | 芯片 `null` |
+| 9–11 | 链路 B（点库内笔记条目）同构复验 | 同上，全绿 |
+
+> ⚠️ 断言 7 的价值超出本阶段：它同时验证了 `useAuroraShell.nav` 的 **param → params 映射表**没漏登记 `kbId`
+> （本项目已知坑：映射表漏登记会导致参数**静默丢失**，回跳会退化成管理页）。若只看「是否有芯片」，这条漏网。
+
+**风险实际发生情况**：🟡 中 → 实际 🟢 低。额外成本集中在**验证**而非迁移：本阶段新增了「真机 CDP」这条链路，
+并首次为守卫引入「零例外」设计（其代价是必须先完成 §3.x 的模块移动）。
+
+#### §3.v 过程中的偏差与一次真实失误
+
+1. **一次路径深度算错（被 tsc 拦住）**：删 ToastProvider 壳后把 `AuroraShell` 的引用写成
+   `'../components/ui/ToastProvider'`（只上溯一级 → 解析到不存在的 `aurora/components/ui/`）。
+   正确为 `'../../components/ui/ToastProvider'`（`aurora/app/` 是二级目录，出到 `src/` 需两级）。
+   **tsc 立即报 `TS2307 Cannot find module`** —— 这正是「迁移后必须跑 tsc」的价值；教训：**同层相对引用要数深度**。
+2. **一条 vitest 结果是无效的**：修正上述路径前后各启动过一轮 vitest，第一轮启动时刻早于修正，
+   其绿灯不可采信 → 已重跑并以重跑结果为准。**教训：验证必须在改动定稿后启动，否则绿灯是"时间窗侥幸"。**
+3. **shell 缺 `grep`**：`vitest run | grep ...` 报 `grep: command not found`（该 shell 无 coreutils），
+   导致一轮 vitest 实际未产出结果。**改用无管道后台运行 + 工具侧过滤。**
+4. **`_depgraph.cjs:53` 的子模块白名单是空操作**：`if (['panels','app',...].includes(s)) return 'aurora/'+s;`
+   与下一行 fallback `return 'aurora/' + (s || '_')` 语义完全相同 —— 白名单冗余但**无害**
+   （新目录 `aurora/navigation` / `aurora/providers` 已确认被正确登记为独立模块，未出现 Phase 1 的 `@core` 失明）。
+   留待 Phase 6 清理时一并简化。
 
 ---
 
@@ -375,15 +505,15 @@ Phase 0 为「目录职责自证」在 `core/{files,tags,constants,data}/index.t
 
 ### 4.2 对现有质量基线的预期影响
 
-| 指标 | 基线 | 现状（Phase 2 完成后） |
+| 指标 | 基线 | 现状（Phase 3 完成后） |
 |------|------|---------------------|
-| 模块级循环 | 8 个 | **5 个**（Phase 1 消 #2；Phase 2 消 #4 / #5 + #3 直接形态）→ 目标 0（Phase 5 后） |
+| 模块级循环 | 8 个 | **3 个**（Phase 1 消 #2；Phase 2 消 #4 / #5 + #3 直接形态；**Phase 3 消 #7 #8**）→ 目标 0（Phase 5 后） |
 | `stores`/`services` → `features` 违规 | 9 + 4 处 | **0** ✅（Phase 2 达成，且守卫升 error 锁死） |
 | 反向依赖（逻辑层→UI 层） | 0（已守） | 保持 **0** ✅ |
 | 测试用例 | 1499 passed / 2 skipped / 0 failed | **1505 passed / 2 skipped / 0 failed** ✅（+6 契约测试；断言零放宽） |
 | `tsc` | 干净 | 保持干净 ✅ |
-| 生产构建 | — | `vite build` 成功（3525 modules / 45.4s）✅ —— **Phase 2 新增的验证链路** |
-| 运行时行为 / 视觉 | — | **零变化**（纯结构迁移；完整真机回归留待 Phase 5 后） |
+| 生产构建 | — | `vite build` 成功（3525 modules）✅ —— **Phase 2 新增的验证链路，Phase 3 复跑通过** |
+| 运行时行为 / 视觉 | — | **零变化** ✅（纯结构迁移）。**Phase 3 已补真机链路验证**：编辑器↔知识库返回 14/14（CDP 探针，真实鼠标点击）；其余交互的完整回归留待 Phase 5 后 |
 
 ### 4.3 性能影响
 - 迁移**不新增**运行时开销（只是文件位置与 import 路径变化）。
@@ -429,7 +559,7 @@ Phase 1  持久化下沉 → 断环 #2                                       ✅
    ↓
 Phase 2  业务工具下沉 → 断环 #4 #5 + #3 直接形态                    ✅ 完成    【里程碑 M2 ✅：stores/services→features 依赖=0；7→5 环】
    ↓
-Phase 3  Aurora 解环 → 断环 #7 #8                                  ← 1 天     【里程碑 M3：外壳无环】
+Phase 3  Aurora 解环 → 断环 #7 #8                                  ✅ 完成    【里程碑 M3 ✅：外壳无环；5→3 环 + 真机 14/14】
    ↓
 Phase 4  features/shared 分层拆分 → 断反向边 shared→stores（环 #3 残部）  ← 1.5 天
    ↓
@@ -447,7 +577,7 @@ Phase 6  结构性重构（editor 内部分层 / panels 契约层 / fileManager 
 **验证工具**：`scripts/_depgraph.cjs`（模块耦合矩阵 / 环检测，常备架构体检工具）
 **契约测试**：`src/aliasSync.test.ts`（6 例）看守「别名表 4 处同改」——不只比键集合，还比目标目录
 
-**验证链路（五条必须全跑 —— 缺一条就可能放过只在特定链路暴露的失败）**
+**验证链路（六条必须全跑 —— 缺一条就可能放过只在特定链路暴露的失败）**
 
 | # | 链路 | 命令 | 为什么不能省 |
 |---|------|------|-------------|
@@ -456,6 +586,7 @@ Phase 6  结构性重构（editor 内部分层 / panels 契约层 / fileManager 
 | ③ | 守卫 | `node node_modules/eslint/bin/eslint.js --no-eslintrc -c .eslintrc.guard.cjs "src/**/*.{ts,tsx}"` | 架构闸口；**须核「实扫文件数」非 0**，空输出要先证明不是「零文件被扫」 |
 | ④ | 架构 | `node scripts/_depgraph.cjs` | 「环是否真消失」的唯一判据 |
 | ⑤ | **生产构建** | `node node_modules/vite/bin/vite.js build` | 走 `vite.config.ts` 别名，**与 ② 是不同的解析链路** —— Phase 2 起纳入常规验收 |
+| ⑥ | **真机 CDP** | 见 `.workbuddy/artifacts/cdp-verify-*.mjs`（须与 Edge 同一次前台 bash 启动） | **jsdom 覆盖不到的那一层**：真实浏览器 + 真实 IndexedDB + 真实 hash 路由。凡「迁移物是导航/手势/焦点上下文」或「行为依赖真实 `nav()` 跳转」时必须跑 —— Phase 3 起纳入「涉交互迁移」的常规验收 |
 
 > ⚠️ **判据（Phase 1 血的教训）**：**休眠配置的绿灯不算证明。** 新增别名 / 守卫后必须有一次**真实引用**，才能证明它真的生效；
 > 反之，空输出 / 零违规也必须先排除「根本没扫到东西」才能采信。
@@ -477,6 +608,7 @@ Phase 6  结构性重构（editor 内部分层 / panels 契约层 / fileManager 
 | 1 | `local/no-store-to-feature` | `stores/**` → `features/**` | ✅ **Phase 2 已升 error**（基线 9 处归零；672 文件实扫 0 违规；注入探针实测阻断 exit=1） |
 | 2 | `local/no-service-to-feature` | `services/**` → `features/**` | ✅ **Phase 2 已升 error**（基线 4 处归零；同上探针实测阻断） |
 | 3 | `local/no-service-to-store` | `services/**` → `stores/**` | ✅ **Phase 1 已升 error**（存量 3 处清零；注入探针实测阻断 exit=1） |
+| 4 | `local/no-reverse-to-aurora-app` | aurora 子模块 → `aurora/app/**`（**单向**；app 自身与入口豁免） | ✅ **Phase 3 新增，落地即 error**（作用域 `src/aurora/**` **含测试、零例外**；671 文件实扫 0 违规；**7/7 注入探针**含 2 个豁免反向验证） |
 | 4 | `local/no-app-panels-cycle` | `aurora/app` ⇄ `aurora/panels` 互禁 | ⏳ Phase 3 落地 |
 | 5 | `local/no-aurora-ui-import` | `features/stores/services` → `aurora/**` | ✅ 既有规则，保持不变（error，当前 0 违规） |
 

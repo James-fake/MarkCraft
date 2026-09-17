@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, screen, fireEvent, cleanup, renderHook, act, waitFor } from '@testing-library/react'
-import { RealProviders } from '../../app/RealProviders'
+import { RealProviders } from '../../providers/RealProviders'
 import { useFileManager } from '@stores/FileStore'
 import { DiaryPanel } from './DiaryPanel'
 

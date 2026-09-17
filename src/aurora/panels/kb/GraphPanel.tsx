@@ -17,7 +17,7 @@ import type { GraphData } from '@stores/LinkIndexStore'
 import '../../styles/panels/graph.css'
 // —— 字数统计：复用真实 features/editor/stats 单一数据源（D4，不维护平行实现）——
 import { countWords } from '@features/editor/stats'
-import { setEditorReturn } from '../../app/navReturn'
+import { setEditorReturn } from '../../navigation/navReturn'
 import { readGraphSession, saveGraphSession, type GraphNodePos } from './graphSession'
 
 /**

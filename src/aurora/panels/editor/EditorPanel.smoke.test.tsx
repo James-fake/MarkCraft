@@ -2,9 +2,9 @@
 import React, { useEffect } from 'react'
 import { render, screen, fireEvent, act, within } from '@testing-library/react'
 import { describe, it, expect, vi, beforeAll } from 'vitest'
-import { RealProviders } from '../../app/RealProviders'
+import { RealProviders } from '../../providers/RealProviders'
 import { useFileManager } from '@stores/FileStore'
-import { setEditorReturn, getEditorReturn } from '../../app/navReturn'
+import { setEditorReturn, getEditorReturn } from '../../navigation/navReturn'
 
 // 真实 EditorLayout / VersionHistoryPanel 依赖 CodeMirror / TipTap，jsdom 无法挂载；
 // mock 它们以验证 Aurora 这一层（props 接线 / 模式状态机 / 空态 / mock 残留消除）。

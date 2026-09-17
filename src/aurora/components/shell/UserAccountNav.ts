@@ -1,3 +1,12 @@
+// aurora/components/shell —— 用户账户导航上下文（ctx + 消费 hook，零依赖）。
+//
+// Phase 3（2026-09-18）自 aurora/app/UserAccountNav.ts **原样搬迁**（内容零改动）：
+// Provider 方在 AuroraShell（app），消费方在 Sidebar（components/shell）——
+// 定义寄居 app 会构成 components → app 反向边（环 #8 的第三条边）。
+// 归入 components/shell 与既有先例一致：CommandPaletteContext 同理由 app+panels 共同向下引用。
+// 文件自身注释即写明「侧栏头像属于常驻外壳 chrome」，落点随之归位。
+//
+// 见《MarkCraft_解耦实施方案_2026-09-17.md》Phase 3.2。
 import { createContext, useContext } from 'react'
 
 /**
