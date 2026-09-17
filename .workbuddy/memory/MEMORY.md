@@ -45,10 +45,10 @@ dev 端口 **5174**：`node node_modules/vite/bin/vite.js --port 5174 --host`。
 
 ## git / 沙箱
 PortableGit `/c/Users/HJN/.workbuddy/binaries/PortableGit/versions/1.2.0/{cmd,usr/bin,mingw64/bin}`；bash 每条内联 `export PATH="<三目录>:/c/Users/HJN/.workbuddy/binaries/node/versions/22.22.2-3:/c/Windows/System32"`。
-- 🚨 **禁止在内联 `node -e "..."` / `bash -c` 里出现反引号**（尤其 Markdown 行内代码）—— bash 当**命令替换执行后替换为空**且**静默成功**（实测掏空 MEMORY.md 两行）。`${}`、`$()` 同理。**含反引号/长脚本一律写 `.cjs` 再 `node` 执行**（顺带免掉 ASCII 双引号截断 shell 的坑），用完即删。
-- 远端 `gitee.com/James-fake/markcraft.git`；推送后 `origin/master` ref 不更新 → `printf '%s\n' "$(git rev-parse master)" > .git/refs/remotes/origin/master`，再验 `rev-list --left-right --count master...origin/master` = `0 0`。
+- 🚨 **禁止在内联 `node -e "..."` / `bash -c` 里出现反引号**（尤其 Markdown 行内代码）—— bash 当**命令替换执行后替换为空**且**静默成功**（实测掏空 MEMORY.md 两行）。`${}`、`$()` 同理。**含反引号/长脚本一律写 `.cjs` 再 `node` 执行**，用完即删。
+- 远端 `gitee.com/James-fake/markcraft.git`；`git push origin master` 后 `origin/master` ref 不更新 → 手动回写 `.git/refs/remotes/origin/master`，再验 `rev-list --left-right --count master...origin/master` = `0 0`。
 - 🚨 **禁止在单条 bash 里跑 `git stash`**（SIGTERM 半写对象库 → 丢 `.pack`）。要暂存 → `git diff > x.patch`。
-- 工作区可能被外部清空 → `git restore --source=HEAD --worktree -- <路径>`；判删除状态用 `git -c core.quotepath=false status --porcelain`（`[ -e ]` 因中文名转八进制误判）。**频繁提交是唯一防线**。
+- 工作区可能被外部清空 → `git restore --source=HEAD --worktree -- <路径>`；判删除状态用 `git -c core.quotepath=false status --porcelain`（`[ -e ]` 因中文名转八进制误判）。**频繁提交是唯一防线**。⚠️ **并发会话可能同仓库同时编辑**（实测提交后 clean→dirty，凭空冒出他人改动 + 已暂存删除）→ **提交/暂存一律用显式 pathspec**，**禁 `git add -A`** —— 否则把别人未完成的活儿打包进自己的提交。
 - **删除劫持** → robocopy 镜像法（`/MIR`、相对路径），镜像后自检文件数为 0；批量删优先 `git rm`（⚠️ 删除已暂存时 `git rm` 报 `pathspec did not match` → 改 `node -e 'fs.unlinkSync(...)'`）。`.workbuddy` 仅 `memory/`、`artifacts/` 入库。**判「删没删」用集合差**（`git diff -U0` 会把**未删除**的相邻行报成 `-`）→ `git show HEAD:<f>` 与工作区各抽类名 → `comm`。
 - 🚨 **回写文件必须保真换行符**（本仓混用：`tokens.css`/`MEMORY.md` 等 **CRLF**，部分 test/css LF；无 `.gitattributes`、`core.autocrlf=false`）：探 `raw.includes('\r\n')` → 拆 `/\r?\n/` → 回写原 EOL；禁用 `split('\n')+join('\n')`。核对**不能比 CR 计数**（删行后 CR 自然变少 → 假警报）。
 - ⚠️ 仓内有**重名文件** → 脚本/守卫一律用**完整相对路径**。⚠️ **`/tmp` 在 bash 与 node 下解析不同**（node 得 `D:\tmp\`）→ 临时文件用 `C:/Users/HJN/AppData/Local/Temp/`。
