@@ -24,6 +24,17 @@ Vite5+React18+TS；CodeMirror6+TipTap3；白板 Excalidraw；Dexie/IndexedDB。d
 - **React 17+ `onWheel` 是 passive** → `preventDefault()` 无效；拦横滚只能靠 CSS `touch-action`/`overscroll-behavior-x`。
 - **「改 CSS 不改 JS」双向陷阱** → 契约测试**两侧同断言**且断言 `getBoundingClientRect()` **落点**。
 - **改任何东西前先验证「有真实承载者」**：类名 → TSX 引用数、组件 → import 点；零引用 = 死代码。
+- **但「零 import」≠「不进包」**：桶（`components/ui/index.ts`）里的 `export { Input }` 会让
+  `Input.tsx`（及其 `import './ui.css'`）被任何 `from '.../components/ui'` **连带挂进模块图**
+  （dev 不做 tree-shaking）→ 真机 `style[data-vite-dev-id]` 实测 ui.css 照样下发。
+  **判死代码看依赖图可达性，不看 import 计数。**
+- **判死必须先排除「模板拼接」**：`` `aurora-btn--${size}` `` / `` `aurora-modal--${size}` `` /
+  `` `aurora-toast--${t.kind}` `` → 字面量 `aurora-btn--sm` 从不出现，纯字面量扫描会**误判活类为死**。
+  扫描器分三档（A 高危 / B 疑似动态 / C 仅测试引用），`scan.mjs`；前缀抽取**只取最后一个空白分隔词**
+  （整段当前缀会含空格 → 永不命中 → 假阳性）。判死清单**逐族人工复核后才可删**。
+- **「清剿清单」守卫测试的双锚点**：CSS 用 `\.name(?![a-zA-Z0-9])`（尾部拒字母数字、允许 `_`/`-` 即 BEM 后代）；
+  代码用 `(?<![\w-])name(?![a-zA-Z0-9])`（**无前导点**，否则漏检 `className="mc-tooltip"`）。
+  尾部写 `\b` 会漏 `name__arrow`（`_` 是词字符）；完全不约束尾部会误伤 `.aurora-tooltips`。
 - **滚动显隐用「常驻 DOM + 类折叠」**（条件渲染 → 高度跳变 → 伪滚动 → 自激振荡闪烁）；「列表往上滑」= `scrollTop` **减小**。
 - **内联 `transition` 残留**：瞬时落位后必须 `void el.offsetWidth; el.style.transition=''`。
 - 动效只动 **transform/opacity**；永不用 `scale(0)`（起手 0.96/0.97）；进出不对称「出更快」。
@@ -134,12 +145,16 @@ reduced-motion = 「更少更柔非归零」（时长减半；入场 `mc-rm-fade
   `setBlogEntryFileId` = 单篇语义；右侧宽度 `fit-content`。
 
 ## 当前状态
-- vitest **1247 passed / 0 failed / 2 skipped**（111 文件全绿），tsc 干净。**已无预存失败**
+- vitest **1275 passed / 0 failed / 2 skipped**（112 文件全绿），tsc 干净。**已无预存失败**
   （09-17 清剿：三项全是「测试契约跟不上实现演进」，非产品 Bug —— `commandWiring` 窗口命令 `visible:false`
   属菜单专属；`KbPanel.smoke` 的 `getByText('编辑')` 撞上菜单栏同名顶级菜单 → 收敛到 `.aurora-kb-subbar-actions`；
   `blogCssRefs` 因 `KeyframeEditor` 换 `AuroraSelect` 滚轮→选项不再常驻 DOM，改为展开后再验）。
 - 二级栏已三面板同源（kb / blog / ctop = 52px，真机几何取证通过），见上「关键坑」。
-- 待决：`--mc-dur-lazy` 处置；`.aurora-tooltip` 死 CSS（`components.css` 零消费者）处置；
-  `.aurora-filetree__topbar`(36) / `.aurora-outline__header`(36) 这类「侧栏小标题栏」是否也要统一高度；>30 天旧日志蒸馏。
-- ✅ 已推送至 `origin/master` 的历史：`187be15` / `1e08d65` / `988c406`。
-  二级栏同源化（本项）**已提交待推送**；Gitee 令牌不入库、不落盘（用户曾贴出令牌，已建议其轮换）。
+- tooltip 平行遗留**已清剿**（`.aurora-tooltip` + `.mc-tooltip` + `Tooltip.tsx` + `.mc-lazy-*`，
+  净 −273 行；守卫 `styles/deadCssPurge.test.ts` 28 例；真机取证零回归）。唯一悬停提示机制 = 原生 `title=`。
+- 待决：**死代码存量 191 条 A 档高危候选**（白板迁 canvas-v2 后旧自绘 CSS 整族废墟：kanban/sticky/timeline/
+  mindmap/shape/pen-path/connection/freewrap + editor 老内核 dash/split/token + `<list-item>` + goto-dialog …）
+  —— 需单独一轮逐族复核；`components/ui` 的 `Input.tsx` / `EmptyState.tsx` 零消费者（但样式经桶间接下发）；
+  `--mc-dur-lazy` 处置；`.aurora-filetree__topbar`(36) / `.aurora-outline__header`(36) 侧栏小标题栏是否统一；>30 天旧日志蒸馏。
+- ✅ 已推送至 `origin/master` 的历史：`187be15` / `1e08d65` / `988c406` / `30fc95f`。
+  死 CSS 清剿（本项）**已提交待推送**；Gitee 令牌不入库、不落盘（用户曾贴出令牌，已建议其轮换）。

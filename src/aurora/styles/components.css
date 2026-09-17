@@ -1,6 +1,6 @@
 /* ============================================================
  * Aurora Design System · Components Styles v2.0
- * 通用组件：Button / Input / Segmented / ListItem / Dropdown / Tooltip / Card / Modal / Badge
+ * 通用组件：Button / Input / Segmented / ListItem / Dropdown / Card / Modal / Badge
  * ========================================================== */
 
 /* ============================================================
@@ -684,65 +684,6 @@
 /* 自定义触发器（非原生 select）展开态边框高亮 */
 .aurora-cip__select--open {
   border-color: var(--mc-accent);
-}
-
-/* ============================================================
- * Tooltip · 提示框
- * ========================================================== */
-.aurora-tooltip {
-  position: absolute;
-  z-index: 2000;
-  padding: 6px 12px;
-  background: var(--mc-bg-elevated);
-  backdrop-filter: blur(36px) saturate(115%);
-  -webkit-backdrop-filter: blur(36px) saturate(115%);
-  border: 1px solid var(--mc-border-medium);
-  border-radius: var(--mc-radius-sm);
-  box-shadow: var(--mc-shadow-popover);
-  font-size: var(--mc-font-sm);
-  color: var(--mc-text-primary);
-  line-height: 1.4;
-  white-space: nowrap;
-  pointer-events: none;
-  animation: aurora-tooltip-in var(--mc-dur-fast) var(--mc-ease-out);
-}
-
-@keyframes aurora-tooltip-in {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* 箭头 */
-.aurora-tooltip__arrow {
-  position: absolute;
-  width: 6px;
-  height: 6px;
-  background: inherit;
-  border: inherit;
-  transform: rotate(45deg);
-  z-index: -1;
-}
-
-.aurora-tooltip--top .aurora-tooltip__arrow {
-  bottom: -3px;
-  left: 50%;
-  margin-left: -3px;
-  border-top: none;
-  border-left: none;
-}
-
-.aurora-tooltip--bottom .aurora-tooltip__arrow {
-  top: -3px;
-  left: 50%;
-  margin-left: -3px;
-  border-bottom: none;
-  border-right: none;
 }
 
 /* ============================================================

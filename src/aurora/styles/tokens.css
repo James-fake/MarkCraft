@@ -256,7 +256,6 @@
  *    9980  Modal 阻断模态（filetree 删除确认 · 画布列表管理 overlay）
  *    9000  Command 命令/搜索浮层（shell command overlay · canvas cmdk overlay）
  *    3000  Aurora 共享 Modal 遮罩（aurora-modal-overlay，含 Confirm 宿主）
- *    2000  Tooltip 提示带（aurora-tooltip；mc-tooltip 平行遗留无消费方）
  *    1500  编辑器 kb-menu 浮层（mask 1499 配套）
  *    1000  锚定浮层带（dropdown / lint panel / tabs ctxmenu / 滚动按钮等局部）
  * ========================================================== */
@@ -398,8 +397,6 @@ html[data-density='comfortable'] {
   .aurora-modal,
   .aurora-modal-overlay,
   .aurora-dropdown,
-  .aurora-tooltip,
-  .mc-tooltip,
   .aurora-editor__overlay,
   .aurora-canvas__overlay,
   .aurora-graph__overlay,
