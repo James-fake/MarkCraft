@@ -58,7 +58,11 @@
 
 ## 11. 子视图（canvas-v2）§18 对齐
 
-3 个结构化子视图（思维导图 / 看板 / 时间轴，实现于 `features/canvas-v2/components/views/*`；令牌 `features/canvas-v2/theme/canvasTheme.ts` + `features/canvas-v2/components/canvas.css`）已与 §18 桌面原生基线对齐，使 4 视图视觉一致（自由画布 + 3 子视图）：
+3 个结构化子视图（思维导图 / 看板 / 时间轴，实现于 `features/canvas-v2/components/views/*`；令牌 `features/canvas-v2/theme/canvasTheme.ts`）已与 §18 桌面原生基线对齐，使 4 视图视觉一致（自由画布 + 3 子视图）：
+
+> **2026-09-17 更新（2.5-A）**：`features/canvas-v2/components/canvas.css`（294 行）已作为**孤儿文件**删除 —— 零 `import`；19 个 `.cv-*` 类零 DOM 消费者（引擎迁移 tldraw→Excalidraw 后改走「内联 style + `var(--cv-*)`」，class 驱动体系整体退役）；`.tl-*` 令牌覆盖随 tldraw 退役失效。
+>
+> ⚠️ **连带发现（独立决策项，不在本次清剿内）**：本节所记的令牌对齐，其注入选择器在 `canvasTheme.ts` 中是 `.tl-container, .canvas-v2-root` —— **两者均无 DOM**（tldraw 已退役；`.canvas-v2-root` 全仓零消费者）⇒ 该注入**从未生效**。故 `--cv-toolbar-bg` / `--cv-drawer-bg` / `--cv-radius-*` / `--cv-card-shadow*` / `--cv-elev-*` / `--cv-space-*` / `--cv-topbar-h` 等约 25 个变量**全程未定义**，而 `OverlayCards.tsx` 等 8 个文件正以**无 fallback** 的 `var(--cv-*)` 消费它们。实际生效的只有 `styles/base.css:44-68 / 138-162` 定义的那 11 个（`--cv-bg` / `--cv-card-bg` / `--cv-text-*` / `--cv-accent` / `--cv-border` …）。修复需把注入选择器改为 `:root` —— **会改变白板浮层的实际观感**，故单列待决。
 
 - **实心非玻璃**：`--cv-toolbar-bg` / `--cv-drawer-bg` 改为实心 `#171A21`（暗）/`#FFFFFF`（亮）；移除 `--cv-glass-*` 与 `.cv-glass` 玻璃基座；所有 `backdrop-filter` 已去除（tldraw `.tl-toolbar`、`.cv-topbar-group`、`.cv-rail`、`.cv-floating-panel`、AutoLayoutPanel 浮层）。
 - **单一 accent**：`--cv-accent` 收敛为 `#7C8CFF`（原 `#818CF8`/`#6366F1`）；tldraw `--color-accent`/`--color-selected` → `#7C8CFF`；移除 `--cv-accent-gradient` 紫辉光；选中态统一用 accent 描边，无紫辉光。

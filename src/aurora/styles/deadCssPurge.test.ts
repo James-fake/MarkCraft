@@ -236,3 +236,55 @@ describe('清单自身健康度', () => {
     expect(tok.test('.aurora-token {')).toBe(false) // 前缀锚需要那个连字符
   })
 })
+
+/**
+ * ── 2.5-A 孤儿 CSS 文件清剿（2026-09-17）──────────────────────────────
+ * 项目**没有 `src/main.tsx`**：`index.html` 的 module script 直指 `src/aurora/aurora-main.tsx`。
+ * 以该入口做 import 闭包（全仓 28 个 CSS）后，26 个可达、**2 个孤儿**：
+ *   · `src/index.css` —— 纯 `@import` 聚合器；它聚合的 9 个文件在 `aurora-main.tsx:15-23`
+ *     各有**独立的真实 import** ⇒ 聚合器是**冗余而非必需**（删它不改变任何加载路径）。
+ *   · `src/features/canvas-v2/components/canvas.css` —— 0 import；19 个 `.cv-*` 类零 DOM 消费者
+ *     （引擎 tldraw→Excalidraw 迁移后，子视图改走「内联 style + `var(--cv-*)`」；
+ *     `engine/*.tsx` 的 className 只剩 `excalidraw-canvas-host` / `note-card-md`）；
+ *     `.tl-*` 令牌覆盖随 tldraw 退役一并失效。
+ *
+ * ⚠️ **重名陷阱**：仓内**另有一个** `aurora/styles/panels/canvas.css`（批 1 清剿对象，**仍存活**）。
+ *    用 basename 匹配会张冠李戴 —— 本组一律用**完整相对路径**，并留反向护栏钉住那个活文件。
+ * ⚠️ **锚点只做 CSS 侧（有意）**：`.cv-*` / `.tl-*` 不做 code 侧断言，因为 `canvasTheme.ts`
+ *    的注释里仍会出现这些类名（历史说明），且 `.tl-container` 还留在其注入字符串中待后续决策
+ *    —— 加了会误红。等那条断链决策落地后，再把 code 锚点补齐。
+ */
+const ORPHANS = ['index.css', 'features/canvas-v2/components/canvas.css']
+
+describe('孤儿 CSS 文件清剿（2.5-A）：不得复活', () => {
+  it.each(ORPHANS)('src/%s 已删除', (rel) => {
+    expect(existsSync(resolve(srcRoot, rel))).toBe(false)
+  })
+
+  it('反向护栏：index.css 聚合的 9 个样式仍有各自的真实加载点', () => {
+    const entry = readFile(resolve(srcRoot, 'aurora/aurora-main.tsx'))
+    for (const f of [
+      'base', 'desktop-chrome', 'components', 'markdown',
+      'syntax', 'mermaid', 'tiptap', 'scrollbar', 'fonts',
+    ]) {
+      expect(entry).toContain(`styles/${f}.css`)
+    }
+  })
+
+  it('反向护栏：同名活文件 aurora/styles/panels/canvas.css 不得被连带删除', () => {
+    expect(existsSync(resolve(srcRoot, 'aurora/styles/panels/canvas.css'))).toBe(true)
+  })
+
+  it('.cv-* 孤儿画布类在全仓 CSS 中零定义（前缀锚；`var(--cv-…)` 是变量，不会被命中）', () => {
+    expect(firstHit(cssFiles, /\.cv-/, true)).toBe(null)
+    // 锚点自检 —— 这两条是负向验证的内建版，防「锚点写瞎 → 永远假绿」
+    expect(/\.cv-/.test('  --cv-bg: #ffffff;')).toBe(false) // 变量（无点号）不命中
+    expect(/\.cv-/.test('.cv-pill-btn {')).toBe(true)        // 类定义命中
+  })
+
+  it('tldraw 令牌覆盖规则不得回流（.tl-container / .tl-toolbar / .tl-watermark）', () => {
+    for (const re of [/\.tl-container/, /\.tl-toolbar/, /\.tl-watermark/]) {
+      expect(firstHit(cssFiles, re, true)).toBe(null)
+    }
+  })
+})

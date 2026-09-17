@@ -107,12 +107,16 @@ html[data-density="comfortable"] .canvas-v2-root {
   --cv-space-2: 14px;
   --cv-space-3: 18px;
 }
-html[data-density="comfortable"] .cv-pill-btn {
-  height: 38px;
-  min-width: 38px;
-  font-size: 14px;
-}
 `
+
+// ⚠️ 已移除 `html[data-density="comfortable"] .cv-pill-btn { height: 38px; … }`（2026-09-17）
+//    原因：`.cv-pill-btn` 的**唯一定义处**曾是 `features/canvas-v2/components/canvas.css`，
+//    而该文件从未被任何模块 import（孤儿文件，已随本轮 2.5-A 删除）。
+//    同时 `canvas-v2/engine/*.tsx` 的 className 只有 `excalidraw-canvas-host` / `note-card-md`
+//    → `.cv-pill-btn` **零 DOM 消费者**。定义与消费者双缺 ⇒ 这条规则是恒不生效的 no-op。
+//    引擎迁移（tldraw → Excalidraw）后，子视图改走「内联 style + var(--cv-*)」，
+//    class 驱动的按钮体系整体退役。若日后要重建顶栏按钮 class，**需同时更新守卫清单**
+//    （`aurora/styles/deadCssPurge.test.ts` 的 `.cv-*` 回流项）。
 
 /** 卡片色板（语义化颜色，用于标题渐变色带） */
 export interface CardColorDef {

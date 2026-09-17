@@ -35,6 +35,9 @@ describe('白板主题系统（canvas-v2）', () => {
     expect(style).toBeTruthy()
     expect(style.textContent).toContain('--cv-bg') // 基础主题已注入
     expect(style.textContent).toContain('data-density="comfortable"') // 密度联动已注入
-    expect(style.textContent).toContain('html[data-density="comfortable"] .cv-pill-btn')
+    expect(style.textContent).toContain('html[data-density="comfortable"] .canvas-v2-root')
+    // 密度覆盖曾同时含一条 `.cv-pill-btn { height: 38px }` —— 该类的唯一定义处是
+    // 孤儿文件 components/canvas.css（0 import），消费者也缺席 ⇒ 恒不生效，已于 2.5-A 移除。
+    expect(style.textContent).not.toContain('.cv-pill-btn')
   })
 })

@@ -540,3 +540,89 @@ const scopeToCSSClass = (name, { prefix }) => { … `${x}${"_".repeat(i + 1)}` �
 | **3.5** | `desktop-chrome.css` 死 token 族 + 覆盖陷阱收敛 | — | — | 中 | 与前一轮「死 CSS」不同性质，建议**独立成题**（token 单源治理）|
 
 **一句话**：批 2 的最大产出不是"又找到 860 行"，而是**三条判据的补厚**（③ 上下文限定的模板前缀 / ④ 库命名空间 / ⑤ 可达性）—— 缺任一条都会出错，且错的方向不同（③④ 会**误杀活类**，⑤ 会**把孤儿误报成死类**）。
+
+---
+
+# §8 批 2.5-A 执行记录：孤儿文件清剿（2026-09-17 已落地 ✅）
+
+## 8.0 本轮最值的一条（方法论）
+
+> **「零 import」是删**文件**的判据，「零消费者」是删**成员**的判据 —— 两者不可互替。**
+> 而「零 import」必须用**可达性闭包**求，不能用 grep 计数：`src/index.css` 自己零引用，但它聚合的 9 个文件全在入口里（它是**冗余**）；反过来 `canvas.css` 既零引用、其成员也零消费者（它是**废墟**）。同是「零 import」，一个是冗余、一个是孤儿 —— 处置相同，但**理由必须分清**，否则守卫会写错（前者只需删文件，后者还需处置消费侧的悬空引用）。
+
+## 8.1 落地清单
+
+| 动作 | 对象 | 量 |
+|---|---|---|
+| 删文件 | `src/index.css`（重复聚合器） | −10 |
+| 删文件 | `src/features/canvas-v2/components/canvas.css`（孤儿） | −294 |
+| 移除空转规则 | `canvasTheme.ts` 的 `CANVAS_DENSITY_OVERRIDE` 中 `.cv-pill-btn { height:38px; … }` | −5 |
+| 改测试断言 | `canvasTheme.test.ts`（改断 `.canvas-v2-root` + 反向断 `.cv-pill-btn` 不存在） | +4/−1 |
+| 守卫同批 | `deadCssPurge.test.ts` 新增「孤儿 CSS 文件清剿（2.5-A）」6 例 | +52 |
+| 文档标注 | `aurora/docs/design/05-canvas-panel.md §11` | +5/−1 |
+
+**净删除 304 行**，零新增依赖、零功能变更。
+
+## 8.2 判定「可整文件安全删除」的三条判据
+
+1. **可达性**：项目**没有 `src/main.tsx`**，`index.html` 的 module script 直指 `src/aurora/aurora-main.tsx`。以其做 import 闭包 → 28 个 CSS 中 26 可达、**2 个孤儿**。
+2. **不冗余性**：`src/index.css` 聚合的 9 个文件在 `aurora-main.tsx:15-23` **各有独立的真实 import** ⇒ 删聚合器**不改变任何加载路径**。
+3. **无消费者**：`canvas.css` 的 19 个 `.cv-*` 类在全仓 TS/TSX **零引用**；`engine/*.tsx` 的 className 只剩 `excalidraw-canvas-host` / `note-card-md`。引擎亦已收敛 —— `canvasPersistence.ts:4` 明写「引擎收敛后底层只有 CanvasEngine（Excalidraw 混合架构）一种实现」，`package.json` **无 tldraw 依赖**（`tl-*` 仅存在于 `@tldraw/state` 这个 atom 库与注释里）⇒ `.tl-container` / `.tl-toolbar` / `.tl-watermark_SEE-LICENSE` 三条 tldraw 覆盖规则**全部失效**。
+
+## 8.3 为什么「删孤儿文件」必须连带处置 `canvasTheme.ts:110`
+
+`.cv-pill-btn` 的**唯一定义处**就是被删的 canvas.css，而它的消费者同时缺席（零 DOM）⇒ **定义与消费者双缺**，这条注入规则是恒不生效的 no-op。
+留着它 = 留一个**指向已删文件的悬空引用**，且会让下一个读代码的人误以为「顶栏按钮有密度联动」。
+
+## 8.4 连带发现：`--cv-*` 变量的**三源**与断链（独立决策项，**本轮不修**）
+
+| 源 | 选择器 | 状态 |
+|---|---|---|
+| `styles/base.css:44-68 / 138-162` | `:root`（暗/亮各一套，注释「知识库组件专用变量（Canvas View 系列）」） | ✅ **唯一真正生效**，24 个变量 |
+| `canvasTheme.ts` 的 LIGHT/DARK 注入 | `.tl-container, .canvas-v2-root` | ❌ **死选择器** —— 两者均无 DOM |
+| `canvas.css` 的 `@media` 断点 | `.cv-root, .tl-container, .canvas-v2-root` | ❌ 随文件删除失效（且它覆盖的 `--cv-rail-w` / `--cv-topbar-h` **本身也零消费者**） |
+
+**后果**：`canvasTheme` 独有的约 25 个变量（`--cv-card-border` / `--cv-card-border-selected` / `--cv-card-shadow*` / `--cv-accent-soft` / `--cv-toolbar-bg` / `--cv-toolbar-border` / `--cv-drawer-bg` / `--cv-overlay-bg` / `--cv-hover-bg` / `--cv-active-bg` / `--cv-meta-bg` / `--cv-radius-*` / `--cv-space-*` / `--cv-elev-*` / `--cv-dot-grid` …）**全程未定义**，
+而 `OverlayCards.tsx`（27 处）、`KanbanView.tsx`（22）、`TimelineView.tsx`（19）、`AutoLayoutPanel.tsx`（18）、`MindMapView.tsx`（10）等 **8 个文件**正以**无 fallback** 的 `var(--cv-*)` 消费它们。
+
+**真机实锤**（`probe-deadcss-batch2.5a.mjs`，四视图一致）：
+
+```
+ℹ️ 变量活性：base.css 系 5/5 有值（--cv-bg --cv-card-bg --cv-text-main --cv-text-secondary --cv-accent）
+ℹ️ 变量断链：仅 canvasTheme 系 0/5 有值 —— 全部为空 ⇒ 注入从未生效
+ℹ️ 注入 style #canvas-v2-theme 存在=false · 宿主类 DOM 计数：.canvas-v2-root=0 · .tl-container=0
+```
+
+另：`injectCanvasTheme()` 全仓**零调用点**（唯一调用者 `watchThemeChange` 自身也零调用）→ 连 `<style id="canvas-v2-theme">` 都从未被创建。
+
+**修法（待拍板）**：把注入选择器改挂 `:root`，或在真实宿主元素上挂 `.canvas-v2-root`。**这会改变白板浮层的实际观感**，故不属「死代码清剿」，单列。
+同时意味着：§11 所记「§18 桌面原生对齐」中，凡靠 `canvasTheme` 令牌承载的那几项（实心 `--cv-toolbar-bg`/`--cv-drawer-bg`、圆角 4/8/12、`--cv-card-shadow*`/`--cv-elev-*` 归 none）**实际从未生效**。
+
+## 8.5 真机取证（`probe-deadcss-batch2.5a.mjs`，四视图）
+
+**取证目标是证明「删它不可能改变渲染」**，三重闭环：
+① 源码零 import → ② Vite dev **不做 tree-shaking**，只要进了模块图，CSS 必以 `style[data-vite-dev-id]` 下发（本项目已有此经验：ui.css 经 barrel 间接下发）→ ③ 实测该指纹 **0 命中**。
+
+```
+✅ 外壳渲染就绪：.aurora-sidebar-item ×8（四视图：欢迎页/白板12/编辑器256/博客）
+✅ CSSOM 读取有效：83 表 / 605200 字符（防"空扫描假绿"）
+✅ 孤儿文件未进模块图：dev style 标签 28 个，其中孤儿 CSS 指纹 0 个
+✅ 已删规则在 CSSOM 零命中（.cv-* / .tl-*）
+✅ 反向护栏：5 个活选择器仍在 CSSOM
+ℹ️ 画布宿主尺寸：1171×508 px（非 0 ⇒ 未塌陷）
+✅ 零新增错误（另 1 条为已知预存，批 1 A/B 已定性，非本轮引入）
+```
+
+⚠️ **本轮踩到一个真陷阱**：探针初版用**固定 `sleep(3000)`** 等页面 → 读到**白屏**，而白屏下「CSSOM 零命中」「孤儿文件未出现」会**全部假绿**（`sheets=0` / `sidebar×0`）。
+拦住它的是 `CSSOM 读取有效：sheetCount>3 && cssLen>10000` 这条自检 —— **「零命中」类断言必须先证明「扫描面非空」**。
+正解：**就绪轮询** `sidebar-item.length>0 && styleSheets.length>8`，而非固定睡眠（Vite dev 首载 Aurora 700+ 模块需数十秒）。
+
+## 8.6 守卫同批交付（`deadCssPurge.test.ts` 新增 6 例 → 合计 96 例全绿）
+
+- **文件级**：两个孤儿文件 `existsSync === false`。
+- **反向护栏 ×2**：① `index.css` 聚合的 9 个样式仍各有真实加载点（证明它是**冗余而非必需**）；② **同名活文件 `aurora/styles/panels/canvas.css` 仍在**。
+  ⚠️ 仓内**有两个 `canvas.css`** —— 按 basename 匹配会张冠李戴，本组一律用**完整相对路径**。
+- **CSS 回流**：`.cv-*` 前缀锚（`/\.cv-/`）+ `.tl-container` / `.tl-toolbar` / `.tl-watermark` 三条；锚点**内建自检**（`--cv-bg: #ffffff;` 不命中 ⇒ 变量不是类）。
+- **有意不做 code 侧断言**：`canvasTheme.ts` 注释里仍会出现这些类名、`.tl-container` 还留在注入字符串中待决策 → 加了会误红。等 §8.4 落地后再补。
+
+**负向验证**：恢复 2 个文件 + 造 `.cv-pill-btn` / `.tl-toolbar` 样本 → **4 项精确报红** → 撤除后静态守卫 67 passed；全量 vitest **1320 passed / 2 skipped / 0 failed**，tsc 干净。
