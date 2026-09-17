@@ -3,7 +3,7 @@ import { createInitialFileTree } from '../features/fileManager/fileManagerUtils'
 import { knowledgeLinkGuideContent as knowledgeLinkGuideContentZh } from '../features/fileManager/defaultDocsZh';
 import { knowledgeLinkGuideContent as knowledgeLinkGuideContentEn } from '../features/fileManager/defaultDocsEn';
 import { logger } from '../utils/logger';
-import { saveLargeData, loadLargeData, migrateToIndexedDB } from '../stores/storage/migrate';
+import { saveLargeData, loadLargeData, migrateToIndexedDB } from '@core/storage/migrate';
 
 const STORAGE_KEY = 'markcraft-file-manager';
 const STORAGE_VERSION = 'v5';

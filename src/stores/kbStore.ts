@@ -3,7 +3,7 @@
  * 基于 IndexedDB（复用项目已有的 Dexie db），支持多知识库
  * 存储模式参考 canvasStore：列表 + 单文档分离存储
  */
-import { db } from './storage/db'
+import { db } from '@core/storage/db'
 import { findNode } from '../services/fileService'
 import type { FileNode } from '../types/fileManager'
 import {

@@ -5,6 +5,9 @@ import { resolve } from 'path'
 // Batch B 解耦整合：路径别名，与 tsconfig.json paths 保持一致
 const SRC = resolve(process.cwd(), 'src')
 const alias = {
+  // ⚠️ 别名表在本仓共 **4 处**：tsconfig.json / vite.config.ts / vitest.config.ts /
+  // vite.smoke.config.ts。新增别名必须四处同改。契约测试 src/aliasSync.test.ts 看守。
+  '@core': resolve(SRC, 'core'),
   '@features': resolve(SRC, 'features'),
   '@stores': resolve(SRC, 'stores'),
   '@aurora': resolve(SRC, 'aurora'),

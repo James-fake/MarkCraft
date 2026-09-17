@@ -1,3 +1,11 @@
+// L1 core/storage —— 持久化基础设施（IndexedDB / Dexie 封装）。
+//
+// Phase 1（2026-09-17）自 stores/storage/db.ts **原样下沉**（内容未作任何改写）：
+// 持久化基建不属于状态层 —— 它寄居在 stores 下会迫使领域操作层 services
+// 反向引用 stores，这正是「环 #2：stores > services > stores」的真因。
+// 下沉到 L1 后，services → core 与 stores → core 均为合法的单向依赖。
+//
+// 见《MarkCraft_解耦实施方案_2026-09-17.md》Phase 1。
 import Dexie, { Table } from 'dexie'
 
 /**

@@ -49,11 +49,19 @@ module.exports = {
     },
     {
       // services 层禁止引用 features（当前违规 4 处 → Phase 2 清零后升 error）
-      // services 层禁止引用 stores（当前违规 3 处 → Phase 1 下沉 stores/storage 后升 error）
       files: ['src/services/**/*.{ts,tsx}'],
       rules: {
         'local/no-service-to-feature': 'warn',
-        'local/no-service-to-store': 'warn',
+      },
+    },
+    {
+      // services 层禁止引用 stores —— **Phase 1 已升为 error**（2026-09-17）
+      // 依据：stores/storage（Dexie/IndexedDB 持久化基建）下沉 @core/storage 后，
+      // 存量 3 处违规归零，环 #2「stores > services > stores」消失。
+      // 故此处由 warn 收紧为阻断级：后续任何「基建寄居回 stores」都会被直接拦下。
+      files: ['src/services/**/*.{ts,tsx}'],
+      rules: {
+        'local/no-service-to-store': 'error',
       },
     },
   ],

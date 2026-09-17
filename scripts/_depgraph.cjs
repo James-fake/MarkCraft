@@ -1,14 +1,34 @@
 const fs = require('fs');
 const path = require('path');
-const ROOT = 'D:/TracSolo_Project/MarkdownEditor qoder';
+// 可移植：以脚本位置推算仓库根（原先硬编码了本机绝对路径）
+const ROOT = path.resolve(__dirname, '..');
 const SRC = path.join(ROOT, 'src');
 
-// 与 tsconfig.json paths / vite.config.ts alias 对齐
-const ALIAS = {
-  '@features': 'features', '@stores': 'stores', '@aurora': 'aurora', '@components': 'components',
-  '@services': 'services', '@utils': 'utils', '@hooks': 'hooks', '@app': 'app',
-  '@locales': 'locales', '@styles': 'styles', '@workers': 'workers', '@src': '',
-};
+// 别名表**从 vite.config.ts 派生**，不再硬编码。
+//
+// 为什么必须派生：本工具是「模块级环是否消失」的唯一验证手段，而 resolveSpec 对
+// 未登记的别名返回 null → 该 import 被**静默丢边** → 环检测漏报（假阴性）。
+// 这是最危险的失败方向：图看起来「更干净了」，而真相是它没看见。
+//
+// Phase 1 真实踩过：@core 未登记 → core 的边数为 0；而 30 条未解析项里 3 条真问题
+// （@core/storage/db|migrate|blobStore）被 @tiptap/* / @codemirror/* 等 npm 包淹没。
+//
+// 解析异常一律 fail-fast —— 宁可报错，也不要拿一张残缺的图下结论。
+const ALIAS = (() => {
+  const cfg = fs.readFileSync(path.join(ROOT, 'vite.config.ts'), 'utf8');
+  const block = cfg.match(/const alias\s*=\s*\{([\s\S]*?)\n\}/);
+  if (!block) {
+    throw new Error('[depgraph] 未能从 vite.config.ts 解析出 alias 块 —— 写法可能已变，请同步本工具');
+  }
+  const map = {};
+  const re = /'(@[\w-]+)'\s*:\s*(?:(?:resolve|join)\(\s*SRC\s*,\s*'([^']+)'\s*\)|SRC)/g;
+  let m;
+  while ((m = re.exec(block[1])) !== null) map[m[1]] = m[2] || '';
+  if (Object.keys(map).length < 5) {
+    throw new Error('[depgraph] 从 vite.config.ts 解析出的别名表异常（少于 5 项），拒绝以此结论输出');
+  }
+  return map;
+})();
 
 function walk(dir, acc) {
   let es;
@@ -161,3 +181,17 @@ Object.entries(edges).filter(([k]) => k.startsWith('aurora/')).sort((a, b) => b[
 line();
 console.log('== UNRESOLVED @-specs (别名未映射) ==');
 console.log(unresolved.size ? [...unresolved].join(', ') : '  (none)');
+
+// 自检：把「本项目自己的别名漏登记」从 npm 包噪声里摘出来单独报警。
+// 判据：首段在 node_modules 中不存在 ⇒ 不是第三方包 ⇒ 只能是本项目别名（或拼写错误）。
+// 这样即使将来新增别名忘了登记，也不会被 30 条 npm 包淹没（Phase 1 的教训）。
+const ownAliasGaps = [...unresolved].filter(
+  (s) => !fs.existsSync(path.join(ROOT, 'node_modules', s.split('/')[0]))
+);
+console.log('');
+if (ownAliasGaps.length) {
+  console.log('!! 本项目别名未登记（会导致静默丢边 → 环漏报，请立即补 vite.config.ts）!!');
+  ownAliasGaps.forEach((s) => console.log('   - ' + s));
+} else {
+  console.log('本项目别名登记完整：未解析项全部为 node_modules 第三方包 ✅');
+}

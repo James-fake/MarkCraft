@@ -4,7 +4,7 @@
  * 按画布隔离存储，记录用户"忽略"的自动连线，
  * 下次同步时不再生成。
  */
-import { db } from '@stores/storage/db'
+import { db } from '@core/storage/db'
 import type { IgnoredLink } from '../types'
 
 async function idbGet(key: string): Promise<string | null> {

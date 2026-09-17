@@ -4,9 +4,12 @@ import { VitePWA } from 'vite-plugin-pwa'
 import { existsSync, statSync, createReadStream, mkdirSync, readdirSync, copyFileSync } from 'fs'
 import { join, extname, dirname, basename, resolve } from 'path'
 
-// Batch B 解耦整合：路径别名，与 tsconfig.json paths 保持一致（消除 ../../../ 深相对引用）
+// Batch B 解耦整合：路径别名（消除 ../../../ 深相对引用）
 // ⚠️ Phase 0（2026-09-17）新增 @core → src/core（L1 领域基础能力层）。
-// 别名改动必须与 tsconfig.json paths 同步，否则会出现「dev 正常但 tsc 报错」或反之。
+// ⚠️ 别名表在本仓共 **4 处**：tsconfig.json / vite.config.ts / vitest.config.ts /
+// vite.smoke.config.ts —— 新增别名必须**四处同改**。只改前两处会出现
+// 「dev 正常但 vitest 报错」这类只在特定链路上暴露的失败（Phase 1 首次引用 @core
+// 时真实踩过：20 个测试文件在导入期崩溃）。契约测试 src/aliasSync.test.ts 看守。
 const SRC = resolve(process.cwd(), 'src')
 const alias = {
   '@core': join(SRC, 'core'),

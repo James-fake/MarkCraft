@@ -1,7 +1,7 @@
 import { NodeViewWrapper } from '@tiptap/react'
 import type { NodeViewProps } from '@tiptap/react'
 import { useEffect, useRef, useState } from 'react'
-import { getPdfBlob } from '@stores/storage/blobStore'
+import { getPdfBlob } from '@core/storage/blobStore'
 import { logger } from '@utils/logger'
 
 /** 一次最多渲染的页数，避免超大 PDF 占满内存（C3 风险缓解） */

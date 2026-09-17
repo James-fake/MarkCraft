@@ -1,3 +1,8 @@
+// L1 core/storage —— localStorage → IndexedDB 的大数据迁移，以及带降级的读写。
+//
+// Phase 1（2026-09-17）自 stores/storage/migrate.ts **原样下沉**（内容未作任何改写）：
+// 同 db.ts —— 基建不应寄居在状态层，否则 services 必须反向引用 stores。
+// 见《MarkCraft_解耦实施方案_2026-09-17.md》Phase 1。
 import { idbAdapter } from './db'
 
 const MIGRATION_KEY = 'markcraft-idb-migrated'

@@ -6,7 +6,7 @@
  * （elements = Excalidraw 图元，shapes = HTML 浮层卡片）。
  * 历史 tldraw 快照（含 .store）在载入时由 canvasPersistence.loadCanvasInto 自动迁移。
  */
-import { db } from '../../stores/storage/db'
+import { db } from '@core/storage/db'
 import { type CanvasListItem, type CanvasTrashItem, type CanvasDocument, type CardTemplate, type CardTemplateV2, genId } from './types'
 
 export { type CanvasListItem, type CanvasTrashItem, type CanvasDocument }

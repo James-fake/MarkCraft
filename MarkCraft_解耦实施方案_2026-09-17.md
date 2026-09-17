@@ -29,7 +29,7 @@
 
 | # | 范围 | 具体对象 | 消除的环 |
 |---|------|---------|---------|
-| S1 | **持久化基础设施下沉** | `stores/storage/{db,migrate}.ts` → `src/core/storage/` | #2 |
+| S1 | **持久化基础设施下沉** ✅ | `stores/storage/{db,migrate,blobStore}.ts` + `__tests__/` → `src/core/storage/`（8 处引用已更新，`stores/storage/` 目录整体移除） | #2 ✅ |
 | S2 | **业务工具下沉** | `features/fileManager/{fileManagerUtils,recentFilesManager,defaultDocsZh,defaultDocsEn}`、`features/tags/tagExtractor`、`features/shared/utils/plantumlConstants` → `src/core/` | #3 #4 #5 |
 | S3 | **Aurora 共享导航层** | `aurora/app/navReturn.ts` → `aurora/navigation/` | #7 #8 |
 | S4 | **`features/shared` 按内容分层拆分** | `utils/*`→`utils|core`、`ui/*`→`components/ui|归属 feature`、`storage/*`→`services|core/storage` | #3 #1 |
@@ -122,7 +122,13 @@
 > ① 每阶段独立提交，**频繁提交是唯一防线**；② 同一文件多处 Edit **必须串行**（并行会静默丢改动）；
 > ③ 回写文件**保真换行符**（本仓 CRLF/LF 混用）；④ 守卫断言**必须负向验证**（注入回归 → 确认真报红 → 撤除）；
 > ⑤ 涉及视觉/交互的改动才需真机 CDP 取证，纯结构迁移以 **tsc + vitest 全绿 + 守卫零违规**为准；
-> ⑥ 别名改动必须 **tsconfig.json 与 vite.config.ts 同步**。
+> ⑥ 别名改动必须 **4 处同改**：`tsconfig.json` / `vite.config.ts` / `vitest.config.ts` / `vite.smoke.config.ts`
+>   —— Phase 1 实测：只改前两处 → **vitest 20 个测试文件导入期崩溃**。契约测试 `src/aliasSync.test.ts` 已看守；
+>   `scripts/_depgraph.cjs` 改为从 `vite.config.ts` **派生**，不再是第 5 份副本。
+> ⑦ 排查「谁引用了某目录 X」时，**必须同时搜 `./X` / `../X` 同层相对形态** —— 只搜目录路径字符串会漏掉
+>   整类「同层就近引用」（Phase 1 实测漏 2 处，且它们恰是 `stores → stores/storage` 的形态）。
+> ⑧ **验证工具本身要先证「看得见」**：`_depgraph.cjs` 遇到未登记别名会**静默丢边** → 漏报环，症状是「图更干净了」。
+>   任何阶段宣布「环已消除」前，先确认该环涉及的模块在边列表中**有非零边数**（Phase 1 实测 `core` 边数为 0）。
 
 ---
 
@@ -155,17 +161,60 @@
 
 ---
 
-### Phase 1 —— 下沉持久化基础设施 → 断环 #2
+### Phase 1 —— 下沉持久化基础设施 → 断环 #2 ✅ 已完成（2026-09-17）
 
-| 动作 | 细节 |
-|------|------|
-| 1.1 迁移 | `stores/storage/db.ts` → `core/storage/db.ts`；`stores/storage/migrate.ts` → `core/storage/migrate.ts`；`stores/storage/index.ts` 若存在一并迁 |
-| 1.2 更新引用 | 消费方：`services/backupService.ts:2,3`、`services/fileService.ts:6`、`stores/*`（FileStore 等）、`stores/storage/__tests__/db.test.ts` → 改用 `@core/storage/*` |
-| 1.3 兼容 | 保留 `stores/storage/index.ts` 作 **re-export 壳**（1 个迭代后删），避免一次性改爆 |
-| 1.4 收紧守卫 | 把"`services` 禁止 import `stores/**`"由 warn 升 **error** |
+| 动作 | 细节 | 状态 |
+|------|------|------|
+| 1.1 迁移 | `stores/storage/{db,migrate,blobStore}.ts` + `__tests__/db.test.ts` → `core/storage/`（**字节级搬迁**，`Buffer.compare` 实测 identical，CRLF 保留）。原清单只列 db/migrate，**追加 `blobStore.ts`**：它与二者同属一个「持久化基建」簇，只迁两个会让 `stores/storage/` 残留同性质文件、目录无法消失 | ✅ |
+| 1.2 更新引用 | 实测 **8 处 / 7 文件**（原方案只识别出 3 处），全部改为 `@core/storage/*` | ✅ |
+| 1.3 兼容壳 | **有意不做**（偏离原方案，理由见下） | ⏭️ |
+| 1.4 收紧守卫 | `local/no-service-to-store` 由 warn 升 **error**，并注入探针验证「真阻断」（exit=1） | ✅ |
 
-**验收**：`stores ↔ services` 环消失（`_depgraph.cjs` 复核无 `stores > services > stores`）；`tsc` + `vitest` 全绿；守卫 0 违规。
-**风险**：🟢 低。Dexie 封装迁移不涉逻辑；唯一注意 `db.test.ts` 路径断言。
+**实测验收**：环 #2 `stores > services > stores` **消失**（8 环 → 7 环）；`tsc` 0 错误；`vitest` **113 文件 / 1505 passed · 2 skipped · 0 failed**（基线 1499 + 新增契约 6）；守卫 13 warning / **0 error**；`core` 出度 = **0**（纯叶子层，分层承重假设成立）。
+
+#### ⚠️ 1.2 的关键修正：原方案漏掉了 2 处消费者
+
+原方案与耦合分析都写「消费方：services 的 3 处 + FileStore 等 stores」。实测漏了 **2 处**：
+
+| 漏掉的引用点 | 形态 | 为什么被漏 |
+|---|---|---|
+| `src/stores/kbStore.ts:6` | `import { db } from './storage/db'` | **同目录相对路径**，不含 `stores/storage` 字样 → 以 `stores/storage` 为模式的检索恒不可见 |
+| `src/stores/NoteVersionStore.tsx:2` | 同上 | 同上 |
+
+> 教训（已升为判据）：**排查「谁引用了 X 目录」不能只搜目录路径字符串**，必须同时搜「同目录相对引用」`./X/...`、`../X/...`。否则会漏掉「同层内部就近引用」这一整类——而它们恰恰是 `stores → stores/storage` 的形态。
+
+#### ⏭️ 1.3 为何不做 re-export 兼容壳
+
+原方案为「避免一次性改爆」而保留 `stores/storage/index.ts` 壳。实测该目录**原本就没有 `index.ts`**，且真实爆炸半径只有 **8 处引用**（方案预估「stores 入度 102 波及面大」是针对 `stores/*` 整体，不是 `stores/storage/*`）。
+在这种量级下，兼容壳反而有害：它会留下**第二个导入源**（同一能力可从 `@core/storage/*` 与 `stores/storage/*` 两条路径进入），正是漂移的温床。
+故一次改净、直接删除目录（实测删后 `stores/` 下 18 项、零残留引用）。
+
+#### 🚨 1.5 过程中挖出的两个真问题（原方案未预见）
+
+**① 别名表实际有 4 处，方案纪律⑥只写了 2 处 → 20 个测试文件导入期崩溃**
+
+方案「统一纪律⑥」写「别名改动必须 `tsconfig.json` 与 `vite.config.ts` 同步」。实测别名表复制在 **4 处**：
+`tsconfig.json` / `vite.config.ts` / **`vitest.config.ts`** / **`vite.smoke.config.ts`**。
+
+Phase 1 首次引用 `@core` 时只改了前两处 → **vitest 解析不到 `@core`，20 个测试文件在导入期直接崩溃**（1499 → 1334 用例，测试文件数不变 ⇒ 是加载失败而非断言失败）。
+
+> 最阴险的地方：Phase 0 加别名后 `tsc` + `vitest` **全绿**，但那只说明「别名尚无人引用的休眠期」，绿灯给了「两处就够」的假信心。**休眠配置的绿灯不能当作已生效的证明。**
+>
+> 处置：补齐 4 处；新增契约测试 `src/aliasSync.test.ts`（6 例）把 4 份钉在一起 —— 不只比「键集合」，还比「目标目录」（防「键补齐、值写错」）；并负向验证过（移除一处 → 2 例精确报红 → 还原全绿）。
+
+**② `_depgraph.cjs` 对 `@core` 失明 → 会静默丢边、漏报环**
+
+该工具原用**硬编码别名表**（第 5 份副本），未登记 `@core` → `resolveSpec` 返回 null → `@core/*` 的导入被**静默丢弃**，实测 `core` 的边数为 **0**。
+而 30 条未解析项里 3 条真问题（`@core/storage/*`）被 `@tiptap/*`、`@codemirror/*` 等 npm 包淹没，肉眼几乎无法发现。
+
+> 这是最危险的失败方向：**图看起来「更干净了」，真相是它没看见。** 而该工具是后续每个阶段「环是否消失」的唯一判据 —— 带着失明的地图推进，等于用假绿验收。
+
+处置（3 项）：
+1. 别名表改为**从 `vite.config.ts` 派生**（解析失败即 fail-fast，拒绝以残缺图下结论）→ 第 5 份副本被彻底消除，不可能再漂移；
+2. 输出新增自检段：把未解析项按「首段是否存在于 node_modules」分成「本项目别名漏登记」与「第三方包」，前者单独报警；
+3. 顺手修掉硬编码的本机绝对路径 `ROOT`，改为按脚本位置推算（该工具已定为常备体检工具，不应绑死单机）。
+
+**风险实际发生情况**：🟢 低（Dexie 封装迁移不涉逻辑）—— 但**风险不在迁移本身，而在验证链路**（别名漏处 + 工具失明）。原方案的风险评估把注意力放在了「迁多少文件」，低估了「判据本身是否可靠」。
 
 ---
 
@@ -312,7 +361,7 @@
 ```
 Phase 0  地基（core 骨架 + @core 别名 + 守卫 warn + 基线快照）      ← 0.5 天
    ↓
-Phase 1  持久化下沉 → 断环 #2                                       ← 0.5 天   【里程碑 M1：stores↔services 解环】
+Phase 1  持久化下沉 → 断环 #2                                       ✅ 完成    【里程碑 M1 ✅：stores↔services 解环（8→7 环）】
    ↓
 Phase 2  业务工具下沉 → 断环 #3 #4 #5                              ← 1 天     【里程碑 M2：stores/services 对 features 依赖=0】
    ↓
@@ -331,7 +380,13 @@ Phase 6  结构性重构（editor 内部分层 / panels 契约层 / fileManager 
 
 ## 7. 附：验证与守卫清单
 
-**验证工具**：`scripts/_depgraph.cjs`（模块耦合矩阵 / 环检测，本次已建，建议保留为常备架构体检工具）
+**验证工具**：`scripts/_depgraph.cjs`（模块耦合矩阵 / 环检测，常备架构体检工具）
+**契约测试**：`src/aliasSync.test.ts`（6 例）看守「别名表 4 处同改」——不只比键集合，还比目标目录
+
+> **Phase 1 已加固 `_depgraph.cjs`**（原因见 §Phase 1 的 ① ②）：
+> ① 别名表改为**从 `vite.config.ts` 派生** —— 原硬编码副本未登记 `@core`，会对该别名的导入**静默丢边 → 漏报环**；
+> ② 根路径改为按脚本位置推算（原硬编码本机绝对路径，换机即失效）；
+> ③ 输出新增自检段，把「本项目别名漏登记」从 `@tiptap/*`、`@codemirror/*` 等 npm 包噪声中摘出来单独报警。
 **守卫文件**：`.eslintrc.guard.cjs`（lint-staged 闸口）+ `scripts/eslint-local-rules/*.cjs`
 + 共用工厂 `scripts/eslint-local-rules/_forbidden-import.cjs`（判定逻辑单源）
 
@@ -341,7 +396,7 @@ Phase 6  结构性重构（editor 内部分层 / panels 契约层 / fileManager 
 |---|------|------|---------|
 | 1 | `local/no-store-to-feature` | `stores/**` → `features/**` | ✅ Phase 0 已落（warn，9 处存量）→ Phase 2 清零点后升 error |
 | 2 | `local/no-service-to-feature` | `services/**` → `features/**` | ✅ Phase 0 已落（warn，4 处存量）→ Phase 2 清零点后升 error |
-| 3 | `local/no-service-to-store` | `services/**` → `stores/**` | ✅ Phase 0 已落（warn，3 处存量）→ Phase 1 下沉后升 error |
+| 3 | `local/no-service-to-store` | `services/**` → `stores/**` | ✅ **Phase 1 已升 error**（存量 3 处清零；注入探针实测阻断 exit=1） |
 | 4 | `local/no-app-panels-cycle` | `aurora/app` ⇄ `aurora/panels` 互禁 | ⏳ Phase 3 落地 |
 | 5 | `local/no-aurora-ui-import` | `features/stores/services` → `aurora/**` | ✅ 既有规则，保持不变（error，当前 0 违规） |
 

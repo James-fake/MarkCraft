@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react'
-import { db } from './storage/db'
+import { db } from '@core/storage/db'
 
 export interface NoteVersion {
   versionId: string

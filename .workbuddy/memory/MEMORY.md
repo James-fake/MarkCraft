@@ -10,6 +10,8 @@ dev 端口 **5174**：`node node_modules/vite/bin/vite.js --port 5174 --host`。
 
 ## 关键坑（防回归）
 - **Path depth**：panels→features/stores `../../../`；components/ui·app `../../`。
+- ⚠️ **别名表分散在 4 处**：`tsconfig.json` / `vite.config.ts` / `vitest.config.ts` / `vite.smoke.config.ts` → 新增别名**必须四处同改**。只改 tsconfig+vite 的后果是「dev 正常但 vitest 崩」：实测 20 个测试文件在**导入期**崩溃（测试文件数不变、用例数骤减 1499→1334 = 加载失败而非断言失败）。守卫 = 契约测试 `src/aliasSync.test.ts`（6 例，比键集合 + 比目标目录）。⚠️ **休眠配置的绿灯不算证明**：别名无人引用时 tsc+vitest 全绿，给了「两处就够」的假信心。
+- **排查「谁引用了某目录 X」必须同时搜 `./X` `../X` 同层相对形态** → 只搜目录路径字符串会漏掉整类「同层就近引用」（实测漏 2 处，且恰是 `stores → stores/storage` 形态）。
 - 新类**必须同批交付 CSS**；**同文件多处 Edit 必须串行**（并行 = 后写覆盖先写、静默丢改动；症状是 tsc 报「声明未使用」+「找不到该名称」自相矛盾组合）。跨文件可并行。改完**逐文件 grep 核验关键行**。
 - 单源：z-index = `tokens.css §14`；Modal = `@components/ui/Modal`；Button/Confirm/Switch = `@components/ui/*`。
 - ⚠️ **`styles/desktop-chrome.css` 是有意的第二层 `:root`**（加载序 tokens → desktop-chrome，后者赢）→ **只改 tokens.css 的 `--mc-accent` 不生效**，须同改 desktop-chrome（含亮色）。
@@ -111,6 +113,13 @@ PortableGit `/c/Users/HJN/.workbuddy/binaries/PortableGit/versions/1.2.0/{cmd,us
 **方向判定（已查证内容）**：`stores→services` 的 4 处是**领域操作函数**（fileService CRUD / blockReference / undoRedoManager）→ **方向自然保留**；`services→stores` 2 处**只指向 `stores/storage/`** → 下沉即单向化；`hooks→stores` 2 处保留，`stores→hooks` 1 处**需反转**。
 **目标分层**：`types|utils` → `core`〔新〕 → `components/ui+locales` → `stores` → `services` → `features/*` → `aurora/*`（+`aurora/navigation`〔新〕）。新别名 `@core`→`src/core`。
 **新增硬边界（守卫）**：`stores`/`services` 禁止 import `features/**`；`services` 禁止 import `stores/**`；`aurora/app` 与 `aurora/panels` 互禁。
-**解耦方案 Phase 0–6**（`MarkCraft_解耦实施方案_2026-09-17.md`）：P1 下沉 `stores/storage` 断 #2｜**P2 下沉业务工具断 #3#4#5（最高收益，一次消 4 环）**｜P3 迁 `navReturn` 断 #7#8｜P4 `features/shared` 按 utils/ui/storage 三类拆｜P5 toolbar 归属（**推荐并入 `features/editor/toolbar/`**）+ hooks 收敛断 #6#1｜P6 后置。影响 ~51 文件迁移/~84 import，**运行时视觉零变化**。
+**解耦方案 Phase 0–6**（`MarkCraft_解耦实施方案_2026-09-17.md`，逐阶段独立提交）：
+- ✅ **P0 地基**（提交 `864d492`）：`src/core/{files,tags,storage,constants,data}` 骨架（**刻意不建根 barrel** —— 桶会把整个子图挂进模块图）+ `@core` 别名（4 处同改）+ 3 条解耦守卫（先 warn 落地）+ 基线归档 `.workbuddy/artifacts/BASELINE-phase0-2026-09-17.md`。另修一预存缺陷：守卫配置缺 `react-hooks` 插件 → 源码里 `eslint-disable-next-line react-hooks/exhaustive-deps` 指令被 ESLint 判「规则未定义」报 **7 处假错误**（会让 pre-commit 在与架构无关处卡死）→ 修法 `plugins: ['local','react-hooks']`（**只加载不启用**，不新增 lint 债）。
+- ✅ **P1 持久化下沉**：**环 #2 断（8→7 环）**。`stores/storage/{db,migrate,blobStore}.ts`+`__tests__` → `@core/storage/*`，**实测 8 处引用**（方案只识别 3 处，漏的 2 处是同层相对引用）；`stores/storage/` 整体删除（**有意不做 re-export 壳**：8 处量级下「双导入源」比一次改净更危险）。守卫 `no-service-to-store` **升 error**（探针实测 exit=1 真阻断）。`core` 出度 = **0**（纯叶子层 ✅，分层承重假设成立）。
+- ⏳ **P2** 下沉业务工具断 #3#4#5（**最高收益**）｜**P3** 迁 `navReturn` 断 #7#8｜**P4** `features/shared` 按 utils/ui/storage 三类拆｜**P5** toolbar（**已拍板并入 `features/editor/toolbar/`**）+ hooks 收敛断 #6#1｜**P6** 后置。
+- 影响 ~51 文件迁移 / ~84 import，**运行时视觉零变化**。
+- **当前基线（P1 后）**：tsc 0 错误｜vitest **113 文件 / 1505 passed · 2 skipped · 0 failed**｜守卫 **13 warning**（9 `no-store-to-feature` + 4 `no-service-to-feature`）· 0 error｜**7 个模块级环**。
+- 🚨 **`_depgraph.cjs` 已加固**（P1 挖出的真问题）：原用**硬编码别名表**，未登记 `@core` → 对该别名的导入**静默丢边 → 漏报环**（实测 `core` 边数 = 0，30 条未解析项里 3 条真问题被 `@tiptap/*`、`@codemirror/*` 淹没）。**最危险的失败方向是「图看起来更干净了」**。现改为**从 `vite.config.ts` 派生**（解析失败即 fail-fast）+ 根路径按脚本位置推算（原硬编码本机绝对路径）+ 新增「本项目别名漏登记」自检段。
+- **判据**：宣布「某环已消除」前，**先确认该环涉及模块在边列表中有非零边数**（否则可能是工具没看见而非真的没有了）。
 **入度/出度基线**（供后续对照）：入度 stores 102／types 79／components/ui 54／shared 52；出度 aurora/panels **165**／features/editor **95**／blog 32。
 - ✅ **已拍板（2026-09-17）**：① `features` 含 159 `.tsx` 承认 **feature-sliced 变体**——业务 UI 随 feature 自包含、壳层 UI 落 aurora、通用 UI 落 components/ui，**已据此修订铁律 ④**，不做整体搬迁；② `toolbar` 归属 **选 A**（并入 `features/editor/toolbar/`，同域内聚）。后续解耦照此执行。
