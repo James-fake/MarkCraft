@@ -6,7 +6,7 @@ Vite5+React18+TS；CodeMirror6+TipTap3；白板 Excalidraw（tldraw 已退役）
 dev 端口 **5174**：`node node_modules/vite/bin/vite.js --port 5174 --host`。**入口只有 `src/aurora/aurora-main.tsx`（无 `src/main.tsx`）**，真实 `#view=` 路由。
 **Aurora = 真实运行界面**。战略：网页 UI → **桌面端软件范式**（窗口 chrome／命令菜单／密度／键盘优先）。
 ① Aurora 即真实界面；② 禁增功能（边界 = 真实已有能力）；③ 视觉只用 `styles/tokens.css` 的 `--mc-*`；
-④ UI 落 `src/aurora/`，`src/features/*` 是逻辑层（D4 单一数据源），`src/components/ui` 可直接 import；⑤ 依赖只向下，**0 反向依赖**。
+④ UI 三层分置：壳层 UI 落 `src/aurora/`；通用 UI 落 `src/components/ui`（可直接 import）；**业务专属 UI 随 `features/*` 自包含**（feature-sliced 变体，2026-09-17 已拍板，不做整体迁 aurora 以免造出更坏的 `features→aurora` 跨层反向依赖）；`src/features/*` 仍是单一数据源（D4）。⑤ 依赖只向下，**0 跨层反向依赖**。
 
 ## 关键坑（防回归）
 - **Path depth**：panels→features/stores `../../../`；components/ui·app `../../`。
@@ -78,20 +78,39 @@ PortableGit `/c/Users/HJN/.workbuddy/binaries/PortableGit/versions/1.2.0/{cmd,us
 - 「做没做」量**视觉位移像素**；「看得见」别用 `elementFromPoint`（`pointer-events:none` 假阴性）；**拖动中截图不可信**（合成节流 → 上一帧）。
 - 间距/留白断言量 `Range.selectNodeContents(el).getClientRects()`（元素 `top` 不含自带 padding → 假阴性）；受控 input 用**原生 setter + `input` 事件**。
 
-## 专题铁律（细节见对应 artifacts）
+## 专题铁律（细节见对应 artifacts / 每日日志）
 - **动效语言**：分层 ⚡100–160／🚶150–250／🛋320–500ms；**外壳（MenuBar/Sidebar/StatusBar）永不参与视图切换动画**；reduced-motion = 「更少更柔非归零」（时长减半，入场 `mc-rm-fade`、**退场 `mc-rm-fade-out`**）；指针门控只归零**纯位移/缩放型** hover，**复合 transform 必须豁免**。
-- **浮层退场**（`DESIGNBRIEF-MOTION-EXIT-01.md`）：**必须先播退场再卸载**；单源 `@components/ui/usePresence`（对象门控用 `usePresenceValue` —— 退场窗口内保留**最后一份非空载荷**）；时长常量须与 CSS 逐字对齐；关键帧与入场**逐字镜像**；`[data-exiting='true']` 必带 `pointer-events:none`。⚠️ reduced-motion 会劫持退场（每个选择器须登记进 `mc-rm-fade-out`）。**有意不动**：命令面板／FileTree·Outline 展开／Tooltip hover-out／视图切换／Toast·Modal。
-- **N · tab 滑动切 Tab**（`DESIGNBRIEF-SWIPE-TABS-01.md`）：Apple 分段控件，**滑块跟手、内容零位移**、位移方向=目标方向、连续跨格；滑块位置 = 基准 + 手势位移**合成同一个 transform**；hook 必传 `dampenOffset`(恒等) + `snapDecider`；**位移保号与目标取反不能并存**。六条栏：`settings__nav-tabs`/`kb-subbar-tabs`/`blog__subseg`/`blog__tabs`/`csp__tabs`/`ctop__switcher`（同面板两条勿混层级）。⚠️ 白板**空白板引导锁定态**会停用手势（真机前先点「跳过，直接开始」）。R1–R3 旧法**已废弃，勿回退**。
+- **浮层退场**（共享原语 `components/ui/usePresence`；`usePresenceValue` 保留最后一份非空载荷；时长常量须与 CSS 逐字对齐；`[data-exiting='true']` 必带 `pointer-events:none`；reduced-motion 须逐选择器登记 `mc-rm-fade-out`）：命令面板／FileTree·Outline 展开／Tooltip hover-out／视图切换／Toast·Modal **有意不动**。
+- **N · tab 滑动切 Tab**：Apple 分段控件，**滑块跟手、内容零位移**、位移方向=目标方向、连续跨格；hook 必传 `dampenOffset`(恒等) + `snapDecider`；**位移保号与目标取反不能并存**。六条栏：`settings__nav-tabs`/`kb-subbar-tabs`/`blog__subseg`/`blog__tabs`/`csp__tabs`/`ctop__switcher`（同面板两条勿混层级）。⚠️ 白板**空白板引导锁定态**会停用手势（真机前先点「跳过，直接开始」）。R1–R3 旧法**已废弃，勿回退**。
 - **KB 面板**：subbar 52px。⚠️ `.aurora-kb-notes` 顶 padding 仅 2px 是为**自带 `__head` 的 Tab**设计（2+12=14 才完整）→ **无 head 的复用者必自带留白**（`.aurora-kb-notes__lead`）；新增 Tab 先问「我的 head 在哪」。基线锁 `kbTopSpacing.test.ts`(8) + `notesTabHeader.test.ts`(8)。⚠️ 空库不渲染 tab 栏、建库后**不自动进详情**；提交按钮选择器须限定 `.aurora-kb-modal` 内。
 
-## 死 CSS 清剿（`artifacts/DESIGNBRIEF-DEADCSS-01.md`）
-- ✅ **批 1**（−868 行／96 类／4 文件）→ §6.9｜**批 2 盲区扫描**（只扫不删：死类 124≈860 行，工具 `deadcss-batch2.mjs`）→ §7
-  ｜**批 2.5-A 孤儿文件**（−304 行：删 `src/index.css` + `features/canvas-v2/components/canvas.css`，移除 `canvasTheme.ts` 的 `.cv-pill-btn` 空转规则）→ §8
-  ｜**批 2.5-C `kb-ui.css`**（632→362 行，净 −270：删 66 类 + 3 空 `@media` + 2 孤儿 `@keyframes`；保留 46 类含 `.kb-shell`/`--kb-*` 令牌源 + `.kb-searchpanel-*`；消费侧 `tokens.css` 门控块删 2 条悬空引用）→ §9。
-  守卫：`deadCssPurge.test.ts`（2.5-C 后 243 例）+ `pointerGating.test.ts` 的 `dead` A/B 组；三批均**真机取证零回归**（2.5-C：五视角 66 类双向零命中 + 26 活类未误伤 + `.aurora-kb.kb-shell` 复合覆盖仍生效）。
-- **当前基线**：vitest **1499 passed / 2 skipped / 0 failed**；tsc 干净；**无预存失败**。二级栏三面板同源 52px。tooltip 平行遗留已清剿（唯一悬停机制 = 原生 `title=`）。
+## 死 CSS 清剿（进度 + 🔴 待决）
+- 已完成：**批 1**（−868 行／96 类／4 文件）、**批 2 盲区扫描**（只扫不删：死类 124≈860 行）、**批 2.5-A 孤儿文件**（−304 行：删 `src/index.css` + `features/canvas-v2/components/canvas.css`）、**批 2.5-C `kb-ui.css`**（632→362 行，净 −270：删 66 类 + 3 空 `@media` + 2 孤儿 `@keyframes`）。守卫 `deadCssPurge.test.ts`（2.5-C 后 243 例）+ `pointerGating.test.ts` 的 `dead` A/B 组。
+- 当前基线：vitest **1499 passed / 2 skipped / 0 failed**；tsc 干净；**无预存失败**。二级栏三面板同源 52px。
 - 🔴 **待决策（独立成题，性质≠死代码）**：`canvasTheme.ts` 注入选择器 `.tl-container, .canvas-v2-root` **两者皆无 DOM** ⇒ 其独有约 25 个 `--cv-*` **全程未定义**，而 8 个 canvas-v2 文件以**无 fallback** 的 `var(--cv-*)` 消费（真机实测 0/5 有值；`injectCanvasTheme()` **零调用点**）。修法 = 注入选择器改挂 `:root`，**会改变白板浮层观感**。
-- **后续可做**：**2.5-B** `mermaid.css` 35 类（含 7 处混合块）／**批 3** `aurora-editor` 23 类旧自绘 DOM（**需先建 L3 真机 class 挂载采集器**）／**3.5** `desktop-chrome.css` 死 token + 覆盖陷阱（token 单源治理）。
-- **其他待决**：`components/ui` 的 `Input.tsx`/`EmptyState.tsx` 零消费者（样式经桶间接下发）；`--mc-dur-lazy` 处置；`tiptap-math-inline` 疑似命名错位（`tiptap.css:456/:470` 定样式但 DOM 只有 `editable-node`+`-katex` → 从未生效，**待与作者确认意图**）；>30 天旧日志蒸馏。
-- **侧栏「小标题栏」不统一**（只给结论未改）：`.aurora-filetree__topbar`/`.aurora-outline__header` 是**面板级**标题行（36px，已自洽），与**视图级**二级栏 52px 不同层级。P2 可选抽 `--mc-panel-head-h`（属**收敛**非统一）。
-- ✅ 已推送 `origin/master`：`187be15`/`1e08d65`/`988c406`/`30fc95f`/`3b3e9b2`/`fb219cc`/`65cee4b`(批 1)/`d09c5b8`(批 2)/`2c15b51`(2.5-A)/`43ee348`(2.5-C)。Gitee 令牌不入库、不落盘（已建议轮换）。
+- 后续可做：**2.5-B** `mermaid.css` 35 类（含 7 处混合块）／**批 3** `aurora-editor` 23 类旧自绘 DOM（**需先建 L3 真机 class 挂载采集器**）／**3.5** `desktop-chrome.css` 死 token + 覆盖陷阱（token 单源治理）。
+- 其他待决：`components/ui` 的 `Input.tsx`/`EmptyState.tsx` 零消费者（样式经桶间接下发）；`--mc-dur-lazy` 处置；`tiptap-math-inline` 疑似命名错位（`tiptap.css:456/:470` 定样式但 DOM 只有 `editable-node`+`-katex` → 从未生效，**待与作者确认意图**）；>30 天旧日志蒸馏。
+- 侧栏「小标题栏」不统一（`.aurora-filetree__topbar`/`.aurora-outline__header` 面板级 36px，与视图级 52px 不同层级）。P2 可选抽 `--mc-panel-head-h`（收敛非统一）。
+
+## 【2026-09-17 新增】结构审计待决（穷尽式源码审计，详见 `MarkCraft_源码结构审计报告_2026-09-17.md`）
+- **架构张力（P0）**：features 含 159 个 .tsx（占全仓 UI 组件 64%），与铁律"UI 落 aurora / features=逻辑层"表述偏差 → 须澄清：feature-sliced 自包含（feature 含 UI+逻辑）还是越界？据此修订铁律表述。
+- **死代码**：`Input.tsx`/`EmptyState.tsx` 零消费者（仅桶导出）；`injectCanvasTheme()` 零调用（见上 🔴）。
+- **命名分裂**：`backupService.ts` 存于 `services/` 与 `features/export/`，职责不同但同名 → 重命名消歧。
+- **结构卫生**：`aurora/docs/design/` 20 份 md 混入 `src/`（应迁 `docs/design/`）；根目录 8+14 份 vite/vitest `*.timestamp-*.mjs` 残留（.gitignore 已忽略，仅本地整洁）。
+- **悬空别名**：`@workers` 配置但零引用 → 删或补 `@src/workers` 目录。
+- **巨型文件**：`features/blog/themes/newThemes.ts` 22752 行（最高优先级可维护性炸弹，按主题拆分）。
+- 测试健全：≈115 测试文件，基线 1499 passed。配置健康：tsconfig/vite 别名一致、manualChunks 合理、vite 内置 Excalidraw 资源修复。
+- 临时审计脚本 `scripts/_audit_scan.cjs` / `_audit_tree.cjs` 已删（报告生成后清理）。
+
+## 【2026-09-17 新增】模块耦合与解耦路线（`scripts/_depgraph.cjs` 常备体检工具）
+**病灶一句**：**"跨模块共享能力被就近寄居在上层模块里" → 下层反向引用 → 必然成环。** 检出 **8 个模块级环**（5 环以 `stores` 为节点、3 环在 Aurora 外壳内）。
+**三处寄居**（各自对应环）：
+① 业务工具寄居 `features/*`：`fileManager`(collectAllFiles/createInitialFileTree/recentFilesManager/defaultDocsZh·En)、`tags/tagExtractor`、`shared/utils/plantumlConstants` → 被 `stores`(5)+`services`(2) 反向依赖 → 环 #3#4#5。
+② **持久化基建寄居 `stores/storage/`**（`db`/`migrate` 的 Dexie 封装）→ `services` 反向依赖 → 环 #2 真因。
+③ 导航共享状态寄居 `aurora/app/navReturn` → `aurora/panels` 反向依赖 → 环 #7#8。
+**方向判定（已查证内容）**：`stores→services` 的 4 处是**领域操作函数**（fileService CRUD / blockReference / undoRedoManager）→ **方向自然保留**；`services→stores` 2 处**只指向 `stores/storage/`** → 下沉即单向化；`hooks→stores` 2 处保留，`stores→hooks` 1 处**需反转**。
+**目标分层**：`types|utils` → `core`〔新〕 → `components/ui+locales` → `stores` → `services` → `features/*` → `aurora/*`（+`aurora/navigation`〔新〕）。新别名 `@core`→`src/core`。
+**新增硬边界（守卫）**：`stores`/`services` 禁止 import `features/**`；`services` 禁止 import `stores/**`；`aurora/app` 与 `aurora/panels` 互禁。
+**解耦方案 Phase 0–6**（`MarkCraft_解耦实施方案_2026-09-17.md`）：P1 下沉 `stores/storage` 断 #2｜**P2 下沉业务工具断 #3#4#5（最高收益，一次消 4 环）**｜P3 迁 `navReturn` 断 #7#8｜P4 `features/shared` 按 utils/ui/storage 三类拆｜P5 toolbar 归属（**推荐并入 `features/editor/toolbar/`**）+ hooks 收敛断 #6#1｜P6 后置。影响 ~51 文件迁移/~84 import，**运行时视觉零变化**。
+**入度/出度基线**（供后续对照）：入度 stores 102／types 79／components/ui 54／shared 52；出度 aurora/panels **165**／features/editor **95**／blog 32。
+- ✅ **已拍板（2026-09-17）**：① `features` 含 159 `.tsx` 承认 **feature-sliced 变体**——业务 UI 随 feature 自包含、壳层 UI 落 aurora、通用 UI 落 components/ui，**已据此修订铁律 ④**，不做整体搬迁；② `toolbar` 归属 **选 A**（并入 `features/editor/toolbar/`，同域内聚）。后续解耦照此执行。
