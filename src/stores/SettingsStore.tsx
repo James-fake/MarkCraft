@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
-import { DEFAULT_PLANTUML_ENDPOINT } from '../features/shared/utils/plantumlConstants'
+import { DEFAULT_PLANTUML_ENDPOINT } from '@core/constants/plantuml'
 
 export interface AppSettings {
   // Editor

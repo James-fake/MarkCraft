@@ -1,3 +1,11 @@
+// L1 core/tags —— Markdown #标签抽取（纯函数，无 UI / 无状态）。
+//
+// Phase 2（2026-09-17）自 features/tags/tagExtractor.ts **原样下沉**
+// （仅改目录，内容未作任何改写）：
+// stores/TagIndexStore 需要标签抽取，而它原寄居业务模块 → 状态层反向引用业务层。
+// 下沉后 features/tags 目录随之清空删除。
+//
+// 见《MarkCraft_解耦实施方案_2026-09-17.md》Phase 2.4。
 // 标签正则：匹配 #标签名，支持中文、英文、数字、斜杠（嵌套）
 // 不匹配标题 # 和颜色码 #fff 等
 // 标签名可以以英文字母或中文字符开头

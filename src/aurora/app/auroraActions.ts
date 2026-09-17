@@ -14,7 +14,7 @@ import type { useLinkIndex } from '../../stores/LinkIndexStore'
 import type { EditorCommandBridge, AuroraModalId } from '../panels/editor/EditorPanel'
 import { openDailyNote } from '../../features/fileManager/DailyNoteService'
 import { generateReverseMoc } from '../../features/fileManager/MocGenerator'
-import { findNode } from '../../features/fileManager/fileManagerUtils'
+import { findNode } from '@core/files/fileTree'
 
 export interface AuroraActionDeps {
   rootFolder: ReturnType<typeof useFileManager>['rootFolder']

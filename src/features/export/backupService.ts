@@ -91,8 +91,8 @@ export function transformContentForExport(
   return { markdown, assets, missing }
 }
 
-/** 递归收集树内全部文件节点（深度优先，稳定顺序）。统一委托 fileManagerUtils.collectAllFiles（D4 单一数据源） */
-import { collectAllFiles as collectFiles } from '../fileManager/fileManagerUtils'
+/** 递归收集树内全部文件节点（深度优先，稳定顺序）。统一委托 fileTree.collectAllFiles（D4 单一数据源） */
+import { collectAllFiles as collectFiles } from '@core/files/fileTree'
 export { collectFiles }
 
 /** 递归收集树内全部文件夹节点 */

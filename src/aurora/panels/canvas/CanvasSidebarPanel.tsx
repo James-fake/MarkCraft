@@ -9,7 +9,7 @@ import { useTagIndex } from '@stores/TagIndexStore'
 import { useNoteVersion } from '@stores/NoteVersionStore'
 import { useFileManager } from '@stores/FileStore'
 import type { FileNode } from '@src/types/fileManager'
-import { collectFolderIds, flattenFileTree } from '@features/fileManager/fileManagerUtils'
+import { collectFolderIds, flattenFileTree } from '@core/files/fileTree'
 import { NoteHoverCardView } from '@features/editor/components/NoteHoverCard'
 
 /**

@@ -100,8 +100,8 @@
 | `aurora/**`     | ✅    | ✅    | ✅   | ✅      | ✅      | ✅     | ✅       | ✅       | ✅     |
 
 **三条本次新增的强约束**：
-1. ❌ `stores` / `services` **禁止** import `features/**`（当前违规 7+4 处 → C1/C2）。
-2. ❌ `services` **禁止** import `stores/**`（当前违规 2 处 → 环 #2；`stores/storage` 下沉后自然满足）。
+1. ❌ `stores` / `services` **禁止** import `features/**`（基线 9+4 处 → **Phase 2 已归零并升 error**；实测两层出边已无 features）。
+2. ❌ `services` **禁止** import `stores/**`（基线 3 处 → **Phase 1 已归零并升 error**；环 #2 消失）。
 3. ❌ `aurora/app` 与 `aurora/panels` **禁止互相 import**（当前 2+3 处 → 环 #7/#8；`navReturn` 迁移后自然满足）。
 
 > ⚠️ `stores ↔ stores`（同层内）与 `features ↔ features`（同域内）允许，本方案不强制打散。
@@ -218,20 +218,75 @@ Phase 1 首次引用 `@core` 时只改了前两处 → **vitest 解析不到 `@c
 
 ---
 
-### Phase 2 —— 下沉业务工具 → 断环 #3 #4 #5（本方案最高收益步）
+### Phase 2 —— 下沉业务工具 → 断环 #4 #5 + #3 直接形态 ✅ 已完成（2026-09-17）
 
-| 动作 | 从 | 到 | 主要消费方（需更新） |
-|------|----|----|---------------------|
-| 2.1 | `features/fileManager/fileManagerUtils.ts` | `core/files/fileTree.ts` | `stores/{kbStore,BlockIndexStore,LinkIndexStore,TagIndexStore}`、`services/{backupService,fileService}`、`features/fileManager/*` 内部、`aurora` 若有引用 |
-| 2.2 | `features/fileManager/recentFilesManager.ts` | `core/files/recentFiles.ts` | `stores/FileStore.tsx:6` 等 |
-| 2.3 | `features/fileManager/defaultDocsZh.ts` / `defaultDocsEn.ts` | `core/data/defaultDocs/{zh,en}.ts` | `stores/FileStore.tsx:7,8`、`services/fileService.ts:3,4` |
-| 2.4 | `features/tags/tagExtractor.ts` | `core/tags/tagExtractor.ts` | `stores/TagIndexStore.tsx:3`、`features/tags/*` 内部 |
-| 2.5 | `features/shared/utils/plantumlConstants.ts` | `core/constants/plantuml.ts` | `stores/SettingsStore.tsx:2`、其他引用方 |
-| 2.6 | 收紧守卫 | 把"`stores`/`services` 禁止 import `features/**`"由 warn 升 **error** |
+| 动作 | 从 | 到 | 消费方（实测） | 状态 |
+|------|----|----|--------------|------|
+| 2.1 | `features/fileManager/fileManagerUtils.ts` | `core/files/fileTree.ts` | **19 文件**（stores 4 / services 2 / features 3 / aurora 10） | ✅ |
+| 2.2 | `features/fileManager/recentFilesManager.ts` | `core/files/recentFiles.ts` | 5 文件（stores 1 / features/toolbar 2 / aurora 2） | ✅ |
+| 2.3 | `features/fileManager/defaultDocs{Zh,En}.ts` | `core/data/defaultDocs/{zh,en}.ts` | 6 处 / 3 文件 | ✅ |
+| 2.4 | `features/tags/tagExtractor.ts` | `core/tags/tagExtractor.ts` | 1 文件（`stores/TagIndexStore`）；`features/tags/` 随之空目录删除 | ✅ |
+| 2.5 | `features/shared/utils/plantumlConstants.ts` | `core/constants/plantuml.ts` | 2 文件（`stores/SettingsStore` + 同族 `plantumlEncoder`） | ✅ |
+| 2.6 | 收紧守卫 | `no-store-to-feature` / `no-service-to-feature` 由 warn 升 **error** | — | ✅ |
 
-**关键约束**：2.1 的下沉**必须完整**——`fileManagerUtils` 若同时含少量 fileManager 专属逻辑，需**先切分**（纯函数进 `core`，专属留 `features/fileManager`），不得整体照搬。
-**验收**：环 #3 #4 #5 消失；`stores`/`services` 对 `features` 依赖 = **0**（Grep 复核）；全绿。
-**风险**：🟡 中。迁 6 文件 + 约 15 处 import；`defaultDocs*`(共 4859 行)移动后注意**大文件不重排内容**（避免无意义 diff）。
+**实测验收**
+
+| 判据 | 结果 |
+|------|------|
+| **`stores` / `services` 对 `features` 依赖** | **= 0** ✅ `stores` 出边仅 core(7)/types(5)/services(4)/locales(1)/hooks(1)；`services` 出边仅 types(2)/core(2)/utils(1) |
+| 环 `#4` `stores > services > features/fileManager > features/templates > stores` | **消失** ✅ |
+| 环 `#5` `stores > services > features/fileManager > stores` | **消失** ✅ |
+| 环 `#3` `stores > features/shared > stores` | **直接形态消失** ✅／**间接形态浮现** ⚠️ 见 2.z |
+| 环总数 | 7 → **5**（消 3 条目标环，同时暴露 1 条未被预见的间接环） |
+| `tsc` | 0 错误 ✅ |
+| `vitest` | **113 文件 / 1505 passed · 2 skipped · 0 failed** ✅ 与 Phase 1 基线**逐项一致** ⇒ 迁移零回归 |
+| 守卫 | **672 文件实扫**（作用域内 497）/ **0 违规**；探针验证「真阻断」 |
+| `core` 出度 | 仍为 **0**（纯叶子层假设持续成立）✅ |
+
+#### ⚠️ 2.1 的关键约束：原担心「需先切分」实际不成立
+
+方案要求「`fileManagerUtils` 若同时含 fileManager 专属逻辑，需**先切分**，不得整体照搬」。**实测该文件 300 行通篇为纯函数**（树遍历 / 生成 id / `findNode` / `collectAllFiles`…）+ 一段 localStorage 读写（`loadState` / `saveState` / `migrateAddLinkGuide`），**零 JSX、零 store / hook 引用** ⇒ 无专属逻辑需要剥离，可整体搬迁。
+（说明 Phase 0 之前的若干轮重构已把它清理干净，此处无需再切一次。原方案的谨慎是合理的，只是前提没有成立。）
+
+#### ⚠️ 2.x 结构校正：`core/*` 不保留占位 `index.ts`
+
+Phase 0 为「目录职责自证」在 `core/{files,tags,constants,data}/index.ts` 各建了 `export {}` 占位。**Phase 2 落地后全部删除**（连 Phase 1 已删的 `core/storage/index.ts` 共 5 个），理由两条：
+
+1. 这些文件**零消费者**（实测无任何 `'@core/files'` 形态导入）—— 按本项目判据「判死先验有真实承载者」，空模块没有承载者；
+2. 更关键：若把它们改成 barrel（`export * from './fileTree'`），**任何只想用 `recentFiles` 的消费者都会被连带挂进 `fileTree`，而 `fileTree` 静态 import 了 4859 行种子文档**（`zh.ts` 2103 行 + `en.ts` 2756 行，源码共约 146 KB）—— dev 无 tree-shaking，这笔代价会转嫁给每一个消费者。
+
+> **判据（新增）**：只要子图内含「大体积静态数据」，该目录就**禁止提供 barrel**，消费者一律精确到文件（`@core/files/fileTree`）。
+> 这与 `plantumlConstants` 当初「单独成文件以免连带 pako」是同一原理。本次迁移恰好**强化**了那个设计意图：`plantuml.ts` 迁入 `core/constants` 后，与 `shared/utils`（含 `plantumlEncoder` → pako）目录彻底脱钩，隔离比原先更彻底。
+
+#### 🚨 2.y 过程中挖出的真问题：BOM 会被「加注释头」挤到行中间
+
+按 Phase 1 惯例给 6 个迁移文件加「来源注释头」时，`src/core/data/defaultDocs/zh.ts` **原文件带 UTF-8 BOM**（`EF BB BF`）。BOM 本是文件首字节，插入注释头后它被挤到 **byte-offset 483**（注释头之后、`export` 之前）—— 从「文件头 BOM」退化成「行中零宽字符」。
+
+> 语法上无害（U+FEFF 在 JS/TS 中按空白处理，`tsc` / 测试全绿），但它**破坏了「保真搬迁」**：BOM 是**文件级**元数据，不属于行结构，任何「插头 / 截断 / 拼接」操作都必须显式搬运它。
+> 处置：用 `Buffer` 级操作定点搬回 offset 0（字节数守恒 65208 → 65208，实测 BOM offsets = `[0]`）。
+>
+> **判据（新增）**：改任何文件头之前先探 BOM（`b[0]===0xEF&&b[1]===0xBB&&b[2]===0xBF`），并把「BOM 位置」列入搬迁前后的一致性核对项。
+> 本次 6 个文件仅 `zh.ts` 命中 —— 属**低频但静默**的坑：它不会让任何检查变红，只会悄悄改变文件形态。
+
+#### 📐 2.z 对后续阶段的实质澄清：环 #3 的根因边是 `features/shared → stores`
+
+`_depgraph` 出边实测：`features/shared` 有一条 **`→ stores : 2`** 的**反向边**（而 `stores → features/shared` 已归零）。
+即环 #3 在 `#4` / `#5` 消失后仍以间接形态存活，**唯一成因就是这条反向边**；`stores > hooks (1)` 与 `hooks > features/shared (2)` 都只是通路。
+
+> 因此 **Phase 4 的靶心应精确表述为：消除 `features/shared → stores`（2 处）**。
+> 原方案写「`features/shared` 不再被 `stores`/`services` 依赖」方向没错，但**说反了主次** —— 要断的是 shared 对 stores 的引用，而不是 stores 对 shared 的引用（后者已为 0，无需再动）。
+
+#### 📉 2.w 估算偏差（与 Phase 1 同向：实际改动面 > 方案预估）
+
+| 项 | 方案预估 | 实测 |
+|---|---|---|
+| import 改动 | 「约 15 处」 | **33 处 specifier / 25 文件**（含迁移文件自身 2 处内部路径） |
+| 守卫违规存量 | 「9 处 + 4 处」= 13 | 与 Phase 1 实测一致 ✅（本次归零） |
+| 环消除 | 「#3 #4 #5 消失」 | #4 #5 全消 ✅；#3 仅直接形态消失，间接形态留给 Phase 4 |
+
+漏算主因：**aurora 侧 10 处**与**注释提及 3 处**（`export/backupService` / `pwa/librarySync` / `welcome/WelcomePanel`，随迁改注释措辞）未计入预估。
+
+**风险实际发生情况**：🟡 中 → 实际 🟢 低（纯搬迁、零逻辑改写、零回归）。真正的成本依旧不在「迁移」而**在验证链路**：本阶段为此额外补了一条 Phase 1 没跑的链路 —— **生产构建**（`vite build`），因为 `@core/*` 深路径解析在不同打包链路上未必同构。
 
 ---
 
@@ -251,16 +306,23 @@ Phase 1 首次引用 `@core` 时只改了前两处 → **vitest 解析不到 `@c
 
 ### Phase 4 —— `features/shared` 按内容分层拆分 → 断环 #3 残部/#1
 
+> **靶心已按 Phase 2 实测校准**（见 Phase 2 §2.z）：要断的是 **`features/shared → stores`（2 处反向边）**，
+> 而不是 `stores → features/shared`（实测已归零）。靶心错位会让整步做无用功。
+
 | 内容类 | 现状 | 目标 |
 |--------|------|------|
-| `utils/*`（11 文件：`mathRenderer`、`plantuml*`、`frontMatter`、`headingIdUtils`、`mermaidCache`、`imageHelpers`、`emojiData`、`ShortcutManager`、`HighlightMark`、`lintTypes`） | 寄居 features | `src/utils/` 或 `src/core/utils/`（按是否含领域语义） |
+| `utils/*`（**10 文件**：`mathRenderer`、`frontMatter`、`headingIdUtils`、`mermaidCache`、`imageHelpers`、`emojiData`、`ShortcutManager`、`HighlightMark`、`lintTypes`、`plantumlEncoder`） | 寄居 features | `src/utils/` 或 `src/core/utils/`（按是否含领域语义）。原列 11 文件中的 `plantumlConstants` **已于 Phase 2 迁 `core/constants/plantuml`** |
 | `ui/*`（5 文件：`EmojiPicker`、`ErrorBoundary`、`FrontMatterPanel`、`OptimizeImagesModal`、`ScrollButtons`） | 寄居 features | 通用件（`ErrorBoundary`/`ScrollButtons`）→ `components/ui/`；业务件 → 归入消费方 feature（如 `features/editor`） |
-| `storage/imageStore(.ts|Types.ts)` | 寄居 features | `core/storage/imageStore` 或 `services/` |
+| `storage/imageStore(.ts \| Types.ts)` | 寄居 features | `core/storage/imageStore` 或 `services/` |
 | `__tests__/plantumlEncoder.test.ts` | 随迁 | 跟随被测文件 |
 
-**收尾**：`features/shared/` 目录**清空后删除**（或保留仅放真正"跨 feature 业务共享"，且**禁止**再被 `stores`/`services` 依赖）。
-**验收**：`features/shared` 不再被 `stores`/`services` 依赖；`stores↔shared` 环消失；全绿 + 守卫零违规。
-**风险**：🟡 中高。`shared` 被 **52 处**引用 → 建议按"类"分批（utils 一批、ui 一批、storage 一批）**三次提交**，每批独立验证。
+**收尾**：`features/shared/` 目录**清空后删除**（或仅保留真正「跨 feature 业务共享」，且**禁止**再被 `stores`/`services` 依赖）。
+**验收**：`features/shared → stores` = **0**（`_depgraph` 出边复核）；环 `stores > hooks > features/shared > stores` 消失；全绿 + 守卫零违规。
+**风险**：🟡 中高。`shared` 被 **52 处**引用 → 建议按「类」分批（utils 一批、ui 一批、storage 一批）**三次提交**，每批独立验证。
+
+> 💡 **与 Phase 5.2 的交集**：环 #3 间接形态的通路是 `stores → hooks → features/shared → stores`，
+> 故 **Phase 4（断反向边 `shared→stores`）与 Phase 5.2（断正向边 `stores→hooks`）任一完成都能消除它**。
+> 若 Phase 5.2 先行，Phase 4 的这条验收会自动满足 —— 但该步仍要做，因为 `shared→stores` 本身是**方向错误**的依赖。
 
 ---
 
@@ -278,6 +340,7 @@ Phase 1 首次引用 `@core` 时只改了前两处 → **vitest 解析不到 `@c
 **5.2 `hooks ↔ stores`**
 - 反转 `stores → hooks` 的 1 处（`stores` 不应调用 React hook；若为 hook 化逻辑，应改为纯函数放 `core`）。
 - 保留 `hooks → stores`（hook 读状态，方向正确）。
+- ⚠️ 实测该 `stores → hooks` 边（1 处）**同时是环 #3 间接形态的通路之一**（`stores → hooks → features/shared → stores`），故本步是 Phase 4 之外的**第二个断点**（详见 Phase 4 交集注）。
 
 **验收**：环 #1 #6 消失；**8 环全部清零**（`_depgraph.cjs` 复核 `MODULE-LEVEL CYCLES = (none)`）。
 **风险**：🟡 中。Phase 5 完成后应做**一次完整真机回归**（四视图 + 编辑器工具栏交互）。
@@ -302,8 +365,8 @@ Phase 1 首次引用 `@core` 时只改了前两处 → **vitest 解析不到 `@c
 | 阶段 | 迁移文件 | 需更新 import 的文件（估） | 新增文件 | 阻碍度 |
 |------|---------|------------------------|---------|--------|
 | Phase 0 | 0 | 0 | `core/*` 骨架 5 个 + 守卫规则 3 个 | 🟢 无 |
-| Phase 1 | 2–3 | ~6 | 0 | 🟢 低 |
-| Phase 2 | 6 | ~15 | 0 | 🟡 中 |
+| Phase 1 | **4**（实测）✅ | **8 处 / 7 文件**（实测）✅ | 0 | 🟢 低 |
+| Phase 2 | **6**（实测）✅ | **33 处 / 25 文件**（实测）✅ | 0 | 🟢 低（实测） |
 | Phase 3 | 1 | ~6（含 4 测试） | 0 | 🟡 中 |
 | Phase 4 | 17 | ~52 | 0 | 🟡 中高 |
 | Phase 5 | 25（若选 A） | ~5 | 0 | 🟡 中 |
@@ -312,14 +375,15 @@ Phase 1 首次引用 `@core` 时只改了前两处 → **vitest 解析不到 `@c
 
 ### 4.2 对现有质量基线的预期影响
 
-| 指标 | 现状 | 预期 |
-|------|------|------|
-| 模块级循环 | **8 个** | **0 个**（Phase 5 后） |
-| `stores`/`services` → `features` 违规 | 11 处 | **0**（Phase 2 后，且守卫 lock） |
-| 反向依赖（逻辑层→UI 层） | 0（已守） | 保持 0 |
-| 测试用例 | 1499 passed / 2 skipped / 0 failed | **不减**；迁移涉及的测试做路径更新，断言不放宽 |
-| `tsc` | 干净 | 保持干净 |
-| 运行时行为 / 视觉 | — | **零变化**（纯结构迁移） |
+| 指标 | 基线 | 现状（Phase 2 完成后） |
+|------|------|---------------------|
+| 模块级循环 | 8 个 | **5 个**（Phase 1 消 #2；Phase 2 消 #4 / #5 + #3 直接形态）→ 目标 0（Phase 5 后） |
+| `stores`/`services` → `features` 违规 | 9 + 4 处 | **0** ✅（Phase 2 达成，且守卫升 error 锁死） |
+| 反向依赖（逻辑层→UI 层） | 0（已守） | 保持 **0** ✅ |
+| 测试用例 | 1499 passed / 2 skipped / 0 failed | **1505 passed / 2 skipped / 0 failed** ✅（+6 契约测试；断言零放宽） |
+| `tsc` | 干净 | 保持干净 ✅ |
+| 生产构建 | — | `vite build` 成功（3525 modules / 45.4s）✅ —— **Phase 2 新增的验证链路** |
+| 运行时行为 / 视觉 | — | **零变化**（纯结构迁移；完整真机回归留待 Phase 5 后） |
 
 ### 4.3 性能影响
 - 迁移**不新增**运行时开销（只是文件位置与 import 路径变化）。
@@ -363,11 +427,11 @@ Phase 0  地基（core 骨架 + @core 别名 + 守卫 warn + 基线快照）    
    ↓
 Phase 1  持久化下沉 → 断环 #2                                       ✅ 完成    【里程碑 M1 ✅：stores↔services 解环（8→7 环）】
    ↓
-Phase 2  业务工具下沉 → 断环 #3 #4 #5                              ← 1 天     【里程碑 M2：stores/services 对 features 依赖=0】
+Phase 2  业务工具下沉 → 断环 #4 #5 + #3 直接形态                    ✅ 完成    【里程碑 M2 ✅：stores/services→features 依赖=0；7→5 环】
    ↓
 Phase 3  Aurora 解环 → 断环 #7 #8                                  ← 1 天     【里程碑 M3：外壳无环】
    ↓
-Phase 4  features/shared 分层拆分 → 断环 #3 残部/#1                 ← 1.5 天
+Phase 4  features/shared 分层拆分 → 断反向边 shared→stores（环 #3 残部）  ← 1.5 天
    ↓
 Phase 5  toolbar 归属 + hooks/stores 收敛 → 断环 #6 #1              ← 1 天     【里程碑 M4：8 环全清零 + 真机回归】
    ↓
@@ -383,6 +447,22 @@ Phase 6  结构性重构（editor 内部分层 / panels 契约层 / fileManager 
 **验证工具**：`scripts/_depgraph.cjs`（模块耦合矩阵 / 环检测，常备架构体检工具）
 **契约测试**：`src/aliasSync.test.ts`（6 例）看守「别名表 4 处同改」——不只比键集合，还比目标目录
 
+**验证链路（五条必须全跑 —— 缺一条就可能放过只在特定链路暴露的失败）**
+
+| # | 链路 | 命令 | 为什么不能省 |
+|---|------|------|-------------|
+| ① | 类型 | `tsc --noEmit -p tsconfig.json` | 基础 |
+| ② | 单测 | `node node_modules/vitest/vitest.mjs run` | 走 `vitest.config.ts` 别名 —— **Phase 1 正是在此暴露 20 文件导入期崩溃** |
+| ③ | 守卫 | `node node_modules/eslint/bin/eslint.js --no-eslintrc -c .eslintrc.guard.cjs "src/**/*.{ts,tsx}"` | 架构闸口；**须核「实扫文件数」非 0**，空输出要先证明不是「零文件被扫」 |
+| ④ | 架构 | `node scripts/_depgraph.cjs` | 「环是否真消失」的唯一判据 |
+| ⑤ | **生产构建** | `node node_modules/vite/bin/vite.js build` | 走 `vite.config.ts` 别名，**与 ② 是不同的解析链路** —— Phase 2 起纳入常规验收 |
+
+> ⚠️ **判据（Phase 1 血的教训）**：**休眠配置的绿灯不算证明。** 新增别名 / 守卫后必须有一次**真实引用**，才能证明它真的生效；
+> 反之，空输出 / 零违规也必须先排除「根本没扫到东西」才能采信。
+>
+> **守卫真阻断验证法（Phase 2 定型，后续每加一条守卫都要做）**：向作用域内文件注入一行违规 import → 期望 `exit=1` 且**报出预期规则名** → 字节级还原 → 全量复跑 `exit=0`（证明探针无残留）。
+> 只测「绿灯」是验不出守卫死活的。
+
 > **Phase 1 已加固 `_depgraph.cjs`**（原因见 §Phase 1 的 ① ②）：
 > ① 别名表改为**从 `vite.config.ts` 派生** —— 原硬编码副本未登记 `@core`，会对该别名的导入**静默丢边 → 漏报环**；
 > ② 根路径改为按脚本位置推算（原硬编码本机绝对路径，换机即失效）；
@@ -394,8 +474,8 @@ Phase 6  结构性重构（editor 内部分层 / panels 契约层 / fileManager 
 
 | # | 规则 | 禁止 | 落地状态 |
 |---|------|------|---------|
-| 1 | `local/no-store-to-feature` | `stores/**` → `features/**` | ✅ Phase 0 已落（warn，9 处存量）→ Phase 2 清零点后升 error |
-| 2 | `local/no-service-to-feature` | `services/**` → `features/**` | ✅ Phase 0 已落（warn，4 处存量）→ Phase 2 清零点后升 error |
+| 1 | `local/no-store-to-feature` | `stores/**` → `features/**` | ✅ **Phase 2 已升 error**（基线 9 处归零；672 文件实扫 0 违规；注入探针实测阻断 exit=1） |
+| 2 | `local/no-service-to-feature` | `services/**` → `features/**` | ✅ **Phase 2 已升 error**（基线 4 处归零；同上探针实测阻断） |
 | 3 | `local/no-service-to-store` | `services/**` → `stores/**` | ✅ **Phase 1 已升 error**（存量 3 处清零；注入探针实测阻断 exit=1） |
 | 4 | `local/no-app-panels-cycle` | `aurora/app` ⇄ `aurora/panels` 互禁 | ⏳ Phase 3 落地 |
 | 5 | `local/no-aurora-ui-import` | `features/stores/services` → `aurora/**` | ✅ 既有规则，保持不变（error，当前 0 违规） |

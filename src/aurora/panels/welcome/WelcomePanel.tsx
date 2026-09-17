@@ -5,12 +5,12 @@ import { Icon } from '../../icons'
 import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
 import { useFileManager } from '@stores/FileStore'
 import { useUserProfile, userDisplayName } from '@stores/UserProfileStore'
-import { findNode } from '@features/fileManager/fileManagerUtils'
+import { findNode } from '@core/files/fileTree'
 import {
   getRecentFiles,
   subscribeRecentFiles,
   type RecentFileEntry,
-} from '@features/fileManager/recentFilesManager'
+} from '@core/files/recentFiles'
 import '../../styles/panels/welcome.css'
 
 /**
@@ -114,7 +114,7 @@ export function WelcomePanel({ nav }: WelcomePanelProps) {
     setUsageDays(getUsageDays())
   }, [])
 
-  // 仅显示文件库中仍存在的文档（recentFilesManager 可能残留已删除项）
+  // 仅显示文件库中仍存在的文档（recentFiles 可能残留已删除项）
   const valid = useMemo(
     () => files.filter((f) => findNode(rootFolder, f.fileId)),
     [files, rootFolder],

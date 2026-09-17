@@ -1,5 +1,5 @@
 import { deflateRaw } from 'pako'
-import { DEFAULT_PLANTUML_ENDPOINT } from './plantumlConstants'
+import { DEFAULT_PLANTUML_ENDPOINT } from '@core/constants/plantuml'
 
 export { DEFAULT_PLANTUML_ENDPOINT }
 

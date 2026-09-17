@@ -5,7 +5,7 @@ import { GraphPanel } from './GraphPanel'
 import { readGraphSession } from './graphSession'
 import { clearEditorReturn, getEditorReturn } from '../../app/navReturn'
 import { useFileManager } from '@stores/FileStore'
-import { findNode } from '@features/fileManager/fileManagerUtils'
+import { findNode } from '@core/files/fileTree'
 
 /**
  * Phase 2 换芯·GraphPanel 烟雾测试

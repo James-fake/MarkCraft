@@ -8,8 +8,8 @@ import {
   getRecentFiles,
   subscribeRecentFiles,
   type RecentFileEntry,
-} from '@features/fileManager/recentFilesManager'
-import { collectFolderIds, flattenFileTree } from '@features/fileManager/fileManagerUtils'
+} from '@core/files/recentFiles'
+import { collectFolderIds, flattenFileTree } from '@core/files/fileTree'
 import type { FileNode } from '@src/types/fileManager'
 
 /**

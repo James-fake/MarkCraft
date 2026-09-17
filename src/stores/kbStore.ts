@@ -14,7 +14,7 @@ import {
   genKbId,
   genRuleId,
 } from './kbTypes'
-import { collectAllFiles } from '../features/fileManager/fileManagerUtils'
+import { collectAllFiles } from '@core/files/fileTree'
 
 const KB_LIST_KEY = 'kb-list'
 const KB_DOC_PREFIX = 'kb-doc-'

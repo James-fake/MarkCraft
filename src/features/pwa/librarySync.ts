@@ -23,8 +23,8 @@ export interface LibraryBundle {
   files: LibraryBundleFile[]
 }
 
-/** 收集文件树中所有笔记（递归）。统一委托 fileManagerUtils.collectAllFiles（D4 单一数据源） */
-import { collectAllFiles as collectFiles } from '../fileManager/fileManagerUtils'
+/** 收集文件树中所有笔记（递归）。统一委托 fileTree.collectAllFiles（D4 单一数据源） */
+import { collectAllFiles as collectFiles } from '@core/files/fileTree'
 export { collectFiles }
 
 /** 导出整个库为 JSON 字符串（备份包） */

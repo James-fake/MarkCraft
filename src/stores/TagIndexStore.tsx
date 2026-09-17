@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { FileNode } from '../types/fileManager';
-import { extractTags, buildTagTree, TagNode } from '../features/tags/tagExtractor';
-import { collectAllFiles } from '../features/fileManager/fileManagerUtils';
+import { extractTags, buildTagTree, TagNode } from '@core/tags/tagExtractor';
+import { collectAllFiles } from '@core/files/fileTree';
 
 // --- Types ---
 

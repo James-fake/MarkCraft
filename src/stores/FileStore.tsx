@@ -3,9 +3,9 @@ import { FileNode, Tab, FileManagerState } from '../types/fileManager';
 import { loadState, loadStateAsync, saveState, generateId, findNode, updateNodeContent, searchFiles, updateNode, deleteNodeRecursive, addChildNode, renumberChildrenOrder, collectFileIds, isDescendantOf, findParentId } from '../services/fileService';
 import { useLanguage } from './LanguageStore';
 import { useUndoRedo } from './UndoRedoStore';
-import { addRecentFile, removeRecentFile } from '../features/fileManager/recentFilesManager';
-import { knowledgeLinkGuideContent as knowledgeLinkGuideContentZh } from '../features/fileManager/defaultDocsZh';
-import { knowledgeLinkGuideContent as knowledgeLinkGuideContentEn } from '../features/fileManager/defaultDocsEn';
+import { addRecentFile, removeRecentFile } from '@core/files/recentFiles';
+import { knowledgeLinkGuideContent as knowledgeLinkGuideContentZh } from '@core/data/defaultDocs/zh';
+import { knowledgeLinkGuideContent as knowledgeLinkGuideContentEn } from '@core/data/defaultDocs/en';
 
 interface FileManagerContextType {
   rootFolder: FileNode;

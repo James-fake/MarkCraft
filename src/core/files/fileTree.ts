@@ -1,6 +1,14 @@
+// L1 core/files —— 文件树基础能力（纯函数，无 UI / 无状态）。
+//
+// Phase 2（2026-09-17）自 features/fileManager/fileManagerUtils.ts **原样下沉**
+// （仅改文件名 + 内部 defaultDocs 引用路径，函数体未作任何改写）：
+// 该文件通篇为纯函数，却被 stores(4) / services(2) / features(3) / aurora(10) 共用，
+// 寄居业务模块会迫使下层反向引用上层 —— 这是环 #3 #4 #5 的共同成因。
+//
+// 见《MarkCraft_解耦实施方案_2026-09-17.md》Phase 2.1。
 import { FileNode, FileManagerState } from '../../types/fileManager';
-import { userManualContent as userManualContentZh, markdownTutorialContent as markdownTutorialContentZh, knowledgeLinkGuideContent as knowledgeLinkGuideContentZh } from './defaultDocsZh';
-import { userManualContent as userManualContentEn, markdownTutorialContent as markdownTutorialContentEn, knowledgeLinkGuideContent as knowledgeLinkGuideContentEn } from './defaultDocsEn';
+import { userManualContent as userManualContentZh, markdownTutorialContent as markdownTutorialContentZh, knowledgeLinkGuideContent as knowledgeLinkGuideContentZh } from '../data/defaultDocs/zh';
+import { userManualContent as userManualContentEn, markdownTutorialContent as markdownTutorialContentEn, knowledgeLinkGuideContent as knowledgeLinkGuideContentEn } from '../data/defaultDocs/en';
 import { logger } from '../../utils/logger';
 
 const STORAGE_KEY = 'markcraft-file-manager';

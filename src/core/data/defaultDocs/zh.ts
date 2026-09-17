@@ -1,4 +1,12 @@
-﻿export const userManualContent = `# MarkCraft — 用户手册
+﻿// L1 core/data/defaultDocs —— 首次启动的种子文档（中文）。
+//
+// Phase 2（2026-09-17）自 features/fileManager/defaultDocsZh.ts **原样下沉**：
+// 仅移动文件、未重排任何内容（本文件 2103 行，方案 §5.1 R2 明确要求）。
+// 种子数据被 stores/FileStore 与 services/fileService 共同消费，
+// 寄居业务模块会迫使下层反向引用上层。
+//
+// 见《MarkCraft_解耦实施方案_2026-09-17.md》Phase 2.3。
+export const userManualContent = `# MarkCraft — 用户手册
 
 欢迎使用 MarkCraft！本手册将详细介绍编辑器的所有功能，帮助您快速上手并高效创作。
 

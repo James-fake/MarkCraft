@@ -4,7 +4,7 @@ import { useLinkIndex } from '../../stores/LinkIndexStore'
 import { useTagIndex } from '../../stores/TagIndexStore'
 import { useBookmark } from '../../stores/BookmarkStore'
 import { FileNode } from '../../types/fileManager'
-import { collectAllFiles } from '../fileManager/fileManagerUtils'
+import { collectAllFiles } from '@core/files/fileTree'
 
 /** 计算字符数（中文按字，英文按词） */
 export function countWords(content: string): number {

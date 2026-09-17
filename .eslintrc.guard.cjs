@@ -41,17 +41,22 @@ module.exports = {
     // 遵守「先建闸口、再清存量」：若一上来就 error，会让 Phase 1/2 的迁移提交被
     // 尚未清理的存量卡死。每条规则的升级时机写在对应 Phase 的「收紧守卫」步骤里。
     {
-      // stores 层禁止引用 features（当前违规 9 处 → Phase 2 清零后升 error）
+      // stores 层禁止引用 features —— **Phase 2 已升为 error**（2026-09-17）
+      // 依据：6 个「业务工具」文件（fileManagerUtils / recentFilesManager / defaultDocsZh·En /
+      // tagExtractor / plantumlConstants）下沉 @core 后，基线 9 处违规归零，
+      // 环 #4 #5 与环 #3 的直接形态随之消失（7 → 5 环）。
+      // 故此处由 warn 收紧为阻断级：后续任何「业务能力寄居 features 反向牵引状态层」会被直接拦下。
       files: ['src/stores/**/*.{ts,tsx}'],
       rules: {
-        'local/no-store-to-feature': 'warn',
+        'local/no-store-to-feature': 'error',
       },
     },
     {
-      // services 层禁止引用 features（当前违规 4 处 → Phase 2 清零后升 error）
+      // services 层禁止引用 features —— **Phase 2 已升为 error**（2026-09-17）
+      // 依据：backupService / fileService 的 4 处违规随同批下沉归零（services 出边仅剩 types/core/utils）。
       files: ['src/services/**/*.{ts,tsx}'],
       rules: {
-        'local/no-service-to-feature': 'warn',
+        'local/no-service-to-feature': 'error',
       },
     },
     {

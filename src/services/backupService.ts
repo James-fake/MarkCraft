@@ -1,7 +1,7 @@
 import { FileManagerState, FileNode } from '../types/fileManager'
 import { loadLargeData, saveLargeData } from '@core/storage/migrate'
 import { db, NoteVersionRecord } from '@core/storage/db'
-import { collectAllFiles } from '../features/fileManager/fileManagerUtils'
+import { collectAllFiles } from '@core/files/fileTree'
 
 export interface BackupData {
   version: string

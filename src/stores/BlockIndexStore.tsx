@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import { FileNode } from '../types/fileManager'
 import { BlockInfo, BlockReferenceRecord, extractBlocks, parseBlockReferences } from '../services/blockReference'
-import { collectAllFiles } from '../features/fileManager/fileManagerUtils'
+import { collectAllFiles } from '@core/files/fileTree'
 
 interface BlockIndexContextType {
   /** blockId -> BlockInfo */

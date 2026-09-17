@@ -1,7 +1,7 @@
 import { FileNode, FileManagerState } from '../types/fileManager';
-import { createInitialFileTree } from '../features/fileManager/fileManagerUtils';
-import { knowledgeLinkGuideContent as knowledgeLinkGuideContentZh } from '../features/fileManager/defaultDocsZh';
-import { knowledgeLinkGuideContent as knowledgeLinkGuideContentEn } from '../features/fileManager/defaultDocsEn';
+import { createInitialFileTree } from '@core/files/fileTree';
+import { knowledgeLinkGuideContent as knowledgeLinkGuideContentZh } from '@core/data/defaultDocs/zh';
+import { knowledgeLinkGuideContent as knowledgeLinkGuideContentEn } from '@core/data/defaultDocs/en';
 import { logger } from '../utils/logger';
 import { saveLargeData, loadLargeData, migrateToIndexedDB } from '@core/storage/migrate';
 
