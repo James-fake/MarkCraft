@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { usePresenceValue, POPOVER_EXIT_MS } from '@components/ui/usePresence'
 import { Icon } from '../../icons'
 import { useLanguage } from '@stores/LanguageStore'
 import { parseMarkdownHeadings, findHeadingLine, type OutlineItem } from '@features/shared/utils/headingIdUtils'
@@ -320,32 +321,36 @@ export function AuroraOutline({ content, onChange }: AuroraOutlineProps) {
     )
   }
 
-  const menuNode = menu ? (() => {
-    const node = findNodeById(outline, menu.id)
+  // 右键菜单退场相位（动效审计 P0-3）：setMenu(null) 后仍保留最后一份 x/y 播完 100ms 再卸载
+  const menuPresence = usePresenceValue(menu, POPOVER_EXIT_MS)
+  const menuData = menuPresence.value
+  const menuNode = menuData ? (() => {
+    const node = findNodeById(outline, menuData.id)
     if (!node) return null
     const hasKids = !!node.children && node.children.length > 0
-    const isCollapsed = collapsed.has(menu.id)
+    const isCollapsed = collapsed.has(menuData.id)
     return createPortal(
       <div
         className="aurora-outline__ctxmenu"
         ref={menuRef}
-        style={{ position: 'fixed', left: menu.x, top: menu.y }}
+        data-exiting={menuPresence.exiting || undefined}
+        style={{ position: 'fixed', left: menuData.x, top: menuData.y }}
       >
-        <button type="button" className="aurora-outline__ctxmenu-item" onClick={() => { setMenu(null); handleClick(menu.id) }}>
+        <button type="button" className="aurora-outline__ctxmenu-item" onClick={() => { setMenu(null); handleClick(menuData.id) }}>
           <Icon.target size={13} />
           <span>跳转</span>
         </button>
         {hasKids && (
-          <button type="button" className="aurora-outline__ctxmenu-item" onClick={() => { setMenu(null); toggleCollapse(menu.id) }}>
+          <button type="button" className="aurora-outline__ctxmenu-item" onClick={() => { setMenu(null); toggleCollapse(menuData.id) }}>
             {isCollapsed ? <Icon.chevronRight size={13} /> : <Icon.chevronDown size={13} />}
             <span>{isCollapsed ? '展开子项' : '折叠子项'}</span>
           </button>
         )}
-        <button type="button" className="aurora-outline__ctxmenu-item" onClick={() => { setMenu(null); setEditing({ id: menu.id, value: node.text }) }}>
+        <button type="button" className="aurora-outline__ctxmenu-item" onClick={() => { setMenu(null); setEditing({ id: menuData.id, value: node.text }) }}>
           <Icon.edit size={13} />
           <span>重命名</span>
         </button>
-        <button type="button" className="aurora-outline__ctxmenu-item aurora-outline__ctxmenu-item--danger" onClick={() => handleDelete(menu.id)}>
+        <button type="button" className="aurora-outline__ctxmenu-item aurora-outline__ctxmenu-item--danger" onClick={() => handleDelete(menuData.id)}>
           <Icon.trash size={13} />
           <span>删除章节</span>
         </button>

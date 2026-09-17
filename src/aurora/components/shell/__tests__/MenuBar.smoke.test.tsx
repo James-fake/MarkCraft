@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { RealProviders } from '../../../app/RealProviders'
 import { commandRegistry } from '../../../../features/commandPalette/commandRegistry'
@@ -113,7 +113,7 @@ describe('Aurora MenuBar 烟雾测试', () => {
     expect(newFile?.disabled).toBe(false)
   })
 
-  it('点击可用项执行注册表真实 action 并关闭菜单', () => {
+  it('点击可用项执行注册表真实 action 并关闭菜单', async () => {
     render(
       <RealProviders>
         <MenuBar />
@@ -123,11 +123,13 @@ describe('Aurora MenuBar 烟雾测试', () => {
     fireEvent.click(screen.getByText('新建笔记'))
     const action = commandRegistry.getById('file.newFile')?.action as ReturnType<typeof vi.fn>
     expect(action).toHaveBeenCalledTimes(1)
-    // 执行后菜单应关闭（新建笔记不可见）
-    expect(screen.queryByText('保存')).toBeNull()
+    // 执行后菜单进入退场（动效审计 P0-1）：先标记 data-exiting 播 100ms 收场动画，再真正卸载。
+    // 关闭不再是 0ms 硬切 —— 这正是本次改造要锁死的契约。
+    expect(document.querySelector('.aurora-menubar__pop')?.getAttribute('data-exiting')).toBe('true')
+    await waitFor(() => expect(document.querySelector('.aurora-menubar__pop')).toBeNull())
   })
 
-  it('Esc 关闭已展开菜单', () => {
+  it('Esc 关闭已展开菜单（先播退场、再卸载）', async () => {
     render(
       <RealProviders>
         <MenuBar />
@@ -136,7 +138,9 @@ describe('Aurora MenuBar 烟雾测试', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: '视图' }))
     expect(screen.getByText('专注模式')).toBeTruthy()
     fireEvent.keyDown(window, { key: 'Escape' })
-    expect(screen.queryByText('专注模式')).toBeNull()
+    // 退场窗口内：元素仍在 DOM 且已挂 data-exiting；窗口结束后才被卸载
+    expect(document.querySelector('.aurora-menubar__pop')?.getAttribute('data-exiting')).toBe('true')
+    await waitFor(() => expect(screen.queryByText('专注模式')).toBeNull())
   })
 
   it('勾选态：专注模式开启时显示勾选标记', async () => {

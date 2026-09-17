@@ -3,6 +3,7 @@ import { PageFrame } from '../../components/shell/PageFrame'
 import { useCommandPalette } from '../../components/command-palette/CommandPaletteContext'
 import { Icon } from '../../icons'
 import { AuroraSelect } from '@components/ui/AuroraSelect'
+import { usePresence, usePresenceValue, POPOVER_EXIT_MS, OVERLAY_EXIT_MS } from '@components/ui/usePresence'
 import { GROUP_COLORS } from '../../themes/categoricalColors'
 import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
 import { useLinkIndex } from '@stores/LinkIndexStore'
@@ -281,6 +282,8 @@ export function GraphPanel({ nav, toast }: GraphPanelProps) {
   const [navHover, setNavHover] = useState(false)
   const [navPinned, setNavPinned] = useState(false)
   const navShown = navHover || navPinned
+  // 退场相位（动效审计 P1-5）：关闭时先播 180ms 沿左缘滑出再卸载（入场 420ms ↔ 退场 180ms）
+  const navOverlay = usePresence(navShown, OVERLAY_EXIT_MS)
   const closeNav = useCallback(() => { setNavHover(false); setNavPinned(false) }, [])
   const NAV_HOVER_INTENT_MS = 220
   const NAV_CLOSE_DELAY_MS = 180
@@ -393,6 +396,9 @@ export function GraphPanel({ nav, toast }: GraphPanelProps) {
   const [infoCard, setInfoCard] = useState<{ id: string } | null>(null)
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
   const [exportOpen, setExportOpen] = useState(false)
+  // 浮层退场相位（动效审计 P0-3）：节点右键菜单 / 导出下拉关闭时先播 100ms 再卸载
+  const menuPresence = usePresenceValue(menu, POPOVER_EXIT_MS)
+  const exportPresence = usePresence(exportOpen, POPOVER_EXIT_MS)
   // 方案 C · 顶部筛选条 + 着色分组聚焦
   const [focusGroup, setFocusGroup] = useState<string | null>(null)
   const [typeOpen, setTypeOpen] = useState(false) // 顶部「节点类型」popover
@@ -1109,9 +1115,10 @@ export function GraphPanel({ nav, toast }: GraphPanelProps) {
           onMouseLeave={closeNavIntent}
         >
           <div className="aurora-graph__edge" aria-hidden />
-          {navShown && (
+          {navOverlay.mounted && (
             <div
               className="aurora-graph__overlay"
+              data-exiting={navOverlay.exiting || undefined}
               onMouseEnter={cancelNavClose}
               onMouseLeave={scheduleNavClose}
             >
@@ -1553,8 +1560,11 @@ export function GraphPanel({ nav, toast }: GraphPanelProps) {
             </button>
           </div>
 
-          {exportOpen && (
-            <div className="aurora-graph__float aurora-graph__menu">
+          {exportPresence.mounted && (
+            <div
+              className="aurora-graph__float aurora-graph__menu"
+              data-exiting={exportPresence.exiting || undefined}
+            >
               <button onClick={() => { exportPNG(); setExportOpen(false) }}>
                 <Icon.download size={14} /> 导出 PNG
               </button>
@@ -1619,11 +1629,18 @@ export function GraphPanel({ nav, toast }: GraphPanelProps) {
           )}
 
           {/* 右键菜单 */}
-          {menu && (() => {
+          {menuPresence.mounted && menuPresence.value && (() => {
+            // 退场窗口内沿用最后一份非空载荷（usePresenceValue 已保证），坐标不丢
+            const menu = menuPresence.value!
             const m = byId.get(menu.id)
             if (!m) return null
             return (
-              <div className="aurora-graph__float aurora-graph__ctx" style={{ left: menu.x, top: menu.y }} onPointerLeave={() => setMenu(null)}>
+              <div
+                className="aurora-graph__float aurora-graph__ctx"
+                data-exiting={menuPresence.exiting || undefined}
+                style={{ left: menu.x, top: menu.y }}
+                onPointerLeave={() => setMenu(null)}
+              >
                 <button onClick={() => { onNodeDouble(m.id); setMenu(null) }}>
                   <Icon.arrowR size={14} /> 打开笔记
                 </button>

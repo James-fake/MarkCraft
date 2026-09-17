@@ -2,6 +2,7 @@ import type { Translations } from '@src/types/translations'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { ToolbarButton, GroupProps, applyFormatToCM6 } from './shared'
+import { usePresence, POPOVER_EXIT_MS } from '@components/ui/usePresence'
 
 const HEADING_LEVELS = [0, 1, 2, 3, 4, 5, 6] as const
 
@@ -103,6 +104,8 @@ export default function SourceHeadingDropdown({ t, editorViewRef, onChange, onPu
 
   // Calculate dropdown position
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
+  // 关闭时先播 100ms 退场再卸载（动效审计 P0-2）
+  const { mounted, exiting } = usePresence(open, POPOVER_EXIT_MS)
   useEffect(() => {
     if (open && btnRef.current) {
       const rect = btnRef.current.getBoundingClientRect()
@@ -123,10 +126,11 @@ export default function SourceHeadingDropdown({ t, editorViewRef, onChange, onPu
         </span>
       </ToolbarButton>
 
-      {open && createPortal(
+      {mounted && createPortal(
         <div
           ref={menuRef}
           className="aurora-dropdown"
+          data-exiting={exiting || undefined}
           style={{
             position: 'fixed',
             top: `${menuPos.top}px`,

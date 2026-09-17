@@ -1,5 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { usePresence, usePresenceValue, POPOVER_EXIT_MS } from '@components/ui/usePresence'
 import { Icon } from '../../icons'
 import type { CanvasEngine } from '@features/canvas-v2/engine/CanvasEngine'
 import { useEngineSnapshot } from './canvasHooks'
@@ -95,6 +96,13 @@ export function CanvasDock({
   const [eraserClear, setEraserClear] = useState<{ open: boolean; x: number; bottom: number } | null>(null)
   const [moreOpen, setMoreOpen] = useState(false)
   const [tplOpen, setTplOpen] = useState(false)
+  // 退场相位（动效审计 P1-6）：四类 dock 浮层关闭时先播 100ms 退场再卸载。
+  // 遮罩（mask）不参与退场 —— 退场期间指针已被浮层自身的 pointer-events:none 挡住，
+  // 遮罩留着只会多一个立即消失的暗层。
+  const morePresence = usePresence(moreOpen, POPOVER_EXIT_MS)
+  const tplPresence = usePresence(tplOpen, POPOVER_EXIT_MS)
+  const penPresence = usePresenceValue(penMenu?.open ? penMenu : null, POPOVER_EXIT_MS)
+  const eraserPresence = usePresenceValue(eraserClear?.open ? eraserClear : null, POPOVER_EXIT_MS)
   const [tpls, setTpls] = useState<CardTemplate[]>([])
   const moreRef = useRef<HTMLButtonElement>(null)
 
@@ -275,10 +283,14 @@ export function CanvasDock({
       </div>
 
       {/* 更多菜单（Portal 到 body） */}
-      {moreOpen && createPortal(
+      {morePresence.mounted && createPortal(
         <>
-          <div className="aurora-dock__mask" onClick={() => setMoreOpen(false)} />
-          <div className="aurora-canvas-ctxmenu aurora-dock__more-menu" style={{ position: 'fixed', right: moreRight, bottom: moreBottom, zIndex: 10001 }}>
+          {!morePresence.exiting && <div className="aurora-dock__mask" onClick={() => setMoreOpen(false)} />}
+          <div
+            className="aurora-canvas-ctxmenu aurora-dock__more-menu"
+            data-exiting={morePresence.exiting || undefined}
+            style={{ position: 'fixed', right: moreRight, bottom: moreBottom, zIndex: 10001 }}
+          >
             <div className="aurora-dock__menu-title">绘图工具</div>
             {ADVANCED_TOOLS.map((t) => {
               const IconComp = Icon[t.icon as keyof typeof Icon]
@@ -330,10 +342,14 @@ export function CanvasDock({
       )}
 
       {/* 画笔右键：颜色/粗细菜单 */}
-      {penMenu?.open && createPortal(
+      {penPresence.mounted && penPresence.value && createPortal(
         <>
-          <div className="aurora-dock__mask" onClick={() => setPenMenu(null)} />
-          <div className="aurora-dock__float aurora-dock__pen-menu" style={{ left: penMenu.x, bottom: penMenu.bottom }}>
+          {!penPresence.exiting && <div className="aurora-dock__mask" onClick={() => setPenMenu(null)} />}
+          <div
+            className="aurora-dock__float aurora-dock__pen-menu"
+            data-exiting={penPresence.exiting || undefined}
+            style={{ left: penPresence.value.x, bottom: penPresence.value.bottom }}
+          >
             <div className="aurora-dock__menu-title">画笔设置</div>
             <div className="aurora-dock__pen-colors">
               {PEN_COLORS.map((c) => (
@@ -367,10 +383,14 @@ export function CanvasDock({
       )}
 
       {/* 橡皮右键：「清空全部画笔笔迹」滑动条 */}
-      {eraserClear?.open && createPortal(
+      {eraserPresence.mounted && eraserPresence.value && createPortal(
         <>
-          <div className="aurora-dock__mask" onClick={() => setEraserClear(null)} />
-          <div className="aurora-dock__float aurora-dock__eraser-slider" style={{ left: eraserClear.x, bottom: eraserClear.bottom }}>
+          {!eraserPresence.exiting && <div className="aurora-dock__mask" onClick={() => setEraserClear(null)} />}
+          <div
+            className="aurora-dock__float aurora-dock__eraser-slider"
+            data-exiting={eraserPresence.exiting || undefined}
+            style={{ left: eraserPresence.value.x, bottom: eraserPresence.value.bottom }}
+          >
             <div className="aurora-dock__menu-title">清空全部画笔笔迹</div>
             <EraserSlider onCommit={clearStrokes} />
           </div>
@@ -379,10 +399,14 @@ export function CanvasDock({
       )}
 
       {/* 卡片模板列表（插入/删除） */}
-      {tplOpen && createPortal(
+      {tplPresence.mounted && createPortal(
         <>
-          <div className="aurora-dock__mask" onClick={() => setTplOpen(false)} />
-          <div className="aurora-dock__float" style={{ left: moreRight, bottom: moreBottom, width: 300, maxHeight: 380, overflowY: 'auto' }}>
+          {!tplPresence.exiting && <div className="aurora-dock__mask" onClick={() => setTplOpen(false)} />}
+          <div
+            className="aurora-dock__float"
+            data-exiting={tplPresence.exiting || undefined}
+            style={{ left: moreRight, bottom: moreBottom, width: 300, maxHeight: 380, overflowY: 'auto' }}
+          >
             <div className="aurora-dock__menu-title">卡片模板</div>
             {tpls.length === 0 ? (
               <div style={{ fontSize: 11, color: 'var(--mc-text-tertiary)', padding: '6px 10px' }}>

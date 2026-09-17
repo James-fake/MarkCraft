@@ -3,6 +3,7 @@ import { commandRegistry } from '../../../features/commandPalette/commandRegistr
 import { formatShortcut } from '../../../features/commandPalette/shortcutFormat'
 import { useSettings } from '../../../stores/SettingsStore'
 import { useFileManager } from '../../../stores/FileStore'
+import { usePresence, POPOVER_EXIT_MS } from '@components/ui/usePresence'
 
 /**
  * Aurora 应用菜单栏（P1-1 · macOS HIG §1 Menu Bar）
@@ -138,6 +139,31 @@ const WINDOW_MENU: AuroraMenu = {
 // 七组菜单（使用优化 2026-09-10：移除最左 MarkCraft 应用菜单——关于/设置经头像→设置可达，
 // 退出走 ⌘Q 与交通灯；app.hide 系列菜单专属死命令已随菜单清剿）
 const MENUS: AuroraMenu[] = [FILE_MENU, EDIT_MENU, VIEW_MENU, GO_MENU, TOOLS_MENU, WINDOW_MENU, HELP_MENU]
+
+/**
+ * 单个菜单的下拉面板 —— 由 usePresence 相位机驱动，关闭时**先播 100ms 退场再卸载**
+ * （动效审计 P0-1：此前 `{isOpen && …}` 是 0ms 硬切，入场动画得不到收场）。
+ * 提成模块级子组件而非内联，是因为 MENUS.map 里不能直接调 hook。
+ * 横向扫过切换菜单时，旧菜单退场与新菜单入场同时进行 = 一次 100ms 交叉淡化。
+ */
+const MenuPop: React.FC<{ open: boolean; label: string; children: React.ReactNode }> = ({
+  open,
+  label,
+  children,
+}) => {
+  const { mounted, exiting } = usePresence(open, POPOVER_EXIT_MS)
+  if (!mounted) return null
+  return (
+    <div
+      className="aurora-dropdown aurora-menubar__pop"
+      role="menu"
+      aria-label={label}
+      data-exiting={exiting || undefined}
+    >
+      {children}
+    </div>
+  )
+}
 
 export function MenuBar() {
   const { settings } = useSettings()
@@ -346,18 +372,12 @@ export function MenuBar() {
               {m.title}
             </button>
 
-            {isOpen && (
-              <div
-                className="aurora-dropdown aurora-menubar__pop"
-                role="menu"
-                aria-label={m.title}
-              >
-                {renderItems()}
-                {list.length === 0 && (
-                  <div className="aurora-menubar__empty">无可用命令</div>
-                )}
-              </div>
-            )}
+            <MenuPop open={isOpen} label={m.title}>
+              {renderItems()}
+              {list.length === 0 && (
+                <div className="aurora-menubar__empty">无可用命令</div>
+              )}
+            </MenuPop>
           </div>
         )
       })}

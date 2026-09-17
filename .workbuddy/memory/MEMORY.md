@@ -13,6 +13,8 @@ Vite5+React18+TS；CodeMirror6+TipTap3；白板 Excalidraw；Dexie/IndexedDB。d
 ## 关键坑（防回归）
 - **Path depth**：panels→features/stores 用 `../../../`；components/ui·app 用 `../../`。
 - 新类**必须同批交付 CSS**；同文件多处 Edit**必须串行**，改完 grep 核验。
+  ⚠️ 并行 Edit 同一文件 = **后写覆盖先写、静默丢改动**，症状是 `tsc` 报自相矛盾组合（「声明未使用」+「找不到该名称」）。
+  **跨文件可并行，同文件绝不可**。改完必须逐文件 grep 核验关键行，不能只信 Edit 返回 success。
 - 单源：z-index = `tokens.css §14`；Modal = `@components/ui/Modal`；Button/Confirm/Switch = `@components/ui/*`。
 - **布局属性越权**：迁 features 组件入 Aurora 时 position/inset/z-index 同样越权生效 → 复位须三类同设 + `contain:paint`。
 - **拖拽闭包陷阱**：监听闭包在拖拽开始时注册 → 落盘必须读 `xxxRef.current`（读 state = 旧值）。
@@ -71,6 +73,26 @@ bash 每条内联 `export PATH="<三目录>:/c/Users/HJN/.workbuddy/binaries/nod
 reduced-motion = 「更少更柔非归零」（时长减半；入场 `mc-rm-fade`、**退场必须 `mc-rm-fade-out`**）。
 指针门控只归零**纯位移/缩放型** hover，**复合 transform 必须豁免**。
 
+## 浮层退场动效（09-17 P0+P1 全落地；细节 `artifacts/DESIGNBRIEF-MOTION-EXIT-01.md` §7）
+铁律：**浮层关闭必须先播退场、再卸载**（此前 `{open && createPortal}` = 0ms 硬切，是对称性缺口）。
+- 单源 = **`@components/ui/usePresence`**：`usePresence(open,exitMs)` / `usePresenceValue(value,exitMs)`
+  （对象门控型用后者 —— 退场窗口内 `lastRef` **保留最后一份非空载荷**，否则 `setMenu(null)` 就丢了坐标）。
+  ⚠️ **不放 `src/aurora/hooks/`**：`src/features/*` 禁止反向依赖 aurora UI（守卫 `local/no-aurora-ui-import`）；
+  `src/components/ui/` 是共享中性层，features 与 aurora 都可向下引用。
+- 时长常量 `POPOVER_EXIT_MS=100`（浮层）/ `OVERLAY_EXIT_MS=180`（面板浮层），**必须与 CSS 动画时长逐字对齐**。
+- 退场关键帧**与入场逐字镜像**（`-in` 的 `from` ≡ `-out` 的 `to`）＝「沿原路退回」；曲线一律 `--mc-ease-in`；
+  `[data-exiting='true']` 规则必带 `pointer-events:none`。消费者写 `data-exiting={exiting || undefined}`。
+- ⚠️ **reduced-motion 会劫持退场**：§11 对浮层一律 `animation-name: mc-rm-fade !important`（那是**淡入**）→
+  退场选择器**必须逐个登记进 `mc-rm-fade-out` 名单**，否则降级模式下退场 =「淡入再消失」闪跳。已登记 12 个 + 断言守。
+- 覆盖 18 处：MenuBar（模块级 `MenuPop` 子组件，`MENUS.map` 内不能调 hook）／工具栏下拉 ×4／右键菜单 ×5／
+  滚轮 ×3／面板浮层 ×3／Dock ×4／图谱 ×2。锁死 `styles/motionExit.test.ts`(53) + `ui/usePresence.test.ts`(10)。
+- **有意不动**（按频率门控拒绝，勿回退）：命令面板（键盘 100+/天）／FileTree·Outline 展开收起（VS Code 惯例，瞬时才对）／
+  Tooltip hover-out／视图切换 `aurora-content-in`（09-11 定稿）／Toast·Modal（已对称）。
+- 真机判据：**只读 DOM/CSSOM 数值序列**（动画中截图受合成节流会返回旧帧）—— 存在 ≥3 帧
+  「元素仍在 DOM ∧ `data-exiting=true` ∧ 0<opacity<1」才算「退场真在播」。探针 `probe-motion-exit.mjs`（`ONLY=menu|overlay|editorleft`）。
+- ⚠️ 编辑器视图**默认空态**，未开文档时 `.aurora-editor__hoverzone--left` 不渲染 → 验 P1-5 首选**图谱视图**
+  （`.aurora-graph__hoverzone` 无前置依赖/无锁定态）。
+
 ## 需求 N：tab 栏滑动切 Tab（七轮定稿 ✅）
 = **Apple 分段控件**：常驻滑块压选中项；按住 tab 横拖 → **只有滑块跟手，文字/内容区零位移**；栏不滚；
 **位移方向 = 目标方向**；**连续滑动**（轨道内 1:1 跨多格，落点最近中心位即目标）。
@@ -98,6 +120,7 @@ reduced-motion = 「更少更柔非归零」（时长减半；入场 `mc-rm-fade
   `setBlogEntryFileId` = 单篇语义；右侧宽度 `fit-content`。
 
 ## 当前状态
-- vitest **1170 passed / 3 failed / 2 skipped**，tsc 干净。3 项**预存**失败（与需求 N、KB 顶部间距无关）：
+- vitest **1233 passed / 3 failed / 2 skipped**，tsc 干净。3 项**预存**失败（与需求 N、KB 顶部间距、退场动效均无关）：
   `commandWiring` / `KbPanel.smoke`(`getByText('编辑')` 多元素) / `blogCssRefs`(KeyframeEditor 汉化)。
-- 待决：3 项预存失败；其他面板是否同步 52px subbar（博客 46／白板 42）；`--mc-dur-lazy` 处置；>30 天旧日志蒸馏。
+- 待决：3 项预存失败；其他面板是否同步 52px subbar（博客 46／白板 42）；`--mc-dur-lazy` 处置；
+  `.aurora-tooltip` 死 CSS（`components.css` 零消费者）处置；>30 天旧日志蒸馏。

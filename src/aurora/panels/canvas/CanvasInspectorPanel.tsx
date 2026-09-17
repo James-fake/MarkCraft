@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../../icons'
 import { ScrollNumberInput } from '@components/ui/ScrollNumberInput'
+import { usePresence, POPOVER_EXIT_MS } from '@components/ui/usePresence'
 import type { CanvasEngine } from '@features/canvas-v2/engine/CanvasEngine'
 import { LABEL_BG_PRESETS, autoTextColor } from '@features/canvas-v2/engine/OverlayCards'
 import { CARD_COLORS_LEGACY } from '@features/canvas-v2/theme/canvasTheme'
@@ -41,6 +42,8 @@ function InspectorSelect({
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const selected = options.find((o) => o.value === value)
+  // 关闭时先播 100ms 退场再卸载（动效审计 P0-3）；rect 是 state，退场窗口内仍可定位
+  const { mounted, exiting } = usePresence(open, POPOVER_EXIT_MS)
 
   const toggle = () => {
     if (!open && triggerRef.current) setRect(triggerRef.current.getBoundingClientRect())
@@ -84,10 +87,11 @@ function InspectorSelect({
         </span>
         <Icon.chevronDown size={12} className="aurora-cip__select-chevron" />
       </button>
-      {open && rect && createPortal(
+      {mounted && rect && createPortal(
         <div
           ref={menuRef}
           className="aurora-cip__menu"
+          data-exiting={exiting || undefined}
           role="listbox"
           style={{ position: 'fixed', top: rect.bottom + 4, left: rect.left, minWidth: rect.width }}
         >

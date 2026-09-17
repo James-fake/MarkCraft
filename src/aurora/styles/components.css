@@ -452,6 +452,40 @@
   }
 }
 
+/* 退场（动效审计 P0-1/P0-2 对称性收口）：**沿入场原路反演** —— 向下弹出的从 -4px 缩回，
+   向上弹出的从 +4px 缩回。100ms 即时层 + --mc-ease-in（加速离场）= Apple「出更快」。
+   消费者：MenuBar 菜单 / 工具栏下拉 ×4（列表·更多·两版标题）。相位机 = hooks/usePresence。 */
+@keyframes aurora-dropdown-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes aurora-dropdown-out-up {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.aurora-dropdown[data-exiting='true'] {
+  animation: aurora-dropdown-out var(--mc-dur-micro) var(--mc-ease-in) forwards;
+  pointer-events: none;
+}
+
+.aurora-dropdown--up[data-exiting='true'] {
+  animation-name: aurora-dropdown-out-up;
+}
+
 /* 弹出菜单原点感知入场（单源关键帧，macOS 动效方案 §3.5 延伸至右键菜单族）：
    消费者 = .aurora-canvas-ctxmenu / .aurora-filetree__ctxmenu / .aurora-outline__ctxmenu /
    .aurora-cip__menu，各自声明 animation + transform-origin（默认 top left = 光标/触发器）。
@@ -464,6 +498,20 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+/* 退场（动效审计 P0-3 对称性收口）：与 aurora-menu-in 逐字镜像 —— scale(1) → 0.97，绝不 scale(0)。
+   100ms 即时层 + --mc-ease-in（加速离场）。各消费者自带 transform-origin（top left = 光标/触发器），
+   于是「从哪长出来的，就缩回哪去」；规则就近写在各自文件（canvas / editor / graph.css）。 */
+@keyframes aurora-menu-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.97);
   }
 }
 
@@ -788,6 +836,24 @@
     opacity: 1;
     transform: none;
   }
+}
+
+/* 退场（动效审计 P0-4 对称性收口）：沿入场原路反演。
+   消费者：AuroraSelect / DateWheelInput / ScrollNumberInput（三者均渲染 .aurora-wheel-popover）。 */
+@keyframes aurora-wheel-out {
+  from {
+    opacity: 1;
+    transform: none;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+}
+
+.aurora-wheel-popover[data-exiting='true'] {
+  animation: aurora-wheel-out var(--mc-dur-micro) var(--mc-ease-in) forwards;
+  pointer-events: none;
 }
 
 /* 滚轮鼓本体（参考 iOS / macOS 日期·时间选择器） */

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { DateWheelPicker } from './DateWheelPicker'
+import { usePresence, POPOVER_EXIT_MS } from './usePresence'
 
 export interface DateWheelInputProps {
   /** 当前日期，ISO 短格式 'YYYY-MM-DD'（空 → 未设置） */
@@ -36,6 +37,8 @@ export function DateWheelInput({
   const innerRef = useRef<HTMLButtonElement | null>(null)
   const popoverRef = useRef<HTMLDivElement | null>(null)
   const [open, setOpen] = useState(false)
+  // 关闭时先播 100ms 退场再卸载（动效审计 P0-4）；rect 每帧从触发器实时读取，退场窗口内仍可定位
+  const { mounted, exiting } = usePresence(open, POPOVER_EXIT_MS)
 
   useEffect(() => {
     if (!open) return
@@ -50,7 +53,7 @@ export function DateWheelInput({
   }, [open])
 
   let popover: React.ReactNode = null
-  if (open && !disabled) {
+  if (mounted && !disabled) {
     const rect = innerRef.current?.getBoundingClientRect()
     if (rect) {
       const width = 264
@@ -63,6 +66,7 @@ export function DateWheelInput({
         <div
           ref={popoverRef}
           className="aurora-wheel-popover aurora-datewheel-popover"
+          data-exiting={exiting || undefined}
           style={{ position: 'fixed', top, left, width }}
           role="dialog"
           aria-label="选择生日"

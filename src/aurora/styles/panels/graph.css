@@ -53,6 +53,13 @@
   z-index: 7;
   animation: aurora-overlay-in var(--mc-dur-slow) var(--mc-ease-mac);
 }
+
+/* 退场（动效审计 P1-5 对称性收口）：沿入场原路反演（0 → -10px 缩回左缘）；
+   关键帧单源 = canvas.css 的 aurora-overlay-out。180ms + --mc-ease-in。 */
+.aurora-graph__overlay[data-exiting='true'] {
+  animation: aurora-overlay-out var(--mc-dur-fast) var(--mc-ease-in) forwards;
+  pointer-events: none;
+}
 /* 浮层头部：标题 + 图钉/收起操作（对齐编辑器/白板 overlay-head 同款） */
 .aurora-graph__overlay-head {
   display: flex;
@@ -542,6 +549,24 @@
   width: 184px;
   padding: 6px;
   z-index: 50;
+}
+
+/* 图谱浮层菜单族（节点右键菜单 / 导出下拉）：与白板右键菜单、工具栏下拉同款 origin-aware 进出场
+   （动效审计 P0-3 + 缺失动效补齐）。此前这两个菜单**连入场都没有**（瞬时出现、瞬时消失），
+   与同族的 .aurora-canvas-ctxmenu 明显不同步 —— 一次补齐进出双向。
+   关键帧单源 = components.css 的 aurora-menu-in / aurora-menu-out（scale 0.97，绝不 scale(0)）。 */
+.aurora-graph__ctx {
+  transform-origin: top left;
+  animation: aurora-menu-in var(--mc-dur-fast) var(--mc-ease-out) both;
+}
+.aurora-graph__menu {
+  transform-origin: top right; /* 触发器在右上角「导出」按钮，从按钮处展开 */
+  animation: aurora-menu-in var(--mc-dur-fast) var(--mc-ease-out) both;
+}
+.aurora-graph__ctx[data-exiting='true'],
+.aurora-graph__menu[data-exiting='true'] {
+  animation: aurora-menu-out var(--mc-dur-micro) var(--mc-ease-in) forwards;
+  pointer-events: none;
 }
 .aurora-graph__ctx button {
   display: flex;

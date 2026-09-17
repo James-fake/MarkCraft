@@ -40,6 +40,7 @@ import { findInboxId } from '@features/pwa'
 // 脚注插入仍由编辑器内核与默认快捷键承担。
 import { useMarkdownRenderer } from '@hooks/useMarkdownRenderer'
 import { useAppLayout } from '@hooks/useAppLayout'
+import { usePresence, OVERLAY_EXIT_MS } from '@components/ui/usePresence'
 import { useAppLogic } from '@app/useAppLogic'
 import { textFromStorage, textToStorage } from '@features/shared/storage/imageStore'
 
@@ -159,6 +160,10 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   const [rightTab, setRightTab] = useState<InspectorTab>('outline')
   const leftShown = leftPinned || leftHover
   const rightShown = rightPinned || rightHover
+  // 退场相位（动效审计 P1-5）：面板悬浮栏关闭时不再瞬时卸载，先播 180ms 沿原路滑出
+  // （入场 420ms ↔ 退场 180ms = Modal 同一进出比例）。可中断 —— hover 重新召回立即回 open。
+  const leftOverlay = usePresence(leftShown, OVERLAY_EXIT_MS)
+  const rightOverlay = usePresence(rightShown, OVERLAY_EXIT_MS)
   const closeLeft = useCallback(() => { setLeftHover(false); setLeftPinned(false) }, [])
   const closeRight = useCallback(() => { setRightHover(false); setRightPinned(false) }, [])
   // —— 边缘 hover 防误触（hover-intent）——
@@ -728,9 +733,10 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
             onMouseLeave={closeLeftIntent}
           >
             <div className="aurora-editor__edge aurora-editor__edge--left" aria-hidden />
-            {leftShown && (
+            {leftOverlay.mounted && (
               <div
                 className="aurora-editor__overlay aurora-editor__overlay--left"
+                data-exiting={leftOverlay.exiting || undefined}
                 onMouseEnter={cancelLeftClose}
                 onMouseLeave={scheduleLeftClose}
               >
@@ -815,8 +821,11 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
             onMouseLeave={closeRightIntent}
           >
             <div className="aurora-editor__edge aurora-editor__edge--right" aria-hidden />
-            {rightShown && activeFileId && (
-              <div className="aurora-editor__overlay aurora-editor__overlay--right">
+            {rightOverlay.mounted && activeFileId && (
+              <div
+                className="aurora-editor__overlay aurora-editor__overlay--right"
+                data-exiting={rightOverlay.exiting || undefined}
+              >
                 <div className="aurora-editor__overlay-head">
                   <div className="aurora-editor__overlay-actions aurora-editor__overlay-actions--left">
                     <button

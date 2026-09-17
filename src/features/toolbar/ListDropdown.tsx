@@ -4,12 +4,15 @@ import { createPortal } from 'react-dom'
 import type { Editor } from '@tiptap/react'
 import WysiwygToolbarButton from './WysiwygToolbarButton'
 import useDropdownPosition from './useDropdownPosition'
+import { usePresence, POPOVER_EXIT_MS } from '@components/ui/usePresence'
 
 export default function ListDropdown({ editor, t }: { editor: Editor; t: Translations }) {
   const [open, setOpen] = useState(false)
   const btnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const pos = useDropdownPosition(open, btnRef)
+  // 关闭时先播 100ms 退场再卸载（动效审计 P0-2）
+  const { mounted, exiting } = usePresence(open, POPOVER_EXIT_MS)
 
   useEffect(() => {
     if (!open) return
@@ -67,10 +70,11 @@ export default function ListDropdown({ editor, t }: { editor: Editor; t: Transla
         </svg>
       </WysiwygToolbarButton>
 
-      {open && createPortal(
+      {mounted && createPortal(
         <div
           ref={menuRef}
           className="aurora-dropdown"
+          data-exiting={exiting || undefined}
           style={{
             position: 'fixed',
             top: `${pos.top}px`,

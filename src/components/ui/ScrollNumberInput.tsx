@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { NumberWheelPicker } from './NumberWheelPicker'
+import { usePresence, POPOVER_EXIT_MS } from './usePresence'
 
 export interface ScrollNumberInputProps {
   /** 当前数值（数字或字符串；空字符串表示未填写） */
@@ -56,6 +57,8 @@ export function ScrollNumberInput({
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
   const [open, setOpen] = useState(false)
+  // 关闭时先播 100ms 退场再卸载（动效审计 P0-4）
+  const { mounted, exiting } = usePresence(open, POPOVER_EXIT_MS)
 
   const cancelClose = () => {
     if (closeTimer.current != null) {
@@ -109,7 +112,7 @@ export function ScrollNumberInput({
   }
 
   const buildPopover = () => {
-    if (!open || disabled) return null
+    if (!mounted || disabled) return null
     const rect = anchorRef.current?.getBoundingClientRect()
     if (!rect) return null
     const width = 156
@@ -122,6 +125,7 @@ export function ScrollNumberInput({
       <div
         ref={popoverRef}
         className="aurora-wheel-popover"
+        data-exiting={exiting || undefined}
         style={{ position: 'fixed', top, left, width }}
         role="dialog"
         aria-label="数字滚轮选择"

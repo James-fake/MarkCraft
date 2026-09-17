@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { usePresence, POPOVER_EXIT_MS } from '@components/ui/usePresence'
 
 export interface MoreDropdownItem {
   label: string
@@ -27,6 +28,8 @@ export default function MoreDropdown({ items, buttonRef }: MoreDropdownProps) {
   }, [buttonRef])
   const menuRef = useRef<HTMLDivElement>(null)
   const [menuPos, setMenuPos] = useState({ top: 0, left: 0 })
+  // 关闭时先播 100ms 退场再卸载（动效审计 P0-2）
+  const { mounted, exiting } = usePresence(open, POPOVER_EXIT_MS)
 
   useEffect(() => {
     if (!open) return
@@ -79,10 +82,11 @@ export default function MoreDropdown({ items, buttonRef }: MoreDropdownProps) {
         </svg>
       </button>
 
-      {open && createPortal(
+      {mounted && createPortal(
         <div
           ref={menuRef}
           className="aurora-dropdown"
+          data-exiting={exiting || undefined}
           style={{
             position: 'fixed',
             top: `${menuPos.top}px`,

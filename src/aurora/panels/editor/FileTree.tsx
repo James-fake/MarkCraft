@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, type MouseEvent as ReactMouseEvent } from 'react'
 import { createPortal } from 'react-dom'
+import { usePresenceValue, POPOVER_EXIT_MS } from '@components/ui/usePresence'
 import { Icon } from '../../icons'
 import { fileTypeMeta } from '../../themes/categoricalColors'
 import { useFileManager } from '@stores/FileStore'
@@ -92,6 +93,8 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
 
   // 右键上下文菜单 + 删除确认
   const [menu, setMenu] = useState<{ id: string; type: 'file' | 'folder'; name: string; x: number; y: number } | null>(null)
+  // 右键菜单退场相位（动效审计 P0-3）：setMenu(null) 后仍保留最后一份 x/y 播完 100ms 再卸载
+  const menuPresence = usePresenceValue(menu, POPOVER_EXIT_MS)
   const [confirming, setConfirming] = useState<{ id: string; type: 'file' | 'folder'; name: string } | null>(null)
   const menuRef = useRef<HTMLDivElement | null>(null)
   /** 删除确认退场态：置位后先播 180ms 反向动画，播完才真正卸载（与共享 Modal 同款进出对称） */
@@ -556,12 +559,14 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
       </div>
 
       {/* 右键上下文菜单：Portal 到 body，避免被文件树列 overflow / 外壳 backdrop-filter 裁切遮挡 */}
-      {menu &&
+      {menuPresence.mounted &&
+        menuPresence.value &&
         createPortal(
           <div
             className="aurora-filetree__ctxmenu"
             ref={menuRef}
-            style={{ position: 'fixed', left: menu.x, top: menu.y }}
+            data-exiting={menuPresence.exiting || undefined}
+            style={{ position: 'fixed', left: menuPresence.value.x, top: menuPresence.value.y }}
           >
             <button type="button" className="aurora-filetree__ctxmenu-item" onClick={onMenuRename}>
               <Icon.edit size={14} />

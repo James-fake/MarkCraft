@@ -400,13 +400,30 @@ html[data-density='comfortable'] {
   .aurora-filetree__ctxmenu,
   .aurora-outline__ctxmenu,
   .aurora-cip__menu,
+  .aurora-wheel-popover,
   .aurora-dock__float,
+  .aurora-graph__ctx,
+  .aurora-graph__menu,
   .aurora-filetree__confirm-backdrop,
   .aurora-filetree__confirm {
     animation-name: mc-rm-fade !important;
   }
+  /* 退场：必须逐个登记，否则上面的 mc-rm-fade（淡入）会把退场也变成「淡入再消失」的闪跳。
+     覆盖 = dropdown 菜单 / 工具栏下拉、右键菜单族、检视下拉、滚轮、三处面板浮层、Dock 气泡。 */
   .aurora-modal-overlay[data-exiting='true'],
   .aurora-modal-overlay[data-exiting='true'] .aurora-modal,
+  .aurora-dropdown[data-exiting='true'],
+  .aurora-canvas-ctxmenu[data-exiting='true'],
+  .aurora-filetree__ctxmenu[data-exiting='true'],
+  .aurora-outline__ctxmenu[data-exiting='true'],
+  .aurora-cip__menu[data-exiting='true'],
+  .aurora-wheel-popover[data-exiting='true'],
+  .aurora-dock__float[data-exiting='true'],
+  .aurora-graph__ctx[data-exiting='true'],
+  .aurora-graph__menu[data-exiting='true'],
+  .aurora-canvas__overlay[data-exiting='true'],
+  .aurora-editor__overlay[data-exiting='true'],
+  .aurora-graph__overlay[data-exiting='true'],
   .aurora-filetree__confirm-backdrop[data-exiting='true'],
   .aurora-filetree__confirm-backdrop[data-exiting='true'] .aurora-filetree__confirm {
     animation-name: mc-rm-fade-out !important;

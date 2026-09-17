@@ -36,6 +36,7 @@ import { CommandPalette, type CommandItem } from '../../components/command-palet
 import { CanvasListMenu } from './CanvasListMenu'
 import { RealCanvasView } from './RealCanvasView'
 import { useEngineSnapshot } from './canvasHooks'
+import { usePresence, usePresenceValue, POPOVER_EXIT_MS, OVERLAY_EXIT_MS } from '@components/ui/usePresence'
 import { useTheme } from '@stores/ThemeStore'
 import '../../styles/panels/canvas.css'
 
@@ -105,6 +106,9 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
     { id: 'canvas.note', title: '新建便签', icon: 'file', group: 'file', keywords: ['note', '便签', '新建'], action: () => engine?.createCardFree('note-card', { text: '新便签', color: '#F59E0B' }) },
   ], [engine])
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
+  // 右键菜单退场相位（动效审计 P0-3）：setCtx(null) 后仍保留最后一份 x/y 播完 100ms 再卸载，
+  // 于是菜单「从光标处长出来的，就缩回光标处」。
+  const ctxMenu = usePresenceValue(ctx, POPOVER_EXIT_MS)
   // 所属知识库（反向查询 canvasIds）：挂载白板后解析，顶部显示可回跳
   const [owningKb, setOwningKb] = useState<{ id: string; name: string; folderId?: string } | null>(null)
   const saveTimer = useRef<number | null>(null)
@@ -234,6 +238,11 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
   // 仅保留空态引导的「新建便签 / 文件便签」两个入口。
   // 用户点「跳过」后视为已引导，锁定随之解除，可正常进入白板。
   const locked = isCanvasEmpty && !guideSkipped
+
+  // 退场相位（动效审计 P1-5）：面板悬浮栏关闭时不再瞬时卸载，先播 180ms 沿原路滑出
+  // （入场 420ms ↔ 退场 180ms = Modal 同一进出比例）。可中断 —— hover 重新召回立即回 open。
+  const leftOverlay = usePresence(leftShown, OVERLAY_EXIT_MS)
+  const rightOverlay = usePresence(rightShown && !locked, OVERLAY_EXIT_MS)
 
   // 选区签名订阅（仅非箭头可检视元素）：驱动检视面板的自动展开/折叠。
   // 选中（便签/标签等）→ 展开；取消选中（签名为空）→ 折叠。
@@ -602,9 +611,10 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
               onMouseLeave={closeLeftIntent}
             >
               {!locked && <div className="aurora-canvas__edge aurora-canvas__edge--left" aria-hidden />}
-              {leftShown && (
+              {leftOverlay.mounted && (
                 <div
                   className="aurora-canvas__overlay aurora-canvas__overlay--left"
+                  data-exiting={leftOverlay.exiting || undefined}
                   onMouseEnter={cancelLeftClose}
                   onMouseLeave={scheduleLeftClose}
                 >
@@ -722,9 +732,10 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
               onMouseLeave={closeRightIntent}
             >
               {!locked && <div className="aurora-canvas__edge aurora-canvas__edge--right" aria-hidden />}
-              {rightShown && !locked && (
+              {rightOverlay.mounted && (
                 <div
                   className="aurora-canvas__overlay aurora-canvas__overlay--right"
+                  data-exiting={rightOverlay.exiting || undefined}
                   onMouseEnter={cancelRightClose}
                   onMouseLeave={scheduleRightClose}
                 >
@@ -788,7 +799,15 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
         <AutoLayoutPanel editor={engine} onClose={() => setAutoLayoutOpen(false)} />
       )}
 
-      {ctx && <CanvasContextMenu x={ctx.x} y={ctx.y} engine={engine} onClose={() => setCtx(null)} />}
+      {ctxMenu.mounted && ctxMenu.value && (
+        <CanvasContextMenu
+          x={ctxMenu.value.x}
+          y={ctxMenu.value.y}
+          engine={engine}
+          exiting={ctxMenu.exiting}
+          onClose={() => setCtx(null)}
+        />
+      )}
     </PageFrame>
   )
 }

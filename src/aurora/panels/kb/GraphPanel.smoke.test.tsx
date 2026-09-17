@@ -340,9 +340,12 @@ describe('Aurora GraphPanel · 真实图谱换芯', () => {
     expect(container.querySelector('.aurora-graph__pin')).toBeTruthy()
     expect(container.querySelector('.aurora-graph__overlay-close')).toBeTruthy()
 
-    // 点击头部收起按钮 → 浮层关闭
+    // 点击头部收起按钮 → 浮层进入退场（动效审计 P1-5）：先标记 data-exiting 播 180ms 再卸载
     fireEvent.click(container.querySelector('.aurora-graph__overlay-close')!)
-    expect(container.querySelector('.aurora-graph__overlay')).toBeNull()
+    expect(
+      container.querySelector('.aurora-graph__overlay')?.getAttribute('data-exiting'),
+    ).toBe('true')
+    await waitFor(() => expect(container.querySelector('.aurora-graph__overlay')).toBeNull())
   })
 
   it('P1-2 信息卡无「添加标签」桩按钮（已删除）', async () => {

@@ -12,6 +12,12 @@ export interface CanvasContextMenuProps {
   y: number
   engine: CanvasEngine | null
   onClose: () => void
+  /**
+   * 退场相位（由父级 `usePresenceValue` 驱动）：为 true 时本组件仍在 DOM 中，
+   * 只播 100ms 退场动画后由父级卸载（动效审计 P0-3）。x/y 由父级在退场窗口内保留，
+   * 所以菜单「从哪弹出来的，就缩回哪去」。
+   */
+  exiting?: boolean
 }
 
 const ITEMS: { id: string; label: string; icon: string }[] = [
@@ -24,7 +30,7 @@ const ITEMS: { id: string; label: string; icon: string }[] = [
   { id: 'lock', label: '锁定/解锁', icon: 'target' },
 ]
 
-export function CanvasContextMenu({ x, y, engine, onClose }: CanvasContextMenuProps) {
+export function CanvasContextMenu({ x, y, engine, onClose, exiting }: CanvasContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null)
   const selectedCount = useEngineSnapshot(engine, (e) => e.getSelectedShapeIds().length, 'session')
 
@@ -76,6 +82,7 @@ export function CanvasContextMenu({ x, y, engine, onClose }: CanvasContextMenuPr
     <div
       ref={ref}
       className="aurora-canvas-ctxmenu"
+      data-exiting={exiting || undefined}
       style={{ position: 'fixed', left: x, top: y, zIndex: 10001 }}
     >
       {ITEMS.map((it) => {

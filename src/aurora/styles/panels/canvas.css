@@ -116,6 +116,28 @@
   to { opacity: 1; transform: translateX(0); }
 }
 
+/* 退场（动效审计 P1-5 对称性收口）：**沿入场原路反演** —— 左侧栏从 -10px 缩回、右侧栏从 +10px 缩回。
+   180ms（--mc-dur-fast）+ --mc-ease-in，与 Modal「入 420 → 出 180」同一进出比例。
+   入场 420ms 是本仓最从容的一档，收场硬切的落差也最大 —— 这一处补上后整族才齐。
+   关键帧定义在此（canvas/editor/graph 三处 overlay 共用，单源），三处的 [data-exiting] 规则就近声明。
+   相位机可中断：hover 重新召回时立刻回 open，退场被打断不跳变。 */
+@keyframes aurora-overlay-out {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(-10px); }
+}
+@keyframes aurora-overlay-out-right {
+  from { opacity: 1; transform: translateX(0); }
+  to { opacity: 0; transform: translateX(10px); }
+}
+
+.aurora-canvas__overlay[data-exiting='true'] {
+  animation: aurora-overlay-out var(--mc-dur-fast) var(--mc-ease-in) forwards;
+  pointer-events: none;
+}
+.aurora-canvas__overlay--right[data-exiting='true'] {
+  animation-name: aurora-overlay-out-right;
+}
+
 /* 浮层头部：标题 + 图钉/收起操作 */
 .aurora-canvas__overlay-head {
   display: flex;
@@ -1354,6 +1376,11 @@
   transform-origin: top left;
   animation: aurora-menu-in var(--mc-dur-fast) var(--mc-ease-out) both;
 }
+/* 退场（动效审计 P0-3）：沿同一 origin 缩回触发器左下角 */
+.aurora-cip__menu[data-exiting='true'] {
+  animation: aurora-menu-out var(--mc-dur-micro) var(--mc-ease-in) forwards;
+  pointer-events: none;
+}
 .aurora-cip__option {
   display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px;
   border-radius: var(--mc-radius-sm); font-size: var(--mc-font-base); color: var(--mc-text-primary);
@@ -1557,6 +1584,12 @@
   animation: aurora-menu-in var(--mc-dur-fast) var(--mc-ease-out) both;
 }
 
+/* 退场（动效审计 P0-3）：沿同一 transform-origin 缩回光标处，100ms 加速离场 */
+.aurora-canvas-ctxmenu[data-exiting='true'] {
+  animation: aurora-menu-out var(--mc-dur-micro) var(--mc-ease-in) forwards;
+  pointer-events: none;
+}
+
 .aurora-canvas-ctxmenu__item {
   display: flex;
   align-items: center;
@@ -1701,6 +1734,25 @@
     opacity: 1;
     translate: 0 0;
   }
+}
+
+/* 退场（动效审计 P1-6 对称性收口）：沿入场原路反演 —— 回落 dock（translate 0 → 8px）。
+   用独立的 `translate` 属性通道，与 `.aurora-dock__float` 自带的 `transform: translateX(-50%)`
+   （及 --more-menu 的 transform: none）互不覆盖。100ms 加速离场。 */
+@keyframes aurora-dock-float-out {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    translate: 0 8px;
+  }
+}
+
+.aurora-dock__float[data-exiting='true'] {
+  animation: aurora-dock-float-out var(--mc-dur-micro) var(--mc-ease-in) forwards;
+  pointer-events: none;
 }
 
 .aurora-dock__more-menu {

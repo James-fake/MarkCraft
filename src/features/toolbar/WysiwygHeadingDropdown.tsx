@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom'
 import type { Editor } from '@tiptap/react'
 import WysiwygToolbarButton from './WysiwygToolbarButton'
 import useDropdownPosition from './useDropdownPosition'
+import { usePresence, POPOVER_EXIT_MS } from '@components/ui/usePresence'
 
 const HEADING_LEVELS = [0, 1, 2, 3, 4, 5, 6] as const
 
@@ -12,6 +13,8 @@ export default function WysiwygHeadingDropdown({ editor, t }: { editor: Editor; 
   const btnRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const pos = useDropdownPosition(open, btnRef)
+  // 关闭时先播 100ms 退场再卸载（动效审计 P0-2）
+  const { mounted, exiting } = usePresence(open, POPOVER_EXIT_MS)
 
   useEffect(() => {
     if (!open) return
@@ -53,10 +56,11 @@ export default function WysiwygHeadingDropdown({ editor, t }: { editor: Editor; 
         </span>
       </WysiwygToolbarButton>
 
-      {open && createPortal(
+      {mounted && createPortal(
         <div
           ref={menuRef}
           className="aurora-dropdown"
+          data-exiting={exiting || undefined}
           style={{
             position: 'fixed',
             top: `${pos.top}px`,
