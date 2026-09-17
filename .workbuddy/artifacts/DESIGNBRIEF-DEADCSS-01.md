@@ -399,3 +399,144 @@ L3 是本次方案的增量，也是判据的终点：把「代码里没写」�
 两者**已各自自洽**：两个面板标题行同为 36px + 同款 padding。把 36 提到 52 会**白丢 16px 侧栏纵向空间**，且侧栏本就有自己的密度尺度（`--mc-sidebar-item-h` 32/40）。**不动。**
 
 唯一可选（P2，本轮不做）：`height:36px` 的「面板内标题行」形态在 editor(2) / graph(2) / settings(1) 共约 5 处重复，可抽 `--mc-panel-head-h` token。属**收敛**而非**统一**，且不解决任何现存视觉问题。
+
+---
+
+# §7 批 2 执行记录：盲区扫描（2026-09-17 · **只扫不删** ✅）
+
+> 工具：`.workbuddy/deadcss-batch2.mjs`（可达性 + 任意前缀类名 + 库命名空间三层过滤）
+> 原始输出：`.workbuddy/deadcss/batch2-report.log`
+> 本批**零删除、零改动**。产出是清单与判据。
+
+## 7.1 盲区的真因：不是「漏扫了文件」，是「前缀把文件挡在正则之外」
+
+§6.2 把盲区描述成「12 个文件从未被扫描」。实际复核后更准确的表述是：
+
+批 1 扫描器的类名提取正则是 `\.((?:aurora|mc)-[a-zA-Z0-9_-]+)` —— **硬要求 `aurora-` / `mc-` 前缀**。
+而盲区文件里的类名是 `.tiptap-*` / `.kb-*` / `.cv-*` / `.vh-*` / `.markdown-preview` / `.code-block-*` / `.hover-*` / `.material-*` …
+**全部不带这两个前缀** → `deadcss-scan.mjs` 即使遍历到了这些文件，也一条类名都提取不出来。
+
+所以盲区 = **「前缀 namespace 之外的一切」**，不是「目录之外的一切」。这条修正很重要：只要项目继续引入非 `aurora-`/`mc-` 前缀的新类名族，同样的盲区就会再次出现。
+
+## 7.2 第一层产出：可达性（比死类清单更值钱）
+
+入口确认：**项目没有 `src/main.tsx` / `src/App.tsx`**，`index.html` 的 `<script type="module">` 直接指向 `src/aurora/aurora-main.tsx` —— Aurora 就是唯一真实应用。
+
+从入口做静态 import 闭包（含 CSS 的 `@import` 链）：**26 / 28 个 CSS 文件可达**。**2 个孤儿**：
+
+| 文件 | 行数 | 证据（全部静态可证） |
+|---|---|---|
+| `src/features/canvas-v2/components/canvas.css` | **295** | ① 全仓零 `import` 该文件（canvas-v2 目录内只有 `excalidraw-hide-ui.css` 被 import）；② 其 25 个 `.cv-*` 类零 TS 消费者；③ `AutoLayoutPanel.tsx` 实际走 **内联 style + `var(--cv-*)` 变量**，不依赖这些类；④ `canvasTheme.ts` 的 `injectCanvasTheme()` **只注入变量块**，不注入本文件 |
+| `src/index.css` | **11** | 纯 `@import` 聚合器，全仓零引用（aurora-main 已逐个 import 同名文件，`:15`–`:23`）。属历史入口残留 |
+
+⚠️ **迁移风险**：`canvasTheme.ts:110` 有一条
+`html[data-density="comfortable"] .cv-pill-btn { … }`
+它指向的正是**孤儿文件里的类** —— 因为该文件从未加载，这条注入规则**恒不生效**。删 `canvas.css` 时必须一并处置它，否则留下一条永久空转的规则（现在的状态是「半死」）。
+
+## 7.3 死类清单（**124 类 / ≈860 行**）
+
+扫描器口径 126 类 / 877 行；扣除 2 条厂商隐藏规则（见 7.4③）后为 **124 类 / ≈860 行**。
+
+| 文件 | 行数 | 死类 | 纯死块 | 混合块 | 涉行 |
+|---|---|---|---|---|---|
+| `src/styles/mermaid.css` | 1233 | **34** | 41 | 7 | 331 |
+| `src/features/canvas-v2/components/canvas.css`（孤儿）| 295 | **19** | 29 | 5 | ≈165 |
+| `src/features/knowledgeBase/kb-ui.css` | 633 | **56** | 70 | 27 | 151 |
+| `src/styles/components.css` | 252 | **7** | 23 | 6 | 111 |
+| `src/styles/tiptap.css` | 1295 | **4** | 7 | 3 | 64 |
+| `src/styles/syntax.css` | 246 | **2** | 3 | — | 29 |
+| `src/styles/desktop-chrome.css` | 281 | **2** | 3 | — | 11 |
+| `src/styles/markdown.css` | 466 | 0 | — | — | 干净 |
+| `src/features/editor/versionHistory.css` | 331 | 0 | — | — | 干净 |
+| `src/features/canvas-v2/engine/excalidraw-hide-ui.css` | 83 | 0 | — | — | 全库类，保护 |
+| `src/styles/base.css` / `scrollbar.css` / `fonts.css` | 280 | 0 | — | — | 元素选择器为主 |
+
+**按族看，成因高度集中（4 个族占 109 / 124 类）：**
+
+| 族 | 类数 | 成因 |
+|---|---|---|
+| `kb-*` 旧代 | 56 | KB 面板迁 Aurora 后，旧「外壳 + 工具层」被 `aurora-kb-*` 取代（`kb-h1`→`kb-h2`…、`kb-card`→`aurora-kb-card`、`kb-kb-grid`→`aurora-kb-kbcard`、`kb-note-*`→`aurora-kb-notes*`）。**现役内嵌组件层**（`kb-searchpanel-*` / `kb-modal` / `kb-btn` / `kb-result-*` / `kb-match-*` …）仍活 |
+| `math-*` 旧代 | 25 | `MathPopover.tsx` 换了实现：新代 `math-popover-tab-btn` / `-group-tabs` / `-symbol-*` / `-template-*`；旧代 `math-popover-tabs/title/footer/insert-btn/hint` + `math-symbols-*` + `math-templates-*` + `inline-math-preview*` 全废 |
+| `.cv-*` 孤儿族 | 19 | 见 7.2 |
+| `plantuml-* / mermaid-rendered / lint-marker / line-number*` | 10 | 渲染状态改用 **`data-rendered` 属性**而非 `-rendered` 类；行号渲染迁 CodeMirror 内置 gutter（`.cm-lineNumbers`）；lint 类名迁为 `lint-line-marker` |
+
+## 7.4 四个假阳性陷阱（本轮主要方法论产出，全部在 node_modules 里实锤）
+
+**① 模板前缀必须限定在 `className` 上下文 —— 这条坑掩盖了 56 个真死类**
+
+`src/stores/kbTypes.ts:94` 有一个 ID 生成器：
+
+```ts
+return `kb-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+```
+
+它产出的裸前缀 `kb-` 被当成「类名前缀模板」，于是 `kb-ui.css` 里**整个 `kb-*` 命名空间（66 类）全部被判为「疑似动态」** —— 一个与 CSS 毫无关系的 ID 生成器，把本批最大的一块死代码整片藏了起来。
+
+修法：抽取模板前缀前，先看反引号**前 120 字符**有没有 `className | classList | clsx | cn( | class=` 之类上下文，无则丢弃。
+批 1 没踩到这个坑，纯属运气：`aurora-` / `mc-` 前缀恰好没有裸前缀 ID 生成器。
+
+**② 库的「作用域后缀」类** —— `node_modules/highlight.js/lib/core.js:122`：
+
+```js
+const scopeToCSSClass = (name, { prefix }) => { … `${x}${"_".repeat(i + 1)}` … }
+```
+
+即 hljs v11 在运行时给 `<span>` 同时挂 `hljs-*` 与 `function_` / `language_` / `class_` 这类**下划线后缀**类。它们只以复合选择器形态出现（`.hljs-title.function_`），单看类名完全像我们的类。
+
+**③ 库的 DOM 类（在 node_modules 实锤）**
+
+| 来源 | 类名 |
+|---|---|
+| `@tiptap/extension-table` | `selectedCell` / `column-resize-handle` / `tableWrapper` / `resize-cursor` |
+| `@tiptap/extension-placeholder` | `is-editor-empty` |
+| `@excalidraw/excalidraw` | `layer-ui__wrapper` / `Tooltip__label` / `dropdown-menu` |
+| KaTeX | `minner` / `katex-display` |
+| tldraw（`.tl-` 前缀）| `tl-toolbar` / `tl-watermark_SEE-LICENSE` —— 出现在孤儿 `canvas.css` 里，是**厂商水印/工具栏隐藏规则**，非死 |
+
+⚠️ **反向坑**：`katex-inline-wrapper` / `katex-display-wrapper` **是活类**（由 `src/features/shared/utils/mathRenderer.ts:151/167/169` 生成）—— 它们只是"长得像库类"。前缀豁免若写成 `/^katex/` 会把这两个真相干的类一起埋掉。正确写法是精确匹配 `^katex$|^katex-(display|html|mathml|version|error)$`。
+
+**④ 超串陷阱的第三形态：** 一个**死类**恰是**活类的真前缀**（与批 1 的"父活子死"方向相反）
+
+| 死 | 活 | 说明 |
+|---|---|---|
+| `.tiptap-math-inline` | `.tiptap-math-inline-katex` | DOM 只有后者 |
+| `.lint-marker` | `.lint-line-marker` | 生成处只有后者 |
+| `.hover-bg` | `var(--hover-bg)` / `--cv-hover-bg` | 后者是 **CSS 变量**不是类 |
+
+## 7.5 两处「不只是死代码」——单列，本批不删
+
+**(a) `.tiptap-math-inline` 疑似命名错位（失效样式，非纯死）**
+
+`tiptap.css:456` / `:470`（含 light 变体）给 `.tiptap-math-inline` 定样式；而 DOM 侧只有 `EditableNodeView` 的 `editable-node` 包装 + 内层 `tiptap-math-inline-katex`（`MathInlineNodeView.tsx:19`）。
+→ 这两条规则**从未生效**。删掉是安全的（无视觉变化），但如果原意是给行内公式容器加样式，那它是**一个待修的 bug**而非垃圾。
+**处置建议**：标注为「失效样式」，先不删，等与作者确认意图。
+
+**(b) `desktop-chrome.css` 的「覆盖陷阱」与已死 token**
+
+- 它是**有意的第二层 `:root`**（文件注释明写「仅追加…同名 token 在此覆盖」），且 `aurora-main.tsx` 的加载顺序 `:5 tokens.css → :16 desktop-chrome.css` 保证它**后加载**。
+- 当前 `--mc-accent` 两边同为 `#7C8CFF`（`tokens.css:46` / `desktop-chrome.css:74`），**无可见分歧**；但**改 tokens.css 不生效**（被后加载者覆盖）。这正是本项目反复出现过的「双源」坑。
+- **纯死 token（0 引用）**：「方案 A 桌面转型」契约中的尺寸族 `--mc-spine-w` / `--mc-dock-h` / `--mc-dock-radius` / `--mc-rightpanel-*` / `--mc-hover-surface` —— Spine56 / Dock44 / RightPanel280 已被 Aurora 外壳（MenuBar + Sidebar + StatusBar）取代。
+- 4 个 `.material-*` 类中：`material-sidebar`（`FileTree.tsx:309`）/ `material-popover`（`EditorContextMenu` / `TableContextMenu`）**活**；`material-solid` / `material-hud` **死**。
+
+## 7.6 判死口径（批 2 版 · 比批 1 厚一层）
+
+```
+① 定义存在（CSS 里真的定义了该类）
+② 无字面量消费者（src/**/*.{ts,tsx}，排除 .test，**词边界 token** 匹配）
+③ 不落在模板字面量前缀下（**且该前缀必须来自 className 上下文**）← 本批新增
+④ 不属库命名空间（前缀类 / 作用域后缀类 / 选择器级库上下文）    ← 本批新增
+⑤ 可达性：该 CSS 文件确实在 Aurora 加载闭包内（否则不是"死类"而是"孤儿文件"）← 本批新增
+```
+`③` 与 `④` 是本批踩出来的；`⑤` 是把"孤儿文件"从"死类"里分离出来的关键层。
+
+## 7.7 建议的下一轮切分（批 2.5 / 批 3）
+
+| 组 | 内容 | 类数 | 行数 | 风险 | 前置条件 |
+|---|---|---|---|---|---|
+| **2.5-A** | 删 2 个孤儿文件 + 处置 `canvasTheme.ts:110` 空转规则 | — | ≈306 | **最低**（死文件，零消费者）| 需先与作者确认 canvas-v2 视觉路线 |
+| **2.5-B** | `mermaid.css` 数学旧代 25 类 + `plantuml/mermaid/lint/行号` 10 类 | 35 | ≈331 | 低 | 命中 7 处混合块 → 需成员级摘除 |
+| **2.5-C** | `kb-ui.css` 旧代 56 类 | 56 | ≈151 | 中 | 命中 **27 处混合块**（新旧代同块）；且 **10 类仅测试引用** → 须先把 `kbDensity.test.ts` / `pointerGating.test.ts` 的断言升级为「零定义」 |
+| **3** | `components.css` 工具类 7 + `syntax.css` 行号 2 + `desktop-chrome.css` 2；`tiptap-math-inline` 待定性 | 11 | ≈151 | 低–中 | (a) 命名错位待作者确认 |
+| **3.5** | `desktop-chrome.css` 死 token 族 + 覆盖陷阱收敛 | — | — | 中 | 与前一轮「死 CSS」不同性质，建议**独立成题**（token 单源治理）|
+
+**一句话**：批 2 的最大产出不是"又找到 860 行"，而是**三条判据的补厚**（③ 上下文限定的模板前缀 / ④ 库命名空间 / ⑤ 可达性）—— 缺任一条都会出错，且错的方向不同（③④ 会**误杀活类**，⑤ 会**把孤儿误报成死类**）。

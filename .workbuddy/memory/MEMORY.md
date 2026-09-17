@@ -32,6 +32,19 @@ Vite5+React18+TS；CodeMirror6+TipTap3；白板 Excalidraw；Dexie/IndexedDB。d
   `` `aurora-toast--${t.kind}` `` → 字面量 `aurora-btn--sm` 从不出现，纯字面量扫描会**误判活类为死**。
   扫描器分三档（A 高危 / B 疑似动态 / C 仅测试引用），`scan.mjs`；前缀抽取**只取最后一个空白分隔词**
   （整段当前缀会含空格 → 永不命中 → 假阳性）。判死清单**逐族人工复核后才可删**。
+  **批 2 补厚三层（缺任一层都会错，且错的方向不同）**：
+  ③ 模板前缀**必须来自 `className` 上下文**（反引号前 120 字符含 `className|classList|clsx|cn(|class=`）——
+    否则 `stores/kbTypes.ts:94` 的 ID 生成器 `` return `kb-${Date.now()}-${rand}` `` 会把**整个 `kb-*` 命名空间
+    （66 类）伪装成「动态」**，掩盖 56 个真死类。批 1 没踩到纯属运气（`aurora-`/`mc-` 恰无裸前缀生成器）。
+  ④ **库命名空间必须豁免**（一律在 node_modules 实锤，不靠猜）：hljs 作用域后缀（`core.js:122`
+    `` scopeToCSSClass = (n,{prefix}) => n.replace('.','_') + '_'.repeat(i+1) `` → `language_`/`function_`/`class_`）／
+    TipTap（`is-editor-empty` Placeholder、`selectedCell`/`column-resize-handle`/`tableWrapper`/`resize-cursor` Table）／
+    Excalidraw（`layer-ui__wrapper`/`Tooltip__label`/`dropdown-menu`）／KaTeX（`minner`/`katex-display`）／tldraw（`.tl-*`）。
+    ⚠️ **反向坑**：`katex-inline-wrapper`/`katex-display-wrapper` 是**活类**（`shared/utils/mathRenderer.ts` 生成），
+    只长得像库类 → 豁免必须**精确匹配** `^katex$|^katex-(display|html|mathml|version|error)$`，**别写 `/^katex/`**。
+  ⑤ **可达性**：文件不在入口 import 闭包内 → 那是**「孤儿文件」不是「死类」**，处置方式完全不同（整文件 vs 成员级）。
+  ⑥ 超串陷阱有**第三形态**：**死类是活类的真前缀**（`.tiptap-math-inline` 死 vs `-katex` 活；
+    `.lint-marker` 死 vs `lint-line-marker` 活；`.hover-bg` 死 vs `var(--hover-bg)` 是 **CSS 变量**不是类）。
 - **「清剿清单」守卫测试的双锚点**：CSS 用 `\.name(?![a-zA-Z0-9])`（尾部拒字母数字、允许 `_`/`-` 即 BEM 后代）；
   代码用 `(?<![\w-])name(?![a-zA-Z0-9])`（**无前导点**，否则漏检 `className="mc-tooltip"`）。
   尾部写 `\b` 会漏 `name__arrow`（`_` 是词字符）；完全不约束尾部会误伤 `.aurora-tooltips`。
@@ -186,18 +199,42 @@ reduced-motion = 「更少更柔非归零」（时长减半；入场 `mc-rm-fade
   删除后必扫：`,\s*\{`／跨行 `,\n{`／独立 `,` 行／括号配平。**判据只能靠"合并规则带声明存活"**（单看类名会漏，
   因为兄弟规则 `::placeholder`/`:focus` 仍留着同一个类名）。
 - **不删清单**：B 档 19 条（模板拼接/确认活）、C 档 10 条（仅测试引用）。
-- ⚠️ **扫描器有范围盲区**：只覆盖 `aurora/styles/**` + `components/ui/*.css`，漏了 `src/` 下 **12 个 CSS 文件 / 5310 行**
-  （`styles/tiptap.css`1294 / `styles/mermaid.css`1232 / `knowledgeBase/kb-ui.css`632 · `KbPanel.tsx:29` /
-  `styles/markdown.css`465 / `editor/versionHistory.css`330 / `canvas-v2/components/canvas.css`294（前缀 `.cv`/`.tl`）/
-  `styles/{desktop-chrome,components,syntax,base,scrollbar,fonts}.css` / `index.css`）——**全部有真实 import**。
-  **文件活 ≠ 里面每个类都活**：`kb-ui.css` 的 `.kb-stat*` 正是 `tokens.css §12` 判为「已退役」的那批。
-- **比白板废墟更值的一处**：`aurora-editor` 23 条死类 = **旧自绘编辑器整套 DOM**（`__line*/__source/__wysiwyg/
-  __preview*/__split*/__cursor/__keymap/--zen`；现为 CodeMirror6+TipTap）→ 而 `editor.css`(2717) 是全仓最大样式文件。
+- ⚠️ **扫描盲区的真因是「前缀」不是「目录」**：批 1 扫描器类名正则硬要求 `aurora-`/`mc-` 前缀 →
+  `src/styles/*`（`.tiptap-*`/`.code-block-*`/`.hover-*`）、`kb-ui.css`（`.kb-*`）、`canvas-v2`（`.cv-*`/`.tl-*`）、
+  `versionHistory.css`（`.vh-*`）等**全被挡在正则之外**（12 文件 / 5310 行，且都**有真实 import**）。
+  **每引入一个新前缀族，就会再出现一次同样的盲区。**
+- ✅ **批 2 已扫完（2026-09-17，只扫不删）**：`artifacts/DESIGNBRIEF-DEADCSS-01.md §7`；
+  工具 `.workbuddy/deadcss-batch2.mjs`；原始输出 `.workbuddy/deadcss/batch2-report.log`。
+  **死类 124 / ≈860 行**（扫描器口径 126/877，扣 2 条 tldraw 隐藏规则）。成因 4 族占 109：
+  `kb-*` 旧代 56（KB 迁 Aurora 后外壳+工具层被 `aurora-kb-*` 取代；现役内嵌组件层 `kb-searchpanel-*`/`kb-modal`/`kb-btn` 仍活）／
+  `math-*` 旧代 25（`MathPopover.tsx` 换实现：新 `math-popover-tab-btn`/`-symbol-*`，旧 `math-popover-tabs/title/footer/insert-btn` 废）／
+  `.cv-*` 孤儿 19／渲染状态类 10（`mermaid-rendered` 改用 `data-rendered` 属性、行号迁 CM6 内置 gutter `.cm-lineNumbers`、
+  `lint-marker`→`lint-line-marker`）。`markdown.css`(466)/`versionHistory.css`(331)/`base.css`/`scrollbar.css`/`fonts.css` **干净**。
+- 🚨 **2 个孤儿 CSS（不在入口 import 闭包内）**：`features/canvas-v2/components/canvas.css`（**295 行**，零 import，
+  `.cv-*` 零 TS 消费者，`AutoLayoutPanel.tsx` 实际走**内联 style + `var(--cv-*)` 变量**）／
+  `src/index.css`（11 行纯 `@import` 聚合器，全仓零引用）。**真实入口只有 `src/aurora/aurora-main.tsx`，项目无 `src/main.tsx`。**
+  ⚠️ 连带：`canvasTheme.ts:110` 的 `html[data-density="comfortable"] .cv-pill-btn` 指向孤儿文件里的类 → **恒不生效**（半死状态）。
+- ⚠️ **`src/styles/desktop-chrome.css` 是**有意的**第二层 `:root`**：`aurora-main.tsx` 顺序 `:5 tokens.css → :16 desktop-chrome.css`
+  → **它后加载、覆盖同名 token**（文件注释明写「仅追加…同名 token 在此覆盖」）。当前 `--mc-accent` 两边同值 `#7C8CFF`
+  故**无可见分歧**，但**改 tokens.css:46 不生效** —— 改 accent 必须同时改 `desktop-chrome.css:74`（+ 亮色 `:189`）。
+  同文件**已死 token（0 引用）**：「方案 A 桌面转型」契约 `--mc-spine-w`/`--mc-dock-h`/`--mc-dock-radius`/`--mc-rightpanel-*`/`--mc-hover-surface`
+  （Spine56/Dock44/RightPanel280 已被 Aurora 外壳取代）。4 个 `.material-*`：`-sidebar`（`FileTree.tsx:309`）/-popover 活，`-solid`/`-hud` 死。
+- **单列的「疑似命名错位」（失效样式，非纯死）**：`tiptap.css:456/:470` 给 `.tiptap-math-inline` 定样式，而 DOM 只有
+  `EditableNodeView` 的 `editable-node` + 内层 `tiptap-math-inline-katex`（`MathInlineNodeView.tsx:19`）→ 这两条**从未生效**。
+  删了无视觉变化；但若是原意给行内公式容器加样式，那是**待修的 bug** → 本轮**不删**，等与作者确认意图。
+- **批 2 未删任何东西**。建议切分：2.5-A 两个孤儿文件（≈306 行，最低风险）／2.5-B `mermaid.css` 35 类／
+  2.5-C `kb-ui.css` 56 类（**27 处混合块** + **10 类仅测试引用**须先升级断言）／3 其余 11 类／
+  3.5 `desktop-chrome.css` 死 token 族 + 覆盖陷阱（属 **token 单源治理**，独立成题）。
+- ⚠️ 待升级的测试引用（删前必须处理，否则守卫自红）：`kbDensity.test.ts` 断言 `.kb-topbar/.kb-nav/.kb-nav-item/.kb-content/
+  .kb-manage/.kb-row/.kb-btn/.kb-icon-btn`；`pointerGating.test.ts:132` 的 B 组 `kb-stat`/`kb-tpl-card`。
+- **批 3 仍待处理（比白板废墟更值的一块）**：`aurora-editor` 23 条死类 = **旧自绘编辑器整套 DOM**
+  （`__line*/__source/__wysiwyg/__preview*/__split*/__cursor/__keymap/--zen`；现为 CodeMirror6+TipTap）
+  —— 而 `editor.css` 仍是全仓最大样式文件。**需先建 L3 真机 class 挂载采集器**（列活族死分支）。
 - ✅ **侧栏「小标题栏」结论 = 不统一**（只给结论、未改）。`.aurora-filetree__topbar` / `.aurora-outline__header` 是
   **面板级**内部标题行（36px + `0 8px 0 12px`，两者**已自洽**），与**视图级**二级栏 52px（`--mc-subbar-h`）**不同层级**；
   提到 52 会白丢侧栏 16px 纵向空间，且侧栏自有密度尺度（`--mc-sidebar-item-h` 32/40）。
   P2 可选（本轮不做）：`height:36px` 的面板标题行在 editor(2)/graph(2)/settings(1) 重复 ~5 处 → 可抽 `--mc-panel-head-h`（属**收敛**非统一）。
-- 其他待决：**批 2**（补扫 12 文件 / 5310 行盲区，**只扫不删**）；**批 3**（活族死分支 −400~500 行，**需先建 L3 真机 class 挂载采集器**）；
+- 其他待决：**批 2 已完成（只扫不删，见上）**；下一步 **2.5-A/B/C**（见上切分）或**批 3**（活族死分支，**需先建 L3 真机 class 挂载采集器**）；
   `components/ui` 的 `Input.tsx` / `EmptyState.tsx` 零消费者（但样式经桶间接下发）；`--mc-dur-lazy` 处置；>30 天旧日志蒸馏。
 - ✅ 已推送至 `origin/master`：`187be15` / `1e08d65` / `988c406` / `30fc95f` / `3b3e9b2`（tooltip/lazy 清剿）/ `fb219cc`（方案文档）
   / 本轮（批 1 死 CSS 清剿 + 守卫同批 + 方案文档 §6.9 执行记录）。
