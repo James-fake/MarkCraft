@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { useLanguage } from '../../stores/LanguageStore'
-import { useTheme } from '../../hooks/useTheme'
+import { useTheme } from '@features/themes/useTheme'
 import { useDensity } from '../../hooks/useDensity'
 import { useBlogGenerator, BlogDesignConfig } from './hooks/useBlogGenerator'
 import IconSidebar, { PanelKey } from './components/IconSidebar'

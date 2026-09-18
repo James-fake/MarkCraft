@@ -9,7 +9,7 @@ import { foldGutter, foldService, indentOnInput, syntaxHighlighting, defaultHigh
 import { closeBrackets } from '@codemirror/autocomplete'
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search'
 import { useLanguage } from '@stores/LanguageStore'
-import { ThemeType } from '@stores/ThemeStore'
+import { ThemeType } from '@features/themes/useTheme'
 import { useSettings } from '@stores/SettingsStore'
 import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useFileManager } from '@stores/FileStore'

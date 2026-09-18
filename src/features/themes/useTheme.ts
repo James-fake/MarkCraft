@@ -1,6 +1,8 @@
-import React, { useMemo, useCallback } from 'react'
-import { useSettings } from '../stores/SettingsStore'
-import { getTheme } from '../features/themes/ThemeManager'
+// Phase 5.2/5.3（2026-09-18）自 src/hooks/ 移入：主题 hook 归主题域（挨着 ThemeManager），
+// 消除 hooks → features/themes 的可疑向上边；ThemeStore 纯壳已删，消费者直连本文件。
+import { useMemo, useCallback } from 'react'
+import { useSettings } from '../../stores/SettingsStore'
+import { getTheme } from './ThemeManager'
 
 export type ThemeType = 'dark' | 'light'
 
@@ -38,9 +40,4 @@ export function useTheme() {
   }, [theme, updateSetting])
 
   return { theme, toggleTheme }
-}
-
-// 兼容旧导出：ThemeProvider 不再需要，导出一个透传组件
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return React.createElement(React.Fragment, null, children)
 }

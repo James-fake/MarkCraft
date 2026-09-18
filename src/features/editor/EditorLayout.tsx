@@ -27,7 +27,7 @@ import { navigationTracker } from './NavigationTracker'
 import GoToLineDialog from './GoToLineDialog'
 import { HistoryIcon } from './HistoryIcon'
 import { getRelativeScrollPosition, setRelativeScrollPosition } from './scrollSync'
-import { ThemeType } from '../../stores/ThemeStore'
+import { ThemeType } from '@features/themes/useTheme'
 import { getEditorScrollCM, getEditorScroll, getPreviewScroll, hasSavedScrollPosition } from '../../services/scrollPositionManager'
 
 const LazyOutline = lazy(() => import('../outline/Outline'))

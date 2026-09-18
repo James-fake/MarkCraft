@@ -1,4 +1,4 @@
-import type { ThemeType } from '../../stores/ThemeStore'
+import type { ThemeType } from '@features/themes/useTheme'
 import { useLanguage } from '../../stores/LanguageStore'
 import { useRef, useCallback, useEffect, forwardRef, ForwardedRef } from 'react'
 import DOMPurify from 'dompurify'

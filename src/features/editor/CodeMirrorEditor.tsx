@@ -1,7 +1,7 @@
 import { forwardRef, useImperativeHandle, useCallback, useEffect, useRef, useMemo, useState } from 'react'
 import { EditorView } from '@codemirror/view'
 import { useCM6State } from './cm6/useCM6State'
-import { ThemeType } from '../../stores/ThemeStore'
+import { ThemeType } from '@features/themes/useTheme'
 import { EditorUIContext } from './EditorUIContext'
 import EditorContextMenu from './EditorContextMenu'
 import { EditorToolbarSlot, EditorFocusModeToolbarSlot, EditorSearchSlot, EditorScrollSlot, EditorStatusBarSlot, EditorModalsSlot } from './EditorSlots'

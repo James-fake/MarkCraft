@@ -37,7 +37,7 @@ import { CanvasListMenu } from './CanvasListMenu'
 import { RealCanvasView } from './RealCanvasView'
 import { useEngineSnapshot } from './canvasHooks'
 import { usePresence, usePresenceValue, POPOVER_EXIT_MS, OVERLAY_EXIT_MS } from '@components/ui/usePresence'
-import { useTheme } from '@stores/ThemeStore'
+import { useTheme } from '@features/themes/useTheme'
 import '../../styles/panels/canvas.css'
 
 /**
