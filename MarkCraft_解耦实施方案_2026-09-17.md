@@ -576,18 +576,18 @@ components -> app   2 处   ← UserAccountNav 1 处（源码）+ RealProviders 
 | ⑦ | 文件集合差 | `git` 集合差核对：**18 删 = 18 增，1:1 全对**（**不用 diff 行数判删除** —— 大段删除会让 `git diff -U0` 把未删除的相邻行报成 `-`） |
 | ⑧ | 残留扫描 | `features/shared` 命中 16 行 —— **全部是 `//` 注释**（溯源头 + 历史来源），零 import 残留；另加**字节级搬迁比对**：7 字节一致 / 11 两类改动（见 §4.B） |
 
-#### §4.G 残留（交 Phase 5）
+#### §4.G 残留（Phase 5 已清）
 
 | 项 | 现状 | 归属 |
 |----|------|------|
-| 环 `features/editor > features/toolbar > features/editor` | `editor→toolbar` 2 处 / `toolbar→editor` 2 处 | Phase 5.1（工具条并入 `features/editor/toolbar/`） |
-| 环 `stores > hooks > stores` | `stores → hooks` 1 处（`ThemeStore` re-export `useTheme` / `ThemeProvider`） | Phase 5.2 |
-| `hooks → features/themes` 1 处 | 非环，但方向可疑（hooks 是被 stores/features 共用的下层） | 建议 Phase 5 一并审视 |
-| `src/types/translations.ts → @locales/zh` 1 处 | **L0 → L2 向上边**（本轮守卫未纳入 types 的原因） | 待决（建议随 Phase 5/6 处理） |
+| 环 `features/editor > features/toolbar > features/editor` | **已消** ✅（27 文件并入 `features/editor/toolbar/`，实测字节级 0 差异） | Phase 5.1 ✅ |
+| 环 `stores > hooks > stores` | **已消** ✅（`ThemeStore` re-export 壳删除，消费者直连真源） | Phase 5.2 ✅ |
+| `hooks → features/themes` 1 处 | **已消** ✅（`useTheme` 移入 `features/themes/`，hooks 目录零向上依赖） | Phase 5.3 ✅ |
+| `src/types/translations.ts → @locales/zh` 1 处 | **L0 → L2 向上边**（本轮守卫未纳入 types 的原因） | 待决（建议随 Phase 6 处理） |
 
 ---
 
-### Phase 5 —— 编辑器工具栏归属 + hooks/stores 方向收敛 → 断环 #6 #1
+### Phase 5 —— 编辑器工具栏归属 + hooks/stores 方向收敛 → 断环 #6 #1 ✅ 已完成（2026-09-18）
 
 **5.1 `features/editor ↔ features/toolbar`**（已决策：选 A，并入 `features/editor/toolbar/`）
 
@@ -608,8 +608,21 @@ components -> app   2 处   ← UserAccountNav 1 处（源码）+ RealProviders 
   `hooks` 是被 `stores` 与多个 `features` 共用的下层，若继续向上引用 feature，会为「`stores → hooks → features`」
   埋下通路。处理选项：把 `features/themes` 的该能力下沉 `@core`，或把该 hook 移入 `features/themes`。
 
-**验收**：环 #1 #6 消失；**8 环全部清零**（`_depgraph.cjs` 复核 `MODULE-LEVEL CYCLES = (none)`）。
-**风险**：🟡 中。Phase 5 完成后应做**一次完整真机回归**（四视图 + 编辑器工具栏交互）。
+**验收**：环 #1 #6 消失；**8 环全部清零**（`_depgraph.cjs` 复核 `MODULE-LEVEL CYCLES = (none)`）✅。
+**风险**：🟡 中。Phase 5 完成后应做**一次完整真机回归**（四视图 + 编辑器工具栏交互）。✅ 已做（见下）。
+
+#### §5.A 实测回填（2026-09-18）
+
+| 项 | 计划 | 实测 |
+|----|------|------|
+| 5.1 搬迁 | 25 文件 + ~5 处 import | **27 文件**整体搬迁（`features/toolbar/` → `features/editor/toolbar/`，`renameSync` + `Buffer.compare` 字节级 0 差异）；消费者 import 4 处（EditorSlots ×2 / MermaidBlockView / ShortcutsSection）+ 路径字面量·注释 7 处（`motionExit.test.ts` CONSUMERS 锚点 ×4 为 `readFileSync` 实读必同步项） |
+| 5.2 反转 | 删 `stores → hooks` 1 处 | `ThemeStore.tsx` 为纯 re-export 壳（12 行零独立逻辑）→ **删除**；8 个消费者改直连 `@features/themes/useTheme`（preview/Preview、editor/{CodeMirrorEditor, EditorLayout, cm6/useCM6State, extensions/MermaidBlockView}、aurora/panels/{EditorPanel, CanvasPanel}、blog/BlogStudio） |
+| 5.3 审视 | `hooks → features/themes` 1 处 | `hooks/useTheme.ts` **移入** `features/themes/useTheme.ts`（5.2/5.3 合并处理），`features/themes/index.ts` barrel 补 export；hooks 目录零向上依赖 |
+| 验证链路 | 七条全跑 | ① tsc 0 错 ② vitest **1493 passed / 2 skipped / 0 failed**（与并发会话删引导后基线一致，零回归）③ 守卫 668 文件 / 0 诊断 ④ `_depgraph.cjs` **`MODULE-LEVEL CYCLES = (none)`** ⑤ `vite build` 成功（`--outDir dist-p5-verify` 规避沙箱 emptyDir）⑥ ⑦ 见下 |
+| **⑥ 真机 CDP 回归** | 四视图 + 工具栏交互 | **全部通过** ✅：kb / canvas / blog 三视图外壳渲染正常；editor 视图真实走「空态新建笔记 → 命名 → 创建」流程后 WYSIWYG 工具栏渲染（22 按钮，1344×38.7px，ProseMirror 挂载）；**标题下拉 ✅ / 高亮色板 ✅（点击后 absolute 浮层 1→2、色点 8 个）/ EmojiPicker ✅（320px portal）/ 加粗 ✅（`insertText` → 全选 → 点加粗 → `.ProseMirror strong` 真实生效）**；**主题切换（5.2 useTheme 回归）dark→light→dark 往返 ✅**（MenuBar「视图 → 切换深色/浅色主题」真实点击）；控制台仅 1 条已知预存 React 警告（canvas 切换 setState），零 Phase 5 相关错误 |
+| ⑦ 文件集合差 | 删增 1:1 | 27 rename + `useTheme` rename + `ThemeStore` 删除，集合核对一致 |
+
+> **CDP 探针三教训（复用探针时防状态污染）**：① 复用同一浏览器会话跑多轮探针，前一轮**未关闭的浮层**会被下一轮的 toggle 点击**关闭**（本轮高亮下拉假阴性即此因）——每轮交互前先外点复位；② editor 视图空态不渲染工具栏（`activeFileId` 为空），须先真实建文档（React 受控 input 用原生 setter + `input` 事件，坑 F）；③ 工具栏按钮 `title` 是**本地化文案**（「插入特殊符号」非 "Emoji"），选择器先查 locales。
 
 ---
 
@@ -635,15 +648,15 @@ components -> app   2 处   ← UserAccountNav 1 处（源码）+ RealProviders 
 | Phase 2 | **6**（实测）✅ | **33 处 / 25 文件**（实测）✅ | 0 | 🟢 低（实测） |
 | Phase 3 | **4**（3 迁 + 1 删，实测）✅ | **21 处 / 17 文件**（实测）✅ | 1 | 🟢 低（实测） |
 | Phase 4 | **18**（实测）✅ | **81 处**（实测；案例 55 文件，最终引用面 72 import 点）✅ | 1 | 🟢 低（实测） |
-| Phase 5 | 25（若选 A） | ~5 | 0 | 🟡 中 |
+| Phase 5 | **28**（27 + useTheme，实测）✅ 另删 ThemeStore 壳 1 | **12 处**（4 + 8，实测）+ 路径字面量/注释 7 处 ✅ | 0 | 🟢 低（实测，估🟡未兑现） |
 | Phase 6 | — | — | 面板注册表等 | 🟠 中高 |
-| **合计（P0–P4 已完成部分）** | **32 文件迁移**（实测） | **143 处 import 更新**（实测） | **5 条守卫** | — |
+| **合计（P0–P5 已完成部分）** | **60 文件迁移**（实测） | **155 处 import 更新**（实测） | **5 条守卫** | — |
 
 ### 4.2 对现有质量基线的预期影响
 
 | 指标 | 基线 | 现状（Phase 4 完成后） |
 |------|------|---------------------|
-| 模块级循环 | 8 个 | **2 个**（Phase 1 消 #2；Phase 2 消 #4 / #5 + #3 直接形态；Phase 3 消 #7 #8；**Phase 4 解散 `features/shared`，消 #3 残余形态**）→ 仅剩 `editor↔toolbar` 与 `stores↔hooks`，目标 0（Phase 5 后） |
+| 模块级循环 | 8 个 | **0 个** ✅（Phase 1 消 #2；Phase 2 消 #4 / #5 + #3 直接形态；Phase 3 消 #7 #8；Phase 4 消 #3 残余；**Phase 5 消 #6 #1 —— 8 环全清零，`_depgraph.cjs` 复核 `MODULE-LEVEL CYCLES = (none)`**） |
 | `stores`/`services` → `features` 违规 | 9 + 4 处 | **0** ✅（Phase 2 达成，且守卫升 error 锁死） |
 | **底座层向上依赖**（`src/utils` / `src/core`） | 未度量 | **0** ✅（Phase 4 实测，并新增 `no-base-to-upper` 守卫锁死） |
 | `features/shared` 目录 | 19 文件 / 52 处引用 | **已解散** ✅（18 文件按消费者层级四分归位；目录删除） |
@@ -651,7 +664,7 @@ components -> app   2 处   ← UserAccountNav 1 处（源码）+ RealProviders 
 | 测试用例 | 1499 passed / 2 skipped / 0 failed | **1505 passed / 2 skipped / 0 failed** ✅（+6 契约测试；断言零放宽） |
 | `tsc` | 干净 | 保持干净 ✅ |
 | 生产构建 | — | `vite build` 成功（Phase 2 起纳入常规验收，P2/P3/P4 连续通过）✅ |
-| 运行时行为 / 视觉 | — | **零变化** ✅（纯结构迁移）。**Phase 3 已补真机链路验证**（编辑器↔知识库返回 14/14，CDP 探针、真实鼠标点击）；**Phase 4 判定 CDP 不适用**（迁移物非交互上下文，§4.F ⑥）；其余交互的完整回归留待 Phase 5 后 |
+| 运行时行为 / 视觉 | — | **零变化** ✅（纯结构迁移）。Phase 3 真机链路验证（编辑器↔知识库返回 14/14）；**Phase 5 完整真机 CDP 回归通过**（四视图 + 工具栏三下拉/EmojiPicker/加粗 + 主题切换往返，§5.A） |
 
 ### 4.3 性能影响
 - 迁移**不新增**运行时开销（只是文件位置与 import 路径变化）。
@@ -701,7 +714,7 @@ Phase 3  Aurora 解环 → 断环 #7 #8                                  ✅ 完
    ↓
 Phase 4  features/shared 解散：按消费者层级四分归位 → 消环 #3 残余      ✅ 完成    【3→2 环；底座向上依赖归零并加守卫】
    ↓
-Phase 5  toolbar 归属 + hooks/stores 收敛 → 断环 #6 #1              ← 1 天     【里程碑 M4：8 环全清零 + 真机回归】
+Phase 5  toolbar 归属 + hooks/stores 收敛 → 断环 #6 #1              ✅ 完成    【里程碑 M4 ✅：8 环全清零 + 完整真机回归（四视图 + 工具栏交互 + 主题切换）】
    ↓
 Phase 6  结构性重构（editor 内部分层 / panels 契约层 / fileManager 瘦身）  ← 独立排期
 ```
