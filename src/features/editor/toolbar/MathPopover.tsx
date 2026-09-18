@@ -1,4 +1,4 @@
-import type { Translations } from '../../types/translations'
+import type { Translations } from '@src/types/translations'
 import { useState, useEffect, useRef } from 'react'
 
 interface SymbolItem {

@@ -1,9 +1,9 @@
-import type { Translations } from '../../types/translations'
+import type { Translations } from '@src/types/translations'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import type { Editor } from '@tiptap/react'
-import WysiwygToolbarButton from './WysiwygToolbarButton'
-import useDropdownPosition from './useDropdownPosition'
+import WysiwygToolbarButton from '@features/editor/toolbar/WysiwygToolbarButton'
+import useDropdownPosition from '@features/editor/toolbar/useDropdownPosition'
 import { usePresence, POPOVER_EXIT_MS } from '@components/ui/usePresence'
 
 const HEADING_LEVELS = [0, 1, 2, 3, 4, 5, 6] as const

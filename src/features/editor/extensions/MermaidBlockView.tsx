@@ -9,7 +9,7 @@ import { isMindmapCode, parseMindmapCode } from './mindmap/MindmapParser'
 import { locateMindmapNodes } from './mindmap/MindmapLocator'
 import MindmapCanvas from './mindmap/MindmapCanvas'
 import type { LayoutDirection } from './mindmap/mindmapLayout'
-import { extractLayout } from '../../toolbar/mindmapUtils'
+import { extractLayout } from '../toolbar/mindmapUtils'
 
 /** Get layout direction from mindmap code (reads embedded direction marker) */
 function getLayoutDirection(code: string): LayoutDirection {

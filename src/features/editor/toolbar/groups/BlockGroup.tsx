@@ -1,6 +1,6 @@
 import type { Translations } from '@src/types/translations'
 import { useCallback } from 'react'
-import { ToolbarButton, GroupProps, applyFormatToCM6 } from './shared'
+import { ToolbarButton, GroupProps, applyFormatToCM6 } from '@features/editor/toolbar/groups/shared'
 import { useSettings } from '@stores/SettingsStore'
 
 export default function BlockGroup({ t, editorViewRef, onChange, onPushUndo }: GroupProps & { t: Translations }) {

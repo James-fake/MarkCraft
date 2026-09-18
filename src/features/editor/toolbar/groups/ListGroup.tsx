@@ -1,7 +1,7 @@
 import type { Translations } from '@src/types/translations'
 import { useCallback, useRef, useState } from 'react'
-import { ToolbarButton, GroupProps, applyFormatToCM6 } from './shared'
-import ListMenuPopover from '../ListMenuPopover'
+import { ToolbarButton, GroupProps, applyFormatToCM6 } from '@features/editor/toolbar/groups/shared'
+import ListMenuPopover from '@features/editor/toolbar/ListMenuPopover'
 
 export default function ListGroup({ t, editorViewRef, onChange, onPushUndo }: GroupProps & { t: Translations }) {
   const [showListMenu, setShowListMenu] = useState(false)

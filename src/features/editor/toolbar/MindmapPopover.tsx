@@ -1,8 +1,8 @@
-import type { Translations } from '../../types/translations'
+import type { Translations } from '@src/types/translations'
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { type MindmapTemplate, type LayoutType, type ColorTheme, colorThemes, templates } from './mindmapTemplates'
-import { applyLayout, applyColorTheme } from './mindmapUtils'
+import { type MindmapTemplate, type LayoutType, type ColorTheme, colorThemes, templates } from '@features/editor/toolbar/mindmapTemplates'
+import { applyLayout, applyColorTheme } from '@features/editor/toolbar/mindmapUtils'
 
 interface MindmapPopoverProps {
   t: Translations

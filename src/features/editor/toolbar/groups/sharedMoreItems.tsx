@@ -1,4 +1,4 @@
-import type { MoreDropdownItem } from './MoreDropdown'
+import type { MoreDropdownItem } from '@features/editor/toolbar/groups/MoreDropdown'
 import type { Translations } from '@src/types/translations'
 
 interface SharedMoreItemsParams {

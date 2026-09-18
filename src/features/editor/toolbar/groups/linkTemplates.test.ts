@@ -7,7 +7,7 @@ import {
   buildTodayWikilink,
   buildBacklinksList,
   stripMdExt,
-} from './linkTemplates'
+} from '@features/editor/toolbar/groups/linkTemplates'
 
 describe('知识链接模板纯函数（Slash 命令迁移，两模式共享防漂移）', () => {
   describe('stripMdExt', () => {

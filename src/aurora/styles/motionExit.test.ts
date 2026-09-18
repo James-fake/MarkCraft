@@ -215,10 +215,10 @@ describe('prefers-reduced-motion 降级不劫持退场', () => {
 // ─────────────────────────────────────────────────────────────
 const CONSUMERS: [string, string][] = [
   ['src/aurora/components/shell/MenuBar.tsx', '菜单栏七组下拉'],
-  ['src/features/toolbar/ListDropdown.tsx', '工具栏·列表下拉'],
-  ['src/features/toolbar/WysiwygHeadingDropdown.tsx', '工具栏·WYSIWYG 标题下拉'],
-  ['src/features/toolbar/groups/SourceHeadingDropdown.tsx', '工具栏·源码标题下拉'],
-  ['src/features/toolbar/groups/MoreDropdown.tsx', '工具栏·更多下拉'],
+  ['src/features/editor/toolbar/ListDropdown.tsx', '工具栏·列表下拉'],
+  ['src/features/editor/toolbar/WysiwygHeadingDropdown.tsx', '工具栏·WYSIWYG 标题下拉'],
+  ['src/features/editor/toolbar/groups/SourceHeadingDropdown.tsx', '工具栏·源码标题下拉'],
+  ['src/features/editor/toolbar/groups/MoreDropdown.tsx', '工具栏·更多下拉'],
   ['src/aurora/panels/canvas/CanvasContextMenu.tsx', '白板右键菜单'],
   ['src/aurora/panels/canvas/CanvasPanel.tsx', '白板右键菜单宿主 + 左右悬浮栏'],
   ['src/aurora/panels/canvas/CanvasInspectorPanel.tsx', '检视面板下拉'],

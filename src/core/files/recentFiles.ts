@@ -2,7 +2,7 @@
 //
 // Phase 2（2026-09-17）自 features/fileManager/recentFilesManager.ts **原样下沉**
 // （仅改文件名，内容未作任何改写）：
-// 被 stores/FileStore 与 features/toolbar(2) / aurora(2) 共用的跨层能力。
+// 被 stores/FileStore 与 features/editor/toolbar(2) / aurora(2) 共用的跨层能力。
 //
 // 见《MarkCraft_解耦实施方案_2026-09-17.md》Phase 2.2。
 export interface RecentFileEntry {

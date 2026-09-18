@@ -1,4 +1,4 @@
-import { LayoutType, ColorTheme, colorThemes } from './mindmapTemplates'
+import { LayoutType, ColorTheme, colorThemes } from '@features/editor/toolbar/mindmapTemplates'
 
 /** Layout direction marker embedded as a comment in the mindmap code */
 const DIRECTION_MARKER = {

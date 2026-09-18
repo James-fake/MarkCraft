@@ -1,7 +1,7 @@
 import type { Translations } from '@src/types/translations'
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { ToolbarButton, GroupProps, applyFormatToCM6 } from './shared'
+import { ToolbarButton, GroupProps, applyFormatToCM6 } from '@features/editor/toolbar/groups/shared'
 import { usePresence, POPOVER_EXIT_MS } from '@components/ui/usePresence'
 
 const HEADING_LEVELS = [0, 1, 2, 3, 4, 5, 6] as const

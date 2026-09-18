@@ -1,7 +1,7 @@
 import type { Translations } from '@src/types/translations'
 import { useCallback } from 'react'
-import { ToolbarButton, GroupProps, applyFormatToCM6 } from './shared'
-import { getShortcut } from '../ShortcutManager'
+import { ToolbarButton, GroupProps, applyFormatToCM6 } from '@features/editor/toolbar/groups/shared'
+import { getShortcut } from '@features/editor/toolbar/ShortcutManager'
 
 function formatShortcut(key: string): string {
   return key
