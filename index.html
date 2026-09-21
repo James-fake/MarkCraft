@@ -44,7 +44,11 @@
       /* 首次启动开屏动画（打字机逐字浮现 + 光标）。
          内联于 HTML：先于模块包渲染，使动画与主包下载并行（不延长首屏可用时间）；
          主界面首绘后由 aurora-main.tsx 调 window.__mcSplash.done() 触发淡出。
-         底色 #0A0B0F = --mc-bg-window（与 #aurora-root 同源）→ 衔接无白闪。 */
+         底色 #0A0B0F = --mc-bg-window（与 #aurora-root 同源）→ 衔接无白闪。
+         字号 clamp(40px, min(5vw, 10vh), 72px)：旧值 28/3.2vw/40 在任何常见宽度下
+         都会被顶到 40px 上限（"响应式"是假的），故把上限提到 72px 作为真正的字号；
+         min(5vw, 10vh) 防止矮窗口（如 1920×600）里字占过高。
+         blur 与光标宽度一并改成 em：随字号等比缩放，否则放大后"显影感"与光标会偏细弱。 */
       html.mc-booting,
       html.mc-booting body { background-color: #0A0B0F; }
       #mc-splash {
@@ -58,8 +62,8 @@
       #mc-splash.mc-splash--leaving { opacity: 0; pointer-events: none; }
       #mc-splash .mc-splash__word {
         display: inline-flex; align-items: baseline;
-        font-size: clamp(28px, 3.2vw, 40px); font-weight: 600;
-        letter-spacing: -0.01em; color: #E8ECF4; line-height: 1.1;
+        font-size: clamp(40px, min(5vw, 10vh), 72px); font-weight: 600;
+        letter-spacing: -0.02em; color: #E8ECF4; line-height: 1.1;
       }
       #mc-splash .mc-splash__char {
         display: inline-block; opacity: 0;
@@ -68,12 +72,12 @@
         will-change: opacity, transform, filter;
       }
       @keyframes mc-splash-char {
-        from { opacity: 0; transform: translateY(0.16em); filter: blur(6px); }
+        from { opacity: 0; transform: translateY(0.16em); filter: blur(0.15em); }
         to   { opacity: 1; transform: translateY(0);      filter: blur(0); }
       }
       #mc-splash .mc-splash__caret {
-        display: inline-block; width: 2px; height: 1.05em; margin-left: 3px;
-        border-radius: 1px; background: #7C8CFF; opacity: 0;
+        display: inline-block; width: 0.05em; height: 1.05em; margin-left: 0.07em;
+        border-radius: 0.03em; background: #7C8CFF; opacity: 0;
         animation: mc-splash-caret-blink 1.05s step-end var(--caret-delay, 900ms) infinite;
       }
       @keyframes mc-splash-caret-blink {
