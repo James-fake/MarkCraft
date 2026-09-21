@@ -44,8 +44,8 @@ dev 端口 **5174**：`node node_modules/vite/bin/vite.js --port 5174 --host`。
 
 ## git / 沙箱
 PortableGit `/c/Users/HJN/.workbuddy/binaries/PortableGit/versions/1.2.0/{cmd,usr/bin,mingw64/bin}`；bash 每条内联 `export PATH="<三目录>:/c/Users/HJN/.workbuddy/binaries/node/versions/22.22.2-3:/c/Windows/System32"`。远端 `gitee.com/James-fake/markcraft.git`。
-- 🚨 **禁止在内联 `node -e "..."` / `bash -c` 里出现反引号**（尤其 Markdown 行内代码）：bash 当**命令替换执行后替换为空**且**静默成功**（曾实测掏空 MEMORY.md 两行）；`${}`、`$()` 同理 → **含反引号或长脚本一律写 `.cjs` 再 `node` 执行**，临时脚本用完即删（`push.cjs` 等长驻工具除外）。
-- 🚨 **推送必须走 `.workbuddy/push.cjs`**：PortableGit **系统 gitconfig 的 `credential.helper=helper-selector` 极慢（>15s，约 30s 才返回）** → 裸 `git push` 被工具按 SIGTERM 杀掉（整条命令无声死亡、连 RC 都不打印），**且远端实际未更新** ⇒ **先查远端再下结论**。push.cjs = 自管超时（凭证 90s）+ `git credential fill` 取凭证 + 内联 URL push + 输出脱敏；git 须 `-c http.proxy= -c https.proxy=` 清空代理（`http_proxy=127.0.0.1:*` 会掐死 git https；Node `fetch` 不受影响，可独立复核远端）。
+- 🚨 **禁止在内联 `node -e "..."` / `bash -c` 里出现反引号**（尤其 Markdown 行内代码）：bash 当**命令替换执行后替换为空**且**静默成功**（曾实测掏空 MEMORY.md 两行）；`${}`、`$()` 同理 → **含反引号或长脚本一律写 `.cjs` 再 `node` 执行**，临时脚本用完即删（`scripts/push-gitee.cjs` 等长驻工具除外）。
+- 🚨 **推送必须走 `scripts/push-gitee.cjs`**：PortableGit **系统 gitconfig 的 `credential.helper=helper-selector` 极慢（>15s，约 30s 才返回）** → 裸 `git push` 被工具按 SIGTERM 杀掉（整条命令无声死亡、连 RC 都不打印），**且远端实际未更新** ⇒ **先查远端再下结论**。该脚本 = 自管超时（凭证 90s）+ `git credential fill` 取凭证 + 内联 URL push + 输出脱敏 + 自动回写 `origin/master` + `ls-remote` 复核；git 须 `-c http.proxy= -c https.proxy=` 清空代理（`http_proxy=127.0.0.1:*` 会掐死 git https；Node `fetch` 不受影响，可独立复核远端）。
 - 推**内联 URL 不会**更新 `origin/master` → 手动回写 `.git/refs/remotes/origin/master`，再验 `rev-list --left-right --count master...origin/master` = `0 0`。
 - 🚨 **禁止在单条 bash 里跑 `git stash`**（SIGTERM 半写对象库 → 丢 `.pack`）。要暂存 → `git diff > x.patch`。
 - 工作区可能被外部清空 → `git restore --source=HEAD --worktree -- <路径>`；判删除状态用 `git -c core.quotepath=false status --porcelain`（`[ -e ]` 因中文名转八进制误判）。⚠️ **并发会话可能同仓库同时编辑**（实测提交后 clean→dirty、凭空冒出他人改动 + 已暂存删除）→ **提交/暂存一律显式 pathspec，禁 `git add -A`**，否则把别人未完成的活儿打包进自己的提交。**频繁提交是唯一防线**。
