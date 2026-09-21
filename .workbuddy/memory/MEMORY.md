@@ -10,6 +10,7 @@ dev 端口 **5174**（`node node_modules/vite/bin/vite.js --port 5174 --host`）
 - 🚨 **写操作一律 `setState(prev=>…)` 累积**。`moveNode` 曾用 `stateRef` 快照算出整树后 `rootFolder:newRoot` **整体替换** → 同批次内覆盖先前 updater 的成果，且 movedNode 因目标父不在快照里**静默消失**（数据丢失）。回归锁 `stores/FileStore.batch.test.tsx`（注入探针验过会变红）。
 - ⚠️ **别名表分散 4 处**（`tsconfig`/`vite.config`/`vitest.config`/`vite.smoke.config`）必须同改；只改前两处症状 = 测试**导入期**崩溃（文件数不变、用例骤减）。守卫 `src/aliasSync.test.ts`。排查引用须**同时搜** `./X` `../X` 同层相对形态。
 - 新类**必须同批交付 CSS**；**同文件多处 Edit 必须串行**（并行=后写覆盖先写）；改完逐文件 grep 核验。
+- 🚨 **同款类名散布多容器 → 交互能力各自漂移**（2026-09-21 报障「点知识库笔记没进编辑器，停在详情页」）：KB 详情页三处 `.aurora-kb-recent__item`（笔记 Tab／概览「最近活动」／依赖 Tab）曾**各自手写** → 概览那份漏了 `onClick`，且交互反馈只挂 `.aurora-kb-notes` 容器 ⇒ **哑行**（用户默认落地的正是概览 Tab）。已抽单源 `src/aurora/panels/kb/KbFileRow.tsx`：**可交互性由「有没有 onSelect」派生**（`.is-interactive`），纯展示行**不得**伪造可点暗示。新窗口的专项探针 `.workbuddy/artifacts/cdp-verify-kb-note-open.mjs`（控制组 + 真实鼠标事件流分层）；**同款类名多容器时探针必须按容器限定选择器、逐容器断言**，`querySelectorAll(类名)[0]` 会测到另一个列表 → 全绿却仍报障。
 - 🚨 插文件头注释前先探 BOM；**回写必须保真 EOL**（本仓混用 CRLF/LF，无 `.gitattributes`、`core.autocrlf=false`）→ 探 `includes('\r\n')` → 拆 `/\r?\n/` → 原 EOL 回写；禁 `split('\n')+join('\n')`。
 - 单源：z-index = `tokens.css §14`；Modal/Button/Confirm/Switch = `@components/ui/*`。⚠️ `styles/desktop-chrome.css` 是**有意的第二层 `:root`**（后者赢）→ 改 `--mc-accent` 须同改（含亮色）。
 - **拖拽闭包陷阱**：监听闭包在拖拽开始时注册 → 落盘读 `xxxRef.current`；**指针捕获吞 click** → 子元素挂 **pointerup**（slop 4px）。

@@ -436,6 +436,23 @@
 .aurora-kb-notes .aurora-kb-recent__item:hover { background: var(--mc-bg-pressed); }
 .aurora-kb-notes .aurora-kb-recent__item:focus-visible { outline: 1px solid var(--mc-accent); outline-offset: -1px; }
 
+/* 可交互文件行（`KbFileRow` 在**确有** onSelect 时挂 `.is-interactive`）
+ * 2026-09-21：此前「可点」的反馈只挂在上面的 `.aurora-kb-notes` 容器上，
+ * 于是同一套行标记出现在「概览 · 最近活动」里时既无 pointer 也无 hover ——
+ * 而且那份行根本没接 onClick，用户点它毫无反应（报障：点笔记没进编辑器）。
+ * 现在交互反馈统一由 `.is-interactive` 承载，与所在容器无关；上面两条 notes 规则
+ * 保留（padding 是 notes 专属调优，notesTabHeader.test.ts 依赖该块），不再承担「可点」语义。
+ * 注意：本块**故意不写 padding**，避免与上面的 notes 调优互相覆盖（同权重，靠源序决胜）。 */
+.aurora-kb-recent__item.is-interactive {
+  cursor: pointer;
+  border-radius: var(--mc-radius-sm);
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out);
+}
+.aurora-kb-recent__item.is-interactive:hover { background: var(--mc-bg-pressed); }
+.aurora-kb-recent__item.is-interactive:focus-visible { outline: 1px solid var(--mc-accent); outline-offset: -1px; }
+/* 概览「最近活动」行在卡片内（基础 padding 7px 4px 会显得贴边），单独给横向留白 */
+.aurora-kb-card--recent .aurora-kb-recent__item.is-interactive { padding: 7px 8px; }
+
 /* 标签体系 */
 .aurora-kb-tags { display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; overflow: auto; }
 .aurora-kb-tag {

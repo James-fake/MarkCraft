@@ -6,7 +6,7 @@ import { Icon } from '../../icons'
 import type { IconName } from '../../types'
 import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
 import { useTabStripThumb } from '../../hooks/useTabStripThumb'
-import { formatKbTime } from './kbData'
+import { KbFileRow } from './KbFileRow'
 import { useFileManager } from '@stores/FileStore'
 import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useTagIndex } from '@stores/TagIndexStore'
@@ -134,7 +134,21 @@ interface OverviewData {
   miniEdges: [string, string][]
 }
 
-function OverviewTab({ toast, data, nav }: { toast?: (m: string) => void; data: OverviewData; nav?: (id: string) => void }) {
+function OverviewTab({
+  toast,
+  data,
+  nav,
+  onOpenNote,
+}: {
+  toast?: (m: string) => void
+  data: OverviewData
+  nav?: (id: string) => void
+  /**
+   * 文件行的打开动作（在编辑器中打开指定笔记）。
+   * 缺省时「最近活动」退化为纯展示列表 —— 不再出现「看着可点、点了没反应」的哑行。
+   */
+  onOpenNote?: (id: string) => void
+}) {
   const kpiData = [
     { icon: 'file' as IconName, title: '笔记文件', value: String(data.fileCount), sub: '本库收录' },
     { icon: 'canvas' as IconName, title: '关联白板', value: String(data.canvasCount), sub: '跨库关联' },
@@ -213,13 +227,7 @@ function OverviewTab({ toast, data, nav }: { toast?: (m: string) => void; data: 
               <div className="aurora-kb-recent__empty">暂无文件</div>
             ) : (
               data.recentFiles.map((f) => (
-                <div key={f.id} className="aurora-kb-recent__item">
-                  <div className="aurora-kb-recent__icon"><Icon.file size={14} /></div>
-                  <div className="aurora-kb-recent__body">
-                    <div className="aurora-kb-recent__title">{f.name}</div>
-                    <div className="aurora-kb-recent__sub">{formatKbTime(f.updatedAt)}</div>
-                  </div>
-                </div>
+                <KbFileRow key={f.id} file={f} onSelect={onOpenNote} hint={`在编辑器中打开「${f.name}」`} />
               ))
             )}
           </div>
@@ -287,20 +295,7 @@ function NotesTab({ files, onOpen, onCreate }: { files: FileNode[]; onOpen: (id:
         )}
       </div>
       {files.map((f) => (
-        <div
-          key={f.id}
-          className="aurora-kb-recent__item"
-          role="button"
-          tabIndex={0}
-          onClick={() => onOpen(f.id)}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(f.id) } }}
-        >
-          <div className="aurora-kb-recent__icon"><Icon.file size={14} /></div>
-          <div className="aurora-kb-recent__body">
-            <div className="aurora-kb-recent__title">{f.name}</div>
-            <div className="aurora-kb-recent__sub">{formatKbTime(f.updatedAt)}</div>
-          </div>
-        </div>
+        <KbFileRow key={f.id} file={f} onSelect={onOpen} hint={`在编辑器中打开「${f.name}」`} />
       ))}
     </div>
   )
@@ -534,7 +529,7 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
               </div>
           ) : tab === 'overview' ? (
             <>
-              <OverviewTab toast={toast} data={data} nav={nav} />
+              <OverviewTab toast={toast} data={data} nav={nav} onOpenNote={openInEditor} />
               <KbCanvasSection kb={kb} nav={nav} toast={toast} />
             </>
           ) : tab === 'notes' ? (
@@ -563,7 +558,7 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
             </div>
           ) : (
             /* 问答/导出已页面化（使用优化④）；此分支仅兜底未知 tab */
-            <OverviewTab toast={toast} data={data} nav={nav} />
+            <OverviewTab toast={toast} data={data} nav={nav} onOpenNote={openInEditor} />
           )}
           </div>
         </div>
@@ -629,20 +624,7 @@ function DependencyTab({ files, onSelect }: { files: FileNode[]; onSelect: (id: 
         依赖分析 · 选择文件查看出链 / 入链 / 删除影响
       </div>
       {files.map((f) => (
-        <div
-          key={f.id}
-          className="aurora-kb-recent__item"
-          role="button"
-          tabIndex={0}
-          onClick={() => onSelect(f.id)}
-          onKeyDown={(e) => { if (e.key === 'Enter') onSelect(f.id) }}
-        >
-          <div className="aurora-kb-recent__icon"><Icon.file size={14} /></div>
-          <div className="aurora-kb-recent__body">
-            <div className="aurora-kb-recent__title">{f.name}</div>
-            <div className="aurora-kb-recent__sub">{formatKbTime(f.updatedAt)}</div>
-          </div>
-        </div>
+        <KbFileRow key={f.id} file={f} onSelect={onSelect} hint={`查看「${f.name}」的依赖关系`} />
       ))}
     </div>
   )

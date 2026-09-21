@@ -379,7 +379,44 @@ async function main() {
   ok('空态未出现（真内容而非「暂无笔记」）',
     !(await cdp.eval(`!!document.querySelector('.aurora-kb-placeholder__title')`)))
 
-  console.log('\n=== 4. 页面错误 ===')
+  // ⚠ 本节测的是**「笔记」Tab** 那份文件行（上面刚点过 tab）。
+  // 它**不能**代表「点击知识库笔记没进编辑器」这个报障：真正的哑行在
+  // 进库默认落地的「概览 · 最近活动」里（父容器不是 .aurora-kb-notes，且当时无 onClick）。
+  // 本条曾因标题写成「用户报障」而把该症状误判成"无法复现"——
+  // 报障点的专项验证已独立到 `cdp-verify-kb-note-open.mjs`（含控制组 + 真实鼠标事件流分层）。
+  console.log('\n=== 4. 点「笔记」Tab 文件行 → 必须跳转编辑器（回归对照）===')
+  const ED = `.cm-content, .ProseMirror`
+  const beforeHash = await cdp.eval('location.hash')
+  const rowCount = await cdp.eval(`document.querySelectorAll('.aurora-kb-notes .aurora-kb-recent__item').length`)
+  // 逐点采样：区分「压根没跳」与「跳了又被弹回」
+  let traj = []
+  const t0 = Date.now()
+  const clicked = await cdp.eval(`(() => {
+    const e = document.querySelector('.aurora-kb-notes .aurora-kb-recent__item')
+    if (!e) return false
+    e.click(); return true
+  })()`)
+  for (const ms of [0, 50, 200, 600, 1500, 3000]) {
+    const elapsed = Date.now() - t0
+    if (ms > elapsed) await sleep(ms - elapsed)
+    const snap = await cdp.eval(`({
+      hash: location.hash,
+      editor: !!document.querySelector(${JSON.stringify(ED)}),
+      kbNotes: document.querySelectorAll('.aurora-kb-notes').length,
+    })`)
+    traj.push({ t: ms, ...snap })
+  }
+  info('before hash = ' + beforeHash + '，笔记行 = ' + rowCount)
+  info('轨迹 = ' + JSON.stringify(traj))
+  const atEditor = traj.filter((s) => s.hash === '#view=editor')
+  ok('点击笔记行确实触发了跳转（hash 曾变为 #view=editor）', clicked === true && atEditor.length > 0,
+    `clicked=${clicked} editorFrames=${atEditor.length}/${traj.length}`)
+  const last = traj[traj.length - 1]
+  ok('3s 后仍停留在编辑器（没有被弹回知识库）', last.hash === '#view=editor' && last.editor === true,
+    `稳态 hash=${last.hash} editor=${last.editor} kbNotes=${last.kbNotes}`)
+  ok('知识库面板已卸载（不与编辑器同屏）', last.kbNotes === 0, `kbNotes=${last.kbNotes}`)
+
+  console.log('\n=== 5. 页面错误 ===')
   const errs = cdp.pageErrors.filter((e) => !/favicon|net::ERR_/.test(e))
   ok('无未预期页面错误', errs.length === 0, errs.length ? `\n      ${errs.slice(0, 5).join('\n      ')}` : '')
 
