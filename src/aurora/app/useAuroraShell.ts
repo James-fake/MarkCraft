@@ -37,7 +37,15 @@ const STANDARD_VIEWS: MainView[] = ['editor', 'diary', 'canvas', 'graph', 'kb', 
  */
 export function useAuroraShell() {
   const { view, params } = useViewState()
-  const [auxView, setAuxView] = useState<AuxView>(null)
+  // 首启默认进入主页（欢迎面板 / Launchpad），而非编辑器；
+  // 深链（#view=…）与已恢复的博客工作室状态优先于主页（对齐原 S11 首启判定，仅去掉受众选择弹层）。
+  const [auxView, setAuxView] = useState<AuxView>(() => {
+    try {
+      if (typeof location !== 'undefined' && location.hash.startsWith('#view=')) return null
+      if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('markcraft_blog_studio') === '1') return null
+    } catch { /* ignore */ }
+    return 'welcome'
+  })
   const [commandOpen, setCommandOpen] = useState(false)
   /** 打开设置时需定位的分类（头像点击 → 'user'）；无则落到默认分类 */
   const [settingsInitialCategory, setSettingsInitialCategory] = useState<string | null>(null)
