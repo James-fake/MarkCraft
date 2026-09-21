@@ -1,4 +1,4 @@
-import { StrictMode, Component } from 'react'
+import { StrictMode, Component, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 // Aurora 设计系统 Token（Aurora 自有 --mc-* 初值，含仅 Aurora 使用的 --mc-accent-bg 等）
@@ -73,6 +73,29 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   }
 }
 
+/**
+ * 首屏衔接：等 React 树挂载 + 首帧合成完成后，通知 index.html 内联开屏层淡出。
+ * 用双 rAF 而非单次，确保「已提交」之外还「已合成一帧」，避免淡出时露出未绘制的空白。
+ * 开屏层缺失（非首次启动）时静默无操作。
+ */
+function SplashHandoff() {
+  useEffect(() => {
+    let r1 = 0
+    let r2 = 0
+    r1 = requestAnimationFrame(() => {
+      r2 = requestAnimationFrame(() => {
+        const s = (window as unknown as { __mcSplash?: { done?: () => void } }).__mcSplash
+        if (s && typeof s.done === 'function') s.done()
+      })
+    })
+    return () => {
+      cancelAnimationFrame(r1)
+      cancelAnimationFrame(r2)
+    }
+  }, [])
+  return null
+}
+
 function bootstrap() {
   const el = document.getElementById('aurora-root')
   if (!el) {
@@ -82,6 +105,7 @@ function bootstrap() {
   createRoot(el).render(
     <StrictMode>
       <ErrorBoundary>
+        <SplashHandoff />
         <AuroraShell />
       </ErrorBoundary>
     </StrictMode>,
