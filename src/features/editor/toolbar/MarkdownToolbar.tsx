@@ -160,10 +160,10 @@ export default function MarkdownToolbar(props: MarkdownToolbarProps) {
         overflow: 'hidden',
         position: 'relative',
         backgroundColor: 'var(--editor-bg)',
-        padding: '6px 12px',
+        padding: '6px 24px',
         gap: '1px',
         userSelect: 'none',
-        justifyContent: props.showPreview ? 'flex-start' : 'center',
+        justifyContent: 'flex-start',
       }}
       onMouseDown={(e) => e.preventDefault()}
     >

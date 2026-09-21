@@ -23,10 +23,6 @@
   font-family: var(--editor-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
   font-size: var(--editor-font-size, 15px);
   line-height: var(--editor-line-height, 1.7);
-  /* 桌面端书写列收敛：全屏下正文约束到舒适行宽并居中，
-     两侧留白显示编辑器底色，贴合原生桌面写作软件观感。 */
-  max-width: 820px;
-  margin: 0 auto;
 }
 
 /* 阶段5：主工作区纵向节奏接入应用级密度体系。

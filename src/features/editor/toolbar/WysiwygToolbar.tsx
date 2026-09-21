@@ -190,11 +190,11 @@ export default function WysiwygToolbar({
       style={{
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
         flexWrap: 'nowrap',
         overflow: 'hidden',
         gap: '1px',
-        padding: '6px 10px',
+        padding: '6px 24px',
         backgroundColor: 'var(--editor-bg)',
         borderBottom: '1px solid var(--editor-border)',
         position: 'relative',
