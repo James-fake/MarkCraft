@@ -183,6 +183,33 @@ export async function createKb(
 }
 
 /**
+ * 在**已存在的**文件树文件夹上创建知识库（不新建文件夹）
+ *
+ * 用于内置文档播种（见 stores/kbSeed.ts）：文件夹与笔记由种子/迁移先行创建，
+ * 此处只把 KB 文档挂到该文件夹上 —— createKb 会自己再建一个同名文件夹，不适用。
+ */
+export async function createKbInFolder(
+  name: string,
+  description: string,
+  folderId: string,
+): Promise<KnowledgeBase> {
+  const now = Date.now()
+  const kb: KnowledgeBase = {
+    id: genKbId(),
+    name,
+    description,
+    folderId,
+    createdAt: now,
+    updatedAt: now,
+    canvasIds: [],
+    fileIds: [],
+    rules: [],
+  }
+  await saveKb(kb)
+  return kb
+}
+
+/**
  * 删除知识库
  * @param deleteFolder 是否同时删除关联的文件夹
  * @param deleteNode 文件树 deleteNode 函数（来自 useFileManager）

@@ -7,8 +7,14 @@
 //
 // 见《MarkCraft_解耦实施方案_2026-09-17.md》Phase 2.1。
 import { FileNode, FileManagerState } from '../../types/fileManager';
-import { userManualContent as userManualContentZh, markdownTutorialContent as markdownTutorialContentZh, knowledgeLinkGuideContent as knowledgeLinkGuideContentZh } from '../data/defaultDocs/zh';
-import { userManualContent as userManualContentEn, markdownTutorialContent as markdownTutorialContentEn, knowledgeLinkGuideContent as knowledgeLinkGuideContentEn } from '../data/defaultDocs/en';
+// 2026-09-21：「使用文档」由《用户手册》按功能拆分为多篇（见 scripts/gen-usage-docs.cjs），
+// 首启种子从「我的笔记/三篇」改为「MarkCraft 使用文档/多篇 + 我的笔记（空）」。
+// ⚠️ STORAGE_VERSION 保持不变：老用户已有文件树必须原样保留（不能因升级丢笔记）；
+//    「我的笔记」下的旧文档由 stores/kbSeed.ts 做一次性迁移。
+import { USAGE_DOC_ALL as USAGE_DOC_ALL_ZH, USAGE_DOC_FOLDER as USAGE_DOC_FOLDER_ZH } from '../data/defaultDocs/usageDocs/zh';
+import { USAGE_DOC_ALL as USAGE_DOC_ALL_EN, USAGE_DOC_FOLDER as USAGE_DOC_FOLDER_EN } from '../data/defaultDocs/usageDocs/en';
+import { knowledgeLinkGuideContent as knowledgeLinkGuideContentZh } from '../data/defaultDocs/zh';
+import { knowledgeLinkGuideContent as knowledgeLinkGuideContentEn } from '../data/defaultDocs/en';
 import { logger } from '../../utils/logger';
 
 const STORAGE_KEY = 'markcraft-file-manager';
@@ -19,14 +25,32 @@ export function generateId(): string {
   return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 }
 
+/**
+ * 首启种子文件树（2026-09-21 起）
+ *
+ * 结构：root（文件管理器）
+ *   ├─ MarkCraft 使用文档/   ← 内置功能说明（14 篇拆分篇章 + Markdown 入门教程 + 知识链接体系指南）
+ *   └─ 我的笔记/            ← 空，留给用户
+ *
+ * 内容与顺序的唯一来源是 `core/data/defaultDocs/usageDocs/*`（由手册机械拆分为生成，
+ * 见 scripts/gen-usage-docs.cjs）——本函数只负责包成 FileNode 结构。
+ */
 export function createInitialFileTree(lang: 'zh' | 'en' = 'zh'): FileNode {
   const isEn = lang === 'en';
   const names = isEn
-    ? { root: 'File Manager', folder: 'My Notes', manual: 'User Manual.md', tutorial: 'Markdown Tutorial.md', linkGuide: 'Knowledge Linking Guide.md' }
-    : { root: '文件管理器', folder: '我的笔记', manual: '用户手册.md', tutorial: 'Markdown 入门教程.md', linkGuide: '知识链接体系指南.md' };
-  const userManualContent = isEn ? userManualContentEn : userManualContentZh;
-  const markdownTutorialContent = isEn ? markdownTutorialContentEn : markdownTutorialContentZh;
-  const knowledgeLinkGuideContent = isEn ? knowledgeLinkGuideContentEn : knowledgeLinkGuideContentZh;
+    ? { root: 'File Manager', docs: USAGE_DOC_FOLDER_EN, myNotes: 'My Notes' }
+    : { root: '文件管理器', docs: USAGE_DOC_FOLDER_ZH, myNotes: '我的笔记' };
+  const pages = isEn ? USAGE_DOC_ALL_EN : USAGE_DOC_ALL_ZH;
+  const now = Date.now();
+
+  const toFileNode = (page: { fileName: string; content: string }): FileNode => ({
+    id: generateId(),
+    name: page.fileName,
+    type: 'file',
+    content: page.content,
+    createdAt: now,
+    updatedAt: now,
+  });
 
   return {
     id: 'root',
@@ -35,41 +59,25 @@ export function createInitialFileTree(lang: 'zh' | 'en' = 'zh'): FileNode {
     children: [
       {
         id: generateId(),
-        name: names.folder,
+        name: names.docs,
         type: 'folder',
-        children: [
-          {
-            id: generateId(),
-            name: names.manual,
-            type: 'file',
-            content: userManualContent,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          },
-          {
-            id: generateId(),
-            name: names.tutorial,
-            type: 'file',
-            content: markdownTutorialContent,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          },
-          {
-            id: generateId(),
-            name: names.linkGuide,
-            type: 'file',
-            content: knowledgeLinkGuideContent,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          },
-        ],
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        children: pages.map(toFileNode),
+        createdAt: now,
+        updatedAt: now,
+        isExpanded: true,
+      },
+      {
+        id: generateId(),
+        name: names.myNotes,
+        type: 'folder',
+        children: [],
+        createdAt: now,
+        updatedAt: now,
         isExpanded: true,
       },
     ],
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    createdAt: now,
+    updatedAt: now,
     isExpanded: true,
   };
 }

@@ -11,6 +11,7 @@ import { useFileManager } from '../../stores/FileStore'
 import { useSettings } from '../../stores/SettingsStore'
 import { useLinkIndex } from '../../stores/LinkIndexStore'
 import { useLanguage } from '../../stores/LanguageStore'
+import { ensureUsageDocsKb } from '../../stores/kbSeed'
 import { applyTheme } from '../../features/themes/ThemeManager'
 import { collectFiles, exportLibraryBundle, parseLibraryBundle, mergeLibraryFiles, downloadTextFile } from '../../features/pwa/librarySync'
 import LibrarySyncModal from '../../features/pwa/LibrarySyncModal'
@@ -92,7 +93,7 @@ function ShellInner() {
   }
 
   // 命令：从共享 COMMAND_CATALOG 注册真实命令（D4 单一数据源），Aurora 接真实 action
-  const { rootFolder, createFile, createFolder, openFile, updateFileContent, getActiveFileId, tabs, closeTab } = useFileManager()
+  const { rootFolder, createFile, createFolder, openFile, updateFileContent, getActiveFileId, tabs, closeTab, moveNode } = useFileManager()
   const { settings, updateSetting } = useSettings()
   const theme = settings.theme
   const focusMode = !!settings.focusMode
@@ -114,7 +115,19 @@ function ShellInner() {
   useEffect(() => {
     document.documentElement.setAttribute('data-contrast', settings.contrast)
   }, [settings.contrast])
-  const { toggleLanguage } = useLanguage()
+  const { toggleLanguage, language } = useLanguage()
+
+  // —— 内置「使用文档」知识库：一次性播种 ——
+  // 用户需求（2026-09-21）：首次进入 MarkCraft，知识库界面默认已有「MarkCraft 使用文档」。
+  // ensureUsageDocsKb 自身保证幂等（已有同名库直接复用）与「不复活」（用户删过就不再建）；
+  // 此处仅做「终态去重」——rootFolder 每次变更都会换引用，避免重复走一遍对账。
+  const usageDocsSeededRef = useRef(false)
+  useEffect(() => {
+    if (usageDocsSeededRef.current) return
+    void ensureUsageDocsKb({ rootFolder, lang: language, createFolder, createFile, moveNode })
+      .then(() => { usageDocsSeededRef.current = true })   // 有 id 或 null（不复活）都算终态
+      .catch((err) => { console.warn('[KB] 内置使用文档播种失败，将在下次树变更时重试：', err) })
+  }, [rootFolder, language, createFolder, createFile, moveNode])
 
   // —— 弹层开关（Phase 3d · 方案 B：单一数据源在 AuroraShell，面板就近渲染）——
   const [modals, setModals] = useState<Partial<Record<AuroraModalId, boolean>>>({})

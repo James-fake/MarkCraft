@@ -55,8 +55,8 @@ const CATEGORY_TITLES: Record<string, { title: string; desc: string }> = {
  * 设置面板 Props
  */
 export interface SettingsPanelProps {
-  /** 导航回调 */
-  nav?: (id: string) => void
+  /** 导航回调（第二参数用于视图内定位，如 nav('kb', kbId) 直达某个知识库） */
+  nav?: (id: string, param?: string) => void
   /** Toast 回调 */
   toast?: (msg: string) => void
   /** 进入设置时定位的分类（如头像点击 → 'user'）；无效或省略则落到默认分类 */
@@ -118,7 +118,7 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
       case 'shortcuts':
         return <ShortcutsSection toast={toast} />
       case 'about':
-        return <AboutSection toast={toast} />
+        return <AboutSection toast={toast} nav={nav} />
       default:
         return <GeneralSection toast={toast} />
     }
