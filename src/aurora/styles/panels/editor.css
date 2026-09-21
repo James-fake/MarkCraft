@@ -2526,13 +2526,11 @@
   border-top: 1px solid var(--mc-border-subtle);
 }
 
-/* ── 4. 工具栏容器：底部分隔线 + 与书写列左缘对齐 ──
-   水平内距与编辑器内容列一致（24px），使工具栏首控件与正文左缘成一条竖线；
-   内容列满宽时工具栏贴左排布（不再居中）。 */
+/* ── 4. 工具栏容器：底部分隔线 ── */
 .aurora-editor .format-toolbar,
 .aurora-editor .wysiwyg-toolbar {
   border-bottom: 1px solid var(--mc-border-subtle) !important;
-  padding: 5px 24px !important;
+  padding: 5px 12px !important;
 }
 
 /* ── 5. CodeMirror 源码编辑区 ── */
