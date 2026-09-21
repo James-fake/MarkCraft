@@ -1,0 +1,157 @@
+/**
+ * FileStore · 两阶段初始化 与 同批次写入的累积语义（回归锁）
+ * ------------------------------------------------------------
+ * 背景（2026-09-21 缺陷「知识库能进、里面 0 篇」）：
+ *
+ * FileStore 的 state 是**两阶段**初始化的：
+ *   ① 同步 `loadState()`：localStorage 只存版本号（树在 IndexedDB），无树可读 → 造一棵
+ *      **全新默认树 T0**（首启种子：使用文档文件夹 + 我的笔记）；
+ *   ② 异步 `loadStateAsync()`：读 IndexedDB 权威树 → **整体覆盖** state。
+ *
+ * 两者之间是一个竞态窗口。任何在这窗口里按树写入的调用方（如内置使用文档播种）都会：
+ *   · 命中 T0 自带的「使用文档」文件夹（同名 → 不新建），把笔记建进 T0 的文件夹；
+ *   · 随后 T0 被权威旧树覆盖 → 笔记与文件夹 id 一起消失；
+ *   · 而调用方拿到的 id 已被写进持久化数据（KB.folderId）→ **悬空引用**。
+ *
+ * 本文件锁死两条防线：
+ *   A. `hydrated` 信号必须如实反映「权威树是否就位」—— 它是调用方判断能否写入的唯一依据；
+ *   B. 写操作必须靠 `setState(prev => ...)` **依次累积**。moveNode 曾用 `stateRef` 快照
+ *      算出整棵树后直接替换 rootFolder，在同一批次内会覆盖掉先前 updater 的成果 ——
+ *      最严重的后果不是显示错乱，而是 movedNode 因目标父不存在而**静默消失**（数据丢失）。
+ *
+ * 夹具用最小 Provider 栈（Language > UndoRedo > FileManager），不引 aurora 装配层，
+ * 以免 stores → aurora 的反向依赖（守卫 `no-aurora-ui-import`）。
+ * IndexedDB 由 `fake-indexeddb/auto` 提供。
+ */
+import 'fake-indexeddb/auto'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { renderHook, act, waitFor, cleanup } from '@testing-library/react'
+import type { ReactNode } from 'react'
+import { db } from '@core/storage/db'
+import { collectAllFiles } from '@core/files/fileTree'
+import type { FileNode, FileManagerState } from '../types/fileManager'
+import { findNode, findParentId } from '../services/fileService'
+import { LanguageProvider } from './LanguageStore'
+import { UndoRedoProvider } from './UndoRedoStore'
+import { FileManagerProvider, useFileManager } from './FileStore'
+
+const T = 1700000000000
+const STORAGE_KEY = 'markcraft-file-manager'
+
+function findByName(root: FileNode, name: string): FileNode | null {
+  const stack: FileNode[] = [root]
+  while (stack.length) {
+    const cur = stack.shift() as FileNode
+    if (cur.name === name) return cur
+    for (const c of cur.children ?? []) stack.push(c)
+  }
+  return null
+}
+
+/** 老用户的权威旧树：我的笔记 → 用户手册.md（无「使用文档」文件夹、无知识库） */
+function legacyTree(): FileManagerState {
+  return {
+    rootFolder: {
+      id: 'root',
+      name: '文件管理器',
+      type: 'folder',
+      createdAt: T,
+      updatedAt: T,
+      children: [
+        {
+          id: 'my-notes',
+          name: '我的笔记',
+          type: 'folder',
+          createdAt: T,
+          updatedAt: T,
+          children: [
+            { id: 'legacy-doc', name: '用户手册.md', type: 'file', content: '# 旧手册全文', createdAt: T, updatedAt: T },
+          ],
+        },
+      ],
+    },
+    tabs: [],
+    activeTabId: null,
+    searchQuery: '',
+    sidebarVisible: true,
+  }
+}
+
+function Wrapper({ children }: { children: ReactNode }) {
+  return (
+    <LanguageProvider>
+      <UndoRedoProvider>
+        <FileManagerProvider>{children}</FileManagerProvider>
+      </UndoRedoProvider>
+    </LanguageProvider>
+  )
+}
+
+beforeEach(async () => {
+  localStorage.clear()
+  await db.kv.clear()
+  // 版本号匹配 → loadState 不会重建 localStorage 树（树只在 IndexedDB 里，制造出「同步
+  // 兜底树 T0 + 异步权威树」的两阶段现场）；同时让 loadStateAsync 不提前 return null。
+  localStorage.setItem(`${STORAGE_KEY}-version`, 'v5')
+  await db.kv.put({ key: STORAGE_KEY, value: JSON.stringify(legacyTree()) })
+})
+
+afterEach(async () => {
+  cleanup()
+  // saveState 是 300ms 防抖且定时器是模块级的 —— 等它跑完再清，避免污染下一个用例
+  await new Promise((r) => setTimeout(r, 350))
+  await db.kv.clear()
+})
+
+describe('FileStore · 两阶段初始化（hydrated 信号）', () => {
+  it('① 水合前是同步兜底树：自带「使用文档」文件夹，却看不到 IndexedDB 里的权威内容', async () => {
+    const { result } = renderHook(() => useFileManager(), { wrapper: Wrapper })
+
+    // 首次 render 同步走 loadState → localStorage 无树 → 全新默认树（首启种子）
+    expect(result.current.hydrated).toBe(false)
+    expect(findByName(result.current.rootFolder, 'MarkCraft 使用文档')).toBeTruthy()
+    expect(findNode(result.current.rootFolder, 'legacy-doc')).toBeNull()
+
+    // 水合后换成 IndexedDB 权威旧树：兜底树连同其中那个**同名文件夹**一起被丢弃
+    await waitFor(() => expect(result.current.hydrated).toBe(true))
+    expect(findNode(result.current.rootFolder, 'legacy-doc')).toBeTruthy()
+    expect(findByName(result.current.rootFolder, 'MarkCraft 使用文档')).toBeNull()
+  })
+})
+
+describe('FileStore · 同批次写入的累积语义', () => {
+  it('② createFolder → moveNode → createFile 同批次：三者都必须落在同一棵树上', async () => {
+    const { result } = renderHook(() => useFileManager(), { wrapper: Wrapper })
+    await waitFor(() => expect(result.current.hydrated).toBe(true))
+
+    // 起点是权威旧树 —— 这正是老用户升级路径的现场
+    expect(findNode(result.current.rootFolder, 'legacy-doc')).toBeTruthy()
+
+    let folderId = ''
+    act(() => {
+      folderId = result.current.createFolder('root', 'MarkCraft 使用文档')
+      // 目标父节点在本批次里刚刚诞生；若 moveNode 沿用 stateRef 快照求值，
+      // 它会因找不到该父节点而把 legacy-doc 从原位置摘下后丢弃
+      result.current.moveNode('legacy-doc', folderId)
+      result.current.createFile(folderId, '01 界面布局.md', '# 新篇', false)
+    })
+
+    const root = result.current.rootFolder
+
+    // ① 新文件夹落地（挡住「被快照整体覆盖」）
+    expect(findNode(root, folderId), '新文件夹被同批次的 moveNode 覆盖掉了').toBeTruthy()
+
+    // ② 旧文档没有消失，且已在新文件夹下（数据丢失防线）
+    const moved = findNode(root, 'legacy-doc')
+    expect(moved, '旧文档被静默丢弃 —— 这是数据丢失，不是显示问题').toBeTruthy()
+    expect(findParentId(root, 'legacy-doc')).toBe(folderId)
+
+    // ③ 新建的篇章也在同一文件夹下
+    const created = findByName(root, '01 界面布局.md')
+    expect(created).toBeTruthy()
+    expect(findParentId(root, created!.id)).toBe(folderId)
+
+    // ④ 原位置只减不增：旧文档已搬走，不留副本
+    expect(collectAllFiles(findNode(root, 'my-notes')!).map((f) => f.name)).not.toContain('用户手册.md')
+  })
+})

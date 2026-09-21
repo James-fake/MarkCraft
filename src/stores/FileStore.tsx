@@ -9,6 +9,16 @@ import { knowledgeLinkGuideContent as knowledgeLinkGuideContentEn } from '@core/
 
 interface FileManagerContextType {
   rootFolder: FileNode;
+  /**
+   * 权威文件树是否已从 IndexedDB 就位（`loadStateAsync` 已返回）。
+   *
+   * ⚠️ 为什么必须暴露这个信号：state 是**两阶段**初始化的 —— 同步阶段 `loadState()`
+   * 在 localStorage 只有版本号时只能造一棵全新的默认树 T0，异步阶段再用 IndexedDB 的
+   * 权威树**整体覆盖**。在两者之间的窗口里，任何「先建文件夹再往里放文件」的程序化
+   * 写入都会落在 T0 上，随后连同 T0 一起被丢弃 —— 只留下悬空的 id（见 kbSeed 的
+   * 「进库 0 篇」缺陷）。需要按树写入的调用方（如内置使用文档播种）必须等它为 true。
+   */
+  hydrated: boolean;
   searchQuery: string;
   sidebarVisible: boolean;
   tabs: Tab[];
@@ -52,6 +62,10 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const undoRedo = useUndoRedo();
 
   const [state, setState] = useState<FileManagerState>(() => loadState(language));
+  // 「权威树是否就位」——初始 false；loadStateAsync 返回后置 true（无论有没有读到树）。
+  // 该窗口内 state 可能只是 T0（同步兜底树），故：① 不可据此做程序化写入（会落在随后
+  // 被丢弃的幽灵节点上）；② 不可回存 IDB（会以 T0 覆盖用户真实的旧树）。
+  const [hydrated, setHydrated] = useState(false);
   const stateRef = useRef(state)
   stateRef.current = state
 
@@ -59,17 +73,22 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   useEffect(() => {
     let cancelled = false
     loadStateAsync(language).then(asyncState => {
-      if (!cancelled && asyncState) {
-        setState(asyncState)
-      }
+      if (cancelled) return
+      if (asyncState) setState(asyncState)
+      // 无论读没读到，都算「水合完成」：读不到时 T0 本身就是应然状态（新用户首启 / 版本升级重建）
+      setHydrated(true)
+      console.info('[FileStore] hydrated=true；来源 =', asyncState ? 'IndexedDB 权威树' : '无（新用户首启或已清空，沿用同步树）')
     })
     return () => { cancelled = true }
   }, [language])
 
   // 自动保存状态
+  // ⚠️ hydrated 之前不回存：此时 state 可能还是 T0，早于 IndexedDB 读取返回写入会**覆盖
+  //    用户真实的旧树**（比「进库 0 篇」更严重的静默数据丢失）。读取结束后立即恢复保存。
   useEffect(() => {
+    if (!hydrated) return;
     saveState(state);
-  }, [state]);
+  }, [state, hydrated]);
 
   // 一次性迁移：添加知识链接体系指南
   useEffect(() => {
@@ -446,26 +465,35 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
 
     const movedNode = { ...nodeToMove };
-    let newRoot = deleteNodeRecursive(stateRef.current.rootFolder, nodeId);
 
-    if (targetIndex !== undefined) {
-      newRoot = updateNode(newRoot, targetParentId, (parent) => {
-        const children = [...(parent.children || [])];
-        const insertIdx = Math.min(targetIndex, children.length);
-        children.splice(insertIdx, 0, movedNode);
-        return { ...parent, children, isExpanded: true };
-      });
-    } else {
-      newRoot = addChildNode(newRoot, targetParentId, movedNode);
-    }
+    // ⚠️ 树变换必须基于 `prev` 求值，不可沿用 stateRef 快照：
+    //    同一批处理批次里的先前 updater（如「建文件夹→往里放文件」这类复合写入）
+    //    已经把新节点累积进 prev；若用快照重算并整体替换 rootFolder，
+    //    不仅会丢掉这些新节点，还会因为目标父节点不在快照里而令 movedNode **静默消失**
+    //    （deleteNodeRecursive 已先把它从原位置摘除）—— 这是数据丢失，不是显示问题。
+    setState(prev => {
+      const parentIdInPrev = findParentId(prev.rootFolder, nodeId);
+      let root = deleteNodeRecursive(prev.rootFolder, nodeId);
 
-    // G6: 移动后重排受影响父级下子节点的 order，保持手动排序连续
-    newRoot = renumberChildrenOrder(newRoot, targetParentId);
-    if (currentParentId && currentParentId !== targetParentId) {
-      newRoot = renumberChildrenOrder(newRoot, currentParentId);
-    }
+      if (targetIndex !== undefined) {
+        root = updateNode(root, targetParentId, (parent) => {
+          const children = [...(parent.children || [])];
+          const insertIdx = Math.min(targetIndex, children.length);
+          children.splice(insertIdx, 0, movedNode);
+          return { ...parent, children, isExpanded: true };
+        });
+      } else {
+        root = addChildNode(root, targetParentId, movedNode);
+      }
 
-    setState(prev => ({ ...prev, rootFolder: newRoot }));
+      // G6: 移动后重排受影响父级下子节点的 order，保持手动排序连续
+      root = renumberChildrenOrder(root, targetParentId);
+      if (parentIdInPrev && parentIdInPrev !== targetParentId) {
+        root = renumberChildrenOrder(root, parentIdInPrev);
+      }
+
+      return { ...prev, rootFolder: root };
+    });
     return true;
   }, []);
 
@@ -533,6 +561,7 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const contextValue: FileManagerContextType = {
     rootFolder: state.rootFolder,
+    hydrated,
     searchQuery: state.searchQuery,
     sidebarVisible: state.sidebarVisible,
     tabs: state.tabs,

@@ -6,6 +6,8 @@ dev 端口 **5174**（`node node_modules/vite/bin/vite.js --port 5174 --host`）
 铁律：① 视觉只用 `styles/tokens.css` 的 `--mc-*`；② 禁增功能（边界 = 真实已有能力）；③ UI 三层分置：壳层 `aurora/`、通用 `components/ui`、业务专属随 `features/*`；④ 依赖只向下，分层 `types|utils`→`core`→`components/ui+locales`→`stores`→`services`→`features/*`→`aurora/*`，**底座向上依赖=0**（守卫 `no-base-to-upper`）；⑤ Path depth：panels→features/stores `../../../`，components/ui·app `../../`。
 
 ## 关键坑
+- 🚨 **FileStore 是两阶段初始化**：同步 `loadState()` 在 localStorage 只有版本号时造**全新树 T0** → 异步 `loadStateAsync()` 用 IndexedDB 权威树**整体覆盖**。窗口期内「按树写入」会落在随后被丢弃的 T0 上（只剩悬空 id）；「回存 IDB」会以 T0 覆盖用户真实旧树。⇒ `useFileManager().hydrated` 是程序化写入的唯一闸口（种子／迁移必须等它），`saveState` effect 亦须 `if(!hydrated) return`。
+- 🚨 **写操作一律 `setState(prev=>…)` 累积**。`moveNode` 曾用 `stateRef` 快照算出整树后 `rootFolder:newRoot` **整体替换** → 同批次内覆盖先前 updater 的成果，且 movedNode 因目标父不在快照里**静默消失**（数据丢失）。回归锁 `stores/FileStore.batch.test.tsx`（注入探针验过会变红）。
 - ⚠️ **别名表分散 4 处**（`tsconfig`/`vite.config`/`vitest.config`/`vite.smoke.config`）必须同改；只改前两处症状 = 测试**导入期**崩溃（文件数不变、用例骤减）。守卫 `src/aliasSync.test.ts`。排查引用须**同时搜** `./X` `../X` 同层相对形态。
 - 新类**必须同批交付 CSS**；**同文件多处 Edit 必须串行**（并行=后写覆盖先写）；改完逐文件 grep 核验。
 - 🚨 插文件头注释前先探 BOM；**回写必须保真 EOL**（本仓混用 CRLF/LF，无 `.gitattributes`、`core.autocrlf=false`）→ 探 `includes('\r\n')` → 拆 `/\r?\n/` → 原 EOL 回写；禁 `split('\n')+join('\n')`。
@@ -56,5 +58,6 @@ PATH 三目录 `PortableGit/versions/1.2.0/{cmd,usr/bin,mingw64/bin}` + `node/ve
 - **浮层退场**：原语 `components/ui/usePresence`（时长常量与 CSS 逐字对齐；`[data-exiting='true']` 必带 `pointer-events:none`）。Toast·Modal 有意不动。
 - **N · tab 滑动切 Tab**：滑块跟手、内容零位移；hook 必传 `dampenOffset`+`snapDecider`；白板空白板引导锁定态停用手势。
 - **KB 面板**：subbar 52px。⚠️ `.aurora-kb-notes` 顶 padding 仅 2px 是为**自带 `__head` 的 Tab** 设计 → 无 head 的复用者必自带留白（`__lead`）。空库不渲染 tab 栏；建库后不自动进详情。
+- **KB 内置使用文档播种**（`stores/kbSeed.ts`）：必须等 `hydrated`；三硬约束 = 幂等／不复活／零丢失。**判据分岔**：库**不存在** = 用户删的 → 不复活；库**存在但 folderId 悬空** = 历史竞态损坏 → **自愈**（重建文件夹 + 补齐 + `rebindKbFolder`，保 kb.id／规则／任务）。
 - **死代码清剿** → skill `dead-code-purge`（判据/双锚点守卫/前缀盲区/事故全在其内）。常记：**「零 import」≠「不进包」**（桶 re-export 连带挂进模块图，dev 无 tree-shaking）→ 判死看**依赖图可达性**；「零 import」删文件 ≠「零消费者」删成员。
 - **内置使用文档播种**（`stores/kbSeed.ts`）（`stores/kbSeed.ts`）：首启默认「MarkCraft 使用文档」KB（16 篇/语言，`core/data/defaultDocs/usageDocs/*`）。三硬约束：**幂等**／**不复活**（`localStorage['markcraft-usage-docs-seeded']='1'` 后删除不重建）／**零丢失**（旧文档只 `moveNode` 迁移、保原名护 [[双链]]）。播种必须显式 `createFile(..., false)`，否则 16 篇全开成标签页；入口 = 设置→关于→使用文档。

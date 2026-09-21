@@ -93,7 +93,7 @@ function ShellInner() {
   }
 
   // 命令：从共享 COMMAND_CATALOG 注册真实命令（D4 单一数据源），Aurora 接真实 action
-  const { rootFolder, createFile, createFolder, openFile, updateFileContent, getActiveFileId, tabs, closeTab, moveNode } = useFileManager()
+  const { rootFolder, hydrated, createFile, createFolder, openFile, updateFileContent, getActiveFileId, tabs, closeTab, moveNode } = useFileManager()
   const { settings, updateSetting } = useSettings()
   const theme = settings.theme
   const focusMode = !!settings.focusMode
@@ -121,13 +121,19 @@ function ShellInner() {
   // 用户需求（2026-09-21）：首次进入 MarkCraft，知识库界面默认已有「MarkCraft 使用文档」。
   // ensureUsageDocsKb 自身保证幂等（已有同名库直接复用）与「不复活」（用户删过就不再建）；
   // 此处仅做「终态去重」——rootFolder 每次变更都会换引用，避免重复走一遍对账。
+  //
+  // ⚠️ 必须等 `hydrated` —— FileStore 的 state 先给同步兜底树、再由 IndexedDB 权威树整体覆盖。
+  //    若在兜底树上播种，建出的文件夹会被随后的权威树覆盖成幽灵节点，而 KB 已把该幽灵
+  //    folderId 持久化 → 「知识库能进、里面 0 篇」（老用户升级路径的真实缺陷）。
   const usageDocsSeededRef = useRef(false)
   useEffect(() => {
+    if (!hydrated) return
     if (usageDocsSeededRef.current) return
+    console.info('[kbSeed] 播种 effect 触发（hydrated 已就位）')
     void ensureUsageDocsKb({ rootFolder, lang: language, createFolder, createFile, moveNode })
       .then(() => { usageDocsSeededRef.current = true })   // 有 id 或 null（不复活）都算终态
       .catch((err) => { console.warn('[KB] 内置使用文档播种失败，将在下次树变更时重试：', err) })
-  }, [rootFolder, language, createFolder, createFile, moveNode])
+  }, [hydrated, rootFolder, language, createFolder, createFile, moveNode])
 
   // —— 弹层开关（Phase 3d · 方案 B：单一数据源在 AuroraShell，面板就近渲染）——
   const [modals, setModals] = useState<Partial<Record<AuroraModalId, boolean>>>({})

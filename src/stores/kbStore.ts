@@ -210,6 +210,20 @@ export async function createKbInFolder(
 }
 
 /**
+ * 修正知识库关联的文件夹（保持 kb.id / 其它配置不变）
+ *
+ * 用于播种自愈：历史竞态可能让 `folderId` 指向一个已被丢弃的节点（悬空），
+ * 此时知识库文档本身完好（规则/任务/导出记录都在），只是找不到自己的笔记文件夹。
+ * 重新挂载而不是删库重建，才能保住用户在该库上积累的一切。
+ */
+export async function rebindKbFolder(kbId: string, folderId: string): Promise<void> {
+  const kb = await loadKb(kbId)
+  if (!kb) return
+  kb.folderId = folderId
+  await saveKb(kb)
+}
+
+/**
  * 删除知识库
  * @param deleteFolder 是否同时删除关联的文件夹
  * @param deleteNode 文件树 deleteNode 函数（来自 useFileManager）

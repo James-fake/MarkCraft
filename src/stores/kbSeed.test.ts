@@ -303,3 +303,71 @@ describe('kbSeed · 英文语言包', () => {
     expect(myNotes.children).toEqual([])
   })
 })
+
+describe('kbSeed · 老用户升级路径（悬空 folderId 自愈）', () => {
+  it('⑫ 悬空 folderId：重新挂载文件夹、补齐笔记，且仍是同一个知识库', async () => {
+    // 复现历史竞态留下的坏状态：知识库在，但它指向的文件夹已不在树上（幽灵 id）。
+    // 这正是用户看到的「知识库能进、里面 0 篇」。
+    const manual = fileNode('用户手册.md', '# 用户手册全文')
+    const tutorial = fileNode('Markdown 入门教程.md', '# 教程')
+    const guide = fileNode('知识链接体系指南.md', '# 指南')
+    const own = fileNode('我自己的笔记.md', '# 私有')
+    const myNotes = folderNode('我的笔记', [manual, tutorial, guide, own])
+    const root = asRoot(folderNode('文件管理器', [myNotes]))
+    const h = harness(root)
+
+    const broken = await createKbInFolder(ZH_FOLDER, '内置文档', 'ghost-folder-id')
+    localStorage.setItem(USAGE_DOCS_SEED_KEY, '1') // 已播种过 —— 用户此刻正处此状态
+
+    const kbId = await ensureUsageDocsKb(h.deps)
+
+    // ① 不是删掉重建：kb.id 不变、库数量不变（保住 rules / tasks / 导出记录等积累）
+    expect(kbId).toBe(broken.id)
+    expect((await getKbList()).map((k) => k.id)).toEqual([broken.id])
+
+    // ② folderId 已从幽灵 id 修正为树上真实存在的文件夹 —— 这直接决定「库里有没有笔记」
+    const folder = findByName(root, ZH_FOLDER) as FileNode
+    expect(folder?.type).toBe('folder')
+    expect((await loadKb(broken.id))?.folderId).toBe(folder.id)
+
+    // ③ 笔记补齐：全部内置篇章 + 迁移来的旧《用户手册》全文
+    const files = collectAllFiles(folder)
+    expect(files.length).toBe(ZH_ALL.length + 1)
+
+    // ④ 旧文档迁移而非重建：id 与文件名都不变（护住 [[双链]] 与已打开的标签页）
+    for (const old of [tutorial, guide]) {
+      expect(files.find((f) => f.id === old.id)?.name).toBe(old.name)
+    }
+
+    // ⑤ 用户自己的笔记零丢失
+    expect(myNotes.children?.map((c) => c.name)).toEqual(['我自己的笔记.md'])
+  })
+
+  it('⑬ 自愈幂等：folderId 修好后再次进入直接短路，不再建库建文件', async () => {
+    const root = asRoot(folderNode('文件管理器', [folderNode('我的笔记', [])]))
+    const h = harness(root)
+    const broken = await createKbInFolder(ZH_FOLDER, '内置文档', 'ghost-folder-id')
+    localStorage.setItem(USAGE_DOCS_SEED_KEY, '1')
+
+    const first = await ensureUsageDocsKb(h.deps)
+    const snapshot = { files: h.created.length, folders: h.folderCreateCount }
+
+    const second = await ensureUsageDocsKb(h.deps)
+
+    expect(second).toBe(first)
+    expect((await getKbList()).length).toBe(1)
+    expect(h.created.length).toBe(snapshot.files)
+    expect(h.folderCreateCount).toBe(snapshot.folders)
+  })
+
+  it('⑭ 健康知识库短路：folderId 可解析即复用，不补齐用户自己清空过的笔记', async () => {
+    const docs = folderNode(ZH_FOLDER, []) // 用户把库里的内置笔记删光了
+    const root = asRoot(folderNode('文件管理器', [docs, folderNode('我的笔记', [])]))
+    const h = harness(root)
+    const kb = await createKbInFolder(ZH_FOLDER, '内置文档', docs.id)
+
+    expect(await ensureUsageDocsKb(h.deps)).toBe(kb.id)
+    expect(h.created).toEqual([]) // 删掉就是删掉，不复活
+    expect(h.folderCreateCount).toBe(0)
+  })
+})
