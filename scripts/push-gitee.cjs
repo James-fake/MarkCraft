@@ -6,16 +6,27 @@
  *      表现为「整条命令无声死亡、连退出码都不打印」，且**远端其实没更新**。
  *      极易被误判为「管道误报」或「沙箱拦网」。
  *
- * 实测定因（不要再重复排查）：
- *   1) PortableGit 系统 gitconfig 设了 `credential.helper = helper-selector`；
- *      本机 ~/.gitconfig 里 `credential.helperselector.selected = manager`、
- *      `credential.https://gitee.com.provider = generic` ⇒ 实际转给 GCM 的 generic provider。
- *   2) 该链路在非交互会话下会**挂住不返回**：`git credential fill` 90s 也未返回
- *      （早前某次约 30–45s 能回，说明它不稳定 —— 不稳定就等于不可用）。
+ * 实测定因（不要再重复排查；三个 helper 逐个单测的结论）：
+ *   1) 元凶 = `git-credential-helper-selector.exe` —— Git for Windows 的**GUI 选择器**，
+ *      由 PortableGit 系统 gitconfig 的 `credential.helper = helper-selector` 引入。
+ *      它会**弹窗等人点按钮**（标题 "CredentialHelper Selector / Select a credential helper"）；
+ *      在非交互会话里没人可点 ⇒ 永久挂住。
+ *      实测：`helper-selector get` 8s 无返回；`git credential fill` 90s 无返回。
+ *   2) ⚠️ 曾误判为「转给 GCM 的 generic provider 卡住」—— **是错的**。单独实测：
+ *        git-credential-wincred.exe get   = **181ms，拿到密码**
+ *        git-credential-manager.exe get   = **319ms，拿到密码**
+ *      两者都完全正常，坏的只有选择器那一层。
  *   3) 凭据本身**没丢**：Windows 凭据管理器里有
  *      `LegacyGeneric:target=git:https://gitee.com`（用户名 + 32 位 token）。
  *   4) 也**不是网络**：Node fetch 到 gitee 200 / ~465ms。
  *      但 `http_proxy=127.0.0.1:*` 会掐死 git 的 https ⇒ 需显式清空代理。
+ *   5) ⚠️ `git config --local credential.helper ""` **不会持久化空值**（Git 直接丢掉），
+ *      所以那种写法清不掉继承来的选择器。正解 = 在 `.git/config` 里手写两行：
+ *          [credential]
+ *              helper =             ← 空值：重置 system/global 累积的 helper 链
+ *              helper = wincred     ← 再指定真正要用的
+ *      实测 `git credential fill` 524 / 588 / 622ms 稳定 OK（原先偶发 20s 挂死）。
+ *      ⇒ **本仓库的裸 `git push` 已恢复正常**；本脚本仍作为无头环境的保险。
  *
  * ── 它做什么 ──────────────────────────────────────────────────────
  *   A. 优先**直读 Windows 凭据管理器**（CredRead，约 1s，确定性）；
