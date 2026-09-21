@@ -225,11 +225,21 @@
   color: var(--mc-text-primary);
 }
 
-/* 下拉面板：复用 .aurora-dropdown 面板基底，锚定到标题栏底边之下 */
-.aurora-menubar__pop {
+/* 下拉面板：复用 .aurora-dropdown 面板基底，锚定到标题栏底边之下。
+   注意：pop 同时挂 .aurora-dropdown（components.css 设 min-width:180/max-width:320），
+   同为单类选择器时按加载序后者赢，故此处用双类提升特异性以压过基底的窄 min-width，
+   确保标题栏菜单按 264 下限铺开、不再被 180 压窄导致 CJK 标签折行挤叠。 */
+.aurora-dropdown.aurora-menubar__pop {
   top: calc(100% + 4px);
   left: 0;
-  min-width: 232px;
+  min-width: 264px;
+  max-width: 400px;
+}
+
+/* 菜单项标签禁止换行（CJK 默认可在任意字处断行，窄面板下列标签会折行挤叠）；
+   靠 nowrap + 面板 min-width 保证单行铺开，必要时面板随内容加宽而非折行 */
+.aurora-menubar__pop .aurora-dropdown__item-label {
+  white-space: nowrap;
 }
 
 .aurora-menubar__item-check {
