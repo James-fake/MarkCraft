@@ -1,7 +1,7 @@
 # MarkCraft · 铁律（案例见 memory/YYYY-MM-DD.md；专题见 artifacts/ 与《解耦实施方案》）
 
 ## 定位与分层
-Vite5+React18+TS；CodeMirror6+TipTap3；白板 Excalidraw（tldraw 已退役）；Dexie/IndexedDB。
+栈：Vite5+React18+TS、CodeMirror6+TipTap3、Excalidraw 白板（tldraw 退役）、Dexie/IndexedDB。
 dev 端口 **5174**（`node node_modules/vite/bin/vite.js --port 5174 --host`）。**入口只有 `src/aurora/aurora-main.tsx`**，真实 `#view=` 路由。**Aurora = 真实运行界面**，战略是网页 UI → 桌面软件范式（窗口 chrome／命令菜单／密度／键盘优先）。
 铁律：① 视觉只用 `styles/tokens.css` 的 `--mc-*`；② 禁增功能（边界 = 真实已有能力）；③ UI 三层分置：壳层 `aurora/`、通用 `components/ui`、业务专属随 `features/*`；④ 依赖只向下，分层 `types|utils`→`core`→`components/ui+locales`→`stores`→`services`→`features/*`→`aurora/*`，**底座向上依赖=0**（守卫 `no-base-to-upper`）；⑤ Path depth：panels→features/stores `../../../`，components/ui·app `../../`。
 
@@ -33,7 +33,7 @@ dev 端口 **5174**（`node node_modules/vite/bin/vite.js --port 5174 --host`）
 ## git / 沙箱
 PATH 三目录 `PortableGit/versions/1.2.0/{cmd,usr/bin,mingw64/bin}` + `node/versions/22.22.2-3` + `System32`（缺则假输出）。远端 `gitee.com/James-fake/markcraft.git`。
 - 🚨 内联 `node -e`／`bash -c` **禁反引号**（bash 当命令替换静默清空）；`${}`、`$()` 同理 → 长脚本一律写 `.cjs` 再跑，用完即删。
-- 🚨 **`credential.helper=helper-selector` 弹窗挂死**：非交互无人点 ⇒ 裸 `git push` 被 SIGTERM 静默杀死、**远端其实没更新**（先查远端再下结论）。正解：`.git/config` 手写 `helper =`（空值重置继承链）+ `helper = wincred`（`git config --local` 不持久化空值）。无头保险 `scripts/push-gitee.cjs`；推内联 URL 须回写 `.git/refs/remotes/origin/master`。
+- 🚨 **`credential.helper=helper-selector` 弹窗挂死**：非交互无人点 ⇒ 裸 `git push` 被 SIGTERM 静默杀死、**远端其实没更新**（先查远端再下结论）。正解：`.git/config` 手写 `helper =`（空值重置继承链）+ `helper = wincred`（`git config --local` 不持久化空值）。无头保险 = `scripts/push-gitee.cjs`（推内联 URL 须回写 `origin/master` 引用）。
 - 🚨 单条 bash **禁 `git stash`**（半写对象库）。工作区可能被外部清空 → `git restore --source=HEAD --worktree -- <路径>`。
 - ⚠️ **并发会话可能同仓同时编辑** → **提交/暂存一律显式 pathspec，禁 `git add -A`**。
 - 删除优先 `git rm`（已暂存则 `pathspec did not match` → 改 `node -e fs.unlinkSync`）或 robocopy `/MIR`。`.workbuddy` 仅 `memory/`、`artifacts/` 入库。**判「删没删」用集合差**。
@@ -41,20 +41,20 @@ PATH 三目录 `PortableGit/versions/1.2.0/{cmd,usr/bin,mingw64/bin}` + `node/ve
 
 ## CDP（细节见 skill `cdp-ui-interaction-verify`）
 前台同 bash 启动；别删 profile、别换目录名（二次启动必失败 → `cp -r` 副本）；`&` 后丢 PATH；就绪判据 `.aurora-sidebar-item`。
-三陷阱：backdrop 吞指针／窗口激活吞最早鼠标事件／无焦时合成按键打不进。深链 `#view=` 只认**启动 URL**。
-🚨 「零命中/零错误」必须先证**扫描面非空** + HEAD 阳性对照 → 否则**全假绿**。「看得见」别用 `elementFromPoint`；拖动中截图不可信。
+三陷阱（backdrop 吞指针／窗口激活吞最早鼠标事件／无焦时合成按键打不进）、深链 `#view=` 只认**启动 URL** —— 详见 skill。
+🚨 **「零命中/零错误」必须先证「扫描面非空」+ 跑 HEAD 阳性对照**，否则**全假绿**（最高危）；「看得见」别用 `elementFromPoint`（`pointer-events:none` 假阴性）；拖动中截图不可信。
 
 ## 解耦路线（体检 `scripts/_depgraph.cjs`；判据见《解耦实施方案》）
 病灶：跨模块共享能力寄居上层 → 下层反向引用 → 成环。基线 8 环 → Phase 1–5 完成后 **0 环 / 0 双向依赖**（`_depgraph.cjs` 实测）。
-- 🚨 `_depgraph.cjs` 已加固：硬编码别名表漏登记会**静默丢边 → 漏报环**；最危险方向是「图看起来更干净了」。现从 `vite.config.ts` 派生 + 别名自检。
-- 判据速记：① 说环消除前先确认该环模块有非零边数；② 含大体积静态数据的子图禁建 barrel；③ 迁移保真 = 字节级比对 + EOL + BOM 位置；④ 定靶心前枚举双侧边（源码+测试）；⑤ 守卫开例外前先问能否移动模块；⑥ 守卫用全量 glob + 规则内 `exempt`，忌 `overrides.files`；⑦ 被搬文件引用按新位置求值可能悬空（按**旧位置**重解析）；⑧ 引用重写须解析成路径再查表、两端都枚举扩展名。
+- 🚨 `_depgraph.cjs`：**别名表漏登记会静默丢边 → 漏报环**，最危险方向 = 「图看起来更干净了」→ 现从 `vite.config.ts` 派生 + 自检。
+- 判据速记：① 说环消除前先确认该环模块**边数非零**；② 大体积静态数据子图**禁建 barrel**；③ 迁移保真 = 字节级比对 + EOL + BOM 位置；④ 定靶心前枚举**双侧边**（源码+测试）；⑤ 守卫开例外前先问**能否移动模块**；⑥ 守卫用**全量 glob + 规则内 `exempt`**，忌 `overrides.files`；⑦⑧ 见 skill（悬空引用按**旧位置**重解析 / 引用重写须解析成路径再查表、两端枚举扩展名）。
 - 搬文件/改引用 → skill `codemod-reference-migration`。**底座需上层能力 = 反向安置不是加例外**：状态留 `stores`/`features`，常量下沉 `@core/constants`，UI 落 `components/ui` 或消费方 feature。**「按字面语义归类」与「层级纪律」冲突时后者优先**。
 
 ## 专题铁律（细节见 artifacts / 每日日志）
-- **开屏动画**：落 `index.html` **内联层**（React 方案要等 bundle ⇒ 长空白）；仅首次；双 rAF 交接；`MIN_TOTAL` + `HARD_CAP` 兜底；只动 opacity/transform/filter。
+- **开屏动画**：落 `index.html` **内联层**（React 方案要等 bundle ⇒ 长空白）；仅首次；双 rAF 交接；`MIN_TOTAL`+`HARD_CAP` 兜底；只动 opacity/transform/filter。⚠️ 字号必须给**真上限**：旧 `clamp(28px,3.2vw,40px)` 在常见宽度恒被顶到 40 = **假响应式** → 用 `clamp(40px, min(5vw,10vh), 72px)`（`vh` 项防矮窗把字顶到屏高 14%），blur/光标宽一并改 **em** 随字号等比。
 - **动效语言**：⚡100–160／🚶150–250／🛋320–500ms；**外壳（MenuBar/Sidebar/StatusBar）永不参与视图切换动画**；reduced-motion = 更少更柔非归零；指针门控只归零**纯位移/缩放** hover，复合 transform 必须豁免。永不用 `scale(0)`（起手 0.96/0.97）；进出不对称「出更快」。
 - **浮层退场**：原语 `components/ui/usePresence`（时长常量与 CSS 逐字对齐；`[data-exiting='true']` 必带 `pointer-events:none`）。Toast·Modal 有意不动。
 - **N · tab 滑动切 Tab**：滑块跟手、内容零位移；hook 必传 `dampenOffset`+`snapDecider`；白板空白板引导锁定态停用手势。
 - **KB 面板**：subbar 52px。⚠️ `.aurora-kb-notes` 顶 padding 仅 2px 是为**自带 `__head` 的 Tab** 设计 → 无 head 的复用者必自带留白（`__lead`）。空库不渲染 tab 栏；建库后不自动进详情。
-- **死代码清剿** → skill `dead-code-purge`：① 「零 import」≠「不进包」（桶 re-export 会连带挂进模块图，dev 无 tree-shaking）→ 判死看**依赖图可达性**；② 「零 import」删文件／「零消费者」删成员不可互替；③ 盲区真因是「前缀」不是「目录」。
-- **内置使用文档播种**（`stores/kbSeed.ts`）：首启默认存在「MarkCraft 使用文档」KB，笔记 = 各功能说明（16 篇/语言，`core/data/defaultDocs/usageDocs/*`）。三硬约束：**幂等**／**不复活**（`localStorage['markcraft-usage-docs-seeded']='1'` 后删除不重建）／**零丢失**（老用户旧文档只 `moveNode` 迁移、保原名护 [[双链]]）。播种必须显式 `createFile(..., false)`，否则 16 篇全开成标签页。入口：设置→关于→使用文档 → `nav('kb', id)`。
+- **死代码清剿** → skill `dead-code-purge`（判据/双锚点守卫/前缀盲区/事故全在其内）。常记：**「零 import」≠「不进包」**（桶 re-export 连带挂进模块图，dev 无 tree-shaking）→ 判死看**依赖图可达性**；「零 import」删文件 ≠「零消费者」删成员。
+- **内置使用文档播种**（`stores/kbSeed.ts`）（`stores/kbSeed.ts`）：首启默认「MarkCraft 使用文档」KB（16 篇/语言，`core/data/defaultDocs/usageDocs/*`）。三硬约束：**幂等**／**不复活**（`localStorage['markcraft-usage-docs-seeded']='1'` 后删除不重建）／**零丢失**（旧文档只 `moveNode` 迁移、保原名护 [[双链]]）。播种必须显式 `createFile(..., false)`，否则 16 篇全开成标签页；入口 = 设置→关于→使用文档。
