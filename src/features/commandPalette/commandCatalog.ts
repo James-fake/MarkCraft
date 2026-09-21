@@ -54,7 +54,6 @@ export const COMMAND_CATALOG: CommandMeta[] = [
   // 窗口（HIG §1.1 Window 菜单：最小化 / 缩放 / 全部前置）
   { id: 'window.minimize', labelZh: '最小化', labelEn: 'Minimize', icon: 'minimize', category: 'window', keywords: ['minimize', '最小化'], shortcut: 'Ctrl+M', visible: () => false },
   { id: 'window.zoom', labelZh: '缩放', labelEn: 'Zoom', icon: 'maximize', category: 'window', keywords: ['zoom', '缩放', '全屏'], visible: () => false },
-  { id: 'window.bringAllToFront', labelZh: '全部移至最前', labelEn: 'Bring All to Front', icon: 'layers', category: 'window', keywords: ['front', '最前', '全部前置'], visible: () => false },
 
   // 视图
   { id: 'view.togglePreview', labelZh: '切换预览', labelEn: 'Toggle Preview', icon: 'eye', category: 'view', keywords: ['preview', '预览', '切换'] },

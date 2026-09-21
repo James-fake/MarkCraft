@@ -131,8 +131,6 @@ const WINDOW_MENU: AuroraMenu = {
   entries: [
     { id: 'window.minimize', label: '最小化' },
     { id: 'window.zoom', label: '缩放' },
-    '---',
-    { id: 'window.bringAllToFront', label: '全部移至最前' },
   ],
 }
 

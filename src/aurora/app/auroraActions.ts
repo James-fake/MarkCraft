@@ -132,7 +132,6 @@ export function buildAuroraActions(deps: AuroraActionDeps): Record<string, (() =
       if (document.fullscreenElement) void document.exitFullscreen().catch(() => {})
       else void el.requestFullscreen().catch(() => {})
     },
-    'window.bringAllToFront': () => {},
     // 文件菜单 · 关闭当前标签（无标签则回欢迎）
     'file.close': () => {
       const fid = getActiveFileId()

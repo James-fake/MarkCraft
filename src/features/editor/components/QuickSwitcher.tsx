@@ -17,21 +17,16 @@ const QuickSwitcher: React.FC<QuickSwitcherProps> = ({ visible, onClose, onOpenF
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
   const { getFileHeadings } = useLinkIndex()
-  const { rootFolder } = useFileManager()
+  const { tabs } = useFileManager()
 
-  // Get all files for listing when query is empty
+  // 列出当前已打开的标签（名副其实的「快速切换文件」——与 quickOpen 的全库模糊打开区分）
   const allFiles = useMemo(() => {
-    const files: { id: string; name: string; heading?: string }[] = []
-    const collect = (node: any) => {
-      if (node.type === 'file' && node.name.endsWith('.md')) {
-        const headings = getFileHeadings(node.id)
-        files.push({ id: node.id, name: stripMd(node.name), heading: headings[0] })
-      }
-      if (node.children) node.children.forEach(collect)
-    }
-    if (rootFolder) collect(rootFolder)
-    return files
-  }, [rootFolder, getFileHeadings])
+    return tabs.map((tab) => ({
+      id: tab.fileId,
+      name: stripMd(tab.name),
+      heading: getFileHeadings(tab.fileId)[0],
+    }))
+  }, [tabs, getFileHeadings])
 
   // Search results
   const results = useMemo(() => {
@@ -94,13 +89,13 @@ const QuickSwitcher: React.FC<QuickSwitcherProps> = ({ visible, onClose, onOpenF
           value={query}
           onChange={e => { setQuery(e.target.value); setSelectedIndex(0) }}
           onKeyDown={handleKeyDown}
-          placeholder="搜索文件..."
+          placeholder="切换打开的文件…"
           style={{ width: '100%', padding: '14px 16px', border: 'none', borderBottom: '1px solid var(--border-color, #333)', background: 'transparent', color: 'var(--mc-text-secondary, #e0e0e0)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
         />
         <div ref={listRef} style={{ maxHeight: 340, overflowY: 'auto', padding: '4px 0' }}>
           {results.length === 0 && (
             <div style={{ padding: '20px', textAlign: 'center', color: 'var(--mc-text-secondary, #888)', opacity: 0.5, fontSize: 13 }}>
-              无匹配结果
+              {tabs.length === 0 ? '没有打开的文件' : '无匹配结果'}
             </div>
           )}
           {results.map((file, i) => (
