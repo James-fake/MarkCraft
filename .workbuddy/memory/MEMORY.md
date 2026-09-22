@@ -11,6 +11,7 @@ dev 端口 **5174**（`node node_modules/vite/bin/vite.js --port 5174 --host`）
 - ⚠️ **别名表分散 4 处**（`tsconfig`/`vite.config`/`vitest.config`/`vite.smoke.config`）必须同改；只改前两处症状 = 测试**导入期**崩溃（文件数不变、用例骤减）。守卫 `src/aliasSync.test.ts`。排查引用须**同时搜** `./X` `../X` 同层相对形态。
 - 新类**必须同批交付 CSS**；**同文件多处 Edit 必须串行**（并行=后写覆盖先写）；改完逐文件 grep 核验。
 - 🚨 **同款类名散布多容器 → 交互能力各自漂移**（2026-09-21 报障「点知识库笔记没进编辑器，停在详情页」）：KB 详情页三处 `.aurora-kb-recent__item`（笔记 Tab／概览「最近活动」／依赖 Tab）曾**各自手写** → 概览那份漏了 `onClick`，且交互反馈只挂 `.aurora-kb-notes` 容器 ⇒ **哑行**（用户默认落地的正是概览 Tab）。已抽单源 `src/aurora/panels/kb/KbFileRow.tsx`：**可交互性由「有没有 onSelect」派生**（`.is-interactive`），纯展示行**不得**伪造可点暗示。新窗口的专项探针 `.workbuddy/artifacts/cdp-verify-kb-note-open.mjs`（控制组 + 真实鼠标事件流分层）；**同款类名多容器时探针必须按容器限定选择器、逐容器断言**，`querySelectorAll(类名)[0]` 会测到另一个列表 → 全绿却仍报障。
+- 🚨 **「可点暗示」与「实际 handler」必须同源**（第二例，2026-09-22）：KB 概览「专属图谱」`MiniGraph` 的 12 个节点圆点恒 `cursor:pointer` 但**整图无任何 handler**，且全图**只给一个节点渲染可见名字**（`currentId = miniNodes[0]` = 引用最多的首篇）⇒ 报障「**只有第一篇** `00 开始使用.md` 点了会停在知识库详情页」。已抽 `src/aurora/panels/kb/MiniGraph.tsx`：可交互性由 `onSelect` 派生（`.is-interactive`/role/tabIndex/键盘全条件式）、每节点补 `<title>` 让名字可发现。**通则：图形/SVG/画布类元素自带 `cursor:pointer` 而无 handler = 哑节点；「只有某一条点不动」先查「是不是只给它渲染了可见名字」。** 探针 `.workbuddy/artifacts/cdp-verify-kb-minigraph-click.mjs`。
 - 🚨 插文件头注释前先探 BOM；**回写必须保真 EOL**（本仓混用 CRLF/LF，无 `.gitattributes`、`core.autocrlf=false`）→ 探 `includes('\r\n')` → 拆 `/\r?\n/` → 原 EOL 回写；禁 `split('\n')+join('\n')`。
 - 单源：z-index = `tokens.css §14`；Modal/Button/Confirm/Switch = `@components/ui/*`。⚠️ `styles/desktop-chrome.css` 是**有意的第二层 `:root`**（后者赢）→ 改 `--mc-accent` 须同改（含亮色）。
 - **拖拽闭包陷阱**：监听闭包在拖拽开始时注册 → 落盘读 `xxxRef.current`；**指针捕获吞 click** → 子元素挂 **pointerup**（slop 4px）。
@@ -46,6 +47,10 @@ PATH 三目录 `PortableGit/versions/1.2.0/{cmd,usr/bin,mingw64/bin}` + `node/ve
 前台同 bash 启动；别删 profile、别换目录名（二次启动必失败 → `cp -r` 副本）；`&` 后丢 PATH；就绪判据 `.aurora-sidebar-item`。
 三陷阱（backdrop 吞指针／窗口激活吞最早鼠标事件／无焦时合成按键打不进）、深链 `#view=` 只认**启动 URL** —— 详见 skill。
 🚨 **「零命中/零错误」必须先证「扫描面非空」+ 跑 HEAD 阳性对照**，否则**全假绿**（最高危）；「看得见」别用 `elementFromPoint`（`pointer-events:none` 假阴性）；拖动中截图不可信。
+- 🚨 **阳性对照的选择器必须「实现无关」**：第一版探针用**修复后才存在**的类名取扫描面 ⇒ HEAD 版扫描面 = 0、报「红」——但红的理由是**选择器在旧版不存在**，与行为差异无关 = **假阳性证据（归因不诚实）**。改用修复前后**都存在**的元素反查（如由 `<circle>` 反查父 `<g>`）后，HEAD 的「红」才落在真正行为上（`interactive=0/12`、点后仍 `#view=kb`）。
+- ⚠️ **Edge profile 路径必须 Windows 形态** `C:/Users/...`；POSIX 形态 `/c/Users/...` ⇒ Edge **静默并入现有会话**（不开新调试端口、日志仅「正在现有浏览器会话中打开」）→ 探针报 `CDP not ready`。
+- ⚠️ `SVGElement` **没有 `.click()`**（Chromium）→ 派发 `new MouseEvent('click',{bubbles:true,cancelable:true,view:window})` 走 React 委托链路。
+- ⚠️ `git restore --source=HEAD --worktree -- <p1> <p2>`：**其中一条 pathspec 无效 ⇒ 整条命令中止、什么都不恢复**（静默，极易漏看）→ 对照前必须 grep 特征标记复核「确已回到 HEAD」。**bash 里禁内联 PowerShell**（工具安全策略会拦）→ 清探针进程须单独用 PowerShell 工具。
 
 ## 解耦路线（体检 `scripts/_depgraph.cjs`；判据见《解耦实施方案》）
 病灶：跨模块共享能力寄居上层 → 下层反向引用 → 成环。基线 8 环 → Phase 1–5 完成后 **0 环 / 0 双向依赖**（`_depgraph.cjs` 实测）。

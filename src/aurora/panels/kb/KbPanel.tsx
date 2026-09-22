@@ -7,6 +7,7 @@ import type { IconName } from '../../types'
 import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
 import { useTabStripThumb } from '../../hooks/useTabStripThumb'
 import { KbFileRow } from './KbFileRow'
+import { MiniGraph } from './MiniGraph'
 import { useFileManager } from '@stores/FileStore'
 import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useTagIndex } from '@stores/TagIndexStore'
@@ -76,49 +77,9 @@ const pctOf = (score: number, max = 25) => Math.round((score / max) * 100)
 const compactNum = (n: number): string =>
   n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n)
 
-// ---- 专属图谱迷你节点（由真实 LinkIndex 过滤到 KB 文件子集）----
-function MiniGraph({
-  nodes,
-  edges,
-  currentId,
-}: {
-  nodes: { id: string; label: string }[]
-  edges: [string, string][]
-  currentId?: string
-}) {
-  const N = nodes.length || 1
-  const positioned = nodes.map((n, i) => {
-    const ang = (i / N) * Math.PI * 2 - Math.PI / 2
-    return {
-      ...n,
-      x: 50 + 36 * Math.cos(ang),
-      y: 50 + 36 * Math.sin(ang),
-      r: n.id === currentId ? 7 : 4.5,
-    }
-  })
-  const posById = new Map(positioned.map((p) => [p.id, p]))
-  return (
-    <svg className="aurora-kb-minigraph" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-label="专属知识图谱">
-      {edges.map(([a, b], i) => {
-        const na = posById.get(a)
-        const nb = posById.get(b)
-        if (!na || !nb) return null
-        return <line key={i} x1={na.x} y1={na.y} x2={nb.x} y2={nb.y} className="aurora-kb-minigraph__edge" />
-      })}
-      {positioned.map((n) => (
-        <g key={n.id}>
-          <circle
-            cx={n.x} cy={n.y} r={n.r}
-            className={`aurora-kb-minigraph__node ${n.id === currentId ? 'aurora-kb-minigraph__node--current' : 'aurora-kb-minigraph__node--file'}`}
-          />
-          {n.id === currentId && (
-            <text x={n.x} y={n.y + n.r + 4} className="aurora-kb-minigraph__label">{n.label}</text>
-          )}
-        </g>
-      ))}
-    </svg>
-  )
-}
+// ---- 专属图谱迷你节点图：已抽为单源组件 ./MiniGraph（2026-09-22 哑节点修复）----
+// 原实现内联在本文件，节点只有 `cursor: pointer` 而整张图无点击处理，且只给一个节点渲染名字
+// （即「00 开始使用」）⇒ 用户点它毫无反应、停在知识库详情页。根因与修法见 MiniGraph.tsx 顶部。
 
 interface OverviewData {
   fileCount: number
@@ -259,10 +220,17 @@ function OverviewTab({
             </button>
           )}
         </div>
+        {/* 节点=笔记：点节点即「在编辑器中打开该笔记」，与列表行同一动作
+            （此前节点只有手型没有 handler —— 点第一篇毫无反应，见 MiniGraph.tsx） */}
         {data.miniNodes.length === 0 ? (
           <div className="aurora-kb-recent__empty">库内暂无引用关系</div>
         ) : (
-          <MiniGraph nodes={data.miniNodes} edges={data.miniEdges} currentId={data.miniNodes[0]?.id} />
+          <MiniGraph
+            nodes={data.miniNodes}
+            edges={data.miniEdges}
+            currentId={data.miniNodes[0]?.id}
+            onSelect={onOpenNote}
+          />
         )}
       </div>
     </div>
