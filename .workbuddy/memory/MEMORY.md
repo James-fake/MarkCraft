@@ -44,7 +44,7 @@ PATH 三目录 `PortableGit/versions/1.2.0/{cmd,usr/bin,mingw64/bin}` + `node/ve
 - 🚨 单条 bash **禁 `git stash`**（半写对象库）。工作区可能被外部清空 → `git restore --source=HEAD --worktree -- <路径>`。
 - ⚠️ **并发会话可能同仓同时编辑** → **提交/暂存一律显式 pathspec，禁 `git add -A`**。
 - 删除优先 `git rm`（已暂存则 `pathspec did not match` → 改 `node -e fs.unlinkSync`）或 robocopy `/MIR`。`.workbuddy` 仅 `memory/`、`artifacts/` 入库。**判「删没删」用集合差**。
-- ⚠️ 仓内有**重名文件** → 一律用完整相对路径。⚠️ **`/tmp` 在 bash/node 下解析不同** → 临时文件用 `C:/Users/HJN/AppData/Local/Temp/`。
+- ⚠️ 仓内有**重名文件** → 一律用完整相对路径。⚠️ **`/tmp` 在 bash/node 下解析不同** → 临时文件用 `C:/Users/HJN/AppData/Local/Temp/`；**且传给原生 exe（node/edge）必须是 `C:/...`，`/c/...` 会被解析成 `D:\c\...`**（见 CDP 段）。
 
 ## CDP（细节见 skill `cdp-ui-interaction-verify`）
 前台同 bash 启动；别删 profile、别换目录名（二次启动必失败 → `cp -r` 副本）；`&` 后丢 PATH；就绪判据 `.aurora-sidebar-item`。
@@ -57,6 +57,12 @@ PATH 三目录 `PortableGit/versions/1.2.0/{cmd,usr/bin,mingw64/bin}` + `node/ve
 - ⚠️ **`CDP_PORT` 必须与 Edge 启动端口一致**：探针默认 9444，Edge 起在 9466 ⇒ 报 `fetch failed`，症状酷似「代理污染 / 端口没起」，实际只是**端口没对齐**（先核对两者再查环境）。顺带实测：本机 `HTTP_PROXY` 对 **node fetch（undici）不生效**（`fetch` 200 正常）—— 别当坑 Y 误判；只有 **curl** 需要 `--noproxy '*'`。
 - 🚨 **扫描面必须覆盖「应用会自己追加的数据」**：真机播种/替换整棵树后，`kbSeed` 的**自愈分支**（同名库存在但 `folderId` 解析不到）会把内置《使用文档》**补齐到全量 16 篇** —— 该分支在「已播种」标记检查**之前** ⇒ 设 `markcraft-usage-docs-seeded='1'` **挡不住补齐**。所以「内置文档清单」类断言必须 **① 从 dev server 现取权威清单**（`curl http://127.0.0.1:5174/src/core/data/defaultDocs/usageDocs/zh.ts` + 正则抽 `fileName:`），**② 期望值在断言时刻重读树**（别用「播种后立刻读」的旧快照）。两条都缺 → 零命中断言被削弱/侥幸通过（本轮 v1 探针两条都犯）。
 - ⚠️ **一条断言只证一件事**：「清单非空」与「清单 === N」焊在一条里 ⇒ HEAD 对照里它会为**错误的原因**变红（归因不诚实）。拆开后 HEAD 对照呈「**恰好该红的红**」（本轮 11/14，三条红归属逐条清楚）。
+- 🚨 **独立 worktree 做 HEAD 对照时，新起的 dev server 是「冷」的 —— 会让整轮对照失真**（2026-09-23 实测）：冷 server 首次按需转换模块很慢 ⇒ 探针在应用**尚未可交互**时点击 ⇒ **侧栏点击不生效**（`ready` 已过、DOM 齐全、`hasFocus()`=true，就是点了没反应）。首轮因此跑出 14/30，**连 §1/§2 这两扇本应绿的门也红** ⇒ **无效对照**。
+  **判据**：`§0 应用外壳就绪 waitIdx`（主仓热机 **0** / worktree 冷启 **16**≈8s）。**通则：对照"大面积翻红（不该红的门也红）"先怀疑运行条件，而不是庆祝灵敏。**
+  **修法**：对照前加**预热轮** —— 同一浏览器用真实鼠标先走一遍目标路径（图谱/知识库/含入口的详情页），让 Vite 完成转换；预热脚本**不要 `Browser.close`**（要把实例交给探针复用）。加预热后恢复 18/30。
+- 🚨 **为「可测性」新增的 DOM 锚点，会让对照无法归因**（坑 U 的变体）：本次给图谱节点加 `data-node-id`/`data-node-type`（因 label 只在孤立/热点/悬停渲染、拿不到稳定身份）⇒ HEAD 无这些锚点 ⇒ 依赖它们的数数/身份断言**必然红**，红的原因**不全是行为差异**。**补法 = 再做一次「不依赖新锚点」的取证**（直接数 `.aurora-graph__node`）：HEAD 上 `N_all=23 === N_kb=23`（从知识库进入的图 = 全局图）⇒ 库外文件确实未裁剪、**数数法本身能量到该差异**。通则：**凡为可测性新增的锚点，都必须额外证明「没有它时也能测到差异」**。
+- ⚠️ **`.mjs` 放 `%TEMP%` 解析不到仓内依赖**（ESM 包解析基于脚本自身位置，`NODE_PATH` 对 ESM 无效）→ `import 'ws'` 直接 `ERR_MODULE_NOT_FOUND`。临时脚本先 `cp` 进仓内（`.workbuddy/artifacts/_t/`），跑完 `rm`。
+- ⚠️ 起探针的 bash **也要给 `bash` 本身留 PATH**：`exec bash script.sh` 在某些 PATH 下报 `bash: command not found` → 用完整 PATH 或 `usr/bin/bash`。
 
 ## 解耦路线（体检 `scripts/_depgraph.cjs`；判据见《解耦实施方案》）
 病灶：跨模块共享能力寄居上层 → 下层反向引用 → 成环。基线 8 环 → Phase 1–5 完成后 **0 环 / 0 双向依赖**（`_depgraph.cjs` 实测）。
@@ -80,3 +86,8 @@ PATH 三目录 `PortableGit/versions/1.2.0/{cmd,usr/bin,mingw64/bin}` + `node/ve
   ⚠️ **边界（有意为之）**：**知识库入口（`kbId`）不过滤** —— 其口径是「与该库详情页笔记列表完全一致」，而内置文档所在的库本身就是说明书的浏览入口；过滤会让**非空库显示成空库**。要改这条得先改 KB 详情页口径、两侧同改，**别只改博客一侧**。
   ⚠️ 夹具教训：`BlogPanel.smoke.test.tsx` 原有夹具**隐式拿"默认树里那 16 篇内置文档"当文档清单** ⇒ 修复后恰好 2 例失败（测的正是被排除的东西）。夹具一律**显式种入普通笔记**、且**按名幂等**（`FileStore` 是模块单例，多段重挂不能重复建，否则 `docs.length` 段间漂移会让用例为**错误的原因**红）。
   ⚠️ 预览的文章标题取自**正文首个标题**（`# 甲` → 显示「甲」），**不是文件名** → 断言内置侧也要按同一口径从数据取标题。
+- **双链图谱 · 知识库范围（2026-09-23 报障修复，提交 91ede7d）**：从知识库「查看完整图谱」进入的图谱**只画该库文件节点**（库外文件不画；库内互链 + 库内笔记**用到的标签**保留）；侧栏/菜单栏/命令面板进入**保持全局**（用户拍板）。
+  传递链 = `KbPanel#openFullGraph()`（kbId 拼接**单源**，哑组件不各自拼）→ `useAuroraShell` 的 **param→params 映射表**补 `graph → { kbId }`（⚠️ 漏登记 = 参数静默丢失）→ `AuroraShell#case 'graph'` 按 `params.kbId` 传参。
+  裁剪 = 纯函数 `scopeGraphToKb(data, kbFileIds)` **两步法**：① 取库内文件；② 由「一端是库内文件的边」收集被触达 tag；边两端都须落在 `库内文件 ∪ 本库tag` 内。⚠️ 一步法（直接用文件 id 集合过滤边）会把「文件→tag」边因 tag 端点不在集合内而**整条误删 → 标签全消失**（测试抓到过，不是假绿）。库内文件口径 = `getKbFiles(rootFolder, kb)`（与博客清单/KB 详情**同源**，folder+手动+规则）。
+  范围隔离 = `graphSession` 增 `kbId` + `readScopedSession(kbId)`（范围不符即视为无现场），否则**全局图的视口/选中会串到范围图**。往返 = `navReturn` 带 `kbId` + 标签「XX 库 · 图谱」→ 返回回**同范围**图谱；范围内侧栏「知识库」改跳该库详情（闭环）。
+  可测性 = 图谱节点 `<g>` 挂 `data-node-id`/`data-node-type`；**节点身份定位必须靠数据锚点，别靠 label 文本**（label 只在孤立/热点/悬停节点渲染）。
