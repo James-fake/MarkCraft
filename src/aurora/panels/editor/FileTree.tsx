@@ -10,6 +10,7 @@ import {
   type RecentFileEntry,
 } from '@core/files/recentFiles'
 import { collectFolderIds, flattenFileTree } from '@core/files/fileTree'
+import { useUsageDocsScope } from '@hooks/useUsageDocsScope'
 import type { FileNode } from '@src/types/fileManager'
 
 /**
@@ -69,6 +70,8 @@ interface FileTreeProps {
 
 export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
   const { rootFolder, openFile, createFile, createFolder, renameNode, deleteNode, getActiveFileId } = useFileManager()
+  // 内置「使用文档」不在编辑器的文件列表中呈现（判定单源：core/files/usageDocs + hooks/useUsageDocsScope）
+  const usageDocs = useUsageDocsScope()
   const [expanded, setExpanded] = useState<Set<string>>(
     () => new Set(collectFolderIds(rootFolder.children ?? [])),
   )
@@ -299,11 +302,20 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
 
   // 搜索框显隐完全交给滚动方向状态机（上滑展开/下滑收起；onScroll 内处理），无需图标入口
 
-  const rows = flattenFileTree(rootFolder, 0, expanded).filter((r) => r.depth > 0)
+  // 过滤内置「使用文档」整棵子树：文件夹行与其下所有后代行都不进列表。
+  // 必须在 flatten 之后按 id 剔除（而不是过滤 rootFolder），因为使用文档仍须留在文件树与
+  // 知识库里 —— 这里只是**视图层面**不呈现，数据一个字都不动。
+  const rows = flattenFileTree(rootFolder, 0, expanded)
+    .filter((r) => r.depth > 0 && !usageDocs.hiddenIds.has(r.node.id))
 
   const filtered = search.trim()
     ? rows.filter((r) => r.node.name.toLowerCase().includes(search.trim().toLowerCase()))
     : rows
+
+  // 「最近打开」同源过滤：从使用文档进来的记录同样不该出现在编辑器的浏览列表里
+  const visibleRecent = usageDocs.hiddenIds.size > 0
+    ? recent.filter((f) => !usageDocs.hiddenIds.has(f.fileId))
+    : recent
 
   return (
     <div className="aurora-filetree material-sidebar">
@@ -454,7 +466,7 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
         ) : (
           <>
             {/* 最近打开（可折叠，真实数据） */}
-            {recent.length > 0 && (
+            {visibleRecent.length > 0 && (
               <>
                 <button
                   type="button"
@@ -468,7 +480,7 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
                   <span className="aurora-filetree__section-label">最近打开</span>
                 </button>
                 {recentOpen &&
-                  recent.map((f) => (
+                  visibleRecent.map((f) => (
                     <div
                       key={f.fileId}
                       className={`aurora-filetree__recent ${f.fileId === activeId ? 'aurora-filetree__item--active' : ''}`}

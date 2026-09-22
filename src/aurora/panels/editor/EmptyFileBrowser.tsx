@@ -2,6 +2,7 @@ import { useMemo, type KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { Icon } from '../../icons'
 import { fileTypeMeta } from '../../themes/categoricalColors'
 import { useFileManager } from '@stores/FileStore'
+import { useUsageDocsScope } from '@hooks/useUsageDocsScope'
 import type { FileNode } from '@src/types/fileManager'
 
 /**
@@ -29,12 +30,17 @@ function collectFiles(nodes: FileNode[], parentName: string, acc: FileItem[]) {
 
 export function EmptyFileBrowser() {
   const { rootFolder, openFile } = useFileManager()
+  // 内置「使用文档」不进编辑器的文件列表（判定单源，与 FileTree 同一份）
+  const usageDocs = useUsageDocsScope()
 
   const allFiles = useMemo(() => {
     const acc: FileItem[] = []
     collectFiles(rootFolder.children ?? [], '', acc)
-    return acc
-  }, [rootFolder])
+    // 视图层过滤：数据不动（文件仍在树里、仍属知识库），只是不在此列出
+    return usageDocs.hiddenIds.size > 0
+      ? acc.filter((f) => !usageDocs.hiddenIds.has(f.node.id))
+      : acc
+  }, [rootFolder, usageDocs])
 
   // 全量文件：按「所在文件夹」分组（扁平，非树）
   const groups = useMemo(() => {

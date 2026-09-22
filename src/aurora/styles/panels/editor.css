@@ -2626,3 +2626,22 @@
 
 /* 注：原「加入知识库」独立浮层（.aurora-kb-menu__*：fixed 定位 + mask + 自绘勾选框）
    已随知识库列表迁入右栏辅助 Tab（AuroraPublish · .aurora-aidpanel__*）而退役。 */
+
+/* ── 9. 内置「使用文档」只读简介页（2026-09-22）────────────────────────
+   编辑器 chrome（左栏文件列表 / 标签栏 / 编辑模式选择框 / 格式工具条 / 右栏检查器）
+   由 EditorPanel 按 isUsageDoc **条件不渲染** —— 这里只负责内容区铺满与只读约束，
+   不另立一套阅读版式：正文排版直接继承 Preview 的 .markdown-preview，与编辑器预览窗格同源。 */
+.aurora-brief {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 只读场景不得出现任何删除入口：Preview 会**无条件**给正文图片注入
+   .preview-image-delete-btn（仅在点击时才判 onDeleteImage），此处双重保险屏蔽。
+   ⚠️ 作用域限定在 .aurora-brief，普通笔记的预览仍保有该按钮（可删图），行为不变。 */
+.aurora-brief .preview-image-delete-btn {
+  display: none !important;
+}

@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
-import React, { useEffect } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { render, screen, fireEvent, act, within } from '@testing-library/react'
 import { describe, it, expect, vi, beforeAll } from 'vitest'
 import { RealProviders } from '../../providers/RealProviders'
 import { useFileManager } from '@stores/FileStore'
+import { useUsageDocsScope } from '@hooks/useUsageDocsScope'
 import { setEditorReturn, getEditorReturn } from '../../navigation/navReturn'
 
 // 真实 EditorLayout / VersionHistoryPanel 依赖 CodeMirror / TipTap，jsdom 无法挂载；
@@ -31,19 +32,38 @@ vi.mock('../../../features/editor/VersionHistoryPanel', () => ({
 
 import { EditorPanel } from './EditorPanel'
 
-// 打开真实文件树中的首个文件，使 EditorLayout 真正挂载
+// 打开并激活一篇**普通笔记**，使 EditorLayout 真正挂载。
+//
+// ⚠️ 不能再用「树遍历首个文件」：默认文件树的第一个文件就是内置《MarkCraft 使用文档》首篇，
+//    它在编辑器里被有意降级为只读简介页（不挂 EditorLayout、不渲染工具栏与左右栏）——
+//    取首个文件会让本文件 5 个用例集体误报（找不到 real-editorlayout / 模式按钮 / hoverzone）。
+//    故改为在**非使用文档**的文件夹里新建一篇普通笔记再打开：
+//    既保证 EditorLayout 挂载，也顺带锁住「使用文档被裁剪 ≠ 牵连普通笔记」这一边界。
 function Harness({ nav }: { nav?: (id: string, param?: string) => void } = {}) {
-  const { rootFolder, openFile } = useFileManager()
+  const { rootFolder, createFile, openFile } = useFileManager()
+  const usageDocs = useUsageDocsScope()
+  const openedRef = useRef(false)
   useEffect(() => {
-    const all: any[] = []
-    const walk = (n: any) => {
-      if (n.type === 'file') all.push(n)
-      n.children?.forEach(walk)
+    if (openedRef.current) return
+    openedRef.current = true
+    // 候选文件夹：排除虚拟根与内置使用文档子树 → 默认树里即「我的笔记」
+    const folders: any[] = []
+    const walkFolders = (n: any) => {
+      if (n.type === 'folder') {
+        folders.push(n)
+        n.children?.forEach(walkFolders)
+      }
     }
-    walk(rootFolder)
-    const first = all[0]
-    if (first) act(() => openFile(first.id))
-  }, [rootFolder, openFile])
+    walkFolders(rootFolder)
+    const target =
+      folders.find((f) => f.id !== rootFolder.id && !usageDocs.hiddenIds.has(f.id)) ?? rootFolder
+    act(() => {
+      // openAfterCreate=false：createFile 的自动打开走 setTimeout(0)，假定时器用例（6/8）
+      // 在推进定时器之前就要拿到 hoverzone，故这里手动同步 openFile。
+      const id = createFile(target.id, '普通笔记.md', '# 普通笔记\n\n正文', false)
+      openFile(id)
+    })
+  }, [rootFolder, createFile, openFile, usageDocs])
   return <EditorPanel nav={nav} />
 }
 

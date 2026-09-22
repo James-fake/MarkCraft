@@ -26,6 +26,8 @@ import QuickCaptureModal from '@features/pwa/QuickCaptureModal'
 // 编辑器内部左侧文件树：Aurora 外壳 + 真实数据（详见 FileTree.tsx）
 import { FileTree } from './FileTree'
 import { EmptyFileBrowser } from './EmptyFileBrowser'
+// 内置「使用文档」→ 只读简介页（2026-09-22：裁剪编辑 chrome，仅保留阅读所需元素）
+import { UsageDocBrief } from './UsageDocBrief'
 // 编辑器右栏：Aurora 外壳接管 EditorLayout 旧右栏（AuroraOutline + 真实功能面板）
 import { RightSidebar, type InspectorTab } from './RightSidebar'
 import { useFileManager } from '@stores/FileStore'
@@ -40,6 +42,7 @@ import { findInboxId } from '@features/pwa'
 // 脚注插入仍由编辑器内核与默认快捷键承担。
 import { useMarkdownRenderer } from '@hooks/useMarkdownRenderer'
 import { useAppLayout } from '@hooks/useAppLayout'
+import { useUsageDocsScope } from '@hooks/useUsageDocsScope'
 import { usePresence, OVERLAY_EXIT_MS } from '@components/ui/usePresence'
 import { useAppLogic } from '@app/useAppLogic'
 import { textFromStorage, textToStorage } from '@core/storage/imageStore'
@@ -224,6 +227,16 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   const activeNode = activeFileId ? findNode(rootFolder, activeFileId) : null
   useEffect(() => { setReturnCtx(getEditorReturn()) }, [activeFileId])
 
+  // —— 内置「使用文档」→ 只读简介页（2026-09-22 用户需求）——
+  // 判定单源：`core/files/usageDocs#resolveUsageDocsScope`（纯函数）经 hooks 接入真实文件树。
+  // 为真时，下方若干处条件渲染会把编辑 chrome 整体裁掉：
+  //   ① 顶部工具栏（标签栏 + 编辑模式选择框）  ② 左缘文件列表（含 ⌘B 钉住）
+  //   ③ 右缘检查器（含大纲右键「删除章节」）    ④ 主区由 EditorLayout 换为只读 UsageDocBrief
+  // ⚠️ 全部条件都挂在 isUsageDoc 上：普通笔记 / 日记 / 空态路径的 isUsageDoc 恒为 false，
+  //    行为与改动前逐字节一致（回归锁见 usageDocBrief.test.tsx 的对照组）。
+  const usageDocs = useUsageDocsScope()
+  const isUsageDoc = !!activeFileId && usageDocs.hiddenIds.has(activeFileId)
+
   // 面包屑：逐级向上收集文件夹路径（根目录不计入），末级为文件名（去 .md）
   // —— P1-2 顶栏文档上下文强化：不再只取一级父文件夹，深层文件也能回溯完整层级
   const folderCrumbs: string[] = []
@@ -401,7 +414,7 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
     cmdBridge.current.save = handleManualSave
     cmdBridge.current.togglePreview = togglePreview
     cmdBridge.current.toggleEditorMode = toggleWysiwyg
-    cmdBridge.current.toggleSidebar = () => setLeftPinned((p) => !p)
+    cmdBridge.current.toggleSidebar = () => { if (isUsageDoc) return; setLeftPinned((p) => !p) }
     cmdBridge.current.openVersionHistory = () => setShowVersionHistory(true)
     cmdBridge.current.goToLine = () => editorLayoutRef.current?.openGoToLine()
     cmdBridge.current.restoreCrash = handleChange
@@ -428,7 +441,7 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
       cmdBridge.current.find = undefined
       cmdBridge.current.deleteSelection = undefined
     }
-  }, [cmdBridge, handleManualSave, togglePreview, toggleWysiwyg, handleChange, handlePublish, openKbMenu])
+  }, [cmdBridge, handleManualSave, togglePreview, toggleWysiwyg, handleChange, handlePublish, openKbMenu, isUsageDoc])
 
   const wordCount = useMemo(() => countWords(localContent), [localContent])
   const isDiary = !!activeNode?.name && /^(\d{4}-\d{2}-\d{2})\.md$/.test(activeNode.name)
@@ -517,14 +530,19 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   const lintHasIssues = lintIssues.length > 0
 
   const statusModeLabel = useMemo(() => {
+    // 只读简介页不呈现编辑内核状态（此时编辑模式选择框已不存在，状态栏也不该声称「所见即所得」）
+    if (isUsageDoc) return '简介'
     if (editorMode === 'wysiwyg') return '所见即所得'
     if (sourceVisible && previewVisible) return '预览'
     if (previewVisible) return '预览'
     return '源码'
-  }, [editorMode, sourceVisible, previewVisible])
+  }, [editorMode, sourceVisible, previewVisible, isUsageDoc])
 
   // 键盘快捷键：Ctrl/Cmd+G 跳转到行；Ctrl/Cmd+B 切换文件树（编辑器交互，非工具栏按钮）
-  const handleEditorKeyDown = (e: React.KeyboardEvent) => {    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'g') {
+  const handleEditorKeyDown = (e: React.KeyboardEvent) => {
+    // 只读简介页：焦点区内的编辑器快捷键整体不参与（无文件栏可钉、无编辑区可跳行）
+    if (isUsageDoc) return
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'g') {
       e.preventDefault()
       // 跳行由真实 EditorLayout 内部 Ctrl+G 处理；此处仅保证焦点在编辑区时不冲突
     }
@@ -698,8 +716,10 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
         ]}
       >
         {/* 空态引导界面不渲染编辑器工具栏：未打开文档时「编辑模式切换框 / 多文件标签栏」均无意义，
-            且文件浏览已由内嵌列表承担；编辑态仍正常渲染。 */}
-        {activeFileId && (
+            且文件浏览已由内嵌列表承担；编辑态仍正常渲染。
+            内置「使用文档」简介页同样不渲染：该行承载的「多文件标签栏（含标签 × 关闭）」与
+            「源码 / 预览 / 所见即所得」编辑模式选择框，正是需求要求移除的两类编辑元素。 */}
+        {activeFileId && !isUsageDoc && (
           <EditorToolbar
             editorMode={editorMode}
             sourceVisible={sourceVisible}
@@ -725,8 +745,10 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
 
         <div className="aurora-editor__layout">
           {/* 左缘 hoverzone：编辑态下鼠标靠左缘滑入文件树；图钉可钉成常驻栏。
-              空态引导界面已内嵌文件列表，不再需要边缘滑入，故仅编辑态渲染。 */}
-          {activeFileId && (
+              空态引导界面已内嵌文件列表，不再需要边缘滑入，故仅编辑态渲染。
+              内置「使用文档」简介页不渲染：需求要求**隐藏左侧文件列表**，而此 hoverzone
+              正是它的唯一入口（含图钉常驻与 ⌘B 切换），整块缺席才是「隐藏」。 */}
+          {activeFileId && !isUsageDoc && (
           <div
             className={`aurora-editor__hoverzone aurora-editor__hoverzone--left ${leftPinned ? 'is-pinned' : ''}`}
             onMouseEnter={openLeftIntent}
@@ -809,12 +831,25 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
                   <EmptyFileBrowser />
                 </div>
               </div>
+            ) : isUsageDoc ? (
+              /* 内置「使用文档」→ 只读简介页（需求②）：不挂 EditorLayout，因此没有编辑区、
+                 没有格式工具条（撤销/加粗/…/删除线/更多）与模式切换；只呈现渲染后的正文。
+                 上方「← 返回 …」芯片仍在，是这里唯一的回跳入口（有意保留，属导航所需）。 */
+              <UsageDocBrief
+                html={renderedHtml}
+                theme={theme}
+                title={activeNode?.name ?? 'MarkCraft 使用文档'}
+                fileId={activeFileId ?? undefined}
+              />
             ) : (
               realEditor
             )}
           </div>
 
-          {/* 右缘 hoverzone：鼠标靠右缘滑入检查器（大纲/反链/脚注/辅助）；图钉可钉成常驻栏 */}
+          {/* 右缘 hoverzone：鼠标靠右缘滑入检查器（大纲/反链/脚注/辅助）；图钉可钉成常驻栏。
+              内置「使用文档」简介页不渲染：检查器（含大纲右键「删除章节」、辅助 Tab 的发布/归集）
+              属编辑期工具，与「仅保留阅读所需元素」相悖。 */}
+          {!isUsageDoc && (
           <div
             className={`aurora-editor__hoverzone aurora-editor__hoverzone--right ${rightPinned ? 'is-pinned' : ''}`}
             onMouseEnter={openRightIntent}
@@ -868,6 +903,7 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
               </div>
             )}
           </div>
+          )}
         </div>
       </PageFrame>
 

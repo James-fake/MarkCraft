@@ -1,0 +1,184 @@
+// @vitest-environment jsdom
+//
+// 回归锁 ②：内置「使用文档」→ 编辑区呈现为**只读简介页**
+// ==========================================================================
+// 用户需求（2026-09-22）：「点开使用文档笔记后…虽仍处于编辑区域，但需呈现为简洁的简介页面：
+//   隐藏左侧文件列表，移除顶部工具栏中的删除按钮和编辑模式选择框，仅保留阅读该简介内容所需的必要元素。」
+//
+// 本文件把「裁掉了什么」逐条钉死，并用**普通笔记对照组**证明这些裁剪是条件式的
+// （否则「元素不存在」这类断言在功能整块坏掉时也会恒真）。
+//
+// 关于「删除按钮」：真机 DOM 实测，编辑器顶部工具栏区（≤170px）内**没有** trash 图标按钮，
+//   与「删除」相关的可点元素只有两处：① 标签栏上的「关闭标签 ×」（关闭 = 移除该页）；
+//   ② 格式工具条《所见即所得》里的「删除线(S)」。二者都随「标签栏」与「格式工具条」整体移除
+//   —— 前者由本文件显式断言（不渲染 EditorToolbar），后者由「不渲染 EditorLayout」间接保证
+//   （格式工具条是 EditorLayout 内部 TiptapEditor 的产物），真机侧另由 CDP 探针复核。
+import React from 'react'
+import { render, act, waitFor } from '@testing-library/react'
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
+import { RealProviders } from '../../providers/RealProviders'
+import { useFileManager } from '@stores/FileStore'
+import { setEditorReturn, clearEditorReturn } from '../../navigation/navReturn'
+import { USAGE_DOC_FOLDER as ZH_FOLDER, USAGE_DOC_ALL as ZH_PAGES } from '@core/data/defaultDocs/usageDocs/zh'
+
+// 真实 EditorLayout / VersionHistoryPanel 依赖 CodeMirror / TipTap，jsdom 无法挂载 ——
+// mock 掉后「是否渲染它」本身就是本文件的断言对象。
+vi.mock('../../../features/editor/EditorLayout', () => ({
+  EditorLayout: () => <div data-testid="real-editorlayout">REAL_EDITOR_LAYOUT</div>,
+}))
+vi.mock('../../../features/editor/VersionHistoryPanel', () => ({
+  VersionHistoryPanel: () => <div data-testid="version-history">VERSION_HISTORY</div>,
+}))
+
+import { EditorPanel } from './EditorPanel'
+
+const FIRST_PAGE = ZH_PAGES[0]
+const PLAIN_NOTE = '普通笔记.md'
+
+type FileApi = ReturnType<typeof useFileManager>
+let api: FileApi | null = null
+function CaptureApi() { api = useFileManager(); return null }
+
+async function renderPanel() {
+  api = null
+  const r = render(
+    <RealProviders>
+      <CaptureApi />
+      <EditorPanel />
+    </RealProviders>,
+  )
+  await waitFor(() => expect(api?.hydrated).toBe(true))
+  return r
+}
+
+/** 打开内置使用文档的首篇 */
+async function openFirstUsageDoc() {
+  const docs = (api!.rootFolder.children ?? []).find((c) => c.name === ZH_FOLDER)!
+  const first = (docs.children ?? []).find((c) => c.type === 'file')!
+  await act(async () => { api!.openFile(first.id) })
+}
+
+/** 对照组：在「我的笔记」下建一篇普通笔记并打开 */
+async function openPlainNote() {
+  const notes = (api!.rootFolder.children ?? []).find((c) => c.name === '我的笔记')!
+  let node = (notes.children ?? []).find((c) => c.name === PLAIN_NOTE)
+  if (!node) {
+    await act(async () => { api!.createFile(notes.id, PLAIN_NOTE, '# 普通笔记\n\n正文内容。') })
+    const refreshed = (api!.rootFolder.children ?? []).find((c) => c.name === '我的笔记')!
+    node = (refreshed.children ?? []).find((c) => c.name === PLAIN_NOTE)!
+  }
+  await act(async () => { api!.openFile(node!.id) })
+}
+
+/**
+ * 取状态栏右区各项的文案（模式标签所在区）。
+ * 专供「模式口径」断言：**不能**在整页 textContent 上搜模式词 —— 使用文档正文里
+ * 合法写着「源码模式 / 所见即所得」等字样，整页断言会随正文渲染完成度而飘。
+ */
+function statusBarModeItems(container: HTMLElement): string[] {
+  const bar = container.querySelector('.aurora-statusbar')
+  if (!bar) return []
+  return [...bar.querySelectorAll('.aurora-statusbar__right .aurora-statusbar__item')].map(
+    (e) => (e.textContent ?? '').trim(),
+  )
+}
+
+describe('EditorPanel：使用文档 → 只读简介页', () => {
+  beforeAll(() => {
+    ;(window as any).indexedDB = (window as any).indexedDB || {}
+  })
+  beforeEach(() => { clearEditorReturn() })
+
+  it('1) 使用文档：渲染 .aurora-brief（只读简介页），且不挂 EditorLayout', async () => {
+    setEditorReturn({ view: 'kb', kbId: 'kb-usage', label: ZH_FOLDER })
+    const { container } = await renderPanel()
+    await openFirstUsageDoc()
+
+    const brief = container.querySelector('.aurora-brief')
+    expect(brief).toBeTruthy()
+    expect(brief!.getAttribute('aria-label')).toBe(FIRST_PAGE.fileName.replace(/\.md$/, ''))
+    // 只读简介页 = 不渲染 EditorLayout（因而也没有编辑区与格式工具条）
+    expect(container.querySelector('[data-testid="real-editorlayout"]')).toBeNull()
+    // 内容确实渲染出来了（走 Preview 的 .markdown-preview）
+    expect(container.querySelector('.markdown-preview')).toBeTruthy()
+  })
+
+  it('2) 使用文档：顶部工具栏整体缺席 —— 标签栏（含「关闭标签 ×」）与编辑模式选择框都不在', async () => {
+    const { container } = await renderPanel()
+    await openFirstUsageDoc()
+
+    // 「编辑模式选择框」= 源码 / 预览 / 所见即所得 三枚切换按钮
+    expect(container.querySelectorAll('.aurora-mode-toggle')).toHaveLength(0)
+    expect(container.querySelector('.aurora-mode-toggles')).toBeNull()
+    // 「标签栏」= 多文件标签 + 每标签的关闭（×）
+    expect(container.querySelector('.aurora-toolbar')).toBeNull()
+    expect(container.querySelector('.aurora-tabs')).toBeNull()
+    expect(container.querySelector('.aurora-tab__close')).toBeNull()
+  })
+
+  it('3) 使用文档：左侧文件列表（含右栏检查器）整块不渲染', async () => {
+    const { container } = await renderPanel()
+    await openFirstUsageDoc()
+
+    expect(container.querySelector('.aurora-editor__hoverzone')).toBeNull()
+    expect(container.querySelector('.aurora-editor__hoverzone--left')).toBeNull()
+    expect(container.querySelector('.aurora-editor__hoverzone--right')).toBeNull()
+    // 文件树本体与检查器面板也不该出现
+    expect(container.querySelector('.aurora-filetree')).toBeNull()
+    expect(container.querySelector('.aurora-outline')).toBeNull()
+  })
+
+  it('4) 使用文档：保留阅读所需元素 —— 返回来源芯片仍在（唯一回跳入口），状态栏模式为「简介」', async () => {
+    setEditorReturn({ view: 'kb', kbId: 'kb-usage', label: ZH_FOLDER })
+    const { container } = render(
+      <RealProviders>
+        <CaptureApi />
+        <EditorPanel />
+      </RealProviders>,
+    )
+    await waitFor(() => expect(api?.hydrated).toBe(true))
+    await openFirstUsageDoc()
+
+    const chip = container.querySelector('.aurora-editor__return')
+    expect(chip?.textContent).toContain(`返回 ${ZH_FOLDER}`)
+    // 状态栏不再声称编辑内核（「所见即所得」在只读页里没有意义）
+    // ⚠️ 断言必须**限定在状态栏作用域**：正文里合法出现「所见即所得」一词
+    //    （《02 编辑器模式》篇章条目就写着「源码模式 / 所见即所得 / 双栏布局」），
+    //    在整页 textContent 上断言会随「正文是否已渲染完成」而假绿 / 假红。
+    const rightItems = statusBarModeItems(container)
+    expect(rightItems).toContain('简介')
+    expect(rightItems).not.toContain('所见即所得')
+  })
+
+  // ★ 对照组：证明上述「不存在」是条件式的，而不是功能整块坏掉
+  it('5) 对照组 · 普通笔记：编辑功能完全不受影响（工具栏 / 模式选择框 / 左栏 / 右栏 / EditorLayout 俱在）', async () => {
+    const { container } = await renderPanel()
+    await openPlainNote()
+
+    expect(container.querySelector('.aurora-brief')).toBeNull()
+    expect(container.querySelector('[data-testid="real-editorlayout"]')).toBeTruthy()
+
+    // 编辑模式选择框三枚按钮都在
+    expect(container.querySelectorAll('.aurora-mode-toggle')).toHaveLength(3)
+    // 标签栏在
+    expect(container.querySelector('.aurora-toolbar')).toBeTruthy()
+    // 左 / 右缘 hoverzone 都在（文件列表与检查器的入口）
+    expect(container.querySelector('.aurora-editor__hoverzone--left')).toBeTruthy()
+    expect(container.querySelector('.aurora-editor__hoverzone--right')).toBeTruthy()
+    // 状态栏仍是编辑内核口径（同样限定作用域，理由见用例 4）
+    const rightItems = statusBarModeItems(container)
+    expect(rightItems).not.toContain('简介')
+    expect(rightItems).toContain('所见即所得')
+  })
+
+  it('6) 样式守卫：.aurora-brief 作用域内必须屏蔽 Preview 无条件注入的图片删除按钮', async () => {
+    // Preview 会无条件给正文图片挂 .preview-image-delete-btn（仅在点击时才判 onDeleteImage），
+    // 只读简介页不得出现任何删除入口 → 需有作用域限定的 display:none 规则。
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const css = fs.readFileSync(path.resolve(__dirname, '../../styles/panels/editor.css'), 'utf8')
+    // 先剥注释，避免注释里的字面量造成假阳性
+    const noComments = css.replace(/\/\*[\s\S]*?\*\//g, '')
+    expect(noComments).toMatch(/\.aurora-brief\s+\.preview-image-delete-btn\s*\{[^}]*display:\s*none/)
+  })
+})
