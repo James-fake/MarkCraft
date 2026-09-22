@@ -6,6 +6,7 @@ import { AuroraSelect } from '@components/ui/AuroraSelect'
 import type { IconName } from '../../types'
 import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
 import { useTabStripThumb } from '../../hooks/useTabStripThumb'
+import { useUsageDocsScope } from '@hooks/useUsageDocsScope'
 import { useFileManager } from '@stores/FileStore'
 import { useSettings } from '@stores/SettingsStore'
 import { findNode, collectMarkdownFiles } from '@core/files/fileTree'
@@ -43,6 +44,8 @@ import { countWords } from '@features/editor/stats'
  * 6 个子面板功能不变）；数据层替换为真实来源（禁增铁律 / D4 单一数据源）：
  * - 文档列表：遍历 `useFileManager().rootFolder` 收集全部 .md 文件（标题 + 字数为真实派生），
  *   替代写死的 MOCK_DOCS；「包含/排除」为面板本地 estado（对齐真实 excludedFiles Set）。
+ *   ⚠️ 需排除内置《MarkCraft 使用文档》（应用说明书不是用户的博客内容）—— 用与编辑器文件列表
+ *   同一份判定（`useUsageDocsScope().hiddenIds`），保证「博客清单 = 我在文件列表里看到的东西」。
  * - 配色 / 主题市场：直接复用真实 BlogStudio 的 COLOR_SCHEMES / THEME_INFO_LIST / THEME_CATEGORIES /
  *   THEME_STYLE_TAGS（单一数据源，禁漂移），不再维护平行 mock 目录。
  * - 友链 / 系列文章：起始为空（对齐真实 DEFAULT_DESIGN_CONFIG.friendLinks/seriesConfig 默认空），
@@ -141,8 +144,15 @@ function toBlogDoc(f: FileNode): BlogDoc {
   return { id: f.id, title: f.name.replace(/\.md$/i, ''), words: countWords(content), included: true, content }
 }
 
-function collectMdFiles(node: FileNode): BlogDoc[] {
-  return collectMarkdownFiles(node).map(toBlogDoc)
+function collectMdFiles(node: FileNode, hiddenIds?: ReadonlySet<string>): BlogDoc[] {
+  const files = collectMarkdownFiles(node)
+  // `hiddenIds` = 应从**编辑器文件列表**排除的节点 id（判定单源 @core/files/usageDocs，
+  // 经 useUsageDocsScope 取用）。内置《MarkCraft 使用文档》是**应用说明书**，不是用户的博客内容：
+  // 它已从文件列表隐藏，此处若不过滤，手册就会以「博客文章」的面貌重新出现在待发布清单
+  // 与预览里（用户 2026-09-23 报障）。**不在此另写一份判定** —— 与 FileTree#visibleRecent 同源同写法。
+  // 集合为空（没有内置文档）时不额外分配数组。
+  const visible = hiddenIds && hiddenIds.size > 0 ? files.filter((f) => !hiddenIds.has(f.id)) : files
+  return visible.map(toBlogDoc)
 }
 
 /* ---- 友链 / 系列文章：起始为空，由用户在「功能」面板添加（对齐真实 BlogStudio 默认 friendLinks/seriesConfig 为空）---- */
@@ -863,6 +873,9 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
 
   const { rootFolder, openFile } = useFileManager()
   const { openCommandPalette } = useCommandPalette()
+  // 内置《使用文档》作用域（判定单源：@core/files/usageDocs ← useUsageDocsScope）：
+  // 供下面「博客入口」的清单过滤复用，避免同一判定各自手写 → 行为漂移（项目已有教训）。
+  const usageDocs = useUsageDocsScope()
 
   // —— 发布来源（知识库 → 博客工作室）：仅展示该库内笔记，空库显示引导空态 ——
   //    保存整个 KnowledgeBase：库内笔记的判定要复用 kbStore.getKbFiles（单一数据源），
@@ -881,8 +894,12 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
   }, [kbId])
 
   const allDocs = useMemo(() => {
-    // 博客入口（无 kbId）：内容 = 文件列表中的全部 .md
-    if (!kbId) return collectMdFiles(rootFolder)
+    // 博客入口（无 kbId）：内容 = **编辑器文件列表中可见的**全部 .md
+    //   —— 与文件列表用同一集合（hiddenIds）过滤，保证口径就是「我在文件列表里看到的东西」。
+    // 边界（有意为之，别当 bug）：知识库入口**不过滤** —— 它的口径是「与该库详情页的笔记列表
+    //   完全一致」（见下），而内置文档所在的那个库本身就是「说明书的浏览入口」，
+    //   若在此过滤会让一个非空库显示成空库，反而对不上详情页。
+    if (!kbId) return collectMdFiles(rootFolder, usageDocs.hiddenIds)
     if (!kbSource) return []
     // 知识库入口：与知识库「笔记」tab 同一定义（folderId 子文件 + 手动添加 + 规则匹配），
     // 保证「发布博客」看到的清单与知识库详情页完全一致；博客只发布 .md，故按扩展名收口。
@@ -890,7 +907,7 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
       .map((id) => findNode(rootFolder, id))
       .filter((n): n is FileNode => !!n && n.type === 'file' && /\.md$/i.test(n.name))
       .map(toBlogDoc)
-  }, [rootFolder, kbSource, kbId])
+  }, [rootFolder, kbSource, kbId, usageDocs])
   const [excluded, setExcluded] = useState<Set<string>>(new Set())
   // 单篇发布（编辑器「发布为博客」带入）：待发布清单只保留这一篇，其余笔记整篇不显示
   const [singleFileId, setSingleFileId] = useState<string | null>(null)
