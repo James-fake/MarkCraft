@@ -218,11 +218,26 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
   const wheelStateRef = useRef(createWheelState())
 
   /**
-   * 刚发生过位移型手势的标记。
+   * 「吃掉紧接着那一次 click」的标记。
    *
    * 手势挂在 tab 栏容器上（子节点是 tab `<button>`），松手后浏览器仍会
    * 在按钮上派发一次 click → 会把刚滑到的 tab 又点回去。此标记让
    * `onClickCapture` 捕获阶段吃掉那一次 click。
+   *
+   * 🚨 判据只能是「**这次手势真的换了 tab**」，不能是「有没有位移」
+   *    （2026-09-22 第七轮报障「首次点『笔记』Tab 停在概览，再点一次才行」）：
+   *      真实鼠标点击常带几像素漂移，而横轴阈值 `DIRECTION_SLOP = 8` 很低 ——
+   *      「按下 → 漂移十几 px → 松开」会被判成横滑手势并进入跟手位移，但落点仍离
+   *      起手 tab 最近 ⇒ `decision.passed === false`（**并没有换 tab**）。
+   *      旧判据此时照样置位 ⇒ 紧随那次 click 被当成"滑完的余波"吃掉 ⇒
+   *      `onClick={() => setTab(...)}` **从未执行** ⇒ 用户看到「点了 tab 没反应」。
+   *    本质：**没换 tab 的手势并没有消耗掉这次按键的意图**，那一下 click 就是用户的
+   *    真实点击（它落在起手那个 tab 上，切过去正是用户所要的）⇒ 必须放行。
+   *    反之真换了 tab 时，那一下 click 会落在**起手 tab** 上把结果点回去 ⇒ 必须吃掉。
+   *
+   * ⚠️ 该标记只对**同一次按键序列**的余波有效 → `onPointerDown` 会先把它清零
+   *    （若上一次的 click 因故没送达本容器，如鼠标在栏外松开，click 落在栏外公共祖先上，
+   *     标记会一直挂着把下一次真实点击吃掉 —— 症状与上面一模一样）。
    */
   const suppressClickRef = useRef(false)
 
@@ -339,13 +354,13 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
       thresholdPx,
     })
 
-    // 发生过真实位移型手势 → 吃掉随后由同一按键序列派发的 click，
-    // 否则 tab 按钮的 onClick 会把刚滑到的 tab 又拉回去。
-    if (Math.abs(offset) > DIRECTION_SLOP) {
+    // 这次手势**真的换了 tab** ⇒ 紧随其后由同一按键序列派发的 click 会落在
+    // **起手那个 tab** 上，把刚滑到的 tab 又点回去 → 必须吃掉它。
+    // ⚠️ 判据是「换没换」，不是「有没有位移」—— 详见 suppressClickRef 的注释
+    //    （带漂移的普通点击也会产生位移，但它**没换 tab**，那一下 click 必须放行）。
+    const changedTab = decision.passed && decision.targetIndex !== next.index
+    if (changedTab) {
       suppressClickRef.current = true
-    }
-
-    if (decision.passed && decision.targetIndex !== next.index) {
       next.onIndexChange(decision.targetIndex)
     }
     next.onSettle?.(decision.targetIndex)
@@ -355,6 +370,13 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     if (!enabled) return
     if (e.button !== 0) return // 只处理主键
+
+    // 新的按键序列开始 ⇒ 上一次手势的 click 余波已成过去式。
+    // 正常路径下标记早已被 onClickCapture 消费；但若那次 click 落在**本容器之外**
+    // （如同键序列在栏外松开，click 派发给公共祖先），标记会一直挂着，
+    // 把下一次真实点击吃掉 —— 症状与「点了没反应」一模一样。此处无条件清零。
+    suppressClickRef.current = false
+
     if (activeRef.current) return
 
     // 命中横滚祖先 → 让出（保护内部横滚条）
@@ -389,6 +411,28 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
 
       // 方向还未锁定 → 判定
       if (g.axisLocked === 'undecided') {
+        /**
+         * ⚠️ 只有「主键仍按下」的移动才算这次按压的延续。
+         *
+         * 不放这道闸会怎样（2026-09-22 实测 trace 定案）：一次**从未激活**的
+         * 「抖动点击」（按下 → 位移 ≤ SLOP → 松手）会在 `gestureRef` 里留下
+         * 「起手点 + 未定轴向」。之后**任何一次不按键的悬停移动**（把鼠标从
+         * 概览划向笔记，横向 71px）都会被当成那次按压的延续 ⇒ 用**陈旧的 startX**
+         * 算出巨大的 `dx` ⇒ 凭空激活手势、滑块乱跳；松手时按错误落点换 tab
+         * （实测 offset=83 ⇒ 点「搜索」的区域却按 83px 落点判定），
+         * 并且把用户那一下真实点击吞掉 —— 与报障同一症状家族。
+         *
+         * 为什么不改成「松手时清空 gestureRef」：`container` 还兼作
+         * `hasScrollableAncestor` 的探测终点，置空会让它退化成「一路走到 body」，
+         * 可能在有横滚祖先的面板里把手势整个关掉（首次手势恰好就是这个状态，
+         * 属既有行为，不该由本次修复扩大）。此处只加一道**准入闸**，不改探测语义。
+         *
+         * jsdom 的合成 pointermove 不带 `buttons` 字段 → 仅在拿到数字时才判，
+         * 保证单测里的拖动轨迹仍按「按住」理解。
+         */
+        const btns = (e as PointerEvent & { buttons?: number }).buttons
+        if (typeof btns === 'number' && (btns & 1) === 0) return
+
         const res = resolveAxis(dx, dy, latestRef.current.axis)
         if (res === 'undecided') {
           // 仍在观察期：记录采样但不动
