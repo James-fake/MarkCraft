@@ -238,21 +238,26 @@ describe('EditorPanel：使用文档 → 只读简介页', () => {
     expect(container.querySelectorAll('.aurora-mode-toggle')).toHaveLength(0)
   })
 
-  // ── 回归锁 ④：简介页**不点亮**侧栏「编辑器」项（2026-09-22 用户需求）──
-  // 「在 MarkCraft 使用文档知识库中点击笔记文档，左侧的侧边栏图标不要显示跳转至编辑器功能的图标」
-  // 简介页由 editor 视图承载，若照常传 sidebarActiveId="编辑器"，侧栏「编辑器」图标会渲染成
-  // 激活态 —— 看起来像「你已跳转至编辑器」，而简介页是只读参考页，不属于编辑器工作区。
-  it('9) 🚨 回归：打开使用文档简介页时，侧栏「编辑器」项**不**处于激活态（整个侧栏无激活项）', async () => {
+  // ── 回归锁 ④：简介页的侧栏激活态 = **「知识库」**（2026-09-22 用户需求，两轮收敛）──
+  // 首轮报障：「点击笔记文档，左侧侧边栏图标不要显示跳转至编辑器功能的图标」
+  //   → 不能点亮「编辑器」（那会让用户以为自己已被带走进编辑器）。
+  // 次轮报障：「点击进入笔记，左侧侧边栏中知识库的图标就不亮了」
+  //   → 也不能把激活态整个置空（过度修正）；使用文档的用户语义是「只能从知识库点进去看」，
+  //     故简介页属于**知识库语境**，应点亮「知识库」。
+  // 两轮合起来 = 侧栏激活态必须是「知识库」，且**不是**「编辑器」。
+  it('9) 🚨 回归：打开使用文档简介页时，侧栏激活项是「知识库」且**不是**「编辑器」', async () => {
     const { container } = await renderPanel()
     await openFirstUsageDoc()
     await waitFor(() => expect(container.querySelector('.aurora-brief')).toBeTruthy())
 
-    // 先证「侧栏导航项确实渲染着」（否则「无激活项」恒真 = 假绿）
+    // 先证「侧栏导航项确实渲染着」（否则「激活项恰好是知识库」这类断言会因空集而失去鉴别力）
     const sidebarItems = container.querySelectorAll('.aurora-sidebar-item')
     expect(sidebarItems.length, '侧栏导航项应已渲染（简介页只裁内容区 chrome，不裁外壳侧栏）').toBeGreaterThan(3)
 
-    const activeItems = container.querySelectorAll('.aurora-sidebar-item--active')
-    expect(activeItems, '简介页不应点亮任何侧栏导航项').toHaveLength(0)
+    const activeTitles = [...container.querySelectorAll('.aurora-sidebar-item--active')]
+      .map((el) => el.getAttribute('title') || el.textContent || '')
+    expect(activeTitles, '简介页应点亮「知识库」（使用文档属于知识库语境）').toEqual(['知识库'])
+    expect(activeTitles, '绝不能点亮「编辑器」（首轮报障：看起来像已跳转到编辑器）').not.toContain('编辑器')
   })
 
   // ★ 对照组：证明「不点亮」是条件式的 —— 用户自己的笔记打开时「编辑器」项照常高亮

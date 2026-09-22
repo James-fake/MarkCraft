@@ -673,12 +673,13 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
     <div className="aurora-editor">
       <PageFrame
         sidebarGroups={AURORA_SIDEBAR_GROUPS}
-        // 🚨 使用文档只读简介页**不点亮**侧栏「编辑器」项（2026-09-22 用户需求）：
-        //    简介页虽由 editor 视图承载，但它不是编辑器功能 —— 若照常传「编辑器」，
-        //    侧栏会把它渲染成激活态，看起来像「你已跳转至编辑器」。取消高亮后侧栏
-        //    无激活项（阅读参考页不属于任何工作区）；点侧栏任意项仍可正常离开
-        //    （onSidebarSelect 已先回收瞬态标签），编辑器导航能力不受影响。
-        sidebarActiveId={isUsageDoc ? undefined : '编辑器'}
+        // 🚨 使用文档简介页：侧栏点亮**「知识库」**（2026-09-22 用户需求，两轮收敛）：
+        //    ① 首轮报障「不要显示跳转至编辑器功能的图标」——点亮「编辑器」会让用户以为
+        //       自己已被带走进编辑器；简介页是只读参考页，不属于编辑器工作区。
+        //    ② 次轮报障「点击进入笔记，左侧知识库的图标就不亮了」——把激活态整个置空
+        //       （undefined）是过度修正：使用文档的用户语义是「只能从知识库点进去看」，
+        //       故它属于**知识库语境**，应点亮「知识库」。
+        sidebarActiveId={isUsageDoc ? '知识库' : '编辑器'}
         onSidebarSelect={(id) => {
           // 视图内显式导航 = 离开只读参考页：先回收瞬态标签再跳。
           // ⚠️ 这一步不能只靠 AuroraShell 的「路由离开编辑器」——

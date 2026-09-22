@@ -13,6 +13,7 @@ import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useTagIndex } from '@stores/TagIndexStore'
 import { KbSearchPanel } from '@features/knowledgeBase/components/KbSearchPanel'
 import { setEditorReturn } from '../../navigation/navReturn'
+import { readKbTab, saveKbTab } from './kbSession'
 import KbChatPanel from '@features/knowledgeBase/components/KbChatPanel'
 import { KbExportMenu } from '@features/knowledgeBase/components/KbExportMenu'
 import { FileDependencyPanel } from '@features/knowledgeBase/components/FileDependencyPanel'
@@ -53,7 +54,7 @@ export interface KbPanelProps {
   toast?: (msg: string) => void
 }
 
-type KbTab =
+export type KbTab =
   | 'overview' | 'notes' | 'search' | 'tasks' | 'goals'
   | 'review' | 'chat' | 'dependency' | 'moc' | 'blindspot' | 'export'
 
@@ -270,9 +271,27 @@ function NotesTab({ files, onOpen, onCreate }: { files: FileNode[]; onOpen: (id:
 }
 
 export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
-  const [tab, setTab] = useState<KbTab>('overview')
+  /**
+   * Tab 现场记忆（kbSession）：KB → 编辑器（点笔记）→ 「← 返回 XX」的往返中本组件会
+   * 整体卸载重挂，若不复用记忆，用户离开时所在的 Tab（如「笔记」）会复位成「概览」——
+   * 报障原话「点击笔记…直接回到了知识库详细界面的概览页面中」。故初始值读记忆，
+   * 每次切换写回（见 setTab）。
+   */
+  const [tab, setTabState] = useState<KbTab>(() => readKbTab(kbId) ?? 'overview')
+  const setTab = useCallback(
+    (next: KbTab) => {
+      setTabState(next)
+      saveKbTab(kbId, next)
+    },
+    [kbId],
+  )
   const [kb, setKb] = useState<KnowledgeBase | null>(null)
   const [loaded, setLoaded] = useState(false)
+
+  // 换库（kbId 变化）时同步该库自己记住的 Tab；无记忆则回「概览」
+  useEffect(() => {
+    setTabState(readKbTab(kbId) ?? 'overview')
+  }, [kbId])
 
   /**
    * 顶栏 subbar tab 栏 = Apple 分段控件式滑块（需求 N 第四轮定案）。

@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, within } from '@testing-library/react'
+import { clearKbTab } from './kbSession'
 
 // 真实数据桩：替换 stores/kbStore，使 jsdom 下可确定性验证
 vi.mock('../../../stores/kbStore', () => ({
@@ -36,6 +37,12 @@ function renderPanel() {
     </RealProviders>,
   )
 }
+
+// kbSession 是**模块级**单例（跨挂载存活，这正是回归锁要验的行为）——
+// 用例之间必须显式清空，否则前一个用例留下的 Tab 会让后一个用例的初始态不确定。
+beforeEach(() => {
+  clearKbTab()
+})
 
 /**
  * 顶栏动作按钮（编辑 / 发布博客 / 删除）作用域。
@@ -187,5 +194,42 @@ describe('KbPanel 接真实知识库数据（kbStore + LinkIndex + TagIndex）',
     await screen.findAllByText('测试知识库 X')
     fireEvent.click(screen.getByText(/查看完整图谱/))
     expect(mockNav).toHaveBeenCalledWith('graph')
+  })
+
+  // ── 回归锁：Tab 现场记忆（2026-09-22 第六轮报障）──
+  // 报障原话：「点击笔记没能进入对应界面，而是直接回到了知识库详细界面的概览页面中」。
+  // 真机链路 = 详情（笔记 Tab）→ 点笔记 → 简介页 → 「← 返回 XX」→ 落回**概览**。
+  // 根因：KbPanel 按 view 切换整体卸载重挂，Tab 是组件内 useState → 复位 overview。
+  it('🚨 回归：离开知识库再回来，停留在上次的 Tab（不再掉回「概览」）', async () => {
+    const first = renderPanel()
+    await screen.findAllByText('测试知识库 X')
+    fireEvent.click(screen.getByTitle('笔记'))
+    expect(screen.getByTitle('笔记').getAttribute('aria-selected')).toBe('true')
+
+    // 模拟 AuroraShell 按 view 切换：KB → 编辑器（简介页）时 KbPanel 整体卸载
+    first.unmount()
+
+    // 「← 返回 XX」→ nav('kb', kbId) → 重新挂载
+    renderPanel()
+    await screen.findAllByText('测试知识库 X')
+    expect(screen.getByTitle('笔记').getAttribute('aria-selected'), '返回后应恢复「笔记」Tab').toBe('true')
+    expect(screen.getByTitle('概览').getAttribute('aria-selected'), '不应掉回「概览」').toBe('false')
+  })
+
+  // ★ 对照组：记忆是「按库各记一份」而非全局粘住 —— 换一个库时不得串台
+  it('对照组 · 换库：另一个 kbId 无记忆 → 仍从「概览」开始（记忆不跨库串台）', async () => {
+    const first = renderPanel()
+    await screen.findAllByText('测试知识库 X')
+    fireEvent.click(screen.getByTitle('笔记'))
+    first.unmount()
+
+    render(
+      <RealProviders>
+        <KbPanel kbId="kb-other" />
+      </RealProviders>,
+    )
+    await screen.findAllByText('测试知识库 X')
+    expect(screen.getByTitle('概览').getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByTitle('笔记').getAttribute('aria-selected')).toBe('false')
   })
 })
