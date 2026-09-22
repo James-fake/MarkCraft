@@ -146,16 +146,32 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // --- Tab methods (merged from TabStore) ---
 
   // V6-L3: Move setActiveTabId out of setState updater to avoid side effects in updater
+  /**
+   * 打开（或切到）某个文件的标签页。
+   *
+   * 🚨 铁律：**新状态必须在同一个 updater 里一次算完**（含 `activeTabId`）。
+   *    旧实现把「找/建标签」与「设 activeTabId」拆成两次 `setState`，中间靠一个
+   *    `let newActiveTabId` 旁路变量传值 —— 而 `setState(updater)` 的 updater 只在
+   *    **渲染期**才运行，只有 React 的「急切求值」（该 fiber 队列为空）才会让它同步跑一次。
+   *    一旦该 fiber 上还有未处理的更新（React 18 自动批处理、或高负载/测试下的调度延迟），
+   *    急切求值被跳过 ⇒ 变量仍是 `null` ⇒ **第二次 setState 被整段跳过 ⇒ activeTabId 不更新**。
+   *    症状：「点一个已经在标签栏里打开的文件，没有切过去」，且 `isActive` 标记与
+   *    `activeTabId` 互相矛盾（由 `usageDocBrief.test.tsx` 用例 8 在高负载整跑下抓出：
+   *    内置说明书的 tab `isActive=true`，但 `activeTabId` 仍指向另一篇笔记 → 渲染了错误文档）。
+   */
   const openFile = useCallback((fileId: string) => {
-    let newActiveTabId: string | null = null
-
     setState(prev => {
       const existingTab = prev.tabs.find(tab => tab.fileId === fileId);
 
       if (existingTab) {
-        newActiveTabId = existingTab.id
+        // 已经一致就原样返回（避免无谓重渲染）；不一致则一次性把两者都纠正过来。
+        const alreadyConsistent =
+          prev.activeTabId === existingTab.id &&
+          prev.tabs.every(tab => tab.isActive === (tab.id === existingTab.id))
+        if (alreadyConsistent) return prev
         return {
           ...prev,
+          activeTabId: existingTab.id,
           tabs: prev.tabs.map(tab => ({
             ...tab,
             isActive: tab.id === existingTab.id,
@@ -173,7 +189,6 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         isActive: true,
       };
 
-      newActiveTabId = newTab.id
       return {
         ...prev,
         tabs: [
@@ -184,16 +199,7 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       };
     });
 
-    if (newActiveTabId) {
-      // activeTabId is already set inside setState above when creating a new tab,
-      // but for the existing-tab case we still need to update it
-      setState(prev => {
-        if (prev.activeTabId === newActiveTabId) return prev;
-        return { ...prev, activeTabId: newActiveTabId };
-      });
-    }
-
-    // Add to recent files
+    // Add to recent files（纯副作用，留在 updater 之外）
     const fileNode = findNode(stateRef.current.rootFolder, fileId);
     if (fileNode && fileNode.type === 'file') {
       addRecentFile(fileId, fileNode.name);

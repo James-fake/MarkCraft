@@ -13,6 +13,9 @@
  *      → 证明 §3 的「缺席」是**条件式裁剪**，不是「编辑器整块坏掉」。
  *   §3 经真实入口（知识库 → 笔记 Tab）打开使用文档：呈现 `.aurora-brief` 简介页，
  *      且标签栏 / 模式选择框 / 左右缘 hoverzone **全部缺席**、返回芯片与状态栏「简介」仍在。
+ *   §5 🚨【紧急修复回归 · 用户报障场景】把**用户自己的笔记放进内置文件夹**：
+ *      它必须仍出现在文件列表里、点开仍是**完整编辑器**（不是简介页）；
+ *      而同一文件夹内的**内置说明书那一篇**仍必须是简介页（防「修过头」）。
  *   §4 页面错误逐视图归属。
  *
  * 起手区（skill 铁律 0）：使用文档**已不在编辑器文件列表里**（这正是需求①的效果），
@@ -20,7 +23,7 @@
  *
  * 用法（**必须与 Edge 同一次前台 bash**，见 skill 铁律 1）：
  *   node .workbuddy/artifacts/cdp-verify-usagedoc-brief.mjs
- * 作用域开关：ONLY=1 / ONLY=2 / ONLY=3
+ * 作用域开关：ONLY=1 / ONLY=2 / ONLY=3 / ONLY=5
  */
 import { WebSocket } from 'ws'
 
@@ -115,29 +118,40 @@ const USAGE_FOLDER = 'MarkCraft 使用文档'
 const NOTES_FOLDER = '我的笔记'
 const USAGE_PAGES = ['00 开始使用.md', '01 界面布局.md', '02 编辑器模式.md']
 const PLAIN_NOTES = ['甲笔记.md', '乙笔记.md']
+/** §5 专用：用户自己在**内置文件夹内**建的笔记（名字**不**命中内置篇章清单） */
+const USER_NOTE_IN_USAGE = '我的读书笔记.md'
 /** 权威树里应有的**全部** .md 文件数（3 篇使用文档 + 2 篇普通笔记） */
 const TOTAL_FILES = USAGE_PAGES.length + PLAIN_NOTES.length
 /** 编辑器文件列表**应当**看得见的文件数 = 过滤后 */
 const VISIBLE_FILES = PLAIN_NOTES.length
+/** §5 场景：3 篇使用文档 + 2 篇普通笔记 + 1 篇「在内置文件夹内的用户笔记」= 6 篇 */
+const TOTAL_FILES_S5 = TOTAL_FILES + 1
+/** §5 场景：使用文档 3 篇仍被过滤 → 可见 = 2 篇普通笔记 + 1 篇用户笔记 */
+const VISIBLE_FILES_S5 = PLAIN_NOTES.length + 1
 
 const KB_ID = 'kb-usagedoc-brief-0001'
 const KB_FOLDER = 'usage-folder-seed'
 
-function SEED_SQL() {
+function SEED_SQL(opts = {}) {
   const T = 1700000000000
   const f = (id, name, content) => ({ id, name, type: 'file', content, createdAt: T, updatedAt: T })
   const doc = (name, body) => f('ud-' + name.slice(0, 2), name, body)
+  const usageChildren = [
+    doc(USAGE_PAGES[0], '# 开始使用\n\n欢迎使用 MarkCraft。\n\n- 条目一\n- 条目二\n'),
+    doc(USAGE_PAGES[1], '# 界面布局\n\n侧栏、顶栏、状态栏。\n'),
+    doc(USAGE_PAGES[2], '# 编辑器模式\n\n源码模式 / 所见即所得 / 双栏布局。\n'),
+  ]
+  // §5：把**用户的笔记**放进内置文件夹 —— 复刻用户报障时的数据形态
+  if (opts.userNoteInUsageFolder) {
+    usageChildren.push(f('un-1', USER_NOTE_IN_USAGE, '# 我的读书笔记\n\n这是用户自己的正文，不是内置说明。\n'))
+  }
   const tree = {
     rootFolder: {
       id: 'root', name: '文件管理器', type: 'folder', createdAt: T, updatedAt: T, isExpanded: true,
       children: [
         {
           id: KB_FOLDER, name: USAGE_FOLDER, type: 'folder', createdAt: T, updatedAt: T, isExpanded: true,
-          children: [
-            doc(USAGE_PAGES[0], '# 开始使用\n\n欢迎使用 MarkCraft。\n\n- 条目一\n- 条目二\n'),
-            doc(USAGE_PAGES[1], '# 界面布局\n\n侧栏、顶栏、状态栏。\n'),
-            doc(USAGE_PAGES[2], '# 编辑器模式\n\n源码模式 / 所见即所得 / 双栏布局。\n'),
-          ],
+          children: usageChildren,
         },
         {
           id: NOTES_FOLDER, name: NOTES_FOLDER, type: 'folder', createdAt: T, updatedAt: T, isExpanded: true,
@@ -158,7 +172,7 @@ function SEED_SQL() {
   }
   const kbItem = {
     id: KB_ID, name: USAGE_FOLDER, description: '探针种子库（指向内置使用文档文件夹）',
-    folderId: KB_FOLDER, fileCount: USAGE_PAGES.length, canvasCount: 0, createdAt: T, updatedAt: T,
+    folderId: KB_FOLDER, fileCount: usageChildren.length, canvasCount: 0, createdAt: T, updatedAt: T,
   }
   return `(async () => {
     const tree = ${JSON.stringify(tree)}
@@ -467,6 +481,101 @@ async function main() {
 
     const e3 = cdp.since(m3)
     ok('使用文档简介页无新增页面错误', e3.length === 0, e3.length ? JSON.stringify(e3.slice(0, 3)) : '0 条')
+  }
+
+  // ────────── §5 🚨 紧急修复回归：用户笔记放进内置文件夹，不得被连坐降级 ──────────
+  // 用户报障原话：「为什么现在编辑器界面的格式工具栏和左右两侧的列表消失了」+
+  //   「只有 markcraft 这一个知识库中的笔记文件点击后才是只读简介页；用户自己创建的
+  //    知识库中的笔记点击之后去到的编辑器界面也是可以编辑的」。
+  // 旧口径把**整棵内置文件夹子树**都判为使用文档 → 用户放进该文件夹的自己的笔记
+  // 既从文件列表消失、又被降级成只读简介页。本段用真机把两侧都钉死。
+  if (!ONLY || ONLY === '5') {
+    console.log('\n=== 5. 【紧急修复回归】用户笔记放进内置文件夹 → 仍可见、仍完整可编辑 ===')
+    const m5 = cdp.mark()
+    console.log('   · §5 种子树：' + USAGE_FOLDER + '/（' + USAGE_PAGES.length + ' 篇内置说明 + 1 篇**用户笔记**） + ' + NOTES_FOLDER + '/（' + PLAIN_NOTES.length + ' 篇）')
+    await cdp.eval(SEED_SQL({ userNoteInUsageFolder: true }))
+    await cdp.send('Page.navigate', { url: `${BASE}/?_p=udbrief-s5-${Date.now()}#view=editor` })
+    await sleep(900)
+    const rdy5 = await ready(cdp)
+    const surface5 = await cdp.eval(`({ sidebarItems: document.querySelectorAll('.aurora-sidebar-item').length, sheets: document.styleSheets.length })`)
+    ok('§5 应用外壳已挂载且样式表到位（扫描面非空）', rdy5 >= 0 && surface5.sidebarItems > 0 && surface5.sheets > 8,
+      `sidebarItems=${surface5.sidebarItems} styleSheets=${surface5.sheets}`)
+
+    // 关掉首启引导浮层（backdrop 吞指针，skill 铁律 2）—— 逐次导航后都要复查
+    await cdp.eval(`(() => {
+      const el = document.querySelector('.aurora-audience')
+      if (!el) return false
+      const btn = [...el.querySelectorAll('button')].find(b => /开始|跳过|继续/.test(b.textContent || ''))
+      if (btn) btn.click(); else el.remove()
+      return true
+    })()`)
+    await sleep(300)
+
+    // 数据面自检：6 篇（含内置文件夹内那篇用户笔记）
+    const tree5 = await cdp.eval(TREE_READ)
+    ok(`§5 权威树里有 ${TOTAL_FILES_S5} 篇 .md（含内置文件夹内的用户笔记 "${USER_NOTE_IN_USAGE}"）`,
+      !!tree5 && tree5.files.length === TOTAL_FILES_S5 && tree5.files.includes(USER_NOTE_IN_USAGE),
+      `count=${tree5 && tree5.files.length} files=${JSON.stringify(tree5 && tree5.files)}`)
+
+    // ① 空态文件列表：用户笔记必须在，且承载它的文件夹行也必须在
+    const r5 = await waitFor(cdp, `${EMPTY_ROW_NAMES}.length === ${VISIBLE_FILES_S5}`, { tries: 40, ms: 400, label: '§5 空态列表行数' })
+    const names5 = await cdp.eval(EMPTY_ROW_NAMES)
+    const groups5 = await cdp.eval(`[...document.querySelectorAll('.aurora-emptyfiles__group-title')].map((e) => (e.textContent || '').trim())`)
+    info(`§5 可见行(${names5.length}) = ${JSON.stringify(names5)}；分组 = ${JSON.stringify(groups5)}`)
+    ok('§5 扫描面非空（否则"用户笔记在列表里"恒假 = 假绿）', names5.length > 0, `rows=${names5.length}`)
+    ok('🚨 §5 用户笔记（在内置文件夹内）**仍出现在文件列表里**',
+      names5.includes(USER_NOTE_IN_USAGE), `rows=${JSON.stringify(names5)}`)
+    ok('🚨 §5 承载它的内置文件夹**作为普通分组出现**（用户点得到自己的文件）',
+      groups5.includes(USAGE_FOLDER), `groups=${JSON.stringify(groups5)}`)
+    ok('§5 双向对照：同一文件夹内的 3 篇内置说明书仍**不在**列表里',
+      USAGE_PAGES.every((n) => !names5.includes(n)),
+      `usageHits=${JSON.stringify(names5.filter((n) => USAGE_PAGES.includes(n)))}`)
+
+    // ② 打开该用户笔记 → 必须是**完整编辑器**（不是简介页）
+    const clicked5 = await cdp.eval(clickEmptyRow(USER_NOTE_IN_USAGE))
+    const at5 = await waitFor(cdp, `document.querySelectorAll('.aurora-toolbar').length > 0`, { tries: 30, ms: 400, label: '§5 用户笔记标签栏' })
+    const chrome5 = await cdp.eval(EDITOR_CHROME)
+    info('§5 用户笔记 chrome = ' + JSON.stringify(chrome5))
+    ok('§5 用户笔记已打开（标签栏出现）', clicked5 && at5 >= 0, `clicked=${clicked5} waitIdx=${at5}`)
+    ok('🚨 §5 用户笔记：**没有**简介页（这就是用户报障的「工具栏/左右栏消失」）', chrome5.brief === 0 && chrome5.briefMarked === 0,
+      `brief=${chrome5.brief} marked=${chrome5.briefMarked}`)
+    ok('🚨 §5 用户笔记：格式工具栏所在标签栏在', chrome5.toolbar > 0 && chrome5.tabs > 0, `toolbar=${chrome5.toolbar} tabs=${chrome5.tabs}`)
+    ok('🚨 §5 用户笔记：编辑模式选择框三枚按钮都在', chrome5.modeToggle === 3 && chrome5.modeToggles > 0,
+      `modeToggle=${chrome5.modeToggle} modeToggles=${chrome5.modeToggles}`)
+    ok('🚨 §5 用户笔记：左右两侧列表（hoverzone 入口）都在', chrome5.hoverzones === 2, `hoverzones=${chrome5.hoverzones}`)
+    ok('§5 用户笔记：状态栏仍是编辑内核口径（含「所见即所得」、无「简介」）',
+      chrome5.statusRight.includes('所见即所得') && !chrome5.statusRight.includes('简介'),
+      `statusRight=${JSON.stringify(chrome5.statusRight)}`)
+
+    // ③ 防「修过头」：同一文件夹内的**内置那一篇**仍必须是简介页
+    await cdp.eval(CLICK_KB_SIDEBAR)
+    await waitFor(cdp, `document.querySelectorAll('.aurora-kb-kbcard').length > 0`, { tries: 40, ms: 400, label: '§5 知识库卡片' })
+    await cdp.eval(`(() => { const c = document.querySelectorAll('.aurora-kb-kbcard')[0]; if (c) c.click(); return !!c })()`)
+    await waitFor(cdp, `document.querySelectorAll('.aurora-kb-subbar-tabs button, .aurora-kb-subbar-tabs [role="tab"]').length > 0`,
+      { tries: 40, ms: 400, label: '§5 详情页 tab' })
+    await cdp.eval(`(() => {
+      const t = [...document.querySelectorAll('.aurora-kb-subbar-tabs button, .aurora-kb-subbar-tabs [role="tab"]')]
+        .find(x => (x.textContent || '').includes('笔记'))
+      if (t) t.click(); return !!t
+    })()`)
+    await waitFor(cdp, `document.querySelectorAll('.aurora-kb-notes .aurora-kb-recent__item').length > 0`, { tries: 30, ms: 400, label: '§5 笔记 Tab' })
+    // 按**名字**点内置那一篇（不能取 [0]：这一 Tab 里现在既有内置说明也有用户笔记）
+    const clickedBuiltin = await cdp.eval(`(() => {
+      const want = ${JSON.stringify(USAGE_PAGES[0])}
+      const rows = [...document.querySelectorAll('.aurora-kb-notes .aurora-kb-recent__item')]
+      const r = rows.find(x => (x.textContent || '').includes(want))
+      if (!r) return false
+      r.click(); return true
+    })()`)
+    await waitFor(cdp, `document.querySelectorAll('.aurora-brief').length > 0`, { tries: 25, ms: 400, label: '§5 内置篇简介页' })
+    const chrome5b = await cdp.eval(EDITOR_CHROME)
+    info('§5 内置篇 chrome = ' + JSON.stringify(chrome5b))
+    ok('§5 防修过头：同一文件夹内的**内置说明书**点开仍是简介页（工具栏/左右栏缺席）',
+      clickedBuiltin && chrome5b.brief > 0 && chrome5b.toolbar === 0 && chrome5b.modeToggle === 0 && chrome5b.hoverzones === 0,
+      `clicked=${clickedBuiltin} brief=${chrome5b.brief} toolbar=${chrome5b.toolbar} modeToggle=${chrome5b.modeToggle} hoverzones=${chrome5b.hoverzones}`)
+
+    const e5 = cdp.since(m5)
+    ok('§5 全程无新增页面错误', e5.length === 0, e5.length ? JSON.stringify(e5.slice(0, 3)) : '0 条')
   }
 
   console.log('\n=== 4. 页面错误汇总（逐视图归属）===')

@@ -25,6 +25,10 @@ import {
   USAGE_DOC_FOLDER as USAGE_DOC_FOLDER_EN,
   USAGE_DOC_DESCRIPTION as USAGE_DOC_DESCRIPTION_EN,
 } from '@core/data/defaultDocs/usageDocs/en'
+import {
+  USAGE_DOC_LEGACY_NAMES_ZH,
+  USAGE_DOC_LEGACY_NAMES_EN,
+} from '@core/data/defaultDocs/usageDocs/legacyNames'
 
 /** 一次性标记：已播种过即不再补（用户删除后不复活） */
 export const USAGE_DOCS_SEED_KEY = 'markcraft-usage-docs-seeded'
@@ -46,18 +50,17 @@ export interface UsageDocsSeedDeps {
   moveNode: (nodeId: string, targetParentId: string, targetIndex?: number) => boolean
 }
 
-/** 旧种子文档名：用于迁移匹配（不同语言的历史命名不同，故逐一列出） */
+/**
+ * 旧种子文档名：用于迁移匹配（不同语言的历史命名不同）。
+ *
+ * ⚠️ 单一来源 = `core/data/defaultDocs/usageDocs/legacyNames.ts`
+ *    —— `core/files/usageDocs.ts` 判定「哪些文件是内置说明书本身」时读同一份。
+ *    两处若各写一份，迁移进来、但不在新篇章名清单里的历史文档（《用户手册》全文）
+ *    就会漏判成「用户笔记」→ 在编辑器里变成可编辑，与「内置说明只读」相悖。
+ */
 const LEGACY_NAMES: Record<'zh' | 'en', Record<string, string[]>> = {
-  zh: {
-    'md-tutorial': ['Markdown 入门教程.md'],
-    'link-guide': ['知识链接体系指南.md'],
-    'user-manual': ['用户手册.md'],
-  },
-  en: {
-    'md-tutorial': ['Markdown Beginner Tutorial.md', 'Markdown Tutorial.md'],
-    'link-guide': ['Knowledge Linking Guide.md'],
-    'user-manual': ['User Manual.md'],
-  },
+  zh: USAGE_DOC_LEGACY_NAMES_ZH,
+  en: USAGE_DOC_LEGACY_NAMES_EN,
 }
 
 /** 单个篇章（与 `core/data/defaultDocs/usageDocs/*` 的 UsageDocPage 结构一致） */

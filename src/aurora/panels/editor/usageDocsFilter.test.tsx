@@ -119,4 +119,34 @@ describe('编辑器文件列表：内置「使用文档」过滤', () => {
     const groupTitles = [...container.querySelectorAll('.aurora-emptyfiles__group-title')].map((e) => e.textContent)
     expect(groupTitles).toContain(RENAMED)
   })
+
+  // ── 回归锁（2026-09-22 紧急修复）：用户报障「所有笔记都从列表里消失」──
+  // 旧口径把整棵内置文件夹子树都过滤掉 → 用户放进该文件夹的自己的笔记也跟着消失。
+  // 新口径只过滤「文件名命中内置清单」的那几篇；文件夹行在有用户内容时保留。
+  it('5) 🚨 回归：用户笔记放进**内置文档文件夹**内 → 文件夹行与该笔记都**仍在**列表里（只有说明书那几篇被过滤）', async () => {
+    const { container } = await renderWith(<FileTree hideTopbar />)
+    const docs = (api!.rootFolder.children ?? []).find((c) => c.name === ZH_FOLDER)!
+    await act(async () => { api!.createFile(docs.id, PLAIN_NOTE, '# 我的笔记\n\n用户自己的内容。', false) })
+
+    await waitFor(() => expect(treeNames(container)).toContain(PLAIN_NOTE))
+    const names = treeNames(container)
+    // 用户笔记可见 + 承载它的文件夹行也可见（否则用户点不到）
+    expect(names).toContain(PLAIN_NOTE)
+    expect(names).toContain(ZH_FOLDER)
+    // 内置说明书仍被过滤（同一个文件夹内，双向对照）
+    for (const page of PAGE_NAMES) expect(names).not.toContain(page)
+  })
+
+  it('6) 回归对照：EmptyFileBrowser 里用户笔记在内置文件夹内同样可见，计数同步为 1', async () => {
+    const { container } = await renderWith(<EmptyFileBrowser />)
+    const docs = (api!.rootFolder.children ?? []).find((c) => c.name === ZH_FOLDER)!
+    await act(async () => { api!.createFile(docs.id, PLAIN_NOTE, '# 我的笔记', false) })
+
+    await waitFor(() => expect(emptyNames(container)).toContain(PLAIN_NOTE))
+    expect(emptyNames(container)).toHaveLength(1)
+    expect(container.querySelector('.aurora-emptyfiles__count')?.textContent).toBe('1')
+    // 承载它的分组标题 = 内置文件夹名（该文件夹现在有用户内容 → 作为普通分组出现）
+    const groupTitles = [...container.querySelectorAll('.aurora-emptyfiles__group-title')].map((e) => e.textContent)
+    expect(groupTitles).toContain(ZH_FOLDER)
+  })
 })

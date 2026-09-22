@@ -234,8 +234,12 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   //   ③ 右缘检查器（含大纲右键「删除章节」）    ④ 主区由 EditorLayout 换为只读 UsageDocBrief
   // ⚠️ 全部条件都挂在 isUsageDoc 上：普通笔记 / 日记 / 空态路径的 isUsageDoc 恒为 false，
   //    行为与改动前逐字节一致（回归锁见 usageDocBrief.test.tsx 的对照组）。
+  // ⚠️ 判定用 `builtinFileIds`（**内置说明书文件本身**），不用 `hiddenIds`：
+  //    hiddenIds 是「视图过滤」集合（含文件夹行），语义是「从列表里藏起来」；
+  //    只读简介页该问的是「这个文件是不是那几篇写死的说明书」——
+  //    用户放进该文件夹的自己的笔记**不在** builtinFileIds 里 → 仍是完整可编辑的编辑器。
   const usageDocs = useUsageDocsScope()
-  const isUsageDoc = !!activeFileId && usageDocs.hiddenIds.has(activeFileId)
+  const isUsageDoc = !!activeFileId && usageDocs.builtinFileIds.has(activeFileId)
 
   // 面包屑：逐级向上收集文件夹路径（根目录不计入），末级为文件名（去 .md）
   // —— P1-2 顶栏文档上下文强化：不再只取一级父文件夹，深层文件也能回溯完整层级

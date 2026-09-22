@@ -19,6 +19,7 @@ import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest'
 import { RealProviders } from '../../providers/RealProviders'
 import { useFileManager } from '@stores/FileStore'
 import { setEditorReturn, clearEditorReturn } from '../../navigation/navReturn'
+import { resolveUsageDocsScope } from '@core/files/usageDocs'
 import { USAGE_DOC_FOLDER as ZH_FOLDER, USAGE_DOC_ALL as ZH_PAGES } from '@core/data/defaultDocs/usageDocs/zh'
 
 // 真实 EditorLayout / VersionHistoryPanel 依赖 CodeMirror / TipTap，jsdom 无法挂载 ——
@@ -180,5 +181,60 @@ describe('EditorPanel：使用文档 → 只读简介页', () => {
     // 先剥注释，避免注释里的字面量造成假阳性
     const noComments = css.replace(/\/\*[\s\S]*?\*\//g, '')
     expect(noComments).toMatch(/\.aurora-brief\s+\.preview-image-delete-btn\s*\{[^}]*display:\s*none/)
+  })
+
+  // ── 回归锁 ③：用户报障「所有笔记的工具栏/左右栏都消失了」（2026-09-22 紧急修复）──
+  // 根因：旧判定把**整棵内置文件夹子树**都当成使用文档 → 用户在该文件夹里新建/拖入的
+  // 自己的笔记被连坐降级为只读简介页、且从文件列表消失。
+  // 新判定收窄为「文件夹内 **且** 文件名命中内置篇章清单」→ 用户笔记照常完整可编辑。
+  // 本用例把「内置文件夹 = 禁区」这个错误口径钉死：同一文件夹里，说明书是简介页、用户笔记是编辑器。
+  it('7) 🚨 回归：用户笔记放进**内置使用文档文件夹**内，仍必须是完整编辑器（不是简介页）', async () => {
+    const { container } = await renderPanel()
+    // 读**实时**树（理由同用例 8）
+    const docs = () => (api!.rootFolder.children ?? []).find((c) => c.name === ZH_FOLDER)!
+    let noteId = ''
+    await act(async () => { noteId = api!.createFile(docs().id, PLAIN_NOTE, '# 我的笔记\n\n这是用户自己的内容。', false) })
+    expect(noteId).toBeTruthy()
+    await act(async () => { api!.openFile(noteId) })
+
+    // 等编辑内核真正挂载（先证「渲染发生过」，再去断言「没有简介页」）
+    await waitFor(() => expect(container.querySelector('[data-testid="real-editorlayout"]')).toBeTruthy())
+    // 不是只读简介页
+    expect(container.querySelector('.aurora-brief')).toBeNull()
+    // 编辑 chrome 全在（与用例 5 的普通笔记逐条对齐）
+    expect(container.querySelectorAll('.aurora-mode-toggle')).toHaveLength(3)
+    expect(container.querySelector('.aurora-toolbar')).toBeTruthy()
+    expect(container.querySelector('.aurora-editor__hoverzone--left')).toBeTruthy()
+    expect(container.querySelector('.aurora-editor__hoverzone--right')).toBeTruthy()
+    expect(statusBarModeItems(container)).not.toContain('简介')
+  })
+
+  // 同一文件夹内的**内置那一篇**仍必须是简介页 —— 与用例 7 构成同一文件夹内的双向对照，
+  // 防止「修过头」（把整个文件夹都放行成可编辑）。
+  it('8) 回归对照：同一文件夹内，内置说明书那一篇**仍**是只读简介页', async () => {
+    const { container } = await renderPanel()
+    // ⚠️ 必须读**实时**树：FileStore 是单例，同一文件内的用例会累积状态
+    //    （用例 7 已在同一文件夹里建过一篇用户笔记）→ 用渲染时的快照取节点会拿到过期 children。
+    const docs = () => (api!.rootFolder.children ?? []).find((c) => c.name === ZH_FOLDER)!
+    // 先塞一篇用户笔记（使该文件夹「含用户内容」），确认这不会把内置篇一起放行
+    await act(async () => { api!.createFile(docs().id, PLAIN_NOTE, '# 我的笔记', false) })
+    const builtin = (docs().children ?? []).find((c) => c.type === 'file' && c.name === ZH_PAGES[0].fileName)!
+    expect(builtin).toBeTruthy()
+
+    // ⚠️ 这一步会走 FileStore.openFile 的**已存在标签**分支（内置篇在用例 1 就开过标签）。
+    //    该分支曾因「两次 setState + 旁路变量」在负载下漏设 activeTabId（详见 FileStore.openFile 注释），
+    //    表现为「点了没切过去」—— 故这里先锚定「打开的就是内置那一篇」，再断言它是简介页。
+    await act(async () => { api!.openFile(builtin.id) })
+    await waitFor(() => expect(api!.getActiveFileId()).toBe(builtin.id))
+
+    // 再锚定「判定确实把这一篇算作内置」——否则最后那条断言失败时会归因到错误的一环
+    const scope = resolveUsageDocsScope(api!.rootFolder)
+    expect({ folderMatched: scope.folderId === docs().id, isBuiltin: scope.builtinFileIds.has(builtin.id) })
+      .toEqual({ folderMatched: true, isBuiltin: true })
+
+    // 先证「渲染发生过」再证「是简介页」
+    await waitFor(() => expect(container.querySelector('.aurora-brief')).toBeTruthy())
+    expect(container.querySelector('[data-testid="real-editorlayout"]')).toBeNull()
+    expect(container.querySelectorAll('.aurora-mode-toggle')).toHaveLength(0)
   })
 })

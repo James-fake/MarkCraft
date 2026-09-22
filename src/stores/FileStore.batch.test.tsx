@@ -155,3 +155,66 @@ describe('FileStore · 同批次写入的累积语义', () => {
     expect(collectAllFiles(findNode(root, 'my-notes')!).map((f) => f.name)).not.toContain('用户手册.md')
   })
 })
+
+/**
+ * FileStore · openFile 切标签：`activeTabId` 与 `isActive` 必须始终同源
+ * ----------------------------------------------------------------------------
+ * 背景（2026-09-22，由 usageDocBrief 用例 8 在高负载整跑下抓出）：
+ *
+ * `openFile` 曾把「找/建标签」与「设 activeTabId」拆成**两次** setState，中间靠一个
+ * `let newActiveTabId` 旁路变量传值。而 `setState(updater)` 的 updater 只在**渲染期**运行 ——
+ * 只有 React 的「急切求值」（该 fiber 更新队列为空）才会让它同步跑一次并给变量赋值。
+ * 于是：**同一 tick 内的第二次及以后的 setState 都拿不到该变量**（队列非空 ⇒ 跳过急切求值），
+ * 旁路变量仍是 null ⇒ 第二次 setState 被整段跳过 ⇒ `activeTabId` 不更新。
+ *
+ * 症状（用户可见）：点一个**已经在标签栏里打开**的文件，编辑器不切过去 —— 甚至出现
+ * 「tab 的 isActive=true，但 activeTabId 指着另一篇」的自相矛盾状态（当时渲染的是错的那篇）。
+ *
+ * 本锁用**同一 tick 内连开三次**（A → B → A）复现：第 3 次必然落在「非急切求值」路径上，
+ * 旧实现下 activeTabId 会停在 B。
+ */
+describe('FileStore · openFile 切标签（activeTabId 与 isActive 同源）', () => {
+  it('③ 同 tick 内 A → B → A：必须切回 A，且 isActive 标记与 activeTabId 一致', async () => {
+    const { result } = renderHook(() => useFileManager(), { wrapper: Wrapper })
+    await waitFor(() => expect(result.current.hydrated).toBe(true))
+
+    let a = ''
+    let b = ''
+    act(() => {
+      a = result.current.createFile('my-notes', 'A.md', '# A', false)
+      b = result.current.createFile('my-notes', 'B.md', '# B', false)
+      // 三次 openFile 落在同一个 React 批次里 —— 后两次必走「非急切求值」路径
+      result.current.openFile(a)
+      result.current.openFile(b)
+      result.current.openFile(a)
+    })
+
+    expect(result.current.getActiveFileId(), 'openFile 打开已存在标签时必须切过去（旧实现会停在上一个）').toBe(a)
+
+    // 不变式：恰有一个 tab isActive，且它就是 activeTabId 指向的那个
+    const tabs = result.current.tabs
+    const actives = tabs.filter((t) => t.isActive)
+    expect(actives, `isActive 标记必须恰有一个为真，实际 ${actives.length} 个`).toHaveLength(1)
+    expect(actives[0].fileId).toBe(result.current.getActiveFileId())
+    expect(tabs.find((t) => t.id === result.current.activeTabId)?.fileId).toBe(a)
+  })
+
+  it('④ 开关顺序无关：B → A → B 同样必须切到 B（防「只对最后一次生效」的伪修复）', async () => {
+    const { result } = renderHook(() => useFileManager(), { wrapper: Wrapper })
+    await waitFor(() => expect(result.current.hydrated).toBe(true))
+
+    let a = ''
+    let b = ''
+    act(() => {
+      a = result.current.createFile('my-notes', 'A.md', '# A', false)
+      b = result.current.createFile('my-notes', 'B.md', '# B', false)
+      result.current.openFile(b)
+      result.current.openFile(a)
+      result.current.openFile(b)
+    })
+
+    expect(result.current.getActiveFileId()).toBe(b)
+    expect(result.current.tabs.filter((t) => t.isActive)).toHaveLength(1)
+    expect(result.current.tabs.find((t) => t.isActive)!.fileId).toBe(b)
+  })
+})
