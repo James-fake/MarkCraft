@@ -16,6 +16,8 @@ dev 端口 **5174**（`node node_modules/vite/bin/vite.js --port 5174 --host`）
 - 🚨 插文件头注释前先探 BOM；**回写必须保真 EOL**（本仓混用 CRLF/LF，无 `.gitattributes`、`core.autocrlf=false`）→ 探 `includes('\r\n')` → 拆 `/\r?\n/` → 原 EOL 回写；禁 `split('\n')+join('\n')`。
 - 单源：z-index = `tokens.css §14`；Modal/Button/Confirm/Switch = `@components/ui/*`。⚠️ `styles/desktop-chrome.css` 是**有意的第二层 `:root`**（后者赢）→ 改 `--mc-accent` 须同改（含亮色）。
 - **拖拽闭包陷阱**：监听闭包在拖拽开始时注册 → 落盘读 `xxxRef.current`；**指针捕获吞 click** → 子元素挂 **pointerup**（slop 4px）。
+- 🚨 **滑动手势的「吃掉尾随 click」判据只能是「真的换了目标」，不是「有没有位移」**：`useSwipeTabs.endGesture` 旧判据 `|offset| > DIRECTION_SLOP(8)` ⇒ 真实鼠标点击的几像素漂移被判成横滑却**没换 tab**，紧随的 click 被吞 ⇒ **用户点了没反应**（2026-09-22「首次点笔记 Tab 停在概览」）。且**非激活按压必须不残留手势状态**：`endGesture` 在 `!activeRef.current` 时 return 而不解除武装 ⇒ 之后**不按键的悬停移动**会用陈旧 `startX` 凭空激活手势、按错误落点换 tab。准入闸 = `(e.buttons & 1) === 0 → return`（jsdom 合成事件无 `buttons`，夹具须显式传）。
+- ⚠️ **「点击无反应」类报障先注 trace 取值，别靠读代码推理**（本轮在 `decideSnap` 几何里绕了很久）：把 `offset / passed / target / startX / buttons` 打出来即定案。**探针里每个手势样本必须用一个全新 document**（同页连做两次会被上一次残留污染 → 断言恒绿）。CDP 合成拖动的 `pointermove.buttons` 实测 = 1。
 - **视图上下文单源** = `useAuroraShell.nav` 的 param→params 映射表（canvas→canvasId／kb→kbId／blog→kbId）；漏登记 = 参数静默丢失。
 - React 17+ `onWheel` passive → `preventDefault()` 无效，拦横滚靠 CSS `touch-action`/`overscroll-behavior-x`；「改 CSS 不改 JS」双向陷阱 → 契约测试两侧同断言 `getBoundingClientRect()` **落点**。
 - 滚动显隐用「常驻 DOM + 类折叠」（条件渲染自激振荡）；内联 `transition` 残留 → 瞬时落位后 `void el.offsetWidth; el.style.transition=''`。
