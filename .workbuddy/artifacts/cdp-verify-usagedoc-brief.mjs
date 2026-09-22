@@ -16,6 +16,9 @@
  *   §5 🚨【紧急修复回归 · 用户报障场景】把**用户自己的笔记放进内置文件夹**：
  *      它必须仍出现在文件列表里、点开仍是**完整编辑器**（不是简介页）；
  *      而同一文件夹内的**内置说明书那一篇**仍必须是简介页（防「修过头」）。
+ *   §6 🚨【第二轮需求 · 退出即无痕】使用文档「只能从知识库点进去看」：
+ *      打开它不进「最近文件」；退出编辑器后标签栏里不留它、落盘（IndexedDB）里也不留它
+ *      （否则「看着说明书刷新」会被记成上次打开的文档）。对照组 = 普通笔记照常进最近 / 照常落盘。
  *   §4 页面错误逐视图归属。
  *
  * 起手区（skill 铁律 0）：使用文档**已不在编辑器文件列表里**（这正是需求①的效果），
@@ -23,7 +26,7 @@
  *
  * 用法（**必须与 Edge 同一次前台 bash**，见 skill 铁律 1）：
  *   node .workbuddy/artifacts/cdp-verify-usagedoc-brief.mjs
- * 作用域开关：ONLY=1 / ONLY=2 / ONLY=3 / ONLY=5
+ * 作用域开关：ONLY=1 / ONLY=2 / ONLY=3 / ONLY=5 / ONLY=6
  */
 import { WebSocket } from 'ws'
 
@@ -235,6 +238,47 @@ const TREE_READ = `(async () => {
 })()`
 
 // ────────────────────────── 选择器 / 取数 ──────────────────────────
+
+/**
+ * 直读**落盘**的 FileManager state（§6 用）：tabs / activeTabId 是「有没有被记住」的唯一判据。
+ * 介质同上（IndexedDB 的 kv）——「看着说明书时刷新会不会记得它」问的就是这里。
+ */
+const PERSIST_READ = `(async () => {
+  const val = await new Promise((res) => {
+    let req
+    try { req = indexedDB.open('markcraft') } catch { res(null); return }
+    req.onerror = () => res(null)
+    req.onsuccess = () => {
+      const d = req.result
+      let tx
+      try { tx = d.transaction('kv', 'readonly') } catch { d.close(); res(null); return }
+      const g = tx.objectStore('kv').get('markcraft-file-manager')
+      g.onsuccess = () => { const r = g.result; d.close(); res(r ? r.value : null) }
+      g.onerror = () => { d.close(); res(null) }
+    }
+  })
+  if (!val) return { found: false }
+  const s = typeof val === 'string' ? JSON.parse(val) : val
+  const tabs = s.tabs || []
+  return {
+    found: true,
+    activeTabId: s.activeTabId || null,
+    tabNames: tabs.map((t) => t.name),
+    tabFileIds: tabs.map((t) => t.fileId),
+    tabTransient: tabs.map((t) => !!t.isTransient),
+    activeTabFileId: (tabs.find((t) => t.id === s.activeTabId) || {}).fileId || null,
+  }
+})()`
+
+/** 「最近文件」条目名（localStorage）——欢迎页「继续《…》」与「插入双链」候选的唯一来源 */
+const RECENT_READ = `(() => {
+  try {
+    const raw = localStorage.getItem('markcraft_recent_files')
+    const arr = raw ? JSON.parse(raw) : []
+    return arr.map((f) => f.fileName)
+  } catch { return [] }
+})()`
+
 const EMPTY_ROW_NAMES = `[...document.querySelectorAll('.aurora-emptyfiles__row-name')].map((e) => (e.textContent || '').trim())`
 const TREE_ROW_NAMES = `[...document.querySelectorAll('.aurora-filetree__item-name')].map((e) => (e.textContent || '').trim())`
 /** 状态栏右区文案（**必须限定作用域**：正文里合法出现「所见即所得」等模式词） */
@@ -261,12 +305,60 @@ const CLICK_KB_SIDEBAR = `(() => {
   return !!e
 })()`
 
+/**
+ * 点侧栏「编辑器」。
+ * ⚠️ 用 `includes` 而不是全等：SidebarItem 的 textContent 可能带上计数徽标（如「编辑器256」）。
+ * ⚠️ 这一条在 §6c 里必须**视图 id 不变**地触发（当前已在 editor）——
+ *    正因如此 AuroraShell 的「路由离开编辑器」effect 不会跑，回收只能靠 EditorPanel 的
+ *    onSidebarSelect 显式完成。若这里失效，§6c 会红。
+ */
+const CLICK_EDITOR_SIDEBAR = `(() => {
+  const e = [...document.querySelectorAll('.aurora-sidebar-item')].find(x => (x.textContent || '').includes('编辑器'))
+  if (e) e.click()
+  return !!e
+})()`
+
 const clickEmptyRow = (name) => `(() => {
   const rows = [...document.querySelectorAll('.aurora-emptyfiles__row')]
   const r = rows.find(x => ((x.querySelector('.aurora-emptyfiles__row-name') || {}).textContent || '').trim() === ${JSON.stringify(name)})
   if (!r) return false
   r.click(); return true
 })()`
+
+/** 种子树里使用文档首篇的 id（SEED_SQL 用 `ud-` + 文件名前两字符生成） */
+const USAGE_DOC_FIRST_ID = 'ud-' + USAGE_PAGES[0].slice(0, 2)
+
+/**
+ * 走真机**唯一入口**打开使用文档首篇：知识库管理页 → 详情 → 「笔记」Tab → 按名点该行。
+ * 抽成函数是因为 §6 需要进出**两次**（验两种退出路径），而这段链路有 4 步等待。
+ */
+async function openBriefViaKb(cdp, tag = '§6') {
+  await cdp.eval(CLICK_KB_SIDEBAR)
+  await waitFor(cdp, `document.querySelectorAll('.aurora-kb-kbcard').length > 0`, { tries: 40, ms: 400, label: `${tag} 知识库卡片` })
+  await cdp.eval(`(() => { const c = document.querySelectorAll('.aurora-kb-kbcard')[0]; if (c) c.click(); return !!c })()`)
+  await waitFor(
+    cdp,
+    `(() => { const n = ((document.querySelector('.aurora-kb-subbar__name') || {}).textContent || '').trim(); return n === ${JSON.stringify(USAGE_FOLDER)} })()`,
+    { tries: 40, ms: 400, label: `${tag} 详情页库名` },
+  )
+  await cdp.eval(`(() => {
+    const t = [...document.querySelectorAll('.aurora-kb-subbar-tabs button, .aurora-kb-subbar-tabs [role="tab"]')]
+      .find(x => (x.textContent || '').includes('笔记'))
+    if (t) t.click(); return !!t
+  })()`)
+  await waitFor(cdp, `document.querySelectorAll('.aurora-kb-notes .aurora-kb-recent__item').length > 0`,
+    { tries: 30, ms: 400, label: `${tag} 笔记 Tab` })
+  const clicked = await cdp.eval(`(() => {
+    const want = ${JSON.stringify(USAGE_PAGES[0])}
+    const rows = [...document.querySelectorAll('.aurora-kb-notes .aurora-kb-recent__item')]
+    const r = rows.find(x => (x.textContent || '').includes(want))
+    if (!r) return false
+    r.click(); return true
+  })()`)
+  const briefAt = await waitFor(cdp, `document.querySelectorAll('.aurora-brief').length > 0`,
+    { tries: 25, ms: 400, label: `${tag} 简介页挂载` })
+  return { clicked, briefAt }
+}
 
 async function main() {
   const list = await (await fetch(`http://127.0.0.1:${CDP_PORT}/json/list`)).json()
@@ -576,6 +668,110 @@ async function main() {
 
     const e5 = cdp.since(m5)
     ok('§5 全程无新增页面错误', e5.length === 0, e5.length ? JSON.stringify(e5.slice(0, 3)) : '0 条')
+  }
+
+  // ────────── §6 🚨 第二轮需求：使用文档「只能从知识库点进去看」→ 退出即无痕 ──────────
+  // 用户原话：「从 markcraft 使用文档知识库中的笔记点击进入后，退出来到编辑器界面不要再次
+  //   显示这个笔记，也即是不要保存这个使用文档笔记文件。使用文档的笔记，只能从这个知识库中
+  //   点击进入。」
+  // 本段把「无痕」拆成三处可观测面（缺一处就退化成「部分无痕」）：
+  //   ① 不进「最近文件」（localStorage）—— 欢迎页「继续《…》」与「插入双链」候选的唯一来源；
+  //   ② 不进标签栏（退出后编辑器里看不到它）；
+  //   ③ 不落盘（IndexedDB 的 tabs/activeTabId）——「看着说明书刷新」不得被记成上次打开的文档。
+  // 全部配普通笔记对照组（证明是「条件式」而不是「把这套机制弄坏了」）。
+  if (!ONLY || ONLY === '6') {
+    console.log('\n=== 6. 【第二轮需求】使用文档「只能从知识库进」→ 退出即无痕 ===')
+    const m6 = cdp.mark()
+    // 独立起手：重置种子 + 强制重载（不依赖前面各段留下的页面状态）
+    await cdp.eval(SEED_SQL())
+    await cdp.send('Page.navigate', { url: `${BASE}/?_p=udbrief-s6-${Date.now()}#view=editor` })
+    await sleep(900)
+    const rdy6 = await ready(cdp)
+    const surface6 = await cdp.eval(`({ sidebarItems: document.querySelectorAll('.aurora-sidebar-item').length, sheets: document.styleSheets.length })`)
+    ok('§6 应用外壳已挂载且样式表到位（扫描面非空）',
+      rdy6 >= 0 && surface6.sidebarItems > 0 && surface6.sheets > 8,
+      `sidebarItems=${surface6.sidebarItems} styleSheets=${surface6.sheets}`)
+    await cdp.eval(`(() => {
+      const el = document.querySelector('.aurora-audience')
+      if (!el) return false
+      const b = [...el.querySelectorAll('button')].find(x => /开始|跳过|继续/.test(x.textContent || ''))
+      if (b) b.click(); else el.remove()
+      return true
+    })()`)
+    await sleep(300)
+
+    const tree6 = await cdp.eval(TREE_READ)
+    ok('§6 数据面非空：权威树里确实有使用文档首篇（否则「不在列表/不含它」恒真 = 假绿）',
+      !!tree6 && tree6.files.includes(USAGE_PAGES[0]), `files=${JSON.stringify(tree6 && tree6.files)}`)
+
+    // ── 6a 对照组：普通笔记照常进最近 + 照常落盘 ──
+    const clickedP = await cdp.eval(clickEmptyRow(PLAIN_NOTES[0]))
+    const atP = await waitFor(cdp, `document.querySelectorAll('.aurora-toolbar').length > 0`, { tries: 30, ms: 400, label: '§6 普通笔记标签栏' })
+    ok('§6a 普通笔记已打开（标签栏出现）', clickedP && atP >= 0, `clicked=${clickedP} waitIdx=${atP}`)
+    await sleep(800) // 等 saveState 的 300ms 防抖真正落盘
+    const recentA = await cdp.eval(RECENT_READ)
+    const persistA = await cdp.eval(PERSIST_READ)
+    info('§6a 最近文件 = ' + JSON.stringify(recentA) + '；落盘 tabs = ' + JSON.stringify(persistA.tabNames))
+    ok('§6a 对照：普通笔记**进了**「最近文件」', recentA.includes(PLAIN_NOTES[0]), `recent=${JSON.stringify(recentA)}`)
+    ok('§6a 对照：普通笔记**落盘**为标签，且全部不是瞬态',
+      persistA.found === true && persistA.tabNames.includes(PLAIN_NOTES[0]) && persistA.tabTransient.every((v) => v === false),
+      `tabs=${JSON.stringify(persistA.tabNames)} transient=${JSON.stringify(persistA.tabTransient)}`)
+
+    // ── 6b 经知识库打开使用文档 → 简介页；且**不进最近** ──
+    const recentBefore = await cdp.eval(RECENT_READ)
+    const enter1 = await openBriefViaKb(cdp, '§6b')
+    await sleep(500)
+    const chromeB = await cdp.eval(EDITOR_CHROME)
+    ok('§6b 经知识库点使用文档 → 进入编辑器并呈现简介页',
+      enter1.clicked && enter1.briefAt >= 0 && chromeB.hash === '#view=editor' && chromeB.brief > 0,
+      `clicked=${enter1.clicked} hash=${chromeB.hash} brief=${chromeB.brief}`)
+    const recentB = await cdp.eval(RECENT_READ)
+    info('§6b 最近文件 = ' + JSON.stringify(recentB))
+    ok('🚨 6b 使用文档**不进「最近文件」**（与打开前逐字节相同）',
+      !recentB.includes(USAGE_PAGES[0]) && JSON.stringify(recentB) === JSON.stringify(recentBefore),
+      `before=${JSON.stringify(recentBefore)} after=${JSON.stringify(recentB)}`)
+
+    // ── 6c 退出路径一：视图内点侧栏「编辑器」（视图 id 不变 → 只能靠 EditorPanel 显式回收）──
+    const clickedEditor = await cdp.eval(CLICK_EDITOR_SIDEBAR)
+    await sleep(700)
+    const chromeC = await cdp.eval(EDITOR_CHROME)
+    const tabsC = await cdp.eval(`[...document.querySelectorAll('.aurora-tab')].map((e) => e.getAttribute('title'))`)
+    info('§6c 点侧栏「编辑器」→ ' + JSON.stringify({ clicked: clickedEditor, brief: chromeC.brief, tabs: tabsC }))
+    ok('🚨 6c 退出后编辑器**不再显示**这篇使用文档（无简介页）', chromeC.brief === 0 && chromeC.briefMarked === 0,
+      `brief=${chromeC.brief} marked=${chromeC.briefMarked}`)
+    ok('🚨 6c 标签栏里也**没有**它（此前它会变成一枚带 × 的「已打开文档」）',
+      !tabsC.some((t) => String(t || '').includes(USAGE_PAGES[0].replace(/\.md$/, ''))),
+      `tabs=${JSON.stringify(tabsC)}`)
+    ok('§6c 非空对照：普通笔记的标签仍在（证明不是「标签栏整块没了」）',
+      tabsC.some((t) => String(t || '').includes(PLAIN_NOTES[0].replace(/\.md$/, ''))),
+      `tabs=${JSON.stringify(tabsC)}`)
+
+    // ── 6d 退出路径二：简介页「← 返回」芯片 → 回知识库 → 再进编辑器 → 落盘仍无痕 ──
+    const enter2 = await openBriefViaKb(cdp, '§6d')
+    const chipAt = await waitFor(cdp, `document.querySelectorAll('.aurora-editor__return').length > 0`, { tries: 20, ms: 300, label: '§6d 返回芯片' })
+    const clickedChip = await cdp.eval(`(() => { const b = document.querySelector('.aurora-editor__return'); if (!b) return false; b.click(); return true })()`)
+    const backAt = await waitFor(cdp, `location.hash.startsWith('#view=kb')`, { tries: 30, ms: 400, label: '§6d 回知识库' })
+    ok('§6d 从简介页点「← 返回」芯片 → 回到知识库视图',
+      enter2.clicked && chipAt >= 0 && clickedChip && backAt >= 0, `clicked=${clickedChip} waitIdx=${backAt}`)
+    await cdp.eval(CLICK_EDITOR_SIDEBAR)
+    await waitFor(cdp, `location.hash === '#view=editor'`, { tries: 30, ms: 400, label: '§6d 再进编辑器' })
+    await sleep(800) // 等落盘防抖
+    const chromeD = await cdp.eval(EDITOR_CHROME)
+    const persist6 = await cdp.eval(PERSIST_READ)
+    info('§6d chrome = ' + JSON.stringify({ brief: chromeD.brief }) + '；落盘 = ' + JSON.stringify(persist6.tabNames))
+    ok('🚨 6d 回来时编辑器不显示它（无简介页）', chromeD.brief === 0, `brief=${chromeD.brief}`)
+    ok('🚨 6d 落盘（IndexedDB）也不留它的标签 ——「看着说明书刷新」不会被记成上次打开的文档',
+      persist6.found === true &&
+      !persist6.tabNames.includes(USAGE_PAGES[0]) &&
+      !persist6.tabFileIds.includes(USAGE_DOC_FIRST_ID) &&
+      persist6.activeTabFileId !== USAGE_DOC_FIRST_ID &&
+      persist6.tabTransient.every((v) => v === false),
+      `tabs=${JSON.stringify(persist6.tabNames)} activeTabFileId=${persist6.activeTabFileId} transient=${JSON.stringify(persist6.tabTransient)}`)
+    ok('§6d 非空对照：普通笔记的标签仍在落盘里',
+      persist6.tabNames.includes(PLAIN_NOTES[0]), `tabs=${JSON.stringify(persist6.tabNames)}`)
+
+    const e6 = cdp.since(m6)
+    ok('§6 全程无新增页面错误', e6.length === 0, e6.length ? JSON.stringify(e6.slice(0, 3)) : '0 条')
   }
 
   console.log('\n=== 4. 页面错误汇总（逐视图归属）===')

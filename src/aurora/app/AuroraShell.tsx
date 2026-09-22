@@ -93,7 +93,7 @@ function ShellInner() {
   }
 
   // 命令：从共享 COMMAND_CATALOG 注册真实命令（D4 单一数据源），Aurora 接真实 action
-  const { rootFolder, hydrated, createFile, createFolder, openFile, updateFileContent, getActiveFileId, tabs, closeTab, moveNode } = useFileManager()
+  const { rootFolder, hydrated, createFile, createFolder, openFile, updateFileContent, getActiveFileId, tabs, closeTab, moveNode, closeTransientTabs } = useFileManager()
   const { settings, updateSetting } = useSettings()
   const theme = settings.theme
   const focusMode = !!settings.focusMode
@@ -104,6 +104,23 @@ function ShellInner() {
   // 实时视图 ref：供 buildAuroraActions 在调用时读取最新视图，决定是否先跳编辑器（P1-3）
   const viewRef = useRef(view)
   viewRef.current = view
+
+  // —— 瞬态（预览）标签随「离开编辑器视图」回收 ——
+  // 用户需求（2026-09-22）：「使用文档的笔记只能从这个知识库中点击进入，退出来到编辑器界面
+  // 不要再次显示这个笔记」→ 离开编辑器那一刻必须把这篇只读参考页整体丢掉（不留标签、不进最近、
+  // 不落盘，见 FileStore.closeTransientTabs）。
+  //
+  // ⚠️ 判据落在**路由**、而不是 EditorPanel 的卸载清理：根节点是 `<StrictMode>`，dev 下
+  //    每个组件 mount 都会 effect → cleanup → effect 走一轮；而「从知识库点开使用文档」正是
+  //    「先建瞬态标签 → 再切路由挂载 EditorPanel」——卸载清理会被那次**假卸载**误触发，
+  //    把刚点开的那篇当场关掉。视图切换与 StrictMode 无关，天然规避。
+  //
+  // ⚠️ 生效视图 = `auxView ?? view`：welcome / settings 是 Aurora 本地 aux 视图，它们的挂载
+  //    本身即「离开了编辑器」。两个 aux 视图下的 effect 触发都是幂等空转（此时必然没有瞬态标签）。
+  const effectiveView = auxView ?? view
+  useEffect(() => {
+    if (effectiveView !== 'editor') closeTransientTabs()
+  }, [effectiveView, closeTransientTabs])
   // —— 运行时应用主题（补偿入口切换后 legacy App 的 useEditorSettings 主题应用被移除）——
   // settings.theme 为单一数据源；首屏由 index.html 的 app-theme-preference 脚本打底，
   // 此处在其变化（含主题切换/设置改动）时即时重应用，确保 Aurora 接管真实界面后主题切换有效。

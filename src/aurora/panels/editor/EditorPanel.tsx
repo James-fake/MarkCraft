@@ -132,7 +132,7 @@ function uniqueFileName(root: FileNode, base: string): string {
  * renderedHtml 由 useMarkdownRenderer 计算；gridColumns 由 useAppLayout 推导。
  */
 export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette }: EditorPanelProps) {
-  const { rootFolder, getActiveFileId, getActiveFileContent, updateFileContent, createFile, openFile, activeTabId, tabs, markTabDirty, isAnyTabDirty } = useFileManager()
+  const { rootFolder, getActiveFileId, getActiveFileContent, updateFileContent, createFile, openFile, activeTabId, tabs, markTabDirty, isAnyTabDirty, closeTransientTabs } = useFileManager()
   const { settings, updateSetting } = useSettings()
   const { theme, toggleTheme } = useTheme()
   const { language, toggleLanguage } = useLanguage()
@@ -238,6 +238,10 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   //    hiddenIds 是「视图过滤」集合（含文件夹行），语义是「从列表里藏起来」；
   //    只读简介页该问的是「这个文件是不是那几篇写死的说明书」——
   //    用户放进该文件夹的自己的笔记**不在** builtinFileIds 里 → 仍是完整可编辑的编辑器。
+  //
+  // 🔗 与「瞬态标签」的关系（2026-09-22 第二轮需求）：命中内置篇章的文件在 FileStore.openFile
+  //    里就被打上 `isTransient`（不进最近 / 不落盘 / 不进标签栏 / 离开视图即回收），
+  //    故「只读简介页 + 瞬态生命周期」共用**同一个** builtinFileIds 判定，不会各自漂移。
   const usageDocs = useUsageDocsScope()
   const isUsageDoc = !!activeFileId && usageDocs.builtinFileIds.has(activeFileId)
 
@@ -670,7 +674,15 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
       <PageFrame
         sidebarGroups={AURORA_SIDEBAR_GROUPS}
         sidebarActiveId="编辑器"
-        onSidebarSelect={(id) => nav?.(resolveAuroraNav(id))}
+        onSidebarSelect={(id) => {
+          // 视图内显式导航 = 离开只读参考页：先回收瞬态标签再跳。
+          // ⚠️ 这一步不能只靠 AuroraShell 的「路由离开编辑器」——
+          //    点侧栏「编辑器」时视图 id 没变（仍是 editor），路由 effect 不会触发；
+          //    但用户意图明确是「回到我自己的编辑器」，此时若留着瞬态标签，
+          //    编辑区会继续显示使用文档 → 正是「退出后还看得见这篇」的报障场景。
+          closeTransientTabs()
+          nav?.(resolveAuroraNav(id))
+        }}
         breadcrumbs={breadcrumbItems}
         titlebarModified={activeTabDirty}
         savedState={activeFileId ? (activeTabDirty ? 'unsaved' : 'saved') : undefined}

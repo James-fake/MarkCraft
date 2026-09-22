@@ -100,21 +100,29 @@ export function AuroraTabs({ onAllClosed, onPublishFile, onAddToKbFile }: Aurora
     [contextMenu, onPublishFile, onAddToKbFile],
   )
 
+  // —— 瞬态（预览）标签不出现在标签栏 ——
+  // 内置「使用文档」是写死的只读参考页，不是「打开的文件」（需求：只能从知识库点进去看，
+  // 不能变成编辑器里一个被打开 / 被记住的文档）。它仍存在于 store 的 tabs 里（承载 activeFileId
+  // → 内容 → 只读简介页这条既有链路），但对标签栏**不可见**。
+  // ⚠️ 空判据与「关闭最后一个标签」都要用 visibleTabs —— 否则一个只剩瞬态标签的标签栏
+  //    会渲染成空条（且 `tabs.length === 0` 的空态判据失效）。
+  const visibleTabs = tabs.filter((tab) => !tab.isTransient)
+
   // 关闭单个标签
   const handleCloseTab = useCallback(
     (tab: Tab) => {
       closeTab(tab.id)
-      if (tabs.length <= 1) onAllClosed?.()
+      if (visibleTabs.length <= 1) onAllClosed?.()
     },
-    [closeTab, tabs.length, onAllClosed],
+    [closeTab, visibleTabs.length, onAllClosed],
   )
 
-  if (tabs.length === 0) return null
+  if (visibleTabs.length === 0) return null
 
   return (
     <div className="aurora-tabs">
       <div className="aurora-tabs__strip">
-        {tabs.map((tab) => {
+        {visibleTabs.map((tab) => {
           const isActive = tab.isActive
           const isDragged = draggedTabId === tab.id
           const isDropTarget = dropTargetTabId === tab.id

@@ -1,0 +1,240 @@
+/**
+ * FileStore · 内置「使用文档」= **瞬态（预览）标签**（回归锁）
+ * ============================================================================
+ * 用户需求（2026-09-22，第二轮）：
+ *   「从 MarkCraft 使用文档知识库中的笔记点击进入后，退出来到编辑器界面不要再次显示这个笔记，
+ *     也就是不要保存这个使用文档笔记文件。使用文档的笔记只能从这个知识库中点击进入。」
+ *
+ * 语义拆解 = 四条互相独立的约束，本文件逐条钉死（缺一条就退化成「部分无痕」）：
+ *   ① **不进「最近文件」** —— 否则内联「插入双链」的候选与欢迎页「继续《…》」会把说明书当用户文档；
+ *   ② **不进标签栏**（`AuroraTabs` 过滤，见 AuroraTabs 的测试）—— 它不是「打开的文件」；
+ *   ③ **不落盘** —— 否则「看着说明书时刷新 / 关闭」会被记成「上次打开的文档」；
+ *   ④ **离开编辑器视图即整体回收**（`closeTransientTabs`）。
+ * 并且用**普通笔记对照组**证明这些都是条件式的 ——「不存在」类断言在功能整块坏掉时同样恒真。
+ *
+ * 夹具用最小 Provider 栈（Language > UndoRedo > FileManager），不引 aurora 装配层
+ * （避免 stores → aurora 的反向依赖，守卫 `no-aurora-ui-import`）。IndexedDB 用 fake-indexeddb。
+ */
+import 'fake-indexeddb/auto'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { renderHook, act, waitFor, cleanup } from '@testing-library/react'
+import type { ReactNode } from 'react'
+import { db } from '@core/storage/db'
+import { loadLargeData } from '@core/storage/migrate'
+import { getRecentFiles } from '@core/files/recentFiles'
+import type { FileManagerState } from '../types/fileManager'
+import { LanguageProvider } from './LanguageStore'
+import { UndoRedoProvider } from './UndoRedoStore'
+import { FileManagerProvider, useFileManager } from './FileStore'
+import { USAGE_DOC_FOLDER, USAGE_DOC_ALL } from '@core/data/defaultDocs/usageDocs/zh'
+
+const T = 1700000000000
+const STORAGE_KEY = 'markcraft-file-manager'
+/** core/files/recentFiles 的内部键（未导出，此处按值引用：脏数据必须原样构造才真实） */
+const RECENT_KEY = 'markcraft_recent_files'
+
+/** 内置篇章首篇的真实文件名（'00 开始使用.md'）—— 判定靠**文件名命中清单**，故必须用真名 */
+const BUILTIN_NAME = USAGE_DOC_ALL[0].fileName
+const FOLDER_ID = 'docs-folder'
+const BUILTIN_ID = 'builtin-doc'
+const NOTES_FOLDER_ID = 'my-notes'
+const NOTE_ID = 'user-note'
+
+/** 权威树：内置使用文档文件夹（含 1 篇说明书）+「我的笔记」（含 1 篇用户笔记） */
+function fixtureState(): FileManagerState {
+  return {
+    rootFolder: {
+      id: 'root',
+      name: '文件管理器',
+      type: 'folder',
+      createdAt: T,
+      updatedAt: T,
+      children: [
+        {
+          id: FOLDER_ID,
+          name: USAGE_DOC_FOLDER,
+          type: 'folder',
+          createdAt: T,
+          updatedAt: T,
+          children: [
+            {
+              id: BUILTIN_ID,
+              name: BUILTIN_NAME,
+              type: 'file',
+              content: '# MarkCraft 使用文档\n\n内置说明书正文。',
+              createdAt: T,
+              updatedAt: T,
+            },
+          ],
+        },
+        {
+          id: NOTES_FOLDER_ID,
+          name: '我的笔记',
+          type: 'folder',
+          createdAt: T,
+          updatedAt: T,
+          children: [
+            {
+              id: NOTE_ID,
+              name: '普通笔记.md',
+              type: 'file',
+              content: '# 普通笔记\n\n用户自己的内容。',
+              createdAt: T,
+              updatedAt: T,
+            },
+          ],
+        },
+      ],
+    },
+    tabs: [],
+    activeTabId: null,
+    searchQuery: '',
+    sidebarVisible: true,
+  }
+}
+
+function Wrapper({ children }: { children: ReactNode }) {
+  return (
+    <LanguageProvider>
+      <UndoRedoProvider>
+        <FileManagerProvider>{children}</FileManagerProvider>
+      </UndoRedoProvider>
+    </LanguageProvider>
+  )
+}
+
+/** 按真实落盘读取路径取回持久化 state（与 loadStateAsync 同一条链路） */
+async function readPersisted(): Promise<FileManagerState | null> {
+  const raw = await loadLargeData(STORAGE_KEY)
+  return raw ? (JSON.parse(raw) as FileManagerState) : null
+}
+
+async function mountHydrated() {
+  const r = renderHook(() => useFileManager(), { wrapper: Wrapper })
+  await waitFor(() => expect(r.result.current.hydrated).toBe(true))
+  return r
+}
+
+beforeEach(async () => {
+  localStorage.clear()
+  await db.kv.clear()
+  // 版本号匹配 → loadState 不重建树（树只在 IDB 里，制造两阶段现场）；
+  // 迁移键置位 → 避免 loadStateAsync 往权威树里注入《知识链接体系指南》干扰断言。
+  localStorage.setItem(`${STORAGE_KEY}-version`, 'v5')
+  localStorage.setItem('markcraft-migrated-link-guide-v2', '1')
+  await db.kv.put({ key: STORAGE_KEY, value: JSON.stringify(fixtureState()) })
+})
+
+afterEach(async () => {
+  cleanup()
+  // saveState 是 300ms 防抖且定时器是**模块级**的 —— 等它跑完再清，避免污染下一个用例
+  await new Promise((r) => setTimeout(r, 350))
+  await db.kv.clear()
+})
+
+describe('FileStore · 内置使用文档 = 瞬态标签', () => {
+  it('① 打开使用文档：标签标为瞬态，且**不进「最近文件」**', async () => {
+    const { result } = await mountHydrated()
+    expect(getRecentFiles(), '前置条件：最近文件应为空').toEqual([])
+
+    act(() => { result.current.openFile(BUILTIN_ID) })
+
+    expect(result.current.getActiveFileId()).toBe(BUILTIN_ID)
+    const tab = result.current.tabs.find((t) => t.fileId === BUILTIN_ID)
+    expect(tab, '使用文档应当以标签承载内容链路（activeFileId → 内容 → 只读简介页）').toBeTruthy()
+    expect(tab!.isTransient, '使用文档的标签必须是瞬态').toBe(true)
+    // ① 不进最近 —— 否则会被欢迎页「继续《…》」与「插入双链」候选当成用户文档
+    expect(getRecentFiles().map((f) => f.fileId)).not.toContain(BUILTIN_ID)
+  })
+
+  // ★ 对照组：证明「瞬态 / 不进最近」是条件式的，而不是把整套打开逻辑弄坏了
+  it('② 对照组 · 普通笔记：标签不是瞬态，且照常进「最近文件」', async () => {
+    const { result } = await mountHydrated()
+
+    act(() => { result.current.openFile(NOTE_ID) })
+
+    expect(result.current.getActiveFileId()).toBe(NOTE_ID)
+    const tab = result.current.tabs.find((t) => t.fileId === NOTE_ID)
+    expect(tab).toBeTruthy()
+    expect(tab!.isTransient).toBeUndefined()
+    expect(getRecentFiles().map((f) => f.fileId)).toContain(NOTE_ID)
+  })
+
+  it('③ 退出使用文档：瞬态标签整体回收，落回最后打开的那篇永久文档（activeTabId 与 isActive 同源）', async () => {
+    const { result } = await mountHydrated()
+
+    act(() => { result.current.openFile(NOTE_ID) })       // 永久文档
+    act(() => { result.current.openFile(BUILTIN_ID) })    // 瞬态预览（激活）
+    expect(result.current.getActiveFileId()).toBe(BUILTIN_ID)
+
+    act(() => { result.current.closeTransientTabs() })
+
+    expect(result.current.tabs.some((t) => t.isTransient)).toBe(false)
+    expect(result.current.tabs.map((t) => t.fileId)).toEqual([NOTE_ID])
+    expect(result.current.getActiveFileId()).toBe(NOTE_ID)
+    // 🚨 同源校验：isActive 与 activeTabId 不得互相矛盾（该缺陷模式已在本仓出现过一次）
+    expect(result.current.tabs.filter((t) => t.isActive).map((t) => t.id))
+      .toEqual([result.current.activeTabId])
+  })
+
+  it('④ 一篇不剩时退出：回到「未打开文档」空态（编辑器里不留任何痕迹）', async () => {
+    const { result } = await mountHydrated()
+
+    act(() => { result.current.openFile(BUILTIN_ID) })
+    act(() => { result.current.closeTransientTabs() })
+
+    expect(result.current.tabs).toEqual([])
+    expect(result.current.activeTabId).toBeNull()
+    expect(result.current.getActiveFileId()).toBeNull()
+  })
+
+  it('⑤ 打开普通文档：现存瞬态标签被一并回收（预览被正式打开替换）', async () => {
+    const { result } = await mountHydrated()
+
+    act(() => { result.current.openFile(BUILTIN_ID) })
+    expect(result.current.tabs.map((t) => t.fileId)).toEqual([BUILTIN_ID])
+
+    act(() => { result.current.openFile(NOTE_ID) })
+
+    // 不得在标签栏底下留一个隐形的说明书标签
+    expect(result.current.tabs.map((t) => t.fileId)).toEqual([NOTE_ID])
+    expect(result.current.tabs.some((t) => t.isTransient)).toBe(false)
+    expect(result.current.getActiveFileId()).toBe(NOTE_ID)
+  })
+
+  it('⑥ 落盘不含瞬态标签 ——「看着说明书时刷新」不会被记成「上次打开的文档」', async () => {
+    const { result } = await mountHydrated()
+
+    act(() => { result.current.openFile(NOTE_ID) })
+    act(() => { result.current.openFile(BUILTIN_ID) })   // 此刻激活的是瞬态
+
+    // 等防抖保存真的把「含标签」的那一版写进 IndexedDB（夹具版本 tabs 为空，故可作就绪闸口）
+    await waitFor(async () => {
+      const s = await readPersisted()
+      expect(s?.tabs.length ?? 0).toBeGreaterThan(0)
+    }, { timeout: 3000 })
+
+    const persisted = (await readPersisted())!
+    expect(persisted.tabs.some((t) => t.isTransient)).toBe(false)
+    expect(persisted.tabs.map((t) => t.fileId)).toEqual([NOTE_ID])
+    // 悬空 activeTabId 会让下次启动「标题栏说打开了文件、编辑区却是空的」——必须一并修正
+    expect(persisted.activeTabId).toBe(persisted.tabs[0].id)
+  })
+
+  it('⑦ 老数据净化：遗留在「最近文件」里的使用文档条目在启动后被清掉，用户自己的条目原样保留', async () => {
+    // 旧版 openFile 无条件 addRecentFile 留下的脏数据（最靠前 = 会被欢迎页当作「继续《…》」）
+    localStorage.setItem(RECENT_KEY, JSON.stringify([
+      { fileId: BUILTIN_ID, fileName: BUILTIN_NAME, lastOpened: T, isPinned: false },
+      { fileId: NOTE_ID, fileName: '普通笔记.md', lastOpened: T - 1000, isPinned: false },
+    ]))
+
+    const { result } = await mountHydrated()
+
+    await waitFor(() => {
+      expect(getRecentFiles().map((f) => f.fileId)).not.toContain(BUILTIN_ID)
+    })
+    // ⚠️ 别把「净化」做成「清空」：用户的笔记条目必须留下
+    expect(getRecentFiles().map((f) => f.fileId)).toEqual([NOTE_ID])
+    expect(result.current.hydrated).toBe(true)
+  })
+})
