@@ -10,6 +10,8 @@ import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useTagIndex } from '@stores/TagIndexStore'
 import { useFileManager } from '@stores/FileStore'
 import { useKbStore } from '@stores/useKbStore'
+import { loadKb, getKbFiles } from '@stores/kbStore'
+import type { KnowledgeBase } from '@stores/kbTypes'
 import { useDashboardData } from '@features/dashboard'
 import { findNode } from '@core/files/fileTree'
 import type { FileNode } from '@src/types/fileManager'
@@ -18,7 +20,7 @@ import '../../styles/panels/graph.css'
 // —— 字数统计：复用真实 features/editor/stats 单一数据源（D4，不维护平行实现）——
 import { countWords } from '@features/editor/stats'
 import { setEditorReturn } from '../../navigation/navReturn'
-import { readGraphSession, saveGraphSession, type GraphNodePos } from './graphSession'
+import { readGraphSession, saveGraphSession, type GraphNodePos, type GraphSession } from './graphSession'
 
 /**
  * Aurora 知识图谱面板（双链图谱）· 按设计规范 28 重设计 + 补齐缺失模块
@@ -54,7 +56,8 @@ type EdgeKind = 'wiki' | 'embed' | 'tag' | 'folder'
 export type Layout = 'force' | 'concentric' | 'tree' | 'grid'
 export type GraphMode = 'global' | 'local' | 'backlinks' | 'forwardlinks' | 'tag'
 
-interface GNode {
+// 图谱节点/边模型：scopeGraphToKb（知识库范围裁剪）需要以类型形式对外暴露，故导出
+export interface GNode {
   id: string
   label: string
   type: NodeType
@@ -75,7 +78,7 @@ interface GNode {
   hidden: boolean
 }
 
-interface GEdge {
+export interface GEdge {
   source: string
   target: string
   kind: EdgeKind
@@ -161,6 +164,61 @@ function computeDegrees(nodes: GNode[], edges: GEdge[]) {
   })
 }
 
+/**
+ * 把全局图谱裁到「某个知识库」的范围（2026-09-23 用户需求）。
+ *
+ * 场景：知识库概览 →「查看完整图谱」进入双链图谱，此前看到的是**全库文件**的全局图，
+ * 文件管理器里跟这个知识库无关的笔记也混在里面。要求：只留该知识库的文件节点。
+ *
+ * 判据（与知识库详情页 KPI / 博客清单同源口径 —— 都是 `getKbFiles` 的结果）：
+ *  ① file 节点：仅保留 id ∈ kbFileIds 的；
+ *  ② 标签：先取「有一端是库内文件」的边，其 tag 端点即「本库笔记用到的标签」——
+ *     只被库外笔记使用的标签不会进入候选（不残留成孤岛）；
+ *  ③ 边：两端都在（库内文件 ∪ 上述标签）集合内才保留（一端出界即整条丢弃 ——
+ *     不允许「线还在、对面是鬼」，也不允许「库外笔记挂在库内标签上」）；
+ *  ④ folder 节点：数据层当前不生成（见 buildGraphData 注），故无需分支。
+ *
+ * ⚠️ ②③ 必须分两步：不能先用「库内文件 id 集合」直接过滤边 ——
+ * 那样「库内文件 → 标签」的边会因 tag 端点不在集合内而被整条误删，
+ * 标签节点随之全部消失（本函数的单测 ①②③ 即锁这一层）。
+ *
+ * 纯函数：无 React、无 store 依赖，可直接单测。deg/inLinks/outLinks 由调用方
+ * computeDegrees 在裁剪后的边上重算，故此处不维护派生字段。
+ */
+export function scopeGraphToKb(
+  data: { nodes: GNode[]; edges: GEdge[] },
+  kbFileIds: ReadonlySet<string>,
+): { nodes: GNode[]; edges: GEdge[] } {
+  const files = data.nodes.filter((n) => n.type === 'file' && kbFileIds.has(n.id))
+  const fileKeep = new Set(files.map((n) => n.id))
+  // 第 1 步：一端落在库内文件上的边 → 其 tag 端点就是「本库用到的标签」
+  const touched = data.edges.filter((e) => fileKeep.has(e.source) || fileKeep.has(e.target))
+  const tagKeep = new Set<string>()
+  for (const e of touched) {
+    if (e.kind !== 'tag') continue
+    tagKeep.add(e.source)
+    tagKeep.add(e.target)
+  }
+  // 第 2 步：真值集合 = 库内文件 ∪ 本库用到的标签，边两端都必须在其中
+  const keep = new Set<string>([...fileKeep, ...tagKeep])
+  const edges = data.edges.filter((e) => keep.has(e.source) && keep.has(e.target))
+  const tags = data.nodes.filter((n) => n.type === 'tag' && tagKeep.has(n.id))
+  return { nodes: [...files, ...tags], edges }
+}
+
+/**
+ * 读取「与本范围匹配」的图谱现场。
+ *
+ * graphSession 是模块级单例，若不按范围隔离，会出现两类串台：
+ *  - 某知识库图谱 → 侧栏进全局：沿用范围图的坐标/中心 ⇒ 图少了一半、位置却还是那半张；
+ *  - 全局 → 某知识库：中心节点指向库外笔记（sceneRef 的 centerId 不在本图里）。
+ * 故把「范围」（kbId，'' = 全局）也记进现场，范围不符即视为无现场（重新布点，符合直觉）。
+ */
+function readScopedSession(kbId?: string): GraphSession | null {
+  const s = readGraphSession()
+  return s && (s.kbId ?? '') === (kbId ?? '') ? s : null
+}
+
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 
 function relTime(ts?: number): string {
@@ -178,6 +236,13 @@ function relTime(ts?: number): string {
 interface GraphPanelProps {
   nav?: (id: string, param?: string) => void
   toast?: (msg: string) => void
+  /**
+   * 图谱范围：来自知识库「查看完整图谱」时带入的知识库 id。
+   * 带值时图谱只画**该库内的笔记节点**（及库内互链、库内笔记用到的标签）；
+   * 不带值时是全局图谱（侧栏「双链图谱」/ 菜单栏 / 命令面板进入的默认形态）。
+   * 见 scopeGraphToKb。
+   */
+  kbId?: string
 }
 
 // P2-3 颜色分组：标签或名称关键词匹配 → 节点着色（localStorage 持久化）
@@ -211,7 +276,7 @@ function hexPoints(cx: number, cy: number, r: number): string {
   return pts.join(' ')
 }
 
-export function GraphPanel({ nav, toast }: GraphPanelProps) {
+export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
   // —— 真实数据接入：LinkIndex 图谱 + TagIndex + FileStore（D8 续·Phase 2 第六批）——
   const { getGraphData, getFilePath } = useLinkIndex()
   const { tagIndex } = useTagIndex()
@@ -220,11 +285,31 @@ export function GraphPanel({ nav, toast }: GraphPanelProps) {
   const kbStore = useKbStore()
   const activeFileId = getActiveFileId()
 
-  const graph = useMemo(() => getGraphData(tagIndex), [getGraphData, tagIndex])
-  const realData = useMemo(
-    () => buildGraphData(graph, rootFolder, activeFileId, getFilePath, tagIndex),
-    [graph, rootFolder, activeFileId, getFilePath, tagIndex],
+  // —— 图谱范围（2026-09-23 用户需求）：带 kbId 时只画该知识库内的笔记节点 ——
+  // kb 文档按 id 现取（与 KbPanel 同源用 loadKb），刻意不用 useKbStore.activeKb：
+  // 那是「知识库面板当前打开的库」，图谱既不该驱动它、也不该被它影响。
+  const [scopeKb, setScopeKb] = useState<KnowledgeBase | null>(null)
+  useEffect(() => {
+    let alive = true
+    if (!kbId) {
+      setScopeKb(null)
+      return () => { alive = false }
+    }
+    void loadKb(kbId).then((k) => { if (alive) setScopeKb(k) })
+    return () => { alive = false }
+  }, [kbId])
+
+  // 库内文件 id 集合：null = 无范围（全局图谱）；空集合 = 该库暂时没有文件（图谱显示空态）
+  const kbFileIds = useMemo(
+    () => (scopeKb ? new Set(getKbFiles(rootFolder, scopeKb)) : null),
+    [scopeKb, rootFolder],
   )
+
+  const graph = useMemo(() => getGraphData(tagIndex), [getGraphData, tagIndex])
+  const realData = useMemo(() => {
+    const base = buildGraphData(graph, rootFolder, activeFileId, getFilePath, tagIndex)
+    return kbFileIds ? scopeGraphToKb(base, kbFileIds) : base
+  }, [graph, rootFolder, activeFileId, getFilePath, tagIndex, kbFileIds])
   const allTags = useMemo(
     () => Array.from(tagIndex.keys()).map((p) => (p.includes('/') ? p.split('/').pop()! : p)),
     [tagIndex],
@@ -239,7 +324,7 @@ export function GraphPanel({ nav, toast }: GraphPanelProps) {
     const prev = new Map(nodesRef.current.map((n) => [n.id, n]))
     // 图谱现场（graphSession）：本次是「返回图谱」时，节点坐标沿用上次离开前的位置，
     // 于是返回即原图原位，而不是重新随机布点
-    const remembered = readGraphSession()?.positions
+    const remembered = readScopedSession(kbId)?.positions
     const ns: GNode[] = realData.nodes.map((n) => {
       const old = prev.get(n.id) ?? remembered?.[n.id]
       if (old) return { ...n, x: old.x, y: old.y, vx: old.vx, vy: old.vy, tx: old.tx, ty: old.ty }
@@ -267,13 +352,13 @@ export function GraphPanel({ nav, toast }: GraphPanelProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const [size, setSize] = useState({ w: 1200, h: 800 })
 
-  const [view, setView] = useState(() => readGraphSession()?.view ?? { scale: 1, tx: 0, ty: 0 })
+  const [view, setView] = useState(() => readScopedSession(kbId)?.view ?? { scale: 1, tx: 0, ty: 0 })
   const viewRef = useRef(view)
   viewRef.current = view
 
   const [tick, bump] = useReducer((x: number) => (x + 1) % 1_000_000, 0)
 
-  const [selectedId, setSelectedId] = useState<string | null>(() => readGraphSession()?.selectedId ?? null)
+  const [selectedId, setSelectedId] = useState<string | null>(() => readScopedSession(kbId)?.selectedId ?? null)
   const [hoverId, setHoverId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   // —— 使用优化⑦ · 左缘导航：对齐编辑器 v7 范式 ——
@@ -386,10 +471,10 @@ export function GraphPanel({ nav, toast }: GraphPanelProps) {
   // G4/I3 打通：链接健康复用 useDashboardData 单一数据源（一处检测、两处呈现）
   const dash = useDashboardData('month')
   const { linkHealth, healthScore, band } = dash
-  const [layout, setLayout] = useState<Layout>(() => readGraphSession()?.layout ?? 'force')
-  const [mode, setMode] = useState<GraphMode>(() => readGraphSession()?.mode ?? 'global')
+  const [layout, setLayout] = useState<Layout>(() => readScopedSession(kbId)?.layout ?? 'force')
+  const [mode, setMode] = useState<GraphMode>(() => readScopedSession(kbId)?.mode ?? 'global')
   const [depth, setDepth] = useState(2)
-  const [centerId, setCenterId] = useState(() => readGraphSession()?.centerId ?? '')
+  const [centerId, setCenterId] = useState(() => readScopedSession(kbId)?.centerId ?? '')
   const [hidden, setHidden] = useState<Set<string>>(new Set())
   // P1-3 展开邻居：右键把一跳邻居并入显示（scope 之外也可见），切模式/重置时清空
   const [extraNeighbors, setExtraNeighbors] = useState<Set<string>>(new Set())
@@ -413,11 +498,12 @@ export function GraphPanel({ nav, toast }: GraphPanelProps) {
   // 画布的「点空白处清空选中」必须据此区分，否则点完节点立刻被自己清掉
   const nodeGestureRef = useRef(false)
 
-  // —— 图谱现场写回：每次渲染刷新快照（5 个字段，开销可忽略），卸载时连同节点坐标存入 graphSession ——
+  // —— 图谱现场写回：每次渲染刷新快照（6 个字段，开销可忽略），卸载时连同节点坐标存入 graphSession ——
   // 卸载清理对「任何离开方式」都成立（侧栏切换 / ⌘K 跳编辑器 / 节点跳转），
   // 因此不必在每个出口手动登记；返回图谱时由上面的 restore 读取。
-  const sceneRef = useRef({ view, layout, mode, centerId, selectedId })
-  sceneRef.current = { view, layout, mode, centerId, selectedId }
+  // 快照含「范围」（kbId，'' = 全局）—— 范围不同的现场互不复原，见 readScopedSession。
+  const sceneRef = useRef({ view, layout, mode, centerId, selectedId, kbId: kbId ?? '' })
+  sceneRef.current = { view, layout, mode, centerId, selectedId, kbId: kbId ?? '' }
   useEffect(
     () => () => {
       const positions: Record<string, GraphNodePos> = {}
@@ -427,7 +513,16 @@ export function GraphPanel({ nav, toast }: GraphPanelProps) {
     [],
   )
 
-  const handleNav = (id: string) => nav?.(resolveAuroraNav(id))
+  const handleNav = (id: string) => {
+    const target = resolveAuroraNav(id)
+    // 范围内：侧栏「知识库」回到**本库详情**（与进入路径对称，形成 知识库 ⇄ 图谱 往返闭环）；
+    // 想回到知识库列表，走知识库页面包屑首段「知识库」这一既有出口。
+    if (scopeKb && target === 'kb') {
+      nav?.('kb', scopeKb.id)
+      return
+    }
+    nav?.(target)
+  }
 
   // ---- 尺寸 ----
   useEffect(() => {
@@ -862,7 +957,13 @@ export function GraphPanel({ nav, toast }: GraphPanelProps) {
     setSelectedId(id)
     // 卸载清理读的是 sceneRef（本组件不会在卸载前再渲染一次），故此处显式同步选中项
     sceneRef.current = { ...sceneRef.current, selectedId: id }
-    setEditorReturn({ view: 'graph', label: '双链图谱' })
+    // 返回来源也带上「范围」：范围内点开笔记时寄存器记 kbId，编辑器「← 返回」据此
+    // nav('graph', kbId) 回到**同一范围的图谱**，而不是无声地退回成全局图
+    setEditorReturn(
+      scopeKb
+        ? { view: 'graph', kbId: scopeKb.id, label: `${scopeKb.name} · 图谱` }
+        : { view: 'graph', label: '双链图谱' },
+    )
     openFile(id)
     handleNav('编辑器')
   }
@@ -1093,8 +1194,11 @@ export function GraphPanel({ nav, toast }: GraphPanelProps) {
       sidebarGroups={AURORA_SIDEBAR_GROUPS}
       sidebarActiveId="双链图谱"
       onSidebarSelect={handleNav}
-      breadcrumbs={['双链图谱']}
+      // 范围明示：范围内把库名接到面包屑上（「双链图谱 › XX 库」），点首段即退出范围回全局图
+      breadcrumbs={scopeKb ? ['双链图谱', scopeKb.name] : ['双链图谱']}
+      breadcrumbOnClick={scopeKb ? (i) => { if (i === 0) nav?.('graph') } : undefined}
       statusLeftItems={[
+        ...(scopeKb ? [{ content: `范围：${scopeKb.name}`, clickable: true, onClick: () => nav?.('graph') }] : []),
         { content: `笔记 ${stats.note}` },
         { content: `标签 ${stats.tag}` },
         { content: `文件夹 ${stats.folder}` },
@@ -1375,6 +1479,24 @@ export function GraphPanel({ nav, toast }: GraphPanelProps) {
         <div className="aurora-graph__canvas" ref={wrapRef}>
           {/* 方案 C · 顶部筛选条：搜索 + 节点类型 + 着色（高频操作提升，告别左栏长列表混排） */}
           <div className="aurora-graph__topbar">
+            {/* 范围芯片（仅知识库范围内出现）：一眼看清「现在看的只是这一个库」，并给出一键退出口 */}
+            {scopeKb && (
+              <>
+                <span className="aurora-graph__scope" title={`仅显示「${scopeKb.name}」知识库内的笔记节点`}>
+                  <Icon.book size={13} />
+                  <span className="aurora-graph__scope-name">{scopeKb.name}</span>
+                </span>
+                <button
+                  type="button"
+                  className="aurora-graph__scope-exit"
+                  onClick={() => nav?.('graph')}
+                  title="退出知识库范围，查看全局图谱"
+                >
+                  查看全局图谱
+                </button>
+                <span className="aurora-graph__topbar-sep" />
+              </>
+            )}
             <div className="aurora-graph__search">
               <Icon.search size={14} />
               <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索节点…" />
@@ -1491,6 +1613,11 @@ export function GraphPanel({ nav, toast }: GraphPanelProps) {
                 return (
                   <g
                     key={n.id}
+                    // 节点身份锚点（对齐 BlogPanel 的 data-file-id 惯例）：label 只在
+                    // 孤立/热点/悬停/命中节点上渲染，靠文字认节点会漏判，
+                    // 故把 id/type 挂到 DOM 上供测试与真机探针精确定位（无视觉影响）。
+                    data-node-id={n.id}
+                    data-node-type={n.type}
                     className={`aurora-graph__node${act ? ' is-active' : ''}${hov ? ' is-hover' : ''}${dim ? ' is-dim' : ''}`}
                     onPointerDown={(e) => onNodePointerDown(e, n.id)}
                     onDoubleClick={(e) => {
@@ -1718,8 +1845,18 @@ export function GraphPanel({ nav, toast }: GraphPanelProps) {
           {visibleIds.size === 0 && (
             <div className="aurora-graph__empty">
               <Icon.graph size={32} />
-              <div className="title">没有匹配的节点</div>
-              <div className="sub">调整筛选条件、标签选择或图谱模式，图谱将重新显现。</div>
+              {/* 范围内的空态必须说明「是范围所致」，否则用户会以为是筛选条件把图筛没了 */}
+              <div className="title">{scopeKb ? '本知识库暂无可显示的节点' : '没有匹配的节点'}</div>
+              <div className="sub">
+                {scopeKb
+                  ? `「${scopeKb.name}」内还没有笔记，或这些笔记之间尚未建立引用关系。`
+                  : '调整筛选条件、标签选择或图谱模式，图谱将重新显现。'}
+              </div>
+              {scopeKb && (
+                <button type="button" className="aurora-graph__empty-exit" onClick={() => nav?.('graph')}>
+                  查看全局图谱
+                </button>
+              )}
             </div>
           )}
         </div>

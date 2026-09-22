@@ -28,6 +28,7 @@ vi.mock('../../../stores/kbStore', () => ({
 
 import { RealProviders } from '../../providers/RealProviders'
 import { KbPanel } from './KbPanel'
+import { getKbList } from '../../../stores/kbStore'
 import { FileDependencyPanel } from '@features/knowledgeBase/components/FileDependencyPanel'
 
 function renderPanel() {
@@ -184,7 +185,7 @@ describe('KbPanel 接真实知识库数据（kbStore + LinkIndex + TagIndex）',
     expect(screen.getAllByText('打开').length).toBeGreaterThan(0)
   })
 
-  it('P1 闭环：概览「查看完整图谱」跳转双链图谱（KB↔图谱串联）', async () => {
+  it('P1 闭环：概览「查看完整图谱」跳转双链图谱，且**带上库 id 限定范围**（KB↔图谱串联）', async () => {
     const mockNav = vi.fn()
     render(
       <RealProviders>
@@ -193,7 +194,17 @@ describe('KbPanel 接真实知识库数据（kbStore + LinkIndex + TagIndex）',
     )
     await screen.findAllByText('测试知识库 X')
     fireEvent.click(screen.getByText(/查看完整图谱/))
-    expect(mockNav).toHaveBeenCalledWith('graph')
+    // 2026-09-23 报障修复：此前是裸 nav('graph')，AuroraShell 无从得知来源库 ⇒ 图谱恒为全局图，
+    // 文件管理器里与本库无关的笔记也混在里面。现必须带库 id（缺省取列表首项 = kb-test），
+    // 由 GraphPanel#scopeGraphToKb 裁到本库文件节点。
+    expect(mockNav).toHaveBeenCalledWith('graph', 'kb-test')
+  })
+
+  it('回归：列表为空时不渲染图谱入口（不存在「带着空 id 进图谱」的路径）', async () => {
+    vi.mocked(getKbList).mockResolvedValueOnce([])
+    renderPanel()
+    expect(await screen.findByText('尚未选择知识库')).toBeTruthy()
+    expect(screen.queryByText(/查看完整图谱/)).toBeNull()
   })
 
   // ── 回归锁：Tab 现场记忆（2026-09-22 第六轮报障）──

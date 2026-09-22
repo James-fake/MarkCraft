@@ -74,7 +74,9 @@ function ShellInner() {
       case 'diary':
         return <DiaryPanel nav={nav} toast={toast.show} />
       case 'graph':
-        return <GraphPanel nav={nav} toast={toast.show} />
+        return params?.kbId
+          ? <GraphPanel kbId={params.kbId} nav={nav} toast={toast.show} />
+          : <GraphPanel nav={nav} toast={toast.show} />
       case 'blog':
         return params?.kbId ? (
           <BlogPanel kbId={params.kbId} nav={nav} toast={toast.show} />

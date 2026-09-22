@@ -99,12 +99,17 @@ interface OverviewData {
 function OverviewTab({
   toast,
   data,
-  nav,
+  onOpenFullGraph,
   onOpenNote,
 }: {
   toast?: (m: string) => void
   data: OverviewData
-  nav?: (id: string) => void
+  /**
+   * 「查看完整图谱」的动作。由 KbPanel 注入并**在此处只负责触发**：
+   * 图谱入参（kbId）的拼装单源收敛在 KbPanel 的 openFullGraph 里，
+   * 免得哑组件各自拼 nav 参数、把「范围」这件事散成多处真值。
+   */
+  onOpenFullGraph?: () => void
   /**
    * 文件行的打开动作（在编辑器中打开指定笔记）。
    * 缺省时「最近活动」退化为纯展示列表 —— 不再出现「看着可点、点了没反应」的哑行。
@@ -215,8 +220,8 @@ function OverviewTab({
       <div className="aurora-kb-card aurora-kb-card--graph">
         <div className="aurora-kb-card__title">
           专属图谱<span className="aurora-kb-card__hint">节点=笔记 · 连线=引用</span>
-          {nav && (
-            <button className="aurora-kb-card__link" onClick={() => nav('graph')} title="在完整双链图谱中查看">
+          {onOpenFullGraph && (
+            <button className="aurora-kb-card__link" onClick={onOpenFullGraph} title="在完整双链图谱中查看（仅本库）">
               查看完整图谱 →
             </button>
           )}
@@ -411,9 +416,16 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
   const kbName = kb?.name ?? ''
   const healthTotal = data.health?.total ?? null
 
+  // 图谱入口单源：带上本库 id，AuroraShell 据此把「双链图谱」裁到本库文件节点
+  // （不带 id 的调用形态保持不变 ⇒ 侧栏 / 菜单栏 / 命令面板进入仍为全局图谱）
+  const openFullGraph = useCallback(() => {
+    if (kb) nav?.('graph', kb.id)
+    else nav?.('graph')
+  }, [kb, nav])
+
   const handleNav = (id: string) => {
     if (id === '图谱') {
-      nav?.('graph')
+      openFullGraph()
       return
     }
     nav?.(resolveAuroraNav(id))
@@ -516,7 +528,7 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
               </div>
           ) : tab === 'overview' ? (
             <>
-              <OverviewTab toast={toast} data={data} nav={nav} onOpenNote={openInEditor} />
+              <OverviewTab toast={toast} data={data} onOpenFullGraph={openFullGraph} onOpenNote={openInEditor} />
               <KbCanvasSection kb={kb} nav={nav} toast={toast} />
             </>
           ) : tab === 'notes' ? (
@@ -545,7 +557,7 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
             </div>
           ) : (
             /* 问答/导出已页面化（使用优化④）；此分支仅兜底未知 tab */
-            <OverviewTab toast={toast} data={data} nav={nav} onOpenNote={openInEditor} />
+            <OverviewTab toast={toast} data={data} onOpenFullGraph={openFullGraph} onOpenNote={openInEditor} />
           )}
           </div>
         </div>

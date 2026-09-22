@@ -6,7 +6,7 @@
  * 全在组件内部的 useRef/useState 里，随之丢失；返回后图谱按初始环形布局 + Math.random
  * 抖动重新布点，用户看到的是"另一张图"，观感上等同"图被刷新了"。
  *
- * 语义范围严格限定为「空间现场」——节点坐标 + 视口变换 + 布局/模式/中心节点 + 选中节点。
+ * 语义范围严格限定为「空间现场」——节点坐标 + 视口变换 + 布局/模式/中心节点 + 选中节点 + 范围（kbId）。
  * 搜索词、标签筛选、显示开关等属"查询态"，不入此列：返回时按用户当前条件重算更符合直觉。
  *
  * 采用模块级单例（与 navigation/navReturn.ts、BlogPanel.setBlogEntryFileId 同源模式），
@@ -37,6 +37,13 @@ export interface GraphSession {
   mode: GraphMode
   centerId: string
   selectedId: string | null
+  /**
+   * 该现场属于哪个「范围」：知识库 id，'' = 全局图谱。
+   * 2026-09-23 起双链图谱支持「只在某知识库内」呈现（知识库 → 查看完整图谱），
+   * 全局图与各库图的节点集合不同，现场必须按范围隔离，否则会串台：
+   * 从某库离开后进全局，会沿用范围图的坐标与中心（图少了一半、位置却还是那半张）。
+   */
+  kbId: string
 }
 
 let session: GraphSession | null = null

@@ -81,10 +81,12 @@ export function useAuroraShell() {
       // - kb → kbId
       // - blog → kbId（发布来源知识库：由知识库「发布博客」带入，博客只发布该库内笔记；
       //          无 param 时（侧栏「博客」入口 / 命令面板）博客使用文件列表中的全部笔记）
+      // - graph → kbId（图谱范围知识库：由知识库「查看完整图谱」带入，双链图谱只画该库内笔记节点；
+      //          无 param 时（侧栏「双链图谱」入口 / 菜单栏 / 命令面板）图谱保持全局）
       let extra: Record<string, string> | undefined
       if (param) {
         if (id === 'canvas') extra = { canvasId: param }
-        else if (id === 'kb' || id === 'blog') extra = { kbId: param }
+        else if (id === 'kb' || id === 'blog' || id === 'graph') extra = { kbId: param }
         else extra = { id: param }
       }
       viewNav.openView(id as MainView, extra)

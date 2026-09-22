@@ -579,11 +579,17 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
 
   // 归集增删 / 新建知识库已下沉到 AuroraPublish（消费 useKbStore 单一来源），本层不再持有镜像状态。
 
-  // 「← 返回 XX」芯片的回跳动作：来源可能是知识库详情，也可能是双链图谱（按来源存 kbId 或 view）
+  // 「← 返回 XX」芯片的回跳动作。来源有两类，且**都可以带 kbId**：
+  //  - 知识库详情（view='kb'）  → nav('kb', kbId) 回该库
+  //  - 双链图谱（view='graph'） → 带 kbId 时 nav('graph', kbId) 回**同一范围的图谱**
+  //    （2026-09-23：知识库 →「查看完整图谱」进入的是「该库范围」的图，返回若丢 kbId 会无声退回全局图）
+  // 不带 kbId 时保持单参调用形态（nav(srcView)），与既有「全局图谱 / 其他来源」行为逐字节一致。
   const handleReturnToSource = useCallback(() => {
     if (!returnCtx) return
-    if (returnCtx.kbId) nav?.('kb', returnCtx.kbId)
-    else nav?.(returnCtx.view)
+    const { view: srcView, kbId: srcKbId } = returnCtx
+    if (srcView === 'kb' && srcKbId) nav?.('kb', srcKbId)
+    else if (srcKbId) nav?.(srcView, srcKbId)
+    else nav?.(srcView)
     clearEditorReturn()
     setReturnCtx(null)
   }, [returnCtx, nav])

@@ -661,6 +661,24 @@
 }
 .aurora-graph__empty .title { font-size: var(--mc-font-md); color: var(--mc-text-primary); font-weight: 600; }
 .aurora-graph__empty .sub { font-size: var(--mc-font-sm); max-width: 280px; line-height: 1.6; }
+/* 范围内空态里的「查看全局图谱」出口。
+   ⚠️ 父级 .aurora-graph__empty 是 pointer-events:none（浮在画布上不吞指针），
+   故按钮必须自己把指针事件收回来，否则「看得见、点不动」。 */
+.aurora-graph__empty-exit {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-secondary);
+  background: var(--mc-bg-pressed);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out);
+}
+.aurora-graph__empty-exit:hover { color: var(--mc-text-primary); border-color: var(--mc-border-strong); }
 
 /* ============================================================
  * 方案 C · 顶部筛选条 + 着色分组导航 + 分区折叠
@@ -709,6 +727,40 @@
 }
 .aurora-graph__topbar-btn:hover { color: var(--mc-text-primary); border-color: var(--mc-border-strong); }
 .aurora-graph__topbar-btn.is-open { color: var(--mc-text-primary); border-color: var(--mc-accent); background: var(--mc-accent-soft); }
+
+/* 范围芯片（知识库「查看完整图谱」进入）：一眼看清「现在只看这一个库」，右侧紧邻退出口。
+   窄窗下允许被压缩（min-width:0 + 省略号），不与搜索框抢位导致整条溢出。 */
+.aurora-graph__scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px;
+  max-width: 200px;
+  min-width: 0;
+  flex-shrink: 1;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-accent-text);
+  background: var(--mc-accent-soft);
+  border: 1px solid var(--mc-accent);
+  border-radius: var(--mc-radius-sm);
+}
+.aurora-graph__scope-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.aurora-graph__scope-exit {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-secondary);
+  background: var(--mc-bg-pressed);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out), color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out);
+}
+.aurora-graph__scope-exit:hover { color: var(--mc-text-primary); border-color: var(--mc-border-strong); }
 .aurora-graph__pop {
   position: absolute;
   top: calc(100% + 6px);

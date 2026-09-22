@@ -14,10 +14,15 @@
  * 避免改动 nav() 签名即可传递回跳上下文。
  */
 export interface EditorReturnContext {
-  /** 来源路由 id（如 'graph'）；带 kbId 时优先回知识库详情 */
+  /**
+   * 来源路由 id（如 'kb' / 'graph'）。回跳规则见 EditorPanel#handleReturnToSource：
+   *  - 'kb' + kbId      → 回该知识库详情；
+   *  - 其它 view + kbId → 回该视图并带上 kbId（如 'graph' + kbId = 该知识库范围的图谱）；
+   *  - 无 kbId          → 回该视图的默认形态（如 'graph' = 全局图谱）。
+   */
   view: string
   kbId?: string
-  /** 芯片上的中文名（如「甲库」「双链图谱」） */
+  /** 芯片上的中文名（如「甲库」「XX 库 · 图谱」） */
   label: string
 }
 
