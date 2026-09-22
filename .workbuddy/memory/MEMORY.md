@@ -54,6 +54,9 @@ PATH 三目录 `PortableGit/versions/1.2.0/{cmd,usr/bin,mingw64/bin}` + `node/ve
 - ⚠️ **Edge profile 路径必须 Windows 形态** `C:/Users/...`；POSIX 形态 `/c/Users/...` ⇒ Edge **静默并入现有会话**（不开新调试端口、日志仅「正在现有浏览器会话中打开」）→ 探针报 `CDP not ready`。
 - ⚠️ `SVGElement` **没有 `.click()`**（Chromium）→ 派发 `new MouseEvent('click',{bubbles:true,cancelable:true,view:window})` 走 React 委托链路。
 - ⚠️ `git restore --source=HEAD --worktree -- <p1> <p2>`：**其中一条 pathspec 无效 ⇒ 整条命令中止、什么都不恢复**（静默，极易漏看）→ 对照前必须 grep 特征标记复核「确已回到 HEAD」。**bash 里禁内联 PowerShell**（工具安全策略会拦）→ 清探针进程须单独用 PowerShell 工具。
+- ⚠️ **`CDP_PORT` 必须与 Edge 启动端口一致**：探针默认 9444，Edge 起在 9466 ⇒ 报 `fetch failed`，症状酷似「代理污染 / 端口没起」，实际只是**端口没对齐**（先核对两者再查环境）。顺带实测：本机 `HTTP_PROXY` 对 **node fetch（undici）不生效**（`fetch` 200 正常）—— 别当坑 Y 误判；只有 **curl** 需要 `--noproxy '*'`。
+- 🚨 **扫描面必须覆盖「应用会自己追加的数据」**：真机播种/替换整棵树后，`kbSeed` 的**自愈分支**（同名库存在但 `folderId` 解析不到）会把内置《使用文档》**补齐到全量 16 篇** —— 该分支在「已播种」标记检查**之前** ⇒ 设 `markcraft-usage-docs-seeded='1'` **挡不住补齐**。所以「内置文档清单」类断言必须 **① 从 dev server 现取权威清单**（`curl http://127.0.0.1:5174/src/core/data/defaultDocs/usageDocs/zh.ts` + 正则抽 `fileName:`），**② 期望值在断言时刻重读树**（别用「播种后立刻读」的旧快照）。两条都缺 → 零命中断言被削弱/侥幸通过（本轮 v1 探针两条都犯）。
+- ⚠️ **一条断言只证一件事**：「清单非空」与「清单 === N」焊在一条里 ⇒ HEAD 对照里它会为**错误的原因**变红（归因不诚实）。拆开后 HEAD 对照呈「**恰好该红的红**」（本轮 11/14，三条红归属逐条清楚）。
 
 ## 解耦路线（体检 `scripts/_depgraph.cjs`；判据见《解耦实施方案》）
 病灶：跨模块共享能力寄居上层 → 下层反向引用 → 成环。基线 8 环 → Phase 1–5 完成后 **0 环 / 0 双向依赖**（`_depgraph.cjs` 实测）。
@@ -73,3 +76,7 @@ PATH 三目录 `PortableGit/versions/1.2.0/{cmd,usr/bin,mingw64/bin}` + `node/ve
   `EditorPanel` 按 `isUsageDoc`（= `builtinFileIds.has(activeFileId)`）条件渲染裁 chrome，主区换 `UsageDocBrief`（复用 `features/preview/Preview`；⚠️ 它**无条件**注入 `.preview-image-delete-btn` → 须在 `.aurora-brief` 作用域内 `display:none`）。顶部**并无 trash 删除按钮**（与删除相关的只有「标签关闭 ×」+ 格式条「删除线」，二者随裁剪消失）。探针 `.workbuddy/artifacts/cdp-verify-usagedoc-brief.mjs`（65 条，含 §5「用户笔记在内置文件夹内仍可编辑」与 §6「退出即无痕」回归；HEAD 对照 60/65，§6 精确翻红 5 条）。
 - **内置使用文档 · 瞬态（退出即无痕，2026-09-22 第三轮）**：用户语义 =「只能从知识库点进去看，不能变成编辑器里一个被打开/被记住的文档」→ 三条独立持久化面都要拦：**不进最近**（它另有两个不带过滤的消费者：欢迎页「继续《…》」英雄卡、格式条「插入双链」候选）／**不进标签栏**／**不落盘**（否则「看着它刷新」被记成上次打开的文档）。实现 = **瞬态标签 `Tab.isTransient`**：`FileStore.openFile` 内部自算 `builtinFileIds`（**零调用方改动**，与简介页判定同源）命中即瞬态 → 跳过 `addRecentFile`；`AuroraTabs` 过滤；`saveState(stripTransientTabs(state))` 落盘前净化（⚠️ 只在打开时拦不够——落盘是全量防抖，停留期间随时会写）；`closeTransientTabs` 落回**最后打开的永久文档**，一篇不剩 → 空态。🚨 **回收判据放路由层**（`AuroraShell`：`effectiveView = auxView ?? view` ≠ editor），**不能挂 EditorPanel 卸载清理** —— 根节点 `<StrictMode>` dev 下 `mount→cleanup→mount` 的**假卸载**会当场回收刚点开的那篇（链路恰是「先建临时态→再切路由挂载面板」）；同视图内点侧栏「编辑器」view 不变 → 须在 `onSidebarSelect` 显式回收。打开**普通**文档会顺带回收现存瞬态（VS Code preview-tab 语义）。回归锁：`FileStore.transientTabs.test.tsx`(7) + `AuroraTabs.test.tsx`(3)，注入探针 3 处验证会翻红。
 - **死代码清剿** → skill `dead-code-purge`（判据/双锚点守卫/前缀盲区/事故全在其内）。常记：**「零 import」≠「不进包」**（桶 re-export 连带挂进模块图，dev 无 tree-shaking）→ 判死看**依赖图可达性**；「零 import」删文件 ≠「零消费者」删成员。
+- **博客工作室 · 待发布清单口径（2026-09-23 报障修复）**：清单 = **编辑器文件列表的镜像** ⇒ 必须用**同一集合** `hiddenIds` 过滤内置《使用文档》，否则默认树里**唯一的 .md（那 16 篇说明书）就全成了"博客文章"**（全新用户清单 100% 是手册）。实现 = `BlogPanel#collectMdFiles(node, hiddenIds)` 取 `useUsageDocsScope().hiddenIds`（写法对齐 `FileTree#visibleRecent`）。
+  ⚠️ **边界（有意为之）**：**知识库入口（`kbId`）不过滤** —— 其口径是「与该库详情页笔记列表完全一致」，而内置文档所在的库本身就是说明书的浏览入口；过滤会让**非空库显示成空库**。要改这条得先改 KB 详情页口径、两侧同改，**别只改博客一侧**。
+  ⚠️ 夹具教训：`BlogPanel.smoke.test.tsx` 原有夹具**隐式拿"默认树里那 16 篇内置文档"当文档清单** ⇒ 修复后恰好 2 例失败（测的正是被排除的东西）。夹具一律**显式种入普通笔记**、且**按名幂等**（`FileStore` 是模块单例，多段重挂不能重复建，否则 `docs.length` 段间漂移会让用例为**错误的原因**红）。
+  ⚠️ 预览的文章标题取自**正文首个标题**（`# 甲` → 显示「甲」），**不是文件名** → 断言内置侧也要按同一口径从数据取标题。
