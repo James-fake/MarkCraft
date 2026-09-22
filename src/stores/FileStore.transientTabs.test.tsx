@@ -238,3 +238,72 @@ describe('FileStore · 内置使用文档 = 瞬态标签', () => {
     expect(result.current.hydrated).toBe(true)
   })
 })
+
+describe('FileStore · 升级迁移：旧版永久落盘的使用文档标签在启动时被剥掉', () => {
+  /**
+   * 旧版（瞬态标签机制上线前）落盘的脏数据：点开的使用文档作为**普通标签**（无 isTransient
+   * 字段）随 tabs/activeTabId 整体序列化。最恶劣现场 = activeTabId 正指向说明书 ——
+   * 升级后一进编辑器就直接落在「MarkCraft 使用文档」上（2026-09-22 第三轮报障）。
+   */
+  function legacyPersistedState(): FileManagerState {
+    const base = fixtureState()
+    return {
+      ...base,
+      tabs: [
+        { id: 'tab-builtin', fileId: BUILTIN_ID, name: BUILTIN_NAME, isActive: true },
+        { id: 'tab-note', fileId: NOTE_ID, name: '普通笔记.md', isActive: false },
+      ],
+      activeTabId: 'tab-builtin',
+    }
+  }
+
+  it('⑧ IndexedDB 权威树路径（本次报障的真实路径）：启动即剥掉旧标签并回写净化版落盘', async () => {
+    await db.kv.put({ key: STORAGE_KEY, value: JSON.stringify(legacyPersistedState()) })
+
+    const { result } = await mountHydrated()
+
+    // 内存态：说明书标签被剥掉，激活落回最后打开的永久文档（普通笔记）
+    expect(result.current.tabs.map((t) => t.fileId)).toEqual([NOTE_ID])
+    expect(result.current.getActiveFileId()).toBe(NOTE_ID)
+    expect(result.current.activeTabId).toBe('tab-note')
+    // isActive 与 activeTabId 同源（该矛盾模式在本仓出现过，必须钉死）
+    expect(result.current.tabs.filter((t) => t.isActive).map((t) => t.id))
+      .toEqual([result.current.activeTabId])
+    // 落盘态也净化（hydrated 翻转触发的回写），否则下次启动又会原样还原
+    await waitFor(async () => {
+      const persisted = await readPersisted()
+      expect(persisted?.tabs.map((t) => t.fileId)).toEqual([NOTE_ID])
+      expect(persisted?.activeTabId).toBe('tab-note')
+    }, { timeout: 3000 })
+  })
+
+  it('⑨ localStorage 兜底路径（IDB 为空的老用户）：同步初始树同样被净化，旧标签不得熬到 hydrated 后被转正', async () => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(legacyPersistedState()))
+    await db.kv.clear() // 制造「IDB 读不到 → asyncState=null → 沿用同步树」的升级现场
+
+    const { result } = await mountHydrated()
+
+    expect(result.current.tabs.map((t) => t.fileId)).toEqual([NOTE_ID])
+    expect(result.current.getActiveFileId()).toBe(NOTE_ID)
+    expect(result.current.activeTabId).toBe('tab-note')
+  })
+
+  it('⑩ 对照组 · 迁移不误删：落盘里只有普通文档标签时原样保留（不换引用、不改激活态）', async () => {
+    const clean = {
+      ...fixtureState(),
+      tabs: [{ id: 'tab-note', fileId: NOTE_ID, name: '普通笔记.md', isActive: true }],
+      activeTabId: 'tab-note',
+    }
+    await db.kv.put({ key: STORAGE_KEY, value: JSON.stringify(clean) })
+
+    const { result } = await mountHydrated()
+
+    expect(result.current.tabs.map((t) => t.fileId)).toEqual([NOTE_ID])
+    expect(result.current.tabs[0].isActive).toBe(true)
+    expect(result.current.activeTabId).toBe('tab-note')
+    // 等防抖窗口过去后再核对落盘未被搅动
+    const persisted = await readPersisted()
+    expect(persisted?.tabs.map((t) => t.fileId)).toEqual([NOTE_ID])
+    expect(persisted?.activeTabId).toBe('tab-note')
+  })
+})

@@ -21,18 +21,57 @@ import { knowledgeLinkGuideContent as knowledgeLinkGuideContentEn } from '@core/
  *
  * 幂等：没有瞬态标签时原样返回（不换引用）。
  */
-export function stripTransientTabs(state: FileManagerState): FileManagerState {
-  if (!state.tabs.some((tab) => tab.isTransient)) return state;
-  const tabs = state.tabs.filter((tab) => !tab.isTransient);
-  const activeTabId = tabs.some((tab) => tab.id === state.activeTabId)
-    ? state.activeTabId
-    // 被剥掉的正是激活标签 → 落到最后打开的那篇永久文档；一篇不剩则回到「未打开文档」空态
+/** 剥掉一批标签后把 `activeTabId` 与 `isActive` 修正到仍然存在的标签上（共享逻辑，防两处漂移）。
+ *  悬空 activeTabId 的界面表现是「标题栏说打开了文件、编辑区却是空的」，比不打开更糟。
+ *  被剥掉的正是激活标签 → 落到最后打开的那篇永久文档；一篇不剩则回到「未打开文档」空态。 */
+function fixActiveAfterRemoval(tabs: Tab[], activeTabId: string | null): { tabs: Tab[]; activeTabId: string | null } {
+  const fixedActiveId = tabs.some((tab) => tab.id === activeTabId)
+    ? activeTabId
     : (tabs.length ? tabs[tabs.length - 1].id : null);
   return {
-    ...state,
-    tabs: tabs.map((tab) => ({ ...tab, isActive: tab.id === activeTabId })),
-    activeTabId,
+    tabs: tabs.map((tab) => ({ ...tab, isActive: tab.id === fixedActiveId })),
+    activeTabId: fixedActiveId,
   };
+}
+
+export function stripTransientTabs(state: FileManagerState): FileManagerState {
+  if (!state.tabs.some((tab) => tab.isTransient)) return state;
+  const { tabs, activeTabId } = fixActiveAfterRemoval(
+    state.tabs.filter((tab) => !tab.isTransient),
+    state.activeTabId,
+  );
+  return { ...state, tabs, activeTabId };
+}
+
+/**
+ * 启动迁移：剥掉**旧版本永久落盘**的内置使用文档标签（2026-09-22 第三轮报障修复）。
+ *
+ * 背景：瞬态标签机制上线**之前**的版本，`openFile` 对使用文档与普通文档一视同仁 ——
+ * 点开的说明书作为普通标签（无 `isTransient` 字段）随 `tabs`/`activeTabId` 整体序列化进
+ * IndexedDB。升级后 `loadStateAsync` 把这份旧数据原样还原 → 编辑器直接落在这篇说明书上，
+ * 表现为「点击编辑功能进入后还是显示 markcraft 使用文档」。
+ *
+ * 识别**不依赖** `isTransient` 字段（旧数据没有），而按判定单源 `builtinFileIds` 命中
+ * `fileId` —— 与只读简介页 / 瞬态打开 / 最近文件净化同源。
+ *
+ * 在**两条加载路径**都要拦：① `loadStateAsync`（IndexedDB 权威树，本次报障的真实路径）；
+ * ② `loadState`（localStorage 兜底，IDB 为空的老用户升级路径）—— 后者若不拦，state 会带着
+ * 旧标签熬到 hydrated，再被 save effect 整份写进 IndexedDB，把脏数据「转正」。
+ *
+ * 水合后的 save effect（`saveState(stripTransientTabs(state))`）会把净化版回写介质 ——
+ * 净化必须发生在 `setState` 之前，才能借这次回写把落盘里的旧标签一并清掉（幂等）。
+ *
+ * 幂等：没有命中时原样返回（不换引用）；绝不触碰 `builtinFileIds` 之外的用户文档。
+ */
+export function stripLegacyUsageDocTabs(state: FileManagerState): FileManagerState {
+  const builtin = resolveUsageDocsScope(state.rootFolder).builtinFileIds;
+  if (builtin.size === 0) return state;
+  if (!state.tabs.some((tab) => builtin.has(tab.fileId))) return state;
+  const { tabs, activeTabId } = fixActiveAfterRemoval(
+    state.tabs.filter((tab) => !builtin.has(tab.fileId)),
+    state.activeTabId,
+  );
+  return { ...state, tabs, activeTabId };
 }
 
 interface FileManagerContextType {
@@ -94,7 +133,9 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const { language } = useLanguage();
   const undoRedo = useUndoRedo();
 
-  const [state, setState] = useState<FileManagerState>(() => loadState(language));
+  // ⚠️ 同步兜底树也要过一遍「旧版落盘使用文档标签」迁移：IDB 为空的老用户走的就是
+  //    localStorage 这条路，若不拦，旧标签会熬到 hydrated 后被 save effect 转正进 IDB。
+  const [state, setState] = useState<FileManagerState>(() => stripLegacyUsageDocTabs(loadState(language)));
   // 「权威树是否就位」——初始 false；loadStateAsync 返回后置 true（无论有没有读到树）。
   // 该窗口内 state 可能只是 T0（同步兜底树），故：① 不可据此做程序化写入（会落在随后
   // 被丢弃的幽灵节点上）；② 不可回存 IDB（会以 T0 覆盖用户真实的旧树）。
@@ -107,7 +148,12 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     let cancelled = false
     loadStateAsync(language).then(asyncState => {
       if (cancelled) return
-      if (asyncState) setState(asyncState)
+      if (asyncState) {
+        // ⚠️ setState 前剥掉旧版永久落盘的使用文档标签（stripLegacyUsageDocTabs 的说明）。
+        //    必须在 setState 之前：随后 hydrated 翻转会触发 save effect 把净化版回写 IndexedDB，
+        //    落盘里的旧标签借此一并清掉 —— 若在 setState 之后修，则要再补一次显式回写。
+        setState(stripLegacyUsageDocTabs(asyncState))
+      }
       // 无论读没读到，都算「水合完成」：读不到时 T0 本身就是应然状态（新用户首启 / 版本升级重建）
       setHydrated(true)
       console.info('[FileStore] hydrated=true；来源 =', asyncState ? 'IndexedDB 权威树' : '无（新用户首启或已清空，沿用同步树）')
