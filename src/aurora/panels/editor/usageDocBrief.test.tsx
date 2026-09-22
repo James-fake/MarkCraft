@@ -237,4 +237,33 @@ describe('EditorPanel：使用文档 → 只读简介页', () => {
     expect(container.querySelector('[data-testid="real-editorlayout"]')).toBeNull()
     expect(container.querySelectorAll('.aurora-mode-toggle')).toHaveLength(0)
   })
+
+  // ── 回归锁 ④：简介页**不点亮**侧栏「编辑器」项（2026-09-22 用户需求）──
+  // 「在 MarkCraft 使用文档知识库中点击笔记文档，左侧的侧边栏图标不要显示跳转至编辑器功能的图标」
+  // 简介页由 editor 视图承载，若照常传 sidebarActiveId="编辑器"，侧栏「编辑器」图标会渲染成
+  // 激活态 —— 看起来像「你已跳转至编辑器」，而简介页是只读参考页，不属于编辑器工作区。
+  it('9) 🚨 回归：打开使用文档简介页时，侧栏「编辑器」项**不**处于激活态（整个侧栏无激活项）', async () => {
+    const { container } = await renderPanel()
+    await openFirstUsageDoc()
+    await waitFor(() => expect(container.querySelector('.aurora-brief')).toBeTruthy())
+
+    // 先证「侧栏导航项确实渲染着」（否则「无激活项」恒真 = 假绿）
+    const sidebarItems = container.querySelectorAll('.aurora-sidebar-item')
+    expect(sidebarItems.length, '侧栏导航项应已渲染（简介页只裁内容区 chrome，不裁外壳侧栏）').toBeGreaterThan(3)
+
+    const activeItems = container.querySelectorAll('.aurora-sidebar-item--active')
+    expect(activeItems, '简介页不应点亮任何侧栏导航项').toHaveLength(0)
+  })
+
+  // ★ 对照组：证明「不点亮」是条件式的 —— 用户自己的笔记打开时「编辑器」项照常高亮
+  it('10) 对照组 · 普通笔记：侧栏「编辑器」项照常处于激活态', async () => {
+    const { container } = await renderPanel()
+    await openPlainNote()
+    await waitFor(() => expect(container.querySelector('[data-testid="real-editorlayout"]')).toBeTruthy())
+
+    const editorItem = [...container.querySelectorAll('.aurora-sidebar-item')]
+      .find((el) => (el.getAttribute('title') || el.textContent || '') === '编辑器')
+    expect(editorItem, '侧栏应有「编辑器」导航项').toBeTruthy()
+    expect(editorItem!.className).toContain('aurora-sidebar-item--active')
+  })
 })

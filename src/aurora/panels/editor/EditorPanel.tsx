@@ -673,7 +673,12 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
     <div className="aurora-editor">
       <PageFrame
         sidebarGroups={AURORA_SIDEBAR_GROUPS}
-        sidebarActiveId="编辑器"
+        // 🚨 使用文档只读简介页**不点亮**侧栏「编辑器」项（2026-09-22 用户需求）：
+        //    简介页虽由 editor 视图承载，但它不是编辑器功能 —— 若照常传「编辑器」，
+        //    侧栏会把它渲染成激活态，看起来像「你已跳转至编辑器」。取消高亮后侧栏
+        //    无激活项（阅读参考页不属于任何工作区）；点侧栏任意项仍可正常离开
+        //    （onSidebarSelect 已先回收瞬态标签），编辑器导航能力不受影响。
+        sidebarActiveId={isUsageDoc ? undefined : '编辑器'}
         onSidebarSelect={(id) => {
           // 视图内显式导航 = 离开只读参考页：先回收瞬态标签再跳。
           // ⚠️ 这一步不能只靠 AuroraShell 的「路由离开编辑器」——
