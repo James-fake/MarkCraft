@@ -119,6 +119,7 @@ subbar 52px。⚠️ `.aurora-kb-notes` 顶 padding 仅 2px 是为**自带 `__he
 - 🚨 **对照的选择器必须「实现无关」**（用修复后才存在的类名取扫描面 ⇒ 红得不对 = 假阳性证据）；**凡为可测性新增的锚点，都必须额外证明「没有它时也能测到该差异」**；**派生性绿要标注归属**。
 - 🚨 **对照「大面积翻红（连本应绿的门也红）」先怀疑运行条件**：独立 worktree 的 dev server 是**冷的** ⇒ 应用未可交互时点击不生效。判据 = `§0 外壳就绪 waitIdx`（热 0／冷 26）。修法 = **预热轮**（`artifacts/cdp-warmup-nav.mjs`；结束**不要 `Browser.close`**，实例留给探针复用）。
 - ⚠️ **原生 exe 参数路径必须 Windows 形态** `C:/...`（给 edge ⇒ 静默并入现有会话、CDP 不监听；给 node ⇒ 解析成 `D:\c\...`）。`CDP_PORT` 必须与启动端口一致（不一致症状酷似「代理污染/端口没起」）；`curl` 探测须 `--noproxy '*'`。
+- 🚨 **断言时机陷阱（2026-09-23 高亮事件）**：派发 `dispatchEvent('mousedown')` 后**同步**测「目标是否还在 DOM」恒为 true——React 在 `setState` 后才重渲染，同步测量时元素尚未卸载。公平判据必须是 **`await sleep(300)` 后**的重渲染态（如 `dropdownStillOpen`）。首版用同步态当 OLD/FIXED 判据 → HEAD 对照假绿；改重渲染态后才有真证据。通则：**凡断言「某事件是否触发卸载/关闭」，必须等一拍重渲染再测**。
 - 三陷阱：backdrop 吞指针／窗口激活吞最早鼠标事件／无焦时合成按键打不进。深链 `#view=` 只认**启动 URL**。`SVGElement` 无 `.click()` → 派发 `new MouseEvent('click',{bubbles:true,cancelable:true,view:window})`。「看得见」别用 `elementFromPoint`（`pointer-events:none` 假阴性）；拖动中截图不可信。
 ### 验证链路 细则
 > 七条验证链路（tsc／vitest／eslint 守卫／depgraph／vite build／真机 CDP／文件集合差）本体见 `MEMORY.md`；③ 空输出须先证「实扫文件数」非 0（`-f json` 数数组长度）；守卫升 error 后须**注入探针**验 `exit=1` 且报出预期规则名 → 还原 → 复跑 0；④ 看 `BIDIRECTIONAL PAIRS`／`MODULE-LEVEL CYCLES` 两节为 `(none)`；⑥ 不适用须**显式判定**并写明判据。
