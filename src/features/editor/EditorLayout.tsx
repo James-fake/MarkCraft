@@ -1,6 +1,4 @@
 import { useState, useCallback, useRef, useEffect, lazy, Suspense, forwardRef, useImperativeHandle } from 'react'
-import { createPortal } from 'react-dom'
-import type { Editor as TiptapEditorType } from '@tiptap/react'
 import ErrorBoundary from '@components/ui/ErrorBoundary'
 import { Icon } from '../../components/ui'
 import { EditorView } from '@codemirror/view'
@@ -20,8 +18,6 @@ import WritingAidPanel from './components/WritingAidPanel'
 import DraftInsightPanel from './components/DraftInsightPanel'
 import FootnoteFromClipboard from './components/FootnoteFromClipboard'
 import { pasteUrlAsFootnote } from './footnoteAuto'
-import { cm6FormatBold, cm6FormatItalic, cm6FormatStrike, cm6FormatInlineCode, cm6InsertLink } from './cm6/autocompleteExtension'
-import FloatingFormatToolbar, { SelRect, ActiveMarks, FormatKind } from './components/FloatingFormatToolbar'
 import LinkBreadcrumb from './components/LinkBreadcrumb'
 import { navigationTracker } from './NavigationTracker'
 import GoToLineDialog from './GoToLineDialog'
@@ -219,132 +215,6 @@ export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(fu
       if (indexSyncTimerRef.current) clearTimeout(indexSyncTimerRef.current)
     }
   }, [activeFileId, localContent, tabs, updateFileIndex])
-
-  // ─── 浮动格式工具栏（选中文字后弹出，源码 / WYSIWYG 双模式一致） ───
-  const [selRect, setSelRect] = useState<SelRect | null>(null)
-  const [selActive, setSelActive] = useState<ActiveMarks>({})
-  const toolbarRef = useRef<HTMLDivElement>(null)
-
-  // 源码模式：CodeMirror 选区变化回调（由 onSelectionChange 透传）
-  const handleCMSelection = useCallback((info: { rect: SelRect } | null) => {
-    setSelRect(info ? info.rect : null)
-    if (info) setSelActive({})
-  }, [])
-
-  // WYSIWYG 模式：订阅 Tiptap 选区变化，计算视口坐标与激活态
-  useEffect(() => {
-    setSelRect(null)
-    setSelActive({})
-    if (editorMode !== 'wysiwyg') return
-    let raf = 0
-    let editor: TiptapEditorType | null = null
-    const report = () => {
-      if (!editor) return
-      const { from, to } = editor.state.selection
-      if (from === to) {
-        setSelRect(null)
-        setSelActive({})
-        return
-      }
-      const a = editor.view.coordsAtPos(from)
-      if (!a) return
-      setSelRect({ left: a.left, top: a.top, right: a.right, bottom: a.bottom })
-      setSelActive({
-        bold: editor.isActive('bold'),
-        italic: editor.isActive('italic'),
-        strike: editor.isActive('strike'),
-        code: editor.isActive('code'),
-        link: editor.isActive('link'),
-      })
-    }
-    const trySubscribe = () => {
-      const ed = tiptapRef.current?.getEditor()
-      if (!ed) {
-        raf = requestAnimationFrame(trySubscribe)
-        return
-      }
-      editor = ed
-      ed.on('selectionUpdate', report)
-      report()
-    }
-    trySubscribe()
-    return () => {
-      cancelAnimationFrame(raf)
-      editor?.off('selectionUpdate', report)
-    }
-  }, [editorMode])
-
-  // 根据当前激活编辑器重新计算选区坐标（滚动/缩放时保持吸附）
-  const reposition = useCallback(() => {
-    if (editorMode === 'wysiwyg') {
-      const ed = tiptapRef.current?.getEditor()
-      if (!ed) return
-      const { from, to } = ed.state.selection
-      if (from === to) { setSelRect(null); return }
-      const a = ed.view.coordsAtPos(from)
-      if (!a) return
-      setSelRect({ left: a.left, top: a.top, right: a.right, bottom: a.bottom })
-    } else {
-      const view = editorRef.current?.getView()
-      if (!view) return
-      const sel = view.state.selection.main
-      if (sel.empty) { setSelRect(null); return }
-      const a = view.coordsAtPos(sel.from)
-      if (!a) return
-      setSelRect({ left: a.left, top: a.top, right: a.right, bottom: a.bottom })
-    }
-  }, [editorMode])
-
-  // 点击外部或滚动/缩放时隐藏或重新吸附
-  useEffect(() => {
-    if (!selRect) return
-    const handleDocMouseDown = (e: MouseEvent) => {
-      const target = e.target as Node
-      if (toolbarRef.current && toolbarRef.current.contains(target)) return
-      const dom = editorMode === 'wysiwyg'
-        ? tiptapRef.current?.getEditor()?.view.dom
-        : editorRef.current?.getView()?.dom
-      if (dom && dom.contains(target)) return
-      setSelRect(null)
-    }
-    const handleScrollOrResize = () => reposition()
-    document.addEventListener('mousedown', handleDocMouseDown, true)
-    window.addEventListener('scroll', handleScrollOrResize, true)
-    window.addEventListener('resize', handleScrollOrResize)
-    return () => {
-      document.removeEventListener('mousedown', handleDocMouseDown, true)
-      window.removeEventListener('scroll', handleScrollOrResize, true)
-      window.removeEventListener('resize', handleScrollOrResize)
-    }
-  }, [selRect, editorMode, reposition])
-
-  // 格式化分发：按当前模式调用 Tiptap 命令或 CM6 辅助函数
-  const applyFormat = useCallback((kind: FormatKind, payload?: string) => {
-    if (editorMode === 'wysiwyg') {
-      const ed = tiptapRef.current?.getEditor()
-      if (!ed) return
-      switch (kind) {
-        case 'bold': ed.chain().focus().toggleBold().run(); break
-        case 'italic': ed.chain().focus().toggleItalic().run(); break
-        case 'strike': ed.chain().focus().toggleStrike().run(); break
-        case 'code': ed.chain().focus().toggleCode().run(); break
-        case 'link':
-          if (payload) ed.chain().focus().extendMarkRange('link').setLink({ href: payload }).run()
-          else ed.chain().focus().unsetLink().run()
-          break
-      }
-    } else {
-      const view = editorRef.current?.getView()
-      if (!view) return
-      switch (kind) {
-        case 'bold': cm6FormatBold(view); break
-        case 'italic': cm6FormatItalic(view); break
-        case 'strike': cm6FormatStrike(view); break
-        case 'code': cm6FormatInlineCode(view); break
-        case 'link': cm6InsertLink(view, payload || ''); break
-      }
-    }
-  }, [editorMode])
 
   // 切换下拉菜单时重新加载 activeKb（避免过期判断）
   const handleToggleKbPicker = useCallback(() => {
@@ -997,7 +867,7 @@ export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(fu
               }}
             >
               <ErrorBoundary name="Source" errorTitle={t.errorBoundary.sourceError} retryText={t.errorBoundary.retry}>
-                <CodeMirrorEditor value={localContent} onChange={onChange} ref={editorRef} onScroll={handleEditorScroll} showPreview={effectiveShowPreview} onTogglePreview={onTogglePreview} focusMode={focusMode} typewriterMode={typewriterMode} onToggleFocusMode={onToggleFocusMode} onToggleTypewriterMode={onToggleTypewriterMode} autocompleteEnabled={autocompleteEnabled} onToggleAutocomplete={onToggleAutocomplete} fileId={activeFileId} theme={theme} useRelativeImagePath={appSettings.useRelativeImagePath} onOpenImportDialog={onOpenImportDialog} onPrint={onPrint} onUseTemplate={onUseTemplate} onSelectionChange={handleCMSelection} />
+                <CodeMirrorEditor value={localContent} onChange={onChange} ref={editorRef} onScroll={handleEditorScroll} showPreview={effectiveShowPreview} onTogglePreview={onTogglePreview} focusMode={focusMode} typewriterMode={typewriterMode} onToggleFocusMode={onToggleFocusMode} onToggleTypewriterMode={onToggleTypewriterMode} autocompleteEnabled={autocompleteEnabled} onToggleAutocomplete={onToggleAutocomplete} fileId={activeFileId} theme={theme} useRelativeImagePath={appSettings.useRelativeImagePath} onOpenImportDialog={onOpenImportDialog} onPrint={onPrint} onUseTemplate={onUseTemplate} />
               </ErrorBoundary>
             </div>
           )}
@@ -1114,18 +984,6 @@ export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(fu
       totalLines={localContent.split('\n').length}
       onGoToLine={handleGoToLine}
     />
-    {/* 浮动格式工具栏：选中文字后弹出，源码 / WYSIWYG 双模式统一 */}
-    {selRect && createPortal(
-      <FloatingFormatToolbar
-        ref={toolbarRef}
-        rect={selRect}
-        language={language}
-        activeMarks={selActive}
-        onFormat={applyFormat}
-        onClose={() => setSelRect(null)}
-      />,
-      document.body
-    )}
     </>
   )
 })
