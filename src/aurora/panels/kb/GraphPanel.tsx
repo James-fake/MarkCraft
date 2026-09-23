@@ -90,6 +90,23 @@ const NODE_CLICK_SLOP = 4
 const CURRENT_R = 19
 const H = 3600_000 // 毫秒/小时
 
+/* —— 力导向参数（2026-09-23 拖拽体验调优）——
+ * 原实现有两个会让节点「飞出去」的缺陷，这里用三个下限/上限兜住：
+ *  ① `MIN_SEP`：两节点重合时旧代码把 d² 夹到 1 后仍用原始 dx/dy 归一化，
+ *     等效冲量可达万级 → 被撞节点炸飞。改为「距离下限」：方向用真实位移取单位向量，
+ *     幅值按 max(d, MIN_SEP) 计算，重合时再给一个确定方向拆开。
+ *  ② `MAX_STEP`：单帧位移上限。任何极端力都不可能让节点一帧瞬移，兜底防甩飞。
+ *  ③ 拖拽中的节点「钉住」（速度恒 0，见 step）：旧代码只跳过它的位移积分，
+ *     速度却仍在累积且不受阻尼 → 快速滑动松手时把累计速度一次性释放，正是报障现象。 */
+const REP = 24000 // 斥力强度
+const LINK_DIST = 140 // 弹簧自然长度
+const LINK_K = 0.035 // 弹簧刚度
+const GRAVITY = 0.012 // 向心力系数
+const MIN_SEP = 36 // 最小分离距离（px）：消除 d→0 的斥力奇点
+const VEL_DECAY = 0.86 // 速度阻尼（每帧）
+export const MAX_STEP = 16 // 单帧最大位移（px）：禁止任何节点瞬移（对外导出供回归测试断言该不变式）
+const DRAG_ALPHA = 0.2 // 拖拽期间 alpha 下限：邻居持续让位，但不再每次 pointermove 打满
+
 // ---- 真实数据接入（Phase 2 第六批·GraphPanel 换芯）----
 // 直接复用真实 LinkIndex 的 getGraphData(tagIndex)：其返回结构
 //   nodes: { id, label, links }[]  +  edges: { source, target, type:'wikilink'|'embed'|'tag' }[]
@@ -219,6 +236,123 @@ function readScopedSession(kbId?: string): GraphSession | null {
   return s && (s.kbId ?? '') === (kbId ?? '') ? s : null
 }
 
+/** 拖拽载荷（纯函数入参）：被拖拽节点的 id 与「指针到节点中心的偏移」 */
+export interface SimDrag {
+  id: string
+  dx: number
+  dy: number
+}
+
+export interface SimStepParams {
+  nodes: GNode[]
+  edges: GEdge[]
+  nodeById: Map<string, GNode>
+  layout: Layout
+  size: { w: number; h: number }
+  alpha: number
+  drag: SimDrag | null
+  /** 被拖拽指针的**世界坐标**（调用方按视口 + 缓存的 rect 换算好） */
+  dragWorld: { x: number; y: number } | null
+}
+
+/**
+ * 一次力模拟步进（纯计算：原地修改 nodes 的 x/y/vx/vy，无 React / 无 store 依赖，可直接单测）。
+ *
+ * 2026-09-23 拖拽体验调优抽成纯函数，以便用单测锁定两个缺陷：
+ *  ① 斥力奇点：旧版把 d² 夹到 1 却仍用原始 dx/dy 归一化 ⇒ 两节点重合瞬间冲量上万倍，
+ *     被撞到的节点直接「飞出去」。现改为距离取 max(d, MIN_SEP)，幅值有界。
+ *  ② 拖拽速度残留：被拖拽节点全程「钉住」（位置由指针决定、速度恒 0），
+ *     松手瞬间不再释放拖拽期累积的速度 —— 这正是「快速滑动松手后节点飞很远」的根因。
+ * 另加单帧位移上限 MAX_STEP，任何极端力都不可能让节点一帧瞬移。
+ *
+ * 返回 maxTargetDelta：非力导向布局下「离各自目标位的最大曼哈顿距离」，供调用方判断是否已收敛。
+ */
+export function simulateStep(p: SimStepParams): { maxTargetDelta: number } {
+  const { nodes, edges, nodeById, layout, size, alpha, drag, dragWorld } = p
+
+  // ① 钉住被拖拽节点到最新指针位置（每帧一次；速度同时清零，是 ⑤ 闭环的前提）
+  if (drag && dragWorld) {
+    const dn = nodeById.get(drag.id)
+    if (dn) {
+      dn.x = dragWorld.x - drag.dx
+      dn.y = dragWorld.y - drag.dy
+      dn.vx = 0
+      dn.vy = 0
+    }
+  }
+
+  if (layout !== 'force') {
+    let maxd = 0
+    for (const n of nodes) {
+      if (drag && drag.id === n.id) continue // 拖拽中不吸附回目标位，松手后再缓动归位
+      const dx = n.tx - n.x
+      const dy = n.ty - n.y
+      n.x += dx * 0.14
+      n.y += dy * 0.14
+      maxd = Math.max(maxd, Math.abs(dx) + Math.abs(dy))
+    }
+    return { maxTargetDelta: maxd }
+  }
+
+  const cx = size.w / 2
+  const cy = size.h / 2
+  // ② 向心力
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i]
+    n.vx += (cx - n.x) * GRAVITY * 0.02
+    n.vy += (cy - n.y) * GRAVITY * 0.02
+  }
+  // ③ 两两斥力：距离取 max(d, MIN_SEP) 消除 d→0 奇点（见函数头注 ①）
+  for (let i = 0; i < nodes.length; i++) {
+    const n = nodes[i]
+    for (let j = i + 1; j < nodes.length; j++) {
+      const m = nodes[j]
+      let dx = n.x - m.x
+      let dy = n.y - m.y
+      let d = Math.sqrt(dx * dx + dy * dy)
+      if (d < 1e-3) { dx = 0.6; dy = -0.6; d = Math.sqrt(dx * dx + dy * dy) } // 完全重合：给确定方向拆开
+      const eff = d < MIN_SEP ? MIN_SEP : d
+      const f = (REP / (eff * eff)) * alpha
+      const fx = (dx / d) * f
+      const fy = (dy / d) * f
+      n.vx += fx
+      n.vy += fy
+      m.vx -= fx
+      m.vy -= fy
+    }
+  }
+  // ④ 弹簧（wiki / embed 边）
+  for (const e of edges) {
+    if (e.kind === 'tag' || e.kind === 'folder') continue
+    const s = nodeById.get(e.source)
+    const t = nodeById.get(e.target)
+    if (!s || !t) continue
+    const dx = t.x - s.x
+    const dy = t.y - s.y
+    const d = Math.sqrt(dx * dx + dy * dy) || 1
+    const f = (d - LINK_DIST) * LINK_K * alpha
+    const fx = (dx / d) * f
+    const fy = (dy / d) * f
+    s.vx += fx
+    s.vy += fy
+    t.vx -= fx
+    t.vy -= fy
+  }
+  // ⑤ 阻尼 + 单帧位移上限 + 积分。被拖拽节点速度归零、不累积（见函数头注 ②）
+  for (const n of nodes) {
+    if (drag && drag.id === n.id) { n.vx = 0; n.vy = 0; continue }
+    n.vx *= VEL_DECAY
+    n.vy *= VEL_DECAY
+    if (n.vx > MAX_STEP) n.vx = MAX_STEP
+    else if (n.vx < -MAX_STEP) n.vx = -MAX_STEP
+    if (n.vy > MAX_STEP) n.vy = MAX_STEP
+    else if (n.vy < -MAX_STEP) n.vy = -MAX_STEP
+    n.x += n.vx
+    n.y += n.vy
+  }
+  return { maxTargetDelta: 0 }
+}
+
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
 
 function relTime(ts?: number): string {
@@ -318,6 +452,10 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
   const nodesRef = useRef<GNode[]>([])
   const edgesRef = useRef<GEdge[]>([])
   const [graphRev, setGraphRev] = useState(0)
+  // id → 节点对象（对象引用，位置原地可变 ⇒ 该映射只在节点集合变化时需要重建，不必每帧重算）。
+  // 物理步进与渲染定位都走它：把原先每帧每边一次的 `nodes.find()` 线性查找降为 O(1)，
+  // 同时省掉原先按 tick 每帧重建一个 Map 的分配。
+  const nodeById = useMemo(() => new Map(nodesRef.current.map((n) => [n.id, n])), [graphRev])
 
   useEffect(() => {
     // 用真实数据填充 refs，并保留已有节点的当前位置（避免每次重排归零）
@@ -356,7 +494,8 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
   const viewRef = useRef(view)
   viewRef.current = view
 
-  const [tick, bump] = useReducer((x: number) => (x + 1) % 1_000_000, 0)
+  // 仅用于驱动「每帧重渲染」：位置数据在 ref 上原地可变，故不需要读计数本身
+  const [, bump] = useReducer((x: number) => (x + 1) % 1_000_000, 0)
 
   const [selectedId, setSelectedId] = useState<string | null>(() => readScopedSession(kbId)?.selectedId ?? null)
   const [hoverId, setHoverId] = useState<string | null>(null)
@@ -492,7 +631,11 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
   const alphaRef = useRef(1)
   const rafRef = useRef<number | null>(null)
   const runningRef = useRef(false)
-  const dragRef = useRef<{ id: string; dx: number; dy: number; startX: number; startY: number; moved: boolean } | null>(null)
+  // rect 在按下时缓存一次：拖拽中不再逐次 getBoundingClientRect（那是强制同步重排，是「不丝滑」的一大来源）
+  const dragRef = useRef<{ id: string; dx: number; dy: number; startX: number; startY: number; moved: boolean; rect: DOMRect | null } | null>(null)
+  // 最新指针位置：pointermove 只登记坐标，真正落点由 rAF 步进每帧取一次（把高频 pointermove 合并到每帧一次，
+  // 指针报告率高于刷新率时不再做重复计算与多余渲染）
+  const dragPtrRef = useRef<{ x: number; y: number } | null>(null)
   const panRef = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null)
   // 本次手势是否始于节点：setPointerCapture 会把节点的 click 也重定向到 <svg>，
   // 画布的「点空白处清空选中」必须据此区分，否则点完节点立刻被自己清掉
@@ -766,72 +909,36 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
 
   // ---- 力模拟 ----
   const step = useCallback(() => {
-    const nodes = nodesRef.current
-    const edges = edgesRef.current
-    const a = alphaRef.current
-    if (layout === 'force') {
-      const rep = 24000
-      const linkDist = 140
-      const linkK = 0.035
-      const gravity = 0.012
-      for (let i = 0; i < nodes.length; i++) {
-        const n = nodes[i]
-        n.vx += (size.w / 2 - n.x) * gravity * 0.02
-        n.vy += (size.h / 2 - n.y) * gravity * 0.02
-        for (let j = i + 1; j < nodes.length; j++) {
-          const m = nodes[j]
-          let dx = n.x - m.x
-          let dy = n.y - m.y
-          let d2 = dx * dx + dy * dy
-          if (d2 < 1) d2 = 1
-          const f = (rep / d2) * a
-          const d = Math.sqrt(d2)
-          const fx = (dx / d) * f
-          const fy = (dy / d) * f
-          n.vx += fx
-          n.vy += fy
-          m.vx -= fx
-          m.vy -= fy
+    const drag = dragRef.current
+    // 拖拽期维持一个温和的 alpha 下限：旧版每次 pointermove 都 reheat(0.35) 把力持续打满，
+    // 是「抖、不丝滑」的主因之一；这里改为「按下时唤醒一次 + 拖拽期温和维持」。
+    const a = drag ? Math.max(alphaRef.current, DRAG_ALPHA) : alphaRef.current
+    // 把最新指针换算成世界坐标。rect 用按下时缓存的那份（拖拽中不再 getBoundingClientRect ⇒ 不再强制重排）
+    let dragWorld: { x: number; y: number } | null = null
+    if (drag && dragPtrRef.current) {
+      const rect = drag.rect ?? svgRef.current?.getBoundingClientRect()
+      if (rect) {
+        const v = viewRef.current
+        dragWorld = {
+          x: (dragPtrRef.current.x - rect.left - v.tx) / v.scale,
+          y: (dragPtrRef.current.y - rect.top - v.ty) / v.scale,
         }
       }
-      edges.forEach((e) => {
-        if (e.kind === 'tag' || e.kind === 'folder') return
-        const s = nodes.find((x) => x.id === e.source)
-        const t = nodes.find((x) => x.id === e.target)
-        if (!s || !t) return
-        let dx = t.x - s.x
-        let dy = t.y - s.y
-        const d = Math.sqrt(dx * dx + dy * dy) || 1
-        const f = (d - linkDist) * linkK * a
-        const fx = (dx / d) * f
-        const fy = (dy / d) * f
-        s.vx += fx
-        s.vy += fy
-        t.vx -= fx
-        t.vy -= fy
-      })
-      nodes.forEach((n) => {
-        if (dragRef.current?.id === n.id) return
-        n.vx *= 0.86
-        n.vy *= 0.86
-        n.x += n.vx
-        n.y += n.vy
-      })
-    } else {
-      let maxd = 0
-      nodes.forEach((n) => {
-        const dx = n.tx - n.x
-        const dy = n.ty - n.y
-        n.x += dx * 0.14
-        n.y += dy * 0.14
-        maxd = Math.max(maxd, Math.abs(dx) + Math.abs(dy))
-      })
-      if (maxd < 0.6) alphaRef.current = 0
     }
+    const { maxTargetDelta } = simulateStep({
+      nodes: nodesRef.current,
+      edges: edgesRef.current,
+      nodeById,
+      layout,
+      size,
+      alpha: a,
+      drag: drag ? { id: drag.id, dx: drag.dx, dy: drag.dy } : null,
+      dragWorld,
+    })
+    if (layout !== 'force' && maxTargetDelta < 0.6 && !drag) alphaRef.current = 0
     alphaRef.current *= 0.94
-    if (alphaRef.current < 0.025 && !dragRef.current) alphaRef.current = 0
-    void a
-  }, [layout, size])
+    if (alphaRef.current < 0.025 && !drag) alphaRef.current = 0
+  }, [layout, size, nodeById])
 
   const loop = useCallback(() => {
     runningRef.current = true
@@ -870,15 +977,6 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleIds, mode, centerId, depth, layout])
 
-  // ---- 坐标转换 ----
-  const toWorld = (clientX: number, clientY: number) => {
-    const rect = svgRef.current!.getBoundingClientRect()
-    const sx = clientX - rect.left
-    const sy = clientY - rect.top
-    const v = viewRef.current
-    return { x: (sx - v.tx) / v.scale, y: (sy - v.ty) / v.scale, sx, sy }
-  }
-
   // ---- 平移 ----
   const onBgPointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return
@@ -894,13 +992,11 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
       // 拖拽阈值：小于 4px 的抖动仍算单击（否则手一抖就被判成拖拽、节点被挪动且点不开）
       if (!drag.moved && Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) <= NODE_CLICK_SLOP) return
       drag.moved = true
-      const w = toWorld(e.clientX, e.clientY)
-      const n = nodesRef.current.find((x) => x.id === drag.id)
-      if (n) {
-        n.x = w.x - drag.dx
-        n.y = w.y - drag.dy
-        reheat(0.35)
-      }
+      // 只登记最新指针坐标，实际落点由 rAF 步进每帧取一次：
+      //  • 指针报告率可高于刷新率，合并后每帧只算一次（不再做重复计算与多余渲染）
+      //  • 不在事件里调 getBoundingClientRect（强制同步重排），rect 已在按下时缓存
+      dragPtrRef.current = { x: e.clientX, y: e.clientY }
+      if (!runningRef.current) loop()
       return
     }
     if (panRef.current) {
@@ -919,11 +1015,21 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
     const drag = dragRef.current
     panRef.current = null
     dragRef.current = null
-    if (drag && !drag.moved) activateNode(drag.id)
+    dragPtrRef.current = null
+    if (drag && !drag.moved) {
+      activateNode(drag.id)
+    } else if (drag) {
+      // 松手即锁死被拖拽节点的速度：否则它会带着拖拽期残留的速度继续滑行（报障的「飞出去」）。
+      const n = nodeById.get(drag.id)
+      if (n) { n.vx = 0; n.vy = 0 }
+      bump() // 立即重渲染一次，清掉 SVG 上的 is-dragging（拖拽期已关闭脉冲/过渡）
+    }
   }
   const onPointerCancel = () => {
     panRef.current = null
     dragRef.current = null
+    dragPtrRef.current = null
+    bump()
   }
 
   // ---- 滚轮缩放（光标居中）----
@@ -945,10 +1051,18 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
     // 仅主键拖拽：右键要留给 contextmenu（抢了指针捕获会把 contextmenu 也重定向到 svg）
     if (e.button !== 0) return
     e.stopPropagation()
+    // rect 在按下时缓存一次，整段拖拽复用（拖拽中不再逐次 getBoundingClientRect ⇒ 不再强制重排）
+    const rect = svgRef.current?.getBoundingClientRect() ?? null
+    const n = nodeById.get(id)
+    if (!n || !rect) return
     nodeGestureRef.current = true
-    const w = toWorld(e.clientX, e.clientY)
-    const n = nodesRef.current.find((x) => x.id === id)!
-    dragRef.current = { id, dx: w.x - n.x, dy: w.y - n.y, startX: e.clientX, startY: e.clientY, moved: false }
+    const v = viewRef.current
+    const wx = (e.clientX - rect.left - v.tx) / v.scale
+    const wy = (e.clientY - rect.top - v.ty) / v.scale
+    dragRef.current = { id, dx: wx - n.x, dy: wy - n.y, startX: e.clientX, startY: e.clientY, moved: false, rect }
+    dragPtrRef.current = { x: e.clientX, y: e.clientY }
+    // 按下时唤醒一次力模拟；整个拖拽期由 step 的 alpha 下限持续维持（旧版每次 pointermove 打满 alpha）
+    reheat(0.4)
     ;(svgRef.current as Element).setPointerCapture?.(e.pointerId)
   }
   // 图谱 → 编辑器：打开节点对应笔记，并登记「返回来源」上下文
@@ -1123,7 +1237,7 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
 
   // ---- 渲染数据 ----
   const nodes = nodesRef.current
-  const byId = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [tick, nodes])
+  // 节点定位统一走 nodeById（见文件上方声明）：位置原地可变 ⇒ 无需按帧重建映射
   const edges = edgesRef.current
 
   const cull = (x: number, y: number) => {
@@ -1133,7 +1247,7 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
     return sx < -60 || sx > size.w + 60 || sy < -60 || sy > size.h + 60
   }
 
-  const infoNode = infoCard ? byId.get(infoCard.id) : null
+  const infoNode = infoCard ? nodeById.get(infoCard.id) : null
   const CARD_W = 280
   const CARD_H = 240
   const infoPos = infoNode
@@ -1172,10 +1286,10 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
     setMode(m)
     setExtraNeighbors(new Set()) // 展开邻居随模式切换清空（P1-3）
     if (m === 'tag') {
-      const sel = selectedId ? byId.get(selectedId) : null
+      const sel = selectedId ? nodeById.get(selectedId) : null
       if (sel?.type === 'tag') setCenterId(sel.id)
       else {
-        const cur = selectedId ? byId.get(selectedId) : null
+        const cur = selectedId ? nodeById.get(selectedId) : null
         if (cur?.type === 'file' && cur.tags[0]) {
           const tg = nodes.find((n) => n.type === 'tag' && n.label === cur.tags[0])
           if (tg) setCenterId(tg.id)
@@ -1533,7 +1647,7 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
 
           <svg
             ref={svgRef}
-            className={`aurora-graph__svg${panRef.current ? ' is-panning' : ''}`}
+            className={`aurora-graph__svg${panRef.current ? ' is-panning' : ''}${dragRef.current ? ' is-dragging' : ''}`}
             width={size.w}
             height={size.h}
             onPointerDown={onBgPointerDown}
@@ -1571,8 +1685,8 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
                 </marker>
               </defs>
               {edges.map((e, i) => {
-                const s = byId.get(e.source)
-                const t = byId.get(e.target)
+                const s = nodeById.get(e.source)
+                const t = nodeById.get(e.target)
                 if (!s || !t) return null
                 if (!visibleIds.has(s.id) || !visibleIds.has(t.id)) return null
                 if (e.kind === 'folder' && !showFolderLinks) return null
@@ -1759,7 +1873,7 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
           {menuPresence.mounted && menuPresence.value && (() => {
             // 退场窗口内沿用最后一份非空载荷（usePresenceValue 已保证），坐标不丢
             const menu = menuPresence.value!
-            const m = byId.get(menu.id)
+            const m = nodeById.get(menu.id)
             if (!m) return null
             return (
               <div

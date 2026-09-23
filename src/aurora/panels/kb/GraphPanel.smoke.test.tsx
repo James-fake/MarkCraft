@@ -248,9 +248,14 @@ describe('Aurora GraphPanel · 真实图谱换芯', () => {
     act(() => {
       pointer(g, 'pointermove', 90, 70)
     })
+    // 拖拽期间 SVG 挂 is-dragging：这是「拖拽期性能优化」的开关（关闭脉冲动画/过渡/发光滤镜），
+    // 同时也是「确实进入了拖拽态」的可测锚点（不是单击）
+    expect(container.querySelector('.aurora-graph__svg')!.classList.contains('is-dragging')).toBe(true)
     act(() => {
       pointer(g, 'pointerup', 90, 70)
     })
+    // 松手即摘掉 is-dragging（拖拽期的一次性开销随之恢复）
+    expect(container.querySelector('.aurora-graph__svg')!.classList.contains('is-dragging')).toBe(false)
     // 拖拽摆放节点是图谱高频操作，绝不能把它当成单击跳转
     expect(nav).not.toHaveBeenCalled()
     expect(getEditorReturn()).toBeNull()

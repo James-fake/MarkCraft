@@ -225,6 +225,23 @@
   font-weight: 600;
 }
 
+/* ---------- 拖拽期性能（2026-09-23 拖拽体验调优）----------
+   拖拽时整图每帧重定位，此阶段关掉一切「持续绘制」的非必要开销，松手即恢复（不影响静态观感）：
+   ① 当前笔记节点的 drop-shadow 脉冲是 infinite animation → 每帧重绘，拖拽期暂停；
+   ② 节点/连线/标签的过渡在 hover 状态变化时会逐帧重绘 → 拖拽期置 none；
+   ③ 悬停/选中节点的 drop-shadow 发光同理置 none。
+   is-dragging 由 GraphPanel 按 dragRef 挂到 <svg> 上（与 is-panning 同款派生方式）。 */
+.aurora-graph__svg.is-dragging { cursor: grabbing; }
+.aurora-graph__svg.is-dragging .aurora-graph__node,
+.aurora-graph__svg.is-dragging .aurora-graph__edge,
+.aurora-graph__svg.is-dragging .aurora-graph__dot,
+.aurora-graph__svg.is-dragging .aurora-graph__label {
+  transition: none;
+}
+.aurora-graph__svg.is-dragging .aurora-graph__dot--current { animation: none; }
+.aurora-graph__svg.is-dragging .aurora-graph__node.is-active .aurora-graph__dot { filter: none; }
+
+
 /* ---------- 浮层通用（玻璃 popover） ---------- */
 .aurora-graph__float {
   position: absolute;
