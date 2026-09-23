@@ -1,5 +1,6 @@
 import { Icon } from '../../icons'
 import { AuroraTabs } from './AuroraTabs'
+import { EditorReturnButton } from './EditorReturnButton'
 
 /**
  * Aurora 编辑器工具栏 —— 编辑视图切换（叠加式 + 所见即所得）
@@ -29,6 +30,13 @@ export interface EditorToolbarProps {
   onPublishFile?: (fileId: string) => void
   /** 标签右键菜单「加入知识库」：传入目标文件 fileId，接回真实 KB 串联 */
   onAddToKbFile?: (fileId: string) => void
+  /**
+   * 返回来源（2026-09-23 用户需求）：落在**文件标签左侧**的行内首位。
+   * 为空串 / undefined 时不渲染 —— 没有来源上下文就没有返回按钮。
+   */
+  returnLabel?: string
+  /** 点返回：回跳到来源视图（规则见 EditorPanel#handleReturnToSource） */
+  onReturn?: () => void
 }
 
 export function EditorToolbar({
@@ -40,6 +48,8 @@ export function EditorToolbar({
   onToggleWysiwyg,
   onPublishFile,
   onAddToKbFile,
+  returnLabel,
+  onReturn,
 }: EditorToolbarProps) {
   const isWysiwyg = editorMode === 'wysiwyg'
   // 高亮：源码/预览窗格各自可见即高亮（双屏时两者同亮）；所见即所得独立高亮
@@ -49,8 +59,18 @@ export function EditorToolbar({
 
   return (
     <div className="aurora-toolbar aurora-editor-toolbar">
-      {/* 左：多文件标签栏（并入本行，不新增一行；复用真实 FileStore tab API） */}
+      {/* 左：多文件标签栏（并入本行，不新增一行；复用真实 FileStore tab API）
+          —— 2026-09-23 用户需求：「返回来源」按钮落在**标签左侧**的行内首位。
+          为什么不放进 AuroraTabs 内部：标签栏为空（无可见标签）时 AuroraTabs 会整体不渲染，
+          返回按钮不能被它一起带走；放在**兄弟位**才能各自独立存亡。
+          钉在行内首位也意味着标签横向滚动时它不跟着滚（对齐 VS Code 的前导动作位）。 */}
       <div className="aurora-toolbar__tabs">
+        {returnLabel && onReturn && (
+          <>
+            <EditorReturnButton label={returnLabel} onReturn={onReturn} inline />
+            <span className="aurora-editor__tabs-lead-sep" aria-hidden />
+          </>
+        )}
         <AuroraTabs onPublishFile={onPublishFile} onAddToKbFile={onAddToKbFile} />
       </div>
 

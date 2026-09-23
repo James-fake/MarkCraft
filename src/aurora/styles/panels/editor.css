@@ -2602,7 +2602,12 @@
   color: var(--mc-text-primary);
 }
 
-/* ── 8. 面板串联：返回来源芯片（知识库详情 / 双链图谱）+ 加入知识库菜单 ── */
+/* ── 8. 面板串联：返回来源芯片（知识库详情 / 双链图谱）+ 加入知识库菜单 ──
+   ⚠️ 落点（2026-09-23 用户报障「位置非常不合理」）：
+     · 常态编辑 → 该按钮并入**标签行首位**、落在文件标签左侧（`--inline` 变体）；
+     · 无标签行的版式（内置《使用文档》只读简介页 / 未打开文档的空态）→ 退回 `.aurora-editor__returnbar`
+       这条只含该按钮的极简行（那里它是唯一回跳入口）。
+   两处共用同一个 `.aurora-editor__return` 本体，只在形态上分叉，避免同款控件各自漂移。 */
 .aurora-editor__returnbar {
   display: flex;
   padding: 6px 12px 0;
@@ -2622,6 +2627,33 @@
 .aurora-editor__return:hover {
   color: var(--mc-text-primary);
   border-color: var(--mc-border-strong);
+}
+/* 文字层单列一个元素，长库名才能吃 ellipsis（inline-flex 容器上的 text-overflow 不生效） */
+.aurora-editor__return-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 行内形态：并入标签行首位。与标签同高、透明底（不用 --mc-bg-elevated —— 那是激活标签的底色，
+   会让返回按钮看起来像一个被选中的标签）、不参与压缩（标签区让位并横向滚动）。 */
+.aurora-editor__return--inline {
+  flex: 0 0 auto;
+  height: 24px;
+  padding: 0 10px;
+  max-width: 240px;
+  background: transparent;
+}
+.aurora-editor__return--inline:hover {
+  background: var(--mc-bg-hover);
+}
+/* 「返回」与标签之间的一道发丝分隔：明确左边这一格不是标签 */
+.aurora-editor__tabs-lead-sep {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 18px;
+  margin: 0 10px;
+  background: var(--mc-border-subtle);
 }
 
 /* 注：原「加入知识库」独立浮层（.aurora-kb-menu__*：fixed 定位 + mask + 自绘勾选框）

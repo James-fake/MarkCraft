@@ -6,6 +6,7 @@ import { setBlogEntryFileId } from '../blog/BlogPanel'
 import { getEditorReturn, clearEditorReturn } from '../../navigation/navReturn'
 import type { EditorReturnContext } from '../../navigation/navReturn'
 import { EditorToolbar } from './EditorToolbar'
+import { EditorReturnButton } from './EditorReturnButton'
 import { Icon } from '../../icons'
 import '../../styles/panels/editor.css'
 // —— 语法检查：Aurora 层集成（复用真实 lintMarkdown + fixIssue 引擎；D4 单一数据源）
@@ -244,6 +245,11 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   //    故「只读简介页 + 瞬态生命周期」共用**同一个** builtinFileIds 判定，不会各自漂移。
   const usageDocs = useUsageDocsScope()
   const isUsageDoc = !!activeFileId && usageDocs.builtinFileIds.has(activeFileId)
+
+  // —— 「编辑 chrome 是否在位」= 顶部工具栏 / 左缘文件栏的统一判据 ——
+  // 单源派生：三处条件渲染（工具栏、返回按钮的落点选择、左缘 hoverzone）都用它，
+  // 避免「工具栏不渲染了但返回按钮仍以为自己在栏内」这类漂移。
+  const editorChromeShown = !!activeFileId && !isUsageDoc
 
   // 面包屑：逐级向上收集文件夹路径（根目录不计入），末级为文件名（去 .md）
   // —— P1-2 顶栏文档上下文强化：不再只取一级父文件夹，深层文件也能回溯完整层级
@@ -747,7 +753,7 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
             且文件浏览已由内嵌列表承担；编辑态仍正常渲染。
             内置「使用文档」简介页同样不渲染：该行承载的「多文件标签栏（含标签 × 关闭）」与
             「源码 / 预览 / 所见即所得」编辑模式选择框，正是需求要求移除的两类编辑元素。 */}
-        {activeFileId && !isUsageDoc && (
+        {editorChromeShown && (
           <EditorToolbar
             editorMode={editorMode}
             sourceVisible={sourceVisible}
@@ -757,14 +763,20 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
             onToggleWysiwyg={toggleWysiwyg}
             onPublishFile={handlePublish}
             onAddToKbFile={openKbMenu}
+            returnLabel={returnCtx?.label}
+            onReturn={handleReturnToSource}
           />
         )}
 
-        {returnCtx && (
+        {/* 返回来源按钮的落点（2026-09-23 用户报障「位置非常不合理」）——
+            ① **有标签行时**（常态编辑）：按钮已并入标签行首位、落在文件标签左侧（见 EditorToolbar），
+               这里**不再**另起一行；此前它独占一整行、且压在标签行下方，既浪费纵向空间又像游离的杂条。
+            ② **无标签行时**（内置《使用文档》只读简介页 / 未打开文档的空态）：退回这条只含该按钮的极简行
+               —— 在那些版式里它是**唯一回跳入口**，不能随工具栏一起消失（回归锁见 EditorReturnPlacement.test.tsx）。
+            判据与工具栏**同源**（editorChromeShown 的取反），不会出现「工具栏没渲染、按钮却以为自己在行内」。 */}
+        {returnCtx && !editorChromeShown && (
           <div className="aurora-editor__returnbar">
-            <button type="button" className="aurora-editor__return" onClick={handleReturnToSource}>
-              ← 返回 {returnCtx.label}
-            </button>
+            <EditorReturnButton label={returnCtx.label} onReturn={handleReturnToSource} />
           </div>
         )}
 
@@ -776,7 +788,7 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
               空态引导界面已内嵌文件列表，不再需要边缘滑入，故仅编辑态渲染。
               内置「使用文档」简介页不渲染：需求要求**隐藏左侧文件列表**，而此 hoverzone
               正是它的唯一入口（含图钉常驻与 ⌘B 切换），整块缺席才是「隐藏」。 */}
-          {activeFileId && !isUsageDoc && (
+          {editorChromeShown && (
           <div
             className={`aurora-editor__hoverzone aurora-editor__hoverzone--left ${leftPinned ? 'is-pinned' : ''}`}
             onMouseEnter={openLeftIntent}
