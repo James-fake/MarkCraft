@@ -122,10 +122,9 @@ export default function MindmapPopover({
   }
 
   const sectionLabelStyle: React.CSSProperties = {
-    fontSize: '11px',
+    fontSize: 'var(--mc-font-xs)',
     fontWeight: 600,
-    color: 'var(--editor-text)',
-    opacity: 0.5,
+    color: 'var(--mc-text-tertiary)',
     textTransform: 'uppercase',
     letterSpacing: '0.05em',
     marginBottom: '6px',
@@ -133,73 +132,63 @@ export default function MindmapPopover({
 
   const optionBtnStyle = (active: boolean): React.CSSProperties => ({
     padding: '4px 10px',
-    borderRadius: '4px',
-    border: active ? '1px solid var(--button-primary, #3b82f6)' : '1px solid var(--editor-border)',
-    background: active ? 'rgba(59, 130, 246, 0.12)' : 'transparent',
-    color: 'var(--editor-text)',
-    fontSize: '12px',
+    borderRadius: 'var(--mc-radius-sm)',
+    border: active ? '1px solid var(--mc-accent)' : '1px solid var(--mc-border-medium)',
+    background: active ? 'var(--mc-accent-soft)' : 'transparent',
+    color: active ? 'var(--mc-accent-text)' : 'var(--mc-text-primary)',
+    fontFamily: 'inherit',
+    fontSize: 'var(--mc-font-sm)',
     cursor: 'pointer',
-    transition: 'all 0.15s',
+    transition:
+      'background-color var(--mc-dur-micro) ease-out, border-color var(--mc-dur-micro) ease-out, color var(--mc-dur-micro) ease-out',
   })
 
+  // 复用 aurora 浮层基底（与工具栏其余 dropdown 同源）：材质/边框/圆角/阴影/z-index 带
+  // 全部由 .aurora-dropdown 承担，组件内只保留「定位 + 尺寸」这两项本浮层特有值。
+  // 注意：本浮层经 createPortal 挂到 document.body，已脱离 #aurora-root 作用域，
+  // 因此内部一律直接引用全局 --mc-* token，不得再用 --editor-*（那套只在 aurora 子树内被重映射）。
   return createPortal(
     <div
       ref={popoverRef}
+      className="aurora-dropdown"
       style={{
         position: 'fixed',
         top: `${position.top}px`,
         left: `${position.left}px`,
-        zIndex: 9999,
-        backgroundColor: 'var(--editor-bg, #fff)',
-        borderRadius: '0.5rem',
-        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)',
-        border: '1px solid var(--editor-border)',
         minWidth: '380px',
         maxWidth: '420px',
         maxHeight: '540px',
+        padding: 0,
         overflowY: 'auto',
       }}
       role="menu"
     >
       <div style={{
         padding: '10px 14px 8px',
-        borderBottom: '1px solid var(--editor-border)',
+        borderBottom: '1px solid var(--mc-border-subtle)',
         display: 'flex',
         alignItems: 'center',
         gap: '8px',
       }}>
-        <span style={{ fontSize: '14px' }}>🧠</span>
+        <span style={{ fontSize: 'var(--mc-font-md)' }}>🧠</span>
         <span style={{
-          fontSize: '13px',
+          fontSize: 'var(--mc-font-base)',
           fontWeight: 600,
-          color: 'var(--editor-text)',
+          color: 'var(--mc-text-primary)',
         }}>
           {language === 'en' ? 'Mindmap Templates' : '思维导图模板'}
         </span>
       </div>
 
-      <div style={{ padding: '6px' }}>
+      <div style={{ padding: '4px' }}>
         {templates.map(tpl => (
           <button
             key={tpl.id}
+            className="aurora-dropdown__item"
             style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
+              height: 'auto',
+              padding: '6px 8px',
               gap: '10px',
-              padding: '7px 10px',
-              borderRadius: '6px',
-              border: 'none',
-              background: 'transparent',
-              cursor: 'pointer',
-              textAlign: 'left',
-              transition: 'background-color 0.15s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--hover-bg, rgba(59, 130, 246, 0.1))'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent'
             }}
             onClick={() => handleSelect(tpl)}
             role="menuitem"
@@ -208,29 +197,28 @@ export default function MindmapPopover({
               width: '80px',
               height: '44px',
               flexShrink: 0,
-              borderRadius: '4px',
-              border: '1px solid var(--editor-border)',
+              borderRadius: 'var(--mc-radius-sm)',
+              border: '1px solid var(--mc-border-subtle)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               overflow: 'hidden',
-              background: 'var(--code-bg, rgba(30,30,40,0.4))',
+              background: 'var(--mc-bg-content)',
             }}>
               {tpl.preview}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{
-                fontSize: '13px',
+                fontSize: 'var(--mc-font-base)',
                 fontWeight: 500,
-                color: 'var(--editor-text)',
+                color: 'var(--mc-text-primary)',
                 marginBottom: '2px',
               }}>
                 {language === 'en' ? tpl.labelEn : tpl.labelZh}
               </div>
               <div style={{
-                fontSize: '11px',
-                color: 'var(--editor-text)',
-                opacity: 0.5,
+                fontSize: 'var(--mc-font-xs)',
+                color: 'var(--mc-text-secondary)',
                 lineHeight: 1.4,
               }}>
                 {language === 'en' ? tpl.descEn : tpl.descZh}
@@ -241,8 +229,8 @@ export default function MindmapPopover({
       </div>
 
       <div style={{
-        borderTop: '1px solid var(--editor-border)',
-        padding: '10px 14px',
+        borderTop: '1px solid var(--mc-border-subtle)',
+        padding: '10px 12px',
       }}>
         <div style={sectionLabelStyle}>
           {language === 'en' ? 'Layout' : '布局'}
@@ -290,7 +278,7 @@ export default function MindmapPopover({
                 borderRadius: '50%',
                 background: val.color,
                 flexShrink: 0,
-                border: key === 'default' ? '1px solid var(--editor-border)' : 'none',
+                border: key === 'default' ? '1px solid var(--mc-border-medium)' : 'none',
               }} />
               <span>{language === 'en' ? val.labelEn : val.labelZh}</span>
             </button>
