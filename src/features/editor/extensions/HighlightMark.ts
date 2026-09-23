@@ -1,35 +1,48 @@
-// Phase 4（2026-09-18）自 features/shared/utils/ **原样迁入**（内容一字未改）。
 // 定位：TipTap Mark 扩展（Highlight.extend(...)），与同目录的 AbbreviationMark /
-// CommentMark / SubscriptMark / SuperscriptMark 同类 —— 原先仅因「utils」这个字面
-// 归类被放错位置，并非通用工具。
+// CommentMark / SubscriptMark / SuperscriptMark 同类。
+// 2026-09-23 起：调色板由 5 色扩至 16 色；颜色常量抽到 ./highlightColors（避免与偏好模块成环）。
 import Highlight from '@tiptap/extension-highlight'
+import { DEFAULT_HIGHLIGHT_COLOR, HIGHLIGHT_COLORS } from './highlightColors'
+import { getLastHighlightColor } from './highlightColorPref'
 
-export const HIGHLIGHT_COLORS: Record<string, string> = {
-  yellow: 'rgba(255, 235, 59, 0.4)',
-  green: 'rgba(76, 175, 80, 0.3)',
-  blue: 'rgba(33, 150, 243, 0.3)',
-  purple: 'rgba(156, 39, 176, 0.3)',
-  red: 'rgba(244, 67, 54, 0.3)',
-}
-
-export const HIGHLIGHT_COLOR_OPTIONS = ['yellow', 'green', 'blue', 'purple', 'red'] as const
-
-export type HighlightColor = typeof HIGHLIGHT_COLOR_OPTIONS[number]
+// 颜色常量对外仍从本模块导出（既有 import 路径不变）
+export {
+  HIGHLIGHT_COLORS,
+  HIGHLIGHT_UI_COLORS,
+  HIGHLIGHT_COLOR_OPTIONS,
+  DEFAULT_HIGHLIGHT_COLOR,
+  isHighlightColor,
+} from './highlightColors'
+export type { HighlightColor } from './highlightColors'
 
 const HighlightMark = Highlight.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
       color: {
-        default: 'yellow',
-        parseHTML: (element: HTMLElement) => element.getAttribute('data-highlight-color') || 'yellow',
+        default: DEFAULT_HIGHLIGHT_COLOR,
+        parseHTML: (element: HTMLElement) => element.getAttribute('data-highlight-color') || DEFAULT_HIGHLIGHT_COLOR,
         renderHTML: (attributes: Record<string, string>) => {
-          const color = attributes.color || 'yellow'
+          const color = attributes.color || DEFAULT_HIGHLIGHT_COLOR
           return {
             'data-highlight-color': color,
-            style: `background-color: ${HIGHLIGHT_COLORS[color] || HIGHLIGHT_COLORS.yellow}`,
+            style: `background-color: ${HIGHLIGHT_COLORS[color] || HIGHLIGHT_COLORS[DEFAULT_HIGHLIGHT_COLOR]}`,
           }
         },
+      },
+    }
+  },
+
+  addKeyboardShortcuts() {
+    return {
+      // Ctrl/Cmd+Shift+H：应用/切换「上次颜色」（与工具栏主按钮同一语义）
+      'Mod-Shift-h': () => {
+        const color = getLastHighlightColor()
+        const current = this.editor.getAttributes('highlight').color
+        if (current === color) {
+          return this.editor.chain().focus().unsetHighlight().run()
+        }
+        return this.editor.chain().focus().unsetHighlight().setHighlight({ color }).run()
       },
     }
   },

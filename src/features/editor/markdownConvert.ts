@@ -143,7 +143,8 @@ export function markdownToHtml(md: string, imageStore: ImageStoreAPI): string {
     })
 
     // ==text|color== 高亮转换为 <mark data-highlight-color="color">（在 marked 解析之前）
-    processed = processed.replace(/==([^=|]+)\|(\w+)==/g, '<mark data-highlight-color="$2">$1</mark>')
+    // 色名允许连字符（deep-orange / light-blue / deep-purple / light-green），故用 [-\w]+ 而非 \w+。
+    processed = processed.replace(/==([^=|]+)\|([-\w]+)==/g, '<mark data-highlight-color="$2">$1</mark>')
     // ==text== 高亮转换为 <mark>（默认黄色）
     processed = processed.replace(/==([^=]+)==/g, '<mark>$1</mark>')
 

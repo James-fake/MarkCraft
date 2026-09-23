@@ -20,7 +20,8 @@ import { useFileManager } from '@stores/FileStore'
 import { getRecentFiles } from '@core/files/recentFiles'
 import { buildRecentWikilink, buildReferenceTemplate, buildRelatedTemplate, buildBackindexTemplate, buildTodayWikilink, buildBacklinksList } from '@features/editor/toolbar/groups/linkTemplates'
 import { getShortcutLabel } from '@features/editor/toolbar/ShortcutManager'
-import { HIGHLIGHT_COLORS, HIGHLIGHT_COLOR_OPTIONS } from '@features/editor/extensions/HighlightMark'
+import { HIGHLIGHT_UI_COLORS, HIGHLIGHT_COLOR_OPTIONS, isHighlightColor, type HighlightColor } from '@features/editor/extensions/HighlightMark'
+import { useSettings } from '@stores/SettingsStore'
 
 interface WysiwygToolbarProps {
   editor: Editor | null
@@ -87,12 +88,16 @@ export default function WysiwygToolbar({
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [highlightDropdownOpen, setHighlightDropdownOpen] = useState(false)
   const emojiBtnRef = useRef<HTMLButtonElement>(null)
-  const highlightBtnRef = useRef<HTMLButtonElement>(null)
+  // split button：主按钮应用「上次颜色」，右侧小箭头开调色板。锚点 = 整个包裹层（主按钮 + 箭头）。
+  const highlightWrapRef = useRef<HTMLDivElement>(null)
   const highlightMenuRef = useRef<HTMLDivElement>(null)
   // 下拉面板经 createPortal 挂到 body（position:fixed）—— 若留在工具栏内会因
   // 容器 overflow:hidden 被裁掉，表现为「点高亮按钮没任何反应」（面板其实挂载了但不可见）。
-  const highlightPos = useDropdownPosition(highlightDropdownOpen, highlightBtnRef)
+  const highlightPos = useDropdownPosition(highlightDropdownOpen, highlightWrapRef)
   const moreBtnRef = useRef<HTMLButtonElement>(null)
+  // 「记住上次颜色」：单一数据源 = SettingsStore.lastHighlightColor（持久化到 markcraft_settings）
+  const { settings, updateSetting } = useSettings()
+  const lastColor: HighlightColor = isHighlightColor(settings.lastHighlightColor) ? settings.lastHighlightColor : 'yellow'
 
   // Close highlight dropdown on outside click (must also exclude the panel itself,
   // otherwise clicking a color swatch unmounts the panel before its onClick fires)
@@ -100,7 +105,7 @@ export default function WysiwygToolbar({
     if (!highlightDropdownOpen) return
     const handler = (e: MouseEvent) => {
       if (
-        highlightBtnRef.current && !highlightBtnRef.current.contains(e.target as Node) &&
+        highlightWrapRef.current && !highlightWrapRef.current.contains(e.target as Node) &&
         highlightMenuRef.current && !highlightMenuRef.current.contains(e.target as Node)
       ) {
         setHighlightDropdownOpen(false)
@@ -114,6 +119,30 @@ export default function WysiwygToolbar({
     if (!editor) return
     editor.chain().focus().insertContent(emoji).run()
   }, [editor])
+
+  /** 主按钮：对选区应用/切换「上次颜色」（选区当前已是该色则取消） */
+  const applyLastHighlightColor = useCallback(() => {
+    if (!editor) return
+    const currentColor = editor.getAttributes('highlight').color
+    if (currentColor === lastColor) {
+      editor.chain().focus().unsetHighlight().run()
+    } else {
+      editor.chain().focus().unsetHighlight().setHighlight({ color: lastColor }).run()
+    }
+  }, [editor, lastColor])
+
+  /** 调色板选色：应用该色并写回「上次颜色」（同一色再点 = 取消高亮） */
+  const applyHighlightColor = useCallback((color: HighlightColor) => {
+    if (!editor) return
+    const currentColor = editor.getAttributes('highlight').color
+    if (currentColor === color) {
+      editor.chain().focus().unsetHighlight().run()
+    } else {
+      editor.chain().focus().unsetHighlight().setHighlight({ color }).run()
+    }
+    updateSetting('lastHighlightColor', color)
+    setHighlightDropdownOpen(false)
+  }, [editor, updateSetting])
 
   // Only re-render when formatting state actually changes (rAF throttled)
   const [, setEditorTick] = useState(0)
@@ -297,25 +326,71 @@ export default function WysiwygToolbar({
         </svg>
       </WysiwygToolbarButton>
 
-      <div style={{ position: 'relative' }}>
+      <div ref={highlightWrapRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        {/* 主按钮：对选区应用/切换「上次颜色」 */}
         <WysiwygToolbarButton
-          onClick={() => setHighlightDropdownOpen(!highlightDropdownOpen)}
-          title={`${t.toolbar.highlight} (${getShortcutLabel('format.highlight')})`}
+          onClick={applyLastHighlightColor}
+          title={`${t.toolbar.highlight} · ${lastColor} (${getShortcutLabel('format.highlight')})`}
           active={editor.isActive('highlight')}
-          buttonRef={highlightBtnRef}
         >
-          <svg style={{ width: '16px', height: '16px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-          </svg>
+          <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg style={{ width: '16px', height: '16px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            {/* 「上次颜色」指示条：主按钮会用什么颜色，一眼可见 */}
+            <span
+              data-hl-last={lastColor}
+              style={{
+                position: 'absolute',
+                left: '0px',
+                right: '0px',
+                bottom: '-4px',
+                height: '3px',
+                borderRadius: '2px',
+                backgroundColor: HIGHLIGHT_UI_COLORS[lastColor] || HIGHLIGHT_UI_COLORS.yellow,
+                pointerEvents: 'none',
+              }}
+            />
+          </span>
         </WysiwygToolbarButton>
+        {/* 调色板开关（小箭头）：点开 16 色网格 */}
+        <button
+          type="button"
+          onClick={() => setHighlightDropdownOpen(v => !v)}
+          title="选择高亮颜色"
+          aria-label="选择高亮颜色"
+          aria-haspopup="true"
+          aria-expanded={highlightDropdownOpen}
+          onMouseDown={(e) => e.preventDefault()}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '12px',
+            height: '28px',
+            padding: 0,
+            marginLeft: '-3px',
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            cursor: 'pointer',
+            color: 'inherit',
+            opacity: 0.65,
+          }}
+        >
+          <svg style={{ width: '8px', height: '8px' }} viewBox="0 0 10 6" fill="currentColor" aria-hidden="true">
+            <path d="M0 0l5 6 5-6z" />
+          </svg>
+        </button>
         {highlightDropdownOpen && createPortal(
           <div ref={highlightMenuRef} style={{
             position: 'fixed',
             top: `${highlightPos.top}px`,
             left: `${highlightPos.left}px`,
-            display: 'flex',
-            gap: '6px',
-            padding: '6px 10px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(8, 20px)',
+            gap: '7px',
+            padding: '8px',
             backgroundColor: 'var(--editor-bg)',
             border: '1px solid var(--editor-border)',
             borderRadius: '6px',
@@ -325,26 +400,19 @@ export default function WysiwygToolbar({
             {HIGHLIGHT_COLOR_OPTIONS.map(color => (
               <div
                 key={color}
-                onClick={() => {
-                  const currentColor = editor.getAttributes('highlight').color
-                  if (currentColor === color) {
-                    editor.chain().focus().unsetHighlight().run()
-                  } else {
-                    editor.chain().focus().unsetHighlight().setHighlight({ color }).run()
-                  }
-                  setHighlightDropdownOpen(false)
-                }}
+                onClick={() => applyHighlightColor(color)}
                 style={{
                   width: '20px',
                   height: '20px',
                   borderRadius: '50%',
-                  backgroundColor: HIGHLIGHT_COLORS[color],
+                  backgroundColor: HIGHLIGHT_UI_COLORS[color],
                   cursor: 'pointer',
+                  boxSizing: 'border-box',
                   border: editor.isActive('highlight', { color }) ? '2px solid var(--button-primary)' : '2px solid var(--editor-border)',
                   transition: 'transform 0.15s ease',
                 }}
-                onMouseEnter={(e) => { (e.target as HTMLElement).style.transform = 'scale(1.2)' }}
-                onMouseLeave={(e) => { (e.target as HTMLElement).style.transform = 'scale(1)' }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.18)' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)' }}
                 title={color}
               />
             ))}

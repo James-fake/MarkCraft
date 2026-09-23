@@ -92,6 +92,26 @@ subbar 52px。⚠️ `.aurora-kb-notes` 顶 padding 仅 2px 是为**自带 `__he
 - 🚨 **chrome 判据单源**：`const editorChromeShown = !!activeFileId && !isUsageDoc`（原 `activeFileId && !isUsageDoc` 散在三处：工具栏／返回落点／左缘 hoverzone）—— 统一派生，避免漂移。
 - 回归锁 `panels/editor/EditorReturnPlacement.test.tsx`（6 例；位置断言用 `compareDocumentPosition`，jsdom 无布局时优于几何）；真机 `artifacts/cdp-verify-editor-return-placement.mjs`（几何：按钮在 tabsZone 内 ∧ right ≤ 首标签 left ∧ 中心 y 差 ≤ 4px ∧ 极简行数=0）。⚠️ **一条断言只证一件事**：语义用例别混落点断言。
 
+## 编辑器高亮（split button + 16 色 + 「记住上次色」，2026-09-23 需求）
+- **交互范式**（对齐 Word / VS Code，非自创）：主按钮＝应用/切换**上次色**（**不弹面板**）；右侧 12px
+  小箭头＝开调色板。**只有「在调色板里显式挑色」才改写上次颜色**；主按钮 / `Ctrl+Shift+H` /
+  右键菜单三条入口同语义＝「应用上次色」。改任一处都要三处对齐。
+- **单源**：色表唯一真源 = `features/editor/extensions/highlightColors.ts` 的
+  `HIGHLIGHT_COLOR_OPTIONS`（顺序即调色板顺序）；`HIGHLIGHT_COLORS`（正文 rgba）与
+  `HIGHLIGHT_UI_COLORS`（UI hex）**键集合必须与它完全一致**（有单测锁）。上次色单一数据源 =
+  `SettingsStore.lastHighlightColor`（localStorage `markcraft_settings`），读取一律过 `isHighlightColor`
+  校验、非法值回退 `yellow`。
+- 🚨 **不许让「扩展」与「偏好」互相 import**：`HighlightMark`（要色表）↔ `highlightColorPref`（要默认色）
+  会成环 ⇒ 色常量必须留在独立的纯常量模块，两者都只 import 它。
+- 🚨 **markdown 往返的色名正则必须 `[-\w]+`**（不是 `\w+`）：16 色里有 `deep-orange`/`light-blue`/
+  `deep-purple`/`light-green` 四个连字符色名，用 `\w+` 会**静默退化成默认黄**（用户挑深橙、落盘是黄）。
+- ⚠️ **`yellow` 回写归一化为 `==文本==`**（无后缀）——既有约定，历史两种写法统一成短形态以免每次编辑改 diff。
+  测往返时这是**预期**，不要当 bug 改。
+- 面板必须 `createPortal(..., document.body)` + `position:fixed`：留在工具栏内会被 `.wysiwyg-toolbar`
+  的 `overflow:hidden` **裁掉**（挂载了但屏幕上不可见 ⇒ 用户报「点了没反应」）。
+- 探针 `artifacts/cdp-verify-highlight-split.mjs`（33 条）。**同目录另有一条**
+  `cdp-verify-highlight-click.mjs` 守「portal 裁切」那条回归，别互相合并。
+
 ## 通用铁律 · 细则（续）：主文件 `MEMORY.md` 只留判据，本节存细则
 ### 二级栏高 / 密度
 二级栏高 = `--mc-subbar-h`（tokens §12，52px），三面板同源，**不参与密度切换**；⚠️ 栏高**被复制进派生偏移**（`blog__panelzone.top` 等）→ 改栏高必须同改，一律 `var()`。
@@ -122,6 +142,9 @@ subbar 52px。⚠️ `.aurora-kb-notes` 顶 padding 仅 2px 是为**自带 `__he
 - 🚨 **断言时机陷阱（2026-09-23 高亮事件）**：派发 `dispatchEvent('mousedown')` 后**同步**测「目标是否还在 DOM」恒为 true——React 在 `setState` 后才重渲染，同步测量时元素尚未卸载。公平判据必须是 **`await sleep(300)` 后**的重渲染态（如 `dropdownStillOpen`）。首版用同步态当 OLD/FIXED 判据 → HEAD 对照假绿；改重渲染态后才有真证据。通则：**凡断言「某事件是否触发卸载/关闭」，必须等一拍重渲染再测**。
 - 🚨 **「在 DOM 里」≠「用户看得见」（2026-09-23 高亮按钮事件）**：只断言 `!!document.querySelector(sel)` 会被**裁切类 bug** 骗过——元素已挂载却被祖先 `overflow:hidden` 裁掉、屏幕上不可见，探针仍全绿而用户报「点了没反应」。凡「点击无反应」类报障，判据必须是**可命中性**：`document.elementFromPoint(元素中心)` 命中该元素（或 `el.contains(top)`）+ 断言它**不在**裁剪容器内（`!toolbar.contains(el)`／`panelParent===body`）。
 - 三陷阱：backdrop 吞指针／窗口激活吞最早鼠标事件／无焦时合成按键打不进。深链 `#view=` 只认**启动 URL**。`SVGElement` 无 `.click()` → 派发 `new MouseEvent('click',{bubbles:true,cancelable:true,view:window})`。「看得见」别用 `elementFromPoint`（`pointer-events:none` 假阴性）；拖动中截图不可信。
+- 🚨 **合成输入的「预热点」必须落在真实文本块上，判据是「编辑器真的拿到焦点」（2026-09-23 高亮 split button）**：导航后头一段合成鼠标事件会被整体丢弃，故需预热；但**预热目标选错会把「没预热成功」误判成「产品坏了」**——点 `.tiptap` 容器的**几何中心**常常落在正文下方空白里，实测 10 次全拿不到焦点（`document.activeElement` 仍是 `BODY`）。正解：点 `.tiptap p/h1/li` 等**真实文本块**，并以 `!!document.activeElement?.closest('.tiptap')` 作为就绪判据（实测 1 次即就绪）。连带：**预热会移动光标 ⇒ 必须在「设选区」之前做**，否则刚设的选区被点掉。
+- 🚨 **「点击无反应」的归因要双路取证，别靠读代码推理（2026-09-23）**：同一次失败里同时取 (a) **按钮上的 click 计数器**（`document.addEventListener('click',…,true)` 内判 `btn.contains(e.target)`）——证「事件到没到按钮」；(b) **直调命令 trace**（`ed.chain().focus().unsetHighlight().setHighlight({color:'red'}).run()` 后数 mark）——证「命令层能不能执行」。HEAD 对照实测：`{onBtn:0,onSvgChild:5}`（点击确实到按钮 5 次）而直调 `marksAfterDirect:1` ⇒ 归因干净落在「旧按钮 onClick 只是开关面板、根本不是应用高亮」，而非「探针坏了」。**另：重试型点击只能配「从无到有」的单向谓词**（如 mark 数增加），写成「变了个样」会让重试自相矛盾（把 toggle 又点回去）。
+- ⚠️ **返回码会被管道吃掉**：`node probe.mjs | tail -20` 之后 `$?` 是 `tail` 的。要拿探针真实退出码须重定向到文件再 `echo $?`。
 ### 验证链路 细则
 > 七条验证链路（tsc／vitest／eslint 守卫／depgraph／vite build／真机 CDP／文件集合差）本体见 `MEMORY.md`；③ 空输出须先证「实扫文件数」非 0（`-f json` 数数组长度）；守卫升 error 后须**注入探针**验 `exit=1` 且报出预期规则名 → 还原 → 复跑 0；④ 看 `BIDIRECTIONAL PAIRS`／`MODULE-LEVEL CYCLES` 两节为 `(none)`；⑥ 不适用须**显式判定**并写明判据。
 ### git / 沙箱 完整细则

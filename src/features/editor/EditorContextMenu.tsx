@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import { getLastHighlightColor } from '@features/editor/extensions/highlightColorPref'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -415,7 +416,13 @@ export default function EditorContextMenu({
           {
             label: '高亮',
             checked: safeIsActive(editor, 'highlight'),
-            action: () => editor.chain().focus().toggleHighlight().run(),
+            // 与工具栏主按钮同语义：应用/切换「上次颜色」
+            action: () => {
+              const color = getLastHighlightColor()
+              const current = editor.getAttributes('highlight').color
+              if (current === color) editor.chain().focus().unsetHighlight().run()
+              else editor.chain().focus().unsetHighlight().setHighlight({ color }).run()
+            },
             disabled: !safeCan(editor, 'toggleHighlight'),
           },
           {
