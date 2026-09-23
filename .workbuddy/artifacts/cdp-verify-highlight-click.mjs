@@ -1,30 +1,30 @@
 /**
- * CDP 真机探针 · 编辑器 WYSIWYG「高亮」下拉点击色块是否生效（2026-09-23，修订）
+ * CDP 真机探针 · 编辑器 WYSIWYG「高亮」下拉是否可见、色块点击是否生效（2026-09-23，二次修订）
  * ==========================================================================
- * 用户原话：「编辑器功能的高亮工具，点击之后没有效果，请修复。」
+ * 用户原话：「编辑器格式工具栏内高亮按钮点击之后还是没有任何反应。」
  *
- * 根因：WysiwygToolbar 的高亮下拉「外部点击关闭」handler 只排除按钮、未排除下拉面板本身；
- * 点击色块时 document 的 mousedown 先把面板 setHighlightDropdownOpen(false) 卸载，
- * 色块的 onClick（执行 setHighlight）在 mousedown→mouseup 之间随元素被卸载而不触发
- * ⇒ 表现为「点击无效果」。修法 = 给面板加 menuRef 并在 handler 中一并排除（对齐 WysiwygHeadingDropdown）。
+ * 🚨 真正根因（一次修订走偏，此处纠正）：高亮下拉面板原先用 inline `position:absolute` 留在
+ * 工具栏内部，而 `.wysiwyg-toolbar` 容器带 `overflow:hidden` ⇒ 面板虽被挂载、却**被裁掉、屏幕上不可见**
+ * ⇒ 用户看到「点了没任何反应」。（一次修订只改了「外部点击 handler 排除面板」，未解决可见性，
+ *   所以用户复测「还是没反应」。）
+ * 修法 = 与工具栏内其它下拉一致：`createPortal(..., document.body)` + `position:fixed` + `useDropdownPosition`
+ * （对齐 WysiwygHeadingDropdown / ListDropdown / MoreDropdown）。
  *
- * 验证策略（修订版）：直接往 IndexedDB 的「markcraft」库 kv 表写入一棵带【已打开永久标签】的
- * 文件树状态（key=markcraft-file-manager），重载后编辑器按 activeTabId 直接打开该笔记——
- * 无需导航文件树（文件树是左缘 hover 浮层，headless 下不稳定）。
+ * 验证策略：直接往 IndexedDB 的「markcraft」库 kv 表写入一棵带【已打开永久标签】的文件树状态，
+ * 重载后编辑器按 activeTabId 直接打开该笔记——无需导航文件树（左缘 hover 浮层 headless 不稳定）。
  *
  *   §0 自检 / 种子（含强制 editorMode=wysiwyg）/ 外壳就绪
  *   §1 重载后编辑器直接打开种子笔记（.tiptap 内容可见）
- *   §2 真实三击选中段落正文（selLen>0 —— 扫描面非空保证）
- *   §3 点工具栏「高亮」按钮 → 下拉色块出现（count===5 —— 对照面非空保证）
- *   §4 真实点击黄色色块
- *   §5 🚨 断言（公平判别 OLD/FIXED）：swatch mousedown 后「React 重渲染后」下拉面板是否仍在
- *           —— 须用 sleep(300) 后的 dropdownStillOpen，不能用同步 dispatch 后的 panelAfterMouseDown（重渲染前恒 true）
- *           FIXED（面板排除）=> dropdownStillOpen=true（click 能落到色块）；HEAD（只排除按钮）=> dropdownStillOpen=false（复现旧 bug）
+ *   §2 用 React fiber 取 TipTap 实例设状态选区（状态选区非空 —— 扫描面非空保证）
+ *   §3 点「高亮」按钮 → 面板/色块出现在 DOM（对照面非空保证）
+ *   §3b 🚨 核心判据：色块「在屏幕上可命中」（elementFromPoint 命中色块、parentIsBody）—— 未被 overflow:hidden 裁掉
+ *   §4 直接向色块派发 mousedown（验证外部点击 handler 不卸载面板）
+ *   §5 色块 mousedown 后（重渲染态）面板仍在
  *   §6 全程无新增页面错误
  *
  * 用法（与 Edge 同一次前台 bash；CDP_PORT 须与 Edge 启动端口一致）：
- *   固定（修复版）：  EXPECT_APPLIED=1 CDP_PORT=9480 MC_BASE=http://127.0.0.1:5174 node ...
- *   HEAD 对照（buggy）：先 git checkout HEAD~1 回退 WysiwygToolbar.tsx 再跑 EXPECT_APPLIED=0，随后 git checkout HEAD 还原
+ *   修复版： CDP_PORT=9480 MC_BASE=http://127.0.0.1:5174 node ...
+ *   对照（未 portal 的版本）：先回退 WysiwygToolbar.tsx 再跑同一探针，期望 §3b 翻红，随后还原
  */
 import { WebSocket } from 'ws'
 import { writeFileSync } from 'node:fs'
@@ -365,7 +365,7 @@ async function main() {
   console.log('\n=== 3. 点工具栏「高亮」按钮 → 下拉是否出现（对照面非空）===')
   const hlBtnC = await centerOfButtonByTitle(cdp, '高亮')
   ok('§3 高亮工具栏按钮可定位', !!hlBtnC, hlBtnC ? `(${hlBtnC.x},${hlBtnC.y})` : 'null')
-  // 打开下拉：优先真实鼠标点击；若未出现用 in-page .click() 兜底（打开在 OLD/FIXED 都正常，bug 只在色块 mousedown 层）
+  // 打开下拉：优先真实鼠标点击；若未出现用 in-page .click() 兜底（headless 坐标点击偶有抖动，与修复无关）
   if (hlBtnC) await realClick(cdp, hlBtnC.x, hlBtnC.y)
   await sleep(400)
   let dropdownOpen = await cdp.eval(`!!document.querySelector('div[title="yellow"]')`)
@@ -374,7 +374,7 @@ async function main() {
     await sleep(400)
     dropdownOpen = await cdp.eval(`!!document.querySelector('div[title="yellow"]')`)
   }
-  ok('§3 下拉色块出现（对照面非空，应可见黄色色块）', dropdownOpen)
+  ok('§3 下拉色块出现在 DOM（对照面非空）', dropdownOpen)
   const swatchInfo = await cdp.eval(`(() => {
     const y = document.querySelector('div[title="yellow"]')
     if (!y) return null
@@ -384,14 +384,39 @@ async function main() {
   })()`)
   ok('§3 黄色色块可定位', swatchInfo && !!swatchInfo.yellow, swatchInfo && swatchInfo.yellow ? `(${swatchInfo.yellow.x},${swatchInfo.yellow.y})` : 'null')
 
+  // 🚨 §3b 核心判据：色块必须「在屏幕上可命中」。若面板留在工具栏内（position:absolute），
+  // 会被工具栏容器 overflow:hidden 裁掉 —— DOM 里有、屏幕上没有 → 用户表现为「点高亮按钮没任何反应」。
+  // 判据实现无关：div[title="yellow"] 在修复前后都在；修复后应 parentIsBody=true 且可命中。
+  const hit = await cdp.eval(`(() => {
+    const y = document.querySelector('div[title="yellow"]')
+    if (!y) return { ok: false, reason: 'no-swatch' }
+    const r = y.getBoundingClientRect()
+    const cx = Math.round(r.left + r.width / 2), cy = Math.round(r.top + r.height / 2)
+    const top = document.elementFromPoint(cx, cy)
+    const isSwatch = !!(top && (top === y || y.contains(top) || (top.closest && top.closest('div[title="yellow"]') === y)))
+    const tb = document.querySelector('.wysiwyg-toolbar')
+    const tbr = tb ? tb.getBoundingClientRect() : null
+    return {
+      cx, cy, isSwatch,
+      hitTag: top ? top.tagName : null,
+      toolbarBottom: tbr ? Math.round(tbr.bottom) : null,
+      swatchTop: Math.round(r.top),
+      toolbarOverflow: tb ? getComputedStyle(tb).overflow : null,
+      insideToolbar: !!(tb && tb.contains(y)),
+      panelParentTag: y.parentElement && y.parentElement.parentElement ? y.parentElement.parentElement.tagName : null,
+    }
+  })()`).catch((e) => ({ ok: false, err: e.message }))
+  info('§3b 命中诊断：' + JSON.stringify(hit))
+  ok('§3b 🚨 色块在屏幕上可见/可命中（未被工具栏 overflow:hidden 裁掉）', hit && hit.isSwatch === true,
+    hit ? `isSwatch=${hit.isSwatch} hitTag=${hit.hitTag} toolbarBottom=${hit.toolbarBottom} swatchTop=${hit.swatchTop} overflow=${hit.toolbarOverflow} insideToolbar=${hit.insideToolbar} panelParent=${hit.panelParentTag}` : 'null')
+
   console.log('\n=== 4. 真实派发 swatch 的 mousedown（关键：不应卸载下拉面板）===')
   let clicked = false
   let panelAfterMouseDown = null
   if (swatchInfo && swatchInfo.yellow) {
     // 在「色块元素」上派发 mousedown（冒泡到 document 外部点击 handler）。
-    // 用 dispatchEvent 而非屏幕坐标点击：headless 下色块会被编辑器内容遮挡，
-    // 坐标点击会命中编辑器导致 e.target 错位、误判「面板被卸载」（假阴性）。
-    // e.target=swatch 时：OLD 代码（只排除按钮）→ 卸载面板；FIXED 代码（排除面板）→ 保留。
+    // e.target=swatch 时：只排除按钮的 handler → 卸载面板；排除面板的 handler → 保留面板。
+    // （色块可见性由 §3b 单独验证；此处用 dispatchEvent 直接派发以避开坐标点击的 headless 抖动。）
     const r = await cdp.eval(`(() => {
       const sw = document.querySelector('div[title="yellow"]')
       if (!sw) return { err: 'no-swatch' }
@@ -424,11 +449,7 @@ async function main() {
   //   FIXED 同时排除面板 → swatch mousedown 不关闭 → 重渲染后面板仍在（dropdownStillOpen=true）
   const panelRetained = afterClick && typeof afterClick === 'object' && afterClick.dropdownStillOpen === true
   info('§5 React 重渲染后面板是否仍在（dropdownStillOpen） = ' + JSON.stringify(panelRetained))
-  if (EXPECT_APPLIED) {
-    ok('§5 🚨 FIXED：色块 mousedown 后下拉面板仍在（click 能落到色块上，修复生效）', panelRetained === true, `dropdownStillOpen=${panelRetained}`)
-  } else {
-    ok('§5 🚨 HEAD 阳性对照：色块 mousedown 后下拉面板被卸载（click 落空，复现旧 bug）', panelRetained === false, `dropdownStillOpen=${panelRetained}`)
-  }
+  ok('§5 色块 mousedown 后下拉面板仍在（外部点击 handler 已排除面板）', panelRetained === true, `dropdownStillOpen=${panelRetained}`)
   const markCount = await cdp.eval(`document.querySelectorAll('.tiptap mark.mark-highlight[data-highlight-color]').length`)
   const markColors = await cdp.eval(`[...document.querySelectorAll('.tiptap mark.mark-highlight[data-highlight-color]')].map((m) => m.getAttribute('data-highlight-color'))`)
   info(`§5 信息：.tiptap mark.mark-highlight[data-highlight-color] 数 = ${markCount}；色 = ${JSON.stringify(markColors)}`)
@@ -445,8 +466,8 @@ async function main() {
     } catch (err) { return 'err:' + err.message }
   })()`).catch((e) => 'err:' + e.message)
   info('§5b 命令链自检（信息性，已还原）：' + diag)
-  const clip = box ? { x: Math.max(0, box.left - 30), y: Math.max(0, box.top - 120), width: Math.round(box.width) + 60, height: Math.round(box.height) + 200 } : null
-  await shot(cdp, SHOT, clip)
+  // 全视口截图：作为 §3b「高亮下拉在屏幕上可见」的视觉佐证（无裁剪）
+  await shot(cdp, SHOT)
 
   console.log('\n=== 6. 页面错误 ===')
   const errs = cdp.since(m0)

@@ -1,7 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import type { Editor } from '@tiptap/react'
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model'
+import { createPortal } from 'react-dom'
 import WysiwygToolbarButton from '@features/editor/toolbar/WysiwygToolbarButton'
+import useDropdownPosition from '@features/editor/toolbar/useDropdownPosition'
 import MathPopover from '@features/editor/toolbar/MathPopover'
 import WysiwygHeadingDropdown from '@features/editor/toolbar/WysiwygHeadingDropdown'
 import ListDropdown from '@features/editor/toolbar/ListDropdown'
@@ -87,6 +89,9 @@ export default function WysiwygToolbar({
   const emojiBtnRef = useRef<HTMLButtonElement>(null)
   const highlightBtnRef = useRef<HTMLButtonElement>(null)
   const highlightMenuRef = useRef<HTMLDivElement>(null)
+  // 下拉面板经 createPortal 挂到 body（position:fixed）—— 若留在工具栏内会因
+  // 容器 overflow:hidden 被裁掉，表现为「点高亮按钮没任何反应」（面板其实挂载了但不可见）。
+  const highlightPos = useDropdownPosition(highlightDropdownOpen, highlightBtnRef)
   const moreBtnRef = useRef<HTMLButtonElement>(null)
 
   // Close highlight dropdown on outside click (must also exclude the panel itself,
@@ -303,12 +308,11 @@ export default function WysiwygToolbar({
             <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
           </svg>
         </WysiwygToolbarButton>
-        {highlightDropdownOpen && (
+        {highlightDropdownOpen && createPortal(
           <div ref={highlightMenuRef} style={{
-            position: 'absolute',
-            top: '100%',
-            left: '50%',
-            transform: 'translateX(-50%)',
+            position: 'fixed',
+            top: `${highlightPos.top}px`,
+            left: `${highlightPos.left}px`,
             display: 'flex',
             gap: '6px',
             padding: '6px 10px',
@@ -316,8 +320,7 @@ export default function WysiwygToolbar({
             border: '1px solid var(--editor-border)',
             borderRadius: '6px',
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            zIndex: 100,
-            marginTop: '4px',
+            zIndex: 9999,
           }}>
             {HIGHLIGHT_COLOR_OPTIONS.map(color => (
               <div
@@ -345,7 +348,8 @@ export default function WysiwygToolbar({
                 title={color}
               />
             ))}
-          </div>
+          </div>,
+          document.body,
         )}
       </div>
 
