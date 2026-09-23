@@ -86,13 +86,18 @@ export default function WysiwygToolbar({
   const [highlightDropdownOpen, setHighlightDropdownOpen] = useState(false)
   const emojiBtnRef = useRef<HTMLButtonElement>(null)
   const highlightBtnRef = useRef<HTMLButtonElement>(null)
+  const highlightMenuRef = useRef<HTMLDivElement>(null)
   const moreBtnRef = useRef<HTMLButtonElement>(null)
 
-  // Close highlight dropdown on outside click
+  // Close highlight dropdown on outside click (must also exclude the panel itself,
+  // otherwise clicking a color swatch unmounts the panel before its onClick fires)
   useEffect(() => {
     if (!highlightDropdownOpen) return
     const handler = (e: MouseEvent) => {
-      if (highlightBtnRef.current && !highlightBtnRef.current.contains(e.target as Node)) {
+      if (
+        highlightBtnRef.current && !highlightBtnRef.current.contains(e.target as Node) &&
+        highlightMenuRef.current && !highlightMenuRef.current.contains(e.target as Node)
+      ) {
         setHighlightDropdownOpen(false)
       }
     }
@@ -299,7 +304,7 @@ export default function WysiwygToolbar({
           </svg>
         </WysiwygToolbarButton>
         {highlightDropdownOpen && (
-          <div style={{
+          <div ref={highlightMenuRef} style={{
             position: 'absolute',
             top: '100%',
             left: '50%',
