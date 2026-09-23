@@ -222,3 +222,30 @@ subbar 52px。⚠️ `.aurora-kb-notes` 顶 padding 仅 2px 是为**自带 `__he
 - 判据速记：① 说环消除前先确认该环模块**边数非零**；② 大体积静态数据子图**禁建 barrel**；③ 迁移保真 = 字节级比对 + EOL + BOM 位置；④ 定靶心前枚举**双侧边**；⑤ 守卫开例外前先问**能否移动模块**；⑥ 守卫用**全量 glob + 规则内 `exempt`**。
 ### 路径深度
 panels→features/stores `../../../`，components/ui·app `../../`（新增文件先对齐）。
+
+## 浮层皮肤 · portal 逃出 aurora 作用域（2026-09-24 报障修复）
+报障：「现在编辑功能界面……思维导图列表的样式居然还是用的是最旧一版的 ui 设计样式」。
+- 对象 = `features/editor/toolbar/MindmapPopover.tsx`（源码模式 `MarkdownToolbar` 与 `WysiwygToolbar`
+  两处工具栏「更多」菜单唤起，内容为「思维导图模板」列表）。
+- 🚨 **判据（可泛化）：页面里"看着是旧版"的浮层，先查它是不是 `createPortal(…, document.body)`。**
+  portal 是 `#aurora-root` 的**兄弟**而非子树，而 `tokens.css` 里 `--editor-*`→`--mc-*` 的重映射
+  **只写在 `#aurora-root{}` 内** ⇒ 浮层里 `--editor-bg`(#0f172a)、`--editor-border`(#334155)、
+  `--code-bg`(#1e293b) 一律回落 base.css 旧 slate；`--hover-bg`（只定义在 `.aurora-editor`）直接落回内联旧蓝。
+  再叠加 Tailwind 遗留（`0.5rem` / `shadow-lg` 字面量）与魔法 `z-index 9999` = 「最旧版 UI」。
+- **修法模板（新浮层照抄）**：根 `className="aurora-dropdown"` + 内联**只留定位/尺寸**；
+  列表行用 `aurora-dropdown__item`（hover 由基底类给 `--mc-accent-soft`，**不许手写 onMouseEnter 改色**）；
+  内部变量**只许 `--mc-*`**；圆角 控件 sm／面板 md，阴影 `--mc-shadow-popover`，z-index 走 §14 的 1000 带。
+- 已合规的同族参照：`ListDropdown` / `WysiwygHeadingDropdown` / `MoreDropdown` / `SourceHeadingDropdown`。
+- **仍用 `--editor-*` 的 portal 浮层（同一缺陷类，本轮未动，待确认）**：`EmojiPicker` / `ImageModal` /
+  `LinkModal` / `TableGridSelector` / `ListMenuPopover` / `WysiwygToolbar` 的高亮·下划线调色板。
+- 回归锁 `src/features/editor/toolbar/portalOverlayBasis.test.ts`（5 例；核心判据 = 浮层内每个 `var()`
+  都必须 `--mc-` 开头。断言前**必须剥注释**，组件正文里就写了 `--editor-*`，不剥会自命中）。
+  探针 `artifacts/cdp-verify-mindmap-popover-skin.mjs`（修复版 29/29；HEAD 对照 13/24，红的 11 条全落在
+  同族基底/材质 token/反向对照/行样式，扫描面与零错误保持绿）。
+- ⚠️ **token 断言/探针必须读 CSSOM 真值**：`--mc-*` 被**第二层 `:root`（`src/styles/desktop-chrome.css`）**
+  覆盖 —— 实测 `--mc-bg-elevated #1A1C24`／`--mc-border-subtle #292E30`／`--mc-text-primary #E6E8EF`，
+  与 `tokens.css` 字面值（#151821／#1A1D26／#E8ECF4）**不同**；抄字面值会把"用对了 token"判成红。
+- ⚠️ 同名入口散布多工具栏：`title="更多"` 在源码/WYSIWYG 各一个，其一隐藏（rect 高 0）⇒ 探针选择器
+  须按**可见性 + `closest('.wysiwyg-toolbar')`** 限定，否则点了隐藏那个、症状酷似「产品坏了」。
+- ⚠️ **「全量 vitest」与「临时还原 HEAD 做对照」不可并发**：vitest 在 collect 期读源码，注入窗口内会读到
+  HEAD 内容 ⇒ 假失败；顺序执行，判 flaky 用隔离复跑。
