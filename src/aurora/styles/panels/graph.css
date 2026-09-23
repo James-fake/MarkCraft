@@ -241,6 +241,13 @@
 .aurora-graph__svg.is-dragging .aurora-graph__dot--current { animation: none; }
 .aurora-graph__svg.is-dragging .aurora-graph__node.is-active .aurora-graph__dot { filter: none; }
 
+/* ---------- 数据范围下拉（2026-09-23 三档范围）----------
+   唯一改动点：撑满浮层宽度，与下方「图谱模式 / 布局方式」分段控件左对齐。
+   用专属类而不是 `.aurora-graph__group .aurora-select`：后者会连带改到分组着色区的
+   「匹配方式」下拉（它在 __grp-form 里，宽度是另一套排布），属于误伤。 */
+.aurora-graph__scopesel { width: 100%; }
+.aurora-graph__scopesel .aurora-select__value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 
 /* ---------- 浮层通用（玻璃 popover） ---------- */
 .aurora-graph__float {

@@ -38,12 +38,22 @@ subbar 52px。⚠️ `.aurora-kb-notes` 顶 padding 仅 2px 是为**自带 `__he
 ⚠️ **边界（有意为之）**：**知识库入口（`kbId`）不过滤** —— 其口径是「与该库详情页笔记列表完全一致」，而内置文档所在的库本身就是说明书的浏览入口；过滤会让**非空库显示成空库**。要改这条得先改 KB 详情页口径、两侧同改，**别只改博客一侧**。
 ⚠️ 预览的文章标题取自**正文首个标题**（`# 甲` → 显示「甲」），**不是文件名** → 断言内置侧也要按同一口径从数据取标题。
 
-## 双链图谱 · 知识库范围（2026-09-23 报障修复，提交 91ede7d）
-从知识库「查看完整图谱」进入的图谱**只画该库文件节点**（库外文件不画；库内互链 + 库内笔记**用到的标签**保留）；侧栏/菜单栏/命令面板进入**保持全局**（用户拍板）。
-- 传递链 = `KbPanel#openFullGraph()`（kbId 拼接**单源**，哑组件不各自拼）→ `useAuroraShell` 的 **param→params 映射表**补 `graph → { kbId }`（⚠️ 漏登记 = 参数静默丢失）→ `AuroraShell#case 'graph'` 按 `params.kbId` 传参。
-- 裁剪 = 纯函数 `scopeGraphToKb(data, kbFileIds)` **两步法**：① 取库内文件；② 由「一端是库内文件的边」收集被触达 tag；边两端都须落在 `库内文件 ∪ 本库tag` 内。⚠️ 一步法（直接用文件 id 集合过滤边）会把「文件→tag」边因 tag 端点不在集合内而**整条误删 → 标签全消失**（测试抓到过，不是假绿）。库内文件口径 = `getKbFiles(rootFolder, kb)`（与博客清单/KB 详情**同源**）。
-- 范围隔离 = `graphSession` 增 `kbId` + `readScopedSession(kbId)`（范围不符即视为无现场），否则**全局图的视口/选中会串到范围图**。往返 = `navReturn` 带 `kbId` + 标签「XX 库 · 图谱」→ 返回回**同范围**图谱；范围内侧栏「知识库」改跳该库详情（闭环）。
-- 可测性 = 图谱节点 `<g>` 挂 `data-node-id`/`data-node-type`；**节点身份定位必须靠数据锚点，别靠 label 文本**（label 只在孤立/热点/悬停节点渲染）。
+## 双链图谱 · 数据范围（2026-09-23 需求，提交 91ede7d 起；默认档为新增）
+**三档范围（同一份全量图的三种过滤谓词）**：`files`（**默认**，文件列表口径）／`kb:<id>`（某知识库）／`all`（全部文件）。范围键 = `'files' | 'all' | 'kb:<库 id>'`，**单一表示**：组件状态、`graphSession` 现场键、localStorage `markcraft-graph-scope` 同用一个编码（避免「同一件事三种编码」漂移）；非法/脏值一律 `parseScopeKey` 回落默认档（**绝不因一条脏值把图画成空白**）。
+- **默认档口径 = 排除所有知识库文件**（含内置《MarkCraft 使用文档》），只留不属于任何库的散装笔记（用户拍板）。
+- 三档**共用同一个两步裁剪核心** `keepFilesByPredicate(data, keepFile)`：① 由谓词保留文件集合；② 由「一端是保留文件的边」收集被触达 tag；边两端都须落在 `保留文件 ∪ 被触达 tag` 内。⚠️ 一步法（直接用文件 id 集合过滤边）会把「文件→tag」边因 tag 端点不在集合内而**整条误删 → 标签全消失**（测试抓到过，不是假绿）。两个入口 `scopeGraphToKb`（kb 档）与 `excludeGraphFiles`（默认档）都复用该核心 —— 否则「误删标签边」的坑会被复制一份。
+- 🔸 **就绪闸 `scopeReady`**：知识库文档未加载完前**不裁剪也不布点**（否则先画全量再收缩 = 图被刷新一次，且违反「默认不含知识库文件」语义）。判据必须区分「一个库都没有」与「清单还没加载」——二者都表现为 `kbList = []`，混淆会让默认档首帧露出全量图，更糟的是把范围内的库误判成「已删除」而回落默认档 ⇒ 用 `kbListed = kbStore.version > 0`。
+- 🔸 **现场隔离按范围键**：`graphSession` 存 `scope`，`readScopedSession(scope)` 范围不符即视为无现场（否则**全局图/某库图的视口与选中会串台**）。⚠️ **挂载只恢复状态、切范围才 `applyLayoutRef` 重放布局**（`scopeAppliedRef` 区分首帧）—— 挂载时无条件重放会提前启动力模拟循环，污染同文件其他用例（拖拽冒烟测试因此不稳定）。
+- 🔸 **命名消歧**：文件里原有的 `scope` 是「**图谱模式**作用域」（全局/局部/反向/正向/标签，在范围之内再收窄）→ 已改名 `modeScope`；新的 `scope` 专指**数据范围**。两者是不同维度，别合并。
+- **入口传递链**：`KbPanel#openFullGraph()`（kbId 拼接**单源**）→ `useAuroraShell` 的 **param→params 映射表**补 `graph → { kbId }`（⚠️ 漏登记 = 参数静默丢失）→ `AuroraShell#case 'graph'` 按 `params.kbId` 传给 `GraphPanel`。路由参数是**入口指令**：`kbId` 变化即覆盖当前范围。
+- **入口 → 范围映射**：知识库「查看完整图谱」→ `kb:<id>`；侧栏/菜单栏/命令面板 → 上次记住的档（默认 `files`）。
+- **UI**：控件在「图谱导航」浮层最上游的**新分组「数据范围」**（`AuroraSelect` + `className="aurora-graph__scopesel"`，专属类避免误伤「匹配方式」下拉），选项 = 文件列表（默认）/ 全部文件 / 每个知识库一档；非默认档出顶栏范围芯片 + 面包屑 + 一键出口。
+- **空态出口**：默认档全空 → 「查看全部文件」（`setScope('all')`）；某库档全空 → 回默认档。两处按钮共用 `.aurora-graph__empty-exit`。
+- **往返闭环**：`navReturn` 带 `kbId` + 标签「XX 库 · 图谱」→ 返回回**同范围**图谱；范围内侧栏「知识库」改跳该库详情。
+- **可测性**：图谱节点 `<g>` 挂 `data-node-id`/`data-node-type`；**节点身份定位必须靠数据锚点，别靠 label 文本**（label 只在孤立/热点/悬停节点渲染）。
+- **回归锁**：`kb/graphScope.test.ts`（14 例纯函数：两步裁剪 + `excludeGraphFiles` 与 `scopeGraphToKb` 互补/空排除集等价/不改入参）、`kb/GraphPanel.scope.test.tsx`（9 例：默认档排除、切档、空态出口、往返闭环、持久化）、`kb/GraphPanel.smoke.test.tsx`（11 例）；真机 = `artifacts/cdp-verify-graph-scope-default.mjs`（36 条；修复版 **36/36**，HEAD 阳性对照 **20/36 —— 恰好 16 条翻红**）。
+  ⚠️ 报告须标注**派生性绿**：HEAD 上「知识库文件都在图里」这类断言恒真（什么都没被过滤），不是对照失效。
+
 
 ## 双链图谱 · 节点拖拽（2026-09-23 报障修复）
 报障 =「抓住阶段快速滑动，松手后个别节点飞得很远」+「拖拽不够丝滑」。力模拟抽成**纯函数** `simulateStep(p)`（`kb/GraphPanel.tsx`，导出供测试）。
@@ -57,3 +67,17 @@ subbar 52px。⚠️ `.aurora-kb-notes` 顶 padding 仅 2px 是为**自带 `__he
 **回归锁**：`kb/graphForce.test.ts`（5 例纯函数：① 奇点消除 + 近重合 30 步速度/位移有界 ② 拖拽 20 帧速度恒 0 且位置严格跟手 + 松手后逐帧 ≤ MAX_STEP ③ 非力导向拖拽不吸附）；`GraphPanel.smoke.test.tsx` 加 `is-dragging` 锚点断言（move 中 true、up 后 false）。
 
 **量化验证法（可复用）**：探针 `cdp-verify-graph-drag.mjs` 用 `MutationObserver` 逐帧量每节点单帧位移 —— 修复版峰值 37px、跟手误差 0.5px、松手落点漂移 3.9–14.7px；**HEAD 旧物理逐帧峰值 446px（落在被拖拽节点上）**，精确复现「飞出去」。⚠️ 对照只还原纯函数内部三处；若连 `onPointerUp` 归零一起去掉，节点会「不跟手 / 模拟停摆」，机制已变 ⇒ **不是干净的归因**，不要拿那版数据下结论。
+
+## 通用铁律 · 细则（主文件 `MEMORY.md` 只放判据一行，细节在此）
+### 哑节点家族（2026-09-21/22 两例）
+- KB 详情页 `.aurora-kb-recent__item` 曾散布**三处容器**（笔记 Tab／概览「最近活动」／依赖 Tab），各自手写：概览那份是纯 `div`（无 `onClick`/role/tabIndex），且交互反馈只挂在 `.aurora-kb-notes` 容器上 ⇒ **外观一样、能力为零**；用户默认落地的恰好是概览 Tab。修法 = 抽单源 `kb/KbFileRow.tsx`，`.is-interactive` 由「有没有 `onSelect`」派生。
+- `kb/MiniGraph.tsx`：12 个节点圆点恒 `cursor:pointer` 而**整图无任何 handler**，且全图**只给一个节点渲染可见名字**（`currentId = miniNodes[0]` = 引用最多的首篇）⇒ 报障「**只有第一篇** `00 开始使用.md` 点了会停在知识库详情页」。
+- 探针：`artifacts/cdp-verify-kb-note-open.mjs`（控制组 + 真实鼠标分层）、`cdp-verify-kb-minigraph-click.mjs`。
+### 滑动手势吃 click（2026-09-22 实测 trace）
+`down x=436 → act dx=12 → end offset=12 passed=false → click sup=true`（缺陷 1：12px 漂移却抑制 click）；
+`down(抖动点击) → click sup=false(切了) → act startX=436 dx=71(悬停!) → end offset=83 passed=true`（缺陷 2：悬停用**陈旧 startX** 凭空激活）。
+两条判据：① 抑制条件 = `decision.passed && decision.targetIndex !== next.index`；② `pointerdown` **无条件清零**上一手势抑制标。探针 `artifacts/cdp-verify-kb-tab-first-click.mjs`（13 条；HEAD 10/13）。
+### `AuroraSelect` / 滚轮浮层几何
+`OptionWheelPicker`：`ITEM_H=34`、视口约 5 项（`5*34+32`）、选项 `.aurora-wheel__item[data-value]`（`role=option`，onClick 挂在该 div 上）；`AuroraSelect` 的 popover `createPortal(document.body)`、`position:fixed`，`width=min(300,max(rect.w,200))`、`top=rect.bottom+6`（越界翻到上方）、`role=dialog`。⇒ **浮层不在触发器的子树里**，"在浮层容器内找选项"必然找不到；真机点击需 `elementFromPoint` 命中测试（旋转/裁剪会偏）。
+### 图谱节点身份锚点
+`<g class="aurora-graph__node" data-node-id data-node-type>`：**label 只在孤立/热点/悬停/搜索命中的节点上渲染** ⇒ 靠文字认节点会得到一串空串（`GraphPanel.scope.test.tsx` 初版即栽在此）。数 file 节点 = `[data-node-type="file"]`，不含 tag。

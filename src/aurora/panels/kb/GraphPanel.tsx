@@ -182,33 +182,30 @@ function computeDegrees(nodes: GNode[], edges: GEdge[]) {
 }
 
 /**
- * 把全局图谱裁到「某个知识库」的范围（2026-09-23 用户需求）。
+ * 图谱裁剪的**共享核心**：按「文件谓词」保留节点与边（两步法，单源）。
  *
- * 场景：知识库概览 →「查看完整图谱」进入双链图谱，此前看到的是**全库文件**的全局图，
- * 文件管理器里跟这个知识库无关的笔记也混在里面。要求：只留该知识库的文件节点。
- *
- * 判据（与知识库详情页 KPI / 博客清单同源口径 —— 都是 `getKbFiles` 的结果）：
- *  ① file 节点：仅保留 id ∈ kbFileIds 的；
- *  ② 标签：先取「有一端是库内文件」的边，其 tag 端点即「本库笔记用到的标签」——
- *     只被库外笔记使用的标签不会进入候选（不残留成孤岛）；
- *  ③ 边：两端都在（库内文件 ∪ 上述标签）集合内才保留（一端出界即整条丢弃 ——
- *     不允许「线还在、对面是鬼」，也不允许「库外笔记挂在库内标签上」）；
+ * 判据：
+ *  ① file 节点：仅保留 keepFile(id) 为真的；
+ *  ② 标签：先取「有一端是保留文件」的边，其 tag 端点即「这批文件用到的标签」——
+ *     只被被剔除文件使用的标签不会进入候选（不残留成孤岛）；
+ *  ③ 边：两端都在（保留文件 ∪ 上述标签）集合内才保留（一端出界即整条丢弃 ——
+ *     不允许「线还在、对面是鬼」，也不允许「被剔除的笔记挂在保留标签上」）；
  *  ④ folder 节点：数据层当前不生成（见 buildGraphData 注），故无需分支。
  *
- * ⚠️ ②③ 必须分两步：不能先用「库内文件 id 集合」直接过滤边 ——
- * 那样「库内文件 → 标签」的边会因 tag 端点不在集合内而被整条误删，
- * 标签节点随之全部消失（本函数的单测 ①②③ 即锁这一层）。
+ * ⚠️ ②③ 必须分两步：不能直接用「文件 id 集合」过滤边 ——
+ * 那样「文件 → 标签」的边会因 tag 端点不在集合内而被整条误删，
+ * 标签节点随之全部消失（graphScope.test.ts 的用例锁这一层）。
  *
  * 纯函数：无 React、无 store 依赖，可直接单测。deg/inLinks/outLinks 由调用方
  * computeDegrees 在裁剪后的边上重算，故此处不维护派生字段。
  */
-export function scopeGraphToKb(
+function keepFilesByPredicate(
   data: { nodes: GNode[]; edges: GEdge[] },
-  kbFileIds: ReadonlySet<string>,
+  keepFile: (id: string) => boolean,
 ): { nodes: GNode[]; edges: GEdge[] } {
-  const files = data.nodes.filter((n) => n.type === 'file' && kbFileIds.has(n.id))
+  const files = data.nodes.filter((n) => n.type === 'file' && keepFile(n.id))
   const fileKeep = new Set(files.map((n) => n.id))
-  // 第 1 步：一端落在库内文件上的边 → 其 tag 端点就是「本库用到的标签」
+  // 第 1 步：一端落在保留文件上的边 → 其 tag 端点就是「这批文件用到的标签」
   const touched = data.edges.filter((e) => fileKeep.has(e.source) || fileKeep.has(e.target))
   const tagKeep = new Set<string>()
   for (const e of touched) {
@@ -216,7 +213,7 @@ export function scopeGraphToKb(
     tagKeep.add(e.source)
     tagKeep.add(e.target)
   }
-  // 第 2 步：真值集合 = 库内文件 ∪ 本库用到的标签，边两端都必须在其中
+  // 第 2 步：真值集合 = 保留文件 ∪ 这批文件用到的标签，边两端都必须在其中
   const keep = new Set<string>([...fileKeep, ...tagKeep])
   const edges = data.edges.filter((e) => keep.has(e.source) && keep.has(e.target))
   const tags = data.nodes.filter((n) => n.type === 'tag' && tagKeep.has(n.id))
@@ -224,16 +221,97 @@ export function scopeGraphToKb(
 }
 
 /**
+ * 把全局图谱裁到「某个知识库」的范围（2026-09-23 用户需求）。
+ *
+ * 场景：知识库概览 →「查看完整图谱」进入双链图谱，此前看到的是**全库文件**的全局图，
+ * 文件管理器里跟这个知识库无关的笔记也混在里面。要求：只留该知识库的文件节点。
+ * 判据与知识库详情页 KPI / 博客清单同源 —— 都是 `getKbFiles` 的结果。
+ */
+export function scopeGraphToKb(
+  data: { nodes: GNode[]; edges: GEdge[] },
+  kbFileIds: ReadonlySet<string>,
+): { nodes: GNode[]; edges: GEdge[] } {
+  return keepFilesByPredicate(data, (id) => kbFileIds.has(id))
+}
+
+/**
+ * 排除「若干知识库」的全部文件（2026-09-23 用户需求：默认「文件列表」范围）。
+ *
+ * 场景：图谱默认形态不再显示任何知识库里的文件 —— 用户的原话是
+ * 「默认不显示知识库中文件节点，只显示文件列表中的文件节点」。
+ * 口径 B（用户拍板）：**所有**知识库（含内置《MarkCraft 使用文档》）的文件都排除，
+ * 只留不属于任何知识库的散装笔记；要看某个库就显式选它。
+ *
+ * 与 scopeGraphToKb 是同一个核心的两种谓词（保留 vs 排除），
+ * 所以「标签两步法」的坑在此自动继承、无需重复实现。
+ */
+export function excludeGraphFiles(
+  data: { nodes: GNode[]; edges: GEdge[] },
+  excludedFileIds: ReadonlySet<string>,
+): { nodes: GNode[]; edges: GEdge[] } {
+  return keepFilesByPredicate(data, (id) => !excludedFileIds.has(id))
+}
+
+/**
  * 读取「与本范围匹配」的图谱现场。
  *
  * graphSession 是模块级单例，若不按范围隔离，会出现两类串台：
- *  - 某知识库图谱 → 侧栏进全局：沿用范围图的坐标/中心 ⇒ 图少了一半、位置却还是那半张；
- *  - 全局 → 某知识库：中心节点指向库外笔记（sceneRef 的 centerId 不在本图里）。
- * 故把「范围」（kbId，'' = 全局）也记进现场，范围不符即视为无现场（重新布点，符合直觉）。
+ *  - 某知识库图谱 → 侧栏进默认范围：沿用范围图的坐标/中心 ⇒ 图少了一半、位置却还是那半张；
+ *  - 默认范围 → 某知识库：中心节点指向库外笔记（sceneRef 的 centerId 不在本图里）。
+ * 故把「范围键」也记进现场，范围不符即视为无现场（重新布点，符合直觉）。
  */
-function readScopedSession(kbId?: string): GraphSession | null {
+function readScopedSession(scope: string): GraphSession | null {
   const s = readGraphSession()
-  return s && (s.kbId ?? '') === (kbId ?? '') ? s : null
+  return s && s.scope === scope ? s : null
+}
+
+// ---- 数据范围（2026-09-23 用户需求：三档范围 + 选择器）----
+/**
+ * 数据范围三档：
+ *  - 'files'：**默认**。只画「文件列表」里的文件 —— 口径 B（用户拍板）= 排除**所有**知识库
+ *    （含内置《MarkCraft 使用文档》）的文件，只留不属于任何知识库的散装笔记；
+ *  - 'all'  ：整个 MarkCraft 的文件全部画出来；
+ *  - 'kb'   ：只画所选知识库的文件（知识库「查看完整图谱」入口也归这一档）。
+ *
+ * 三档是**同一份全量图**的三种过滤谓词（见 keepFilesByPredicate），
+ * 不改变数据来源，也不动索引层。
+ */
+export type GraphScopeKind = 'files' | 'kb' | 'all'
+
+export const DEFAULT_GRAPH_SCOPE = 'files'
+
+/**
+ * 范围键：'files' | 'all' | 'kb:<库 id>'。
+ * 单一表示 —— 组件状态、graphSession 现场键、localStorage 持久化都用它，
+ * 避免出现「同一件事三种编码」的漂移。
+ */
+export function scopeKeyOf(kind: GraphScopeKind, kbId?: string): string {
+  return kind === 'kb' ? `kb:${kbId ?? ''}` : kind
+}
+
+/** 解析范围键。非法/脏数据一律回落到默认档 —— 绝不因为一条脏值把图谱画成空白 */
+export function parseScopeKey(key: string): { kind: GraphScopeKind; kbId: string } {
+  if (key === 'all') return { kind: 'all', kbId: '' }
+  if (key.startsWith('kb:') && key.length > 3) return { kind: 'kb', kbId: key.slice(3) }
+  return { kind: 'files', kbId: '' }
+}
+
+// 范围选择的持久化（用户拍板：记住最后一次；与颜色分组 GROUPS_KEY 同款 localStorage 模式）
+const SCOPE_STORE_KEY = 'markcraft-graph-scope'
+function readStoredScope(): string {
+  try {
+    const { kind, kbId } = parseScopeKey(localStorage.getItem(SCOPE_STORE_KEY) ?? '')
+    return scopeKeyOf(kind, kbId)
+  } catch {
+    return DEFAULT_GRAPH_SCOPE // 隐私模式等取不到 localStorage：按默认档走
+  }
+}
+function writeStoredScope(key: string): void {
+  try {
+    localStorage.setItem(SCOPE_STORE_KEY, key)
+  } catch {
+    /* 存不了就不记，不影响本次浏览 */
+  }
 }
 
 /** 拖拽载荷（纯函数入参）：被拖拽节点的 id 与「指针到节点中心的偏移」 */
@@ -419,31 +497,100 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
   const kbStore = useKbStore()
   const activeFileId = getActiveFileId()
 
-  // —— 图谱范围（2026-09-23 用户需求）：带 kbId 时只画该知识库内的笔记节点 ——
-  // kb 文档按 id 现取（与 KbPanel 同源用 loadKb），刻意不用 useKbStore.activeKb：
-  // 那是「知识库面板当前打开的库」，图谱既不该驱动它、也不该被它影响。
-  const [scopeKb, setScopeKb] = useState<KnowledgeBase | null>(null)
+  // —— 数据范围（2026-09-23 用户需求：默认「文件列表」+ 面板内可选库/全部）——
+  // 范围状态 = 范围键（'files' | 'all' | 'kb:<id>'）。初始值优先取「路由指令」
+  //（从知识库「查看完整图谱」进入时带 kbId），否则取上次记住的值（用户拍板：记住最后一次）。
+  const [scope, setScope] = useState<string>(() => (kbId ? scopeKeyOf('kb', kbId) : readStoredScope()))
+  const { kind: scopeKind, kbId: scopeKbId } = useMemo(() => parseScopeKey(scope), [scope])
+
+  // 路由参数是「入口指令」：每次变化都覆盖当前范围（知识库 → 查看完整图谱 即为该库）
   useEffect(() => {
-    let alive = true
-    if (!kbId) {
-      setScopeKb(null)
-      return () => { alive = false }
-    }
-    void loadKb(kbId).then((k) => { if (alive) setScopeKb(k) })
-    return () => { alive = false }
+    if (kbId) setScope(scopeKeyOf('kb', kbId))
   }, [kbId])
 
-  // 库内文件 id 集合：null = 无范围（全局图谱）；空集合 = 该库暂时没有文件（图谱显示空态）
-  const kbFileIds = useMemo(
+  // 变更即持久化 —— 「记住最后一次」的唯一写点（路由带入的那次也算）
+  useEffect(() => {
+    writeStoredScope(scope)
+  }, [scope])
+
+  // 全部知识库文档：**一份数据供三处使用** —— ① 默认档的排除集合 ② 范围库本身 ③ 范围选择器选项。
+  // 清单走 useKbStore().kbList（React 响应式，建/删库会自动刷新），再逐个 loadKb 取完整文档
+  //（排除需要 folderId/fileIds/rules，列表项里没有）。
+  // 刻意不用 useKbStore.activeKb：那是「知识库面板当前打开的库」，图谱既不该驱动它、也不该被它影响。
+  const kbList = kbStore.kbList
+  // 「清单是否已加载过」：useKbStore 的 version 在每次 refreshList 后自增，首帧为 0。
+  // 🚨 必须区分「一个知识库都没有」与「清单还没加载」—— 二者都表现为 kbList = []，
+  // 混淆会让默认档在首帧露出全量图，更糟的是把范围内的库误判成「已删除」而回落成默认档。
+  const kbListed = kbStore.version > 0
+  const kbListKey = useMemo(() => kbList.map((k) => k.id).join('|'), [kbList])
+  const [kbDocs, setKbDocs] = useState<KnowledgeBase[] | null>(null) // null = 尚未加载完
+  useEffect(() => {
+    if (!kbListed) return // 清单还没到：保持 null（= 未就绪），不产出「空的排除集合」
+    let alive = true
+    void Promise.all(kbList.map((k) => loadKb(k.id))).then((docs) => {
+      if (!alive) return
+      setKbDocs(docs.filter((d): d is KnowledgeBase => !!d))
+    })
+    return () => { alive = false }
+  }, [kbListed, kbListKey])
+
+  /** 所有知识库的文件 id 全集 —— 默认档要排除的就是它。口径与知识库详情页 / 博客清单同源：getKbFiles */
+  const allKbFileIds = useMemo(() => {
+    const s = new Set<string>()
+    for (const kb of kbDocs ?? []) for (const id of getKbFiles(rootFolder, kb)) s.add(id)
+    return s
+  }, [kbDocs, rootFolder])
+
+  /** 当前范围选中的知识库文档（供裁剪用） */
+  const scopeKb = useMemo(
+    () => (scopeKind === 'kb' ? (kbDocs ?? []).find((k) => k.id === scopeKbId) ?? null : null),
+    [scopeKind, scopeKbId, kbDocs],
+  )
+  /** 范围显示名（面包屑 / 状态栏 / 空态 / 选择器共用）：文档到位用文档，否则先拿列表项兜底 */
+  const scopeKbName =
+    scopeKb?.name ?? (scopeKind === 'kb' ? kbList.find((k) => k.id === scopeKbId)?.name : undefined) ?? ''
+
+  const scopeKbFileIds = useMemo(
     () => (scopeKb ? new Set(getKbFiles(rootFolder, scopeKb)) : null),
     [scopeKb, rootFolder],
   )
 
+  // 范围数据是否就绪：知识库文档没到位就先不裁剪（也不布点），否则会先画一版「全量」
+  // 再收缩成子集 —— 看起来像图被刷新了一次，且违反「默认不含知识库文件」的语义。
+  const scopeReady = scopeKind === 'all' || (kbListed && kbDocs !== null && (scopeKind !== 'kb' || !!scopeKbFileIds))
+
+  /** 当前范围显示名（面包屑 / 状态栏 / 画布角标 / 空态共用）；默认档返回空串 = 「无需标注」 */
+  const scopeLabel = scopeKind === 'kb' ? scopeKbName || '知识库' : scopeKind === 'all' ? '全部文件' : ''
+
+  /** 范围选择器选项：默认档在最前，然后「全部文件」，最后每个知识库一档 */
+  const scopeOptions = useMemo(
+    () => [
+      { value: DEFAULT_GRAPH_SCOPE, label: '文件列表（不含知识库）' },
+      { value: 'all', label: '全部文件' },
+      ...kbList.map((k) => ({ value: scopeKeyOf('kb', k.id), label: `知识库 · ${k.name}` })),
+    ],
+    [kbList],
+  )
+
+  // 记着（或在路由里带着）的知识库已被删除 ⇒ 静默回落默认档。
+  // 不回落的话会永远停在一张空图上 —— 空态也说不出「这库已经没了」。
+  // ⚠️ 判据必须等清单真的加载过（kbListed）：否则首帧 kbList=[] 会把范围误判成「库已删除」。
+  useEffect(() => {
+    if (!kbListed || kbDocs === null) return
+    if (scopeKind !== 'kb') return
+    if (kbDocs.some((k) => k.id === scopeKbId)) return
+    setScope(DEFAULT_GRAPH_SCOPE)
+  }, [kbListed, scopeKind, scopeKbId, kbDocs])
+
   const graph = useMemo(() => getGraphData(tagIndex), [getGraphData, tagIndex])
   const realData = useMemo(() => {
+    const empty = { nodes: [] as GNode[], edges: [] as GEdge[] }
+    if (!scopeReady) return empty
     const base = buildGraphData(graph, rootFolder, activeFileId, getFilePath, tagIndex)
-    return kbFileIds ? scopeGraphToKb(base, kbFileIds) : base
-  }, [graph, rootFolder, activeFileId, getFilePath, tagIndex, kbFileIds])
+    if (scopeKind === 'kb') return scopeKbFileIds ? scopeGraphToKb(base, scopeKbFileIds) : empty
+    if (scopeKind === 'files') return excludeGraphFiles(base, allKbFileIds)
+    return base
+  }, [scopeReady, scopeKind, scopeKbFileIds, allKbFileIds, graph, rootFolder, activeFileId, getFilePath, tagIndex])
   const allTags = useMemo(
     () => Array.from(tagIndex.keys()).map((p) => (p.includes('/') ? p.split('/').pop()! : p)),
     [tagIndex],
@@ -458,11 +605,13 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
   const nodeById = useMemo(() => new Map(nodesRef.current.map((n) => [n.id, n])), [graphRev])
 
   useEffect(() => {
+    // 范围数据没就绪时先不布点：否则会先按「全量」铺一版环，再收缩成子集
+    if (!scopeReady) return
     // 用真实数据填充 refs，并保留已有节点的当前位置（避免每次重排归零）
     const prev = new Map(nodesRef.current.map((n) => [n.id, n]))
     // 图谱现场（graphSession）：本次是「返回图谱」时，节点坐标沿用上次离开前的位置，
     // 于是返回即原图原位，而不是重新随机布点
-    const remembered = readScopedSession(kbId)?.positions
+    const remembered = readScopedSession(scope)?.positions
     const ns: GNode[] = realData.nodes.map((n) => {
       const old = prev.get(n.id) ?? remembered?.[n.id]
       if (old) return { ...n, x: old.x, y: old.y, vx: old.vx, vy: old.vy, tx: old.tx, ty: old.ty }
@@ -484,20 +633,20 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
     setGraphRev((v) => v + 1)
     // 中心节点默认指向当前文件（否则第一项）
     setCenterId((cur) => (ns.find((x) => x.id === cur) ? cur : ns.find((x) => x.isCurrent)?.id ?? ns[0]?.id ?? ''))
-  }, [realData])
+  }, [realData, scope, scopeReady])
 
   const wrapRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const [size, setSize] = useState({ w: 1200, h: 800 })
 
-  const [view, setView] = useState(() => readScopedSession(kbId)?.view ?? { scale: 1, tx: 0, ty: 0 })
+  const [view, setView] = useState({ scale: 1, tx: 0, ty: 0 })
   const viewRef = useRef(view)
   viewRef.current = view
 
   // 仅用于驱动「每帧重渲染」：位置数据在 ref 上原地可变，故不需要读计数本身
   const [, bump] = useReducer((x: number) => (x + 1) % 1_000_000, 0)
 
-  const [selectedId, setSelectedId] = useState<string | null>(() => readScopedSession(kbId)?.selectedId ?? null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [hoverId, setHoverId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   // —— 使用优化⑦ · 左缘导航：对齐编辑器 v7 范式 ——
@@ -610,10 +759,13 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
   // G4/I3 打通：链接健康复用 useDashboardData 单一数据源（一处检测、两处呈现）
   const dash = useDashboardData('month')
   const { linkHealth, healthScore, band } = dash
-  const [layout, setLayout] = useState<Layout>(() => readScopedSession(kbId)?.layout ?? 'force')
-  const [mode, setMode] = useState<GraphMode>(() => readScopedSession(kbId)?.mode ?? 'global')
+  // 布局 / 模式 / 中心 / 视口 / 选中的初始值都取「当前范围的现场」（见下方 applyScopeSession 效果）：
+  // 此前写成 readScopedSession(kbId) 的惰性初值，只在挂载时读一次 —— 面板内切范围时不会重置，
+  // 会把上一个范围的视口/选中串过来（用户拍板：范围可面板内切换，必须按范围各自复原）。
+  const [layout, setLayout] = useState<Layout>('force')
+  const [mode, setMode] = useState<GraphMode>('global')
   const [depth, setDepth] = useState(2)
-  const [centerId, setCenterId] = useState(() => readScopedSession(kbId)?.centerId ?? '')
+  const [centerId, setCenterId] = useState('')
   const [hidden, setHidden] = useState<Set<string>>(new Set())
   // P1-3 展开邻居：右键把一跳邻居并入显示（scope 之外也可见），切模式/重置时清空
   const [extraNeighbors, setExtraNeighbors] = useState<Set<string>>(new Set())
@@ -641,12 +793,38 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
   // 画布的「点空白处清空选中」必须据此区分，否则点完节点立刻被自己清掉
   const nodeGestureRef = useRef(false)
 
+  // —— 按范围恢复现场：范围变化（含首次挂载、面板内切换）时，把**该范围**的现场取回来 ——
+  // 三档范围的节点集合不同，坐标/视口/选中/中心互不相通；不但要读对范围，还要在范围变化时
+  // 立刻重新应用（此前是 useState 惰性初值，只在挂载时读一次 —— 面板内切范围会串台）。
+  const applyLayoutRef = useRef<((l: Layout) => void) | null>(null)
+  const scopeAppliedRef = useRef(false)
+  useEffect(() => {
+    // 挂载那一次与「后面切范围」的处理必须分开：
+    //  • 挂载：只恢复**状态**（视口/选中/模式/布局），不重放布局 —— 与旧版惰性初值等价，
+    //    也避免在布点之前就把力模拟循环启动起来（行为上等于「不自动启动力模拟」的既有约定）；
+    //  • 切范围：必须重放布局（重算目标点位 + 唤醒模拟），否则控件显示同心圆/树形、画布还是旧点位。
+    const first = !scopeAppliedRef.current
+    scopeAppliedRef.current = true
+    const s = readScopedSession(scope)
+    setView(s?.view ?? { scale: 1, tx: 0, ty: 0 })
+    setSelectedId(s?.selectedId ?? null)
+    setMode(s?.mode ?? 'global')
+    if (!s) {
+      // 该范围没有现场 ⇒ 回到干净的默认图（布局也回默认，不留上一范围的观感）
+      setLayout('force')
+      return
+    }
+    if (s.centerId) setCenterId(s.centerId)
+    if (first) setLayout(s.layout)
+    else applyLayoutRef.current?.(s.layout)
+  }, [scope])
+
   // —— 图谱现场写回：每次渲染刷新快照（6 个字段，开销可忽略），卸载时连同节点坐标存入 graphSession ——
   // 卸载清理对「任何离开方式」都成立（侧栏切换 / ⌘K 跳编辑器 / 节点跳转），
   // 因此不必在每个出口手动登记；返回图谱时由上面的 restore 读取。
-  // 快照含「范围」（kbId，'' = 全局）—— 范围不同的现场互不复原，见 readScopedSession。
-  const sceneRef = useRef({ view, layout, mode, centerId, selectedId, kbId: kbId ?? '' })
-  sceneRef.current = { view, layout, mode, centerId, selectedId, kbId: kbId ?? '' }
+  // 快照含「数据范围」—— 范围不同的现场互不复原，见 readScopedSession。
+  const sceneRef = useRef({ view, layout, mode, centerId, selectedId, scope })
+  sceneRef.current = { view, layout, mode, centerId, selectedId, scope }
   useEffect(
     () => () => {
       const positions: Record<string, GraphNodePos> = {}
@@ -703,8 +881,10 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
     [adjacency],
   )
 
-  // ---- 图谱模式作用域 ----
-  const scope = useMemo(() => {
+  // ---- 图谱模式作用域（modeScope：由 mode/centerId/depth 派生的可见集合）----
+  // ⚠️ 名字刻意不叫 scope —— 那是「数据范围」（画哪些文件），两者是不同维度：
+  // 数据范围决定节点集合，本作用域再在集合内按模式收窄（全局/局部/反向/正向/标签）。
+  const modeScope = useMemo(() => {
     if (mode === 'global') return null
     const set = new Set<string>([centerId])
     if (mode === 'local') {
@@ -758,11 +938,11 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
           n.type === 'folder'
         if (!ok) return
       }
-      if (scope && !scope.has(n.id) && !extraNeighbors.has(n.id)) return
+      if (modeScope && !modeScope.has(n.id) && !extraNeighbors.has(n.id)) return
       set.add(n.id)
     })
     return set
-  }, [hidden, showNote, showTag, showFolder, showOrphan, minConn, selectedTags, scope, graphRev, extraNeighbors])
+  }, [hidden, showNote, showTag, showFolder, showOrphan, minConn, selectedTags, modeScope, graphRev, extraNeighbors])
 
   // 方案 C · 着色分组导航聚合：依赖 visibleIds，置于其声明之后
   const groupAgg = useMemo(() => {
@@ -804,7 +984,7 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
       return n ? groupKeyFor(n) !== focusGroup : false
     }
     if (highlightSet) return !highlightSet.has(id)
-    if (scope) return !scope.has(id)
+    if (modeScope) return !modeScope.has(id)
     return false
   }
   const isEdgeDim = (s: string, t: string): boolean => {
@@ -817,7 +997,7 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
       return ks !== focusGroup && kt !== focusGroup
     }
     if (highlightSet) return !(highlightSet.has(s) || highlightSet.has(t))
-    if (scope) return !(scope.has(s) || scope.has(t))
+    if (modeScope) return !(modeScope.has(s) || modeScope.has(t))
     return false
   }
 
@@ -906,6 +1086,8 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
     alphaRef.current = Math.max(alphaRef.current, lay === 'force' ? 0.4 : 0.4)
     if (!runningRef.current) loop()
   }
+  // 供「按范围恢复现场」调用（那条 effect 声明在 applyLayout 之前，故通过 ref 取最新实现）
+  applyLayoutRef.current = applyLayout
 
   // ---- 力模拟 ----
   const step = useCallback(() => {
@@ -1071,12 +1253,15 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
     setSelectedId(id)
     // 卸载清理读的是 sceneRef（本组件不会在卸载前再渲染一次），故此处显式同步选中项
     sceneRef.current = { ...sceneRef.current, selectedId: id }
-    // 返回来源也带上「范围」：范围内点开笔记时寄存器记 kbId，编辑器「← 返回」据此
-    // nav('graph', kbId) 回到**同一范围的图谱**，而不是无声地退回成全局图
+    // 返回来源带上「范围」：编辑器「← 返回」据此回到**同一范围的图谱**。
+    // 「知识库」档额外带 kbId（与「查看完整图谱」入口对称，路由上就能看出回的是哪个库）；
+    // 「全部文件」档只改芯片文案；默认档就是无参形态。
     setEditorReturn(
       scopeKb
         ? { view: 'graph', kbId: scopeKb.id, label: `${scopeKb.name} · 图谱` }
-        : { view: 'graph', label: '双链图谱' },
+        : scopeKind === 'all'
+          ? { view: 'graph', label: '双链图谱 · 全部文件' }
+          : { view: 'graph', label: '双链图谱' },
     )
     openFile(id)
     handleNav('编辑器')
@@ -1308,11 +1493,14 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
       sidebarGroups={AURORA_SIDEBAR_GROUPS}
       sidebarActiveId="双链图谱"
       onSidebarSelect={handleNav}
-      // 范围明示：范围内把库名接到面包屑上（「双链图谱 › XX 库」），点首段即退出范围回全局图
-      breadcrumbs={scopeKb ? ['双链图谱', scopeKb.name] : ['双链图谱']}
-      breadcrumbOnClick={scopeKb ? (i) => { if (i === 0) nav?.('graph') } : undefined}
+      // 范围明示：非默认档把范围名接到面包屑上（「双链图谱 › 甲库 / 全部文件」）；
+      // 点首段 = 退出范围、回到默认档（文件列表）。默认档不标注（它就是默认，加了反而啰嗦）
+      breadcrumbs={scopeKind === 'files' ? ['双链图谱'] : ['双链图谱', scopeLabel]}
+      breadcrumbOnClick={scopeKind === 'files' ? undefined : (i) => { if (i === 0) setScope(DEFAULT_GRAPH_SCOPE) }}
       statusLeftItems={[
-        ...(scopeKb ? [{ content: `范围：${scopeKb.name}`, clickable: true, onClick: () => nav?.('graph') }] : []),
+        ...(scopeKind === 'files'
+          ? []
+          : [{ content: `范围：${scopeLabel}`, clickable: true, onClick: () => setScope(DEFAULT_GRAPH_SCOPE) }]),
         { content: `笔记 ${stats.note}` },
         { content: `标签 ${stats.tag}` },
         { content: `文件夹 ${stats.folder}` },
@@ -1364,6 +1552,28 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
                 </div>
               </div>
               <div className="aurora-graph__overlay-body">
+              {/* 数据范围（2026-09-23 用户需求）：最上游的一档 —— 决定「画哪些文件」，
+                  故置于视图控制之前。选项 = 文件列表（默认）/ 全部文件 / 每个知识库一档。 */}
+              <div className="aurora-graph__group">
+                <div className="aurora-graph__group-title">数据范围</div>
+                <AuroraSelect
+                  ariaLabel="数据范围"
+                  className="aurora-graph__scopesel"
+                  value={scope}
+                  onChange={setScope}
+                  options={scopeOptions}
+                />
+                <div className="aurora-graph__grp-hint">
+                  {scopeKind === 'files'
+                    ? '只显示「文件列表」里的笔记 —— 不含任何知识库的文件。'
+                    : scopeKind === 'all'
+                      ? '显示 MarkCraft 的全部文件（含各知识库）。'
+                      : `只显示「${scopeLabel}」知识库内的笔记。`}
+                </div>
+              </div>
+
+              <div className="aurora-graph__divider" />
+
               {/* 使用优化⑤ · 重排：视图控制（模式/布局）置顶——高频操作优先 */}
               <div className="aurora-graph__group">
                 <div className="aurora-graph__group-title">图谱模式</div>
@@ -1593,20 +1803,20 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
         <div className="aurora-graph__canvas" ref={wrapRef}>
           {/* 方案 C · 顶部筛选条：搜索 + 节点类型 + 着色（高频操作提升，告别左栏长列表混排） */}
           <div className="aurora-graph__topbar">
-            {/* 范围芯片（仅知识库范围内出现）：一眼看清「现在看的只是这一个库」，并给出一键退出口 */}
-            {scopeKb && (
+            {/* 范围芯片（非默认档出现）：一眼看清「现在看的只是这一批」，并给出一键退出口 */}
+            {scopeKind !== 'files' && (
               <>
-                <span className="aurora-graph__scope" title={`仅显示「${scopeKb.name}」知识库内的笔记节点`}>
-                  <Icon.book size={13} />
-                  <span className="aurora-graph__scope-name">{scopeKb.name}</span>
+                <span className="aurora-graph__scope" title={`仅显示「${scopeLabel}」范围内的笔记节点`}>
+                  {scopeKind === 'kb' ? <Icon.book size={13} /> : <Icon.layers size={13} />}
+                  <span className="aurora-graph__scope-name">{scopeLabel}</span>
                 </span>
                 <button
                   type="button"
                   className="aurora-graph__scope-exit"
-                  onClick={() => nav?.('graph')}
-                  title="退出知识库范围，查看全局图谱"
+                  onClick={() => setScope(DEFAULT_GRAPH_SCOPE)}
+                  title="退出当前范围，回到「文件列表」（不含知识库）"
                 >
-                  查看全局图谱
+                  回到文件列表
                 </button>
                 <span className="aurora-graph__topbar-sep" />
               </>
@@ -1960,17 +2170,29 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
             <div className="aurora-graph__empty">
               <Icon.graph size={32} />
               {/* 范围内的空态必须说明「是范围所致」，否则用户会以为是筛选条件把图筛没了 */}
-              <div className="title">{scopeKb ? '本知识库暂无可显示的节点' : '没有匹配的节点'}</div>
-              <div className="sub">
-                {scopeKb
-                  ? `「${scopeKb.name}」内还没有笔记，或这些笔记之间尚未建立引用关系。`
-                  : '调整筛选条件、标签选择或图谱模式，图谱将重新显现。'}
+              <div className="title">
+                {scopeKind === 'kb'
+                  ? '本知识库暂无可显示的节点'
+                  : scopeKind === 'files'
+                    ? '文件列表里没有可显示的节点'
+                    : '没有匹配的节点'}
               </div>
-              {scopeKb && (
-                <button type="button" className="aurora-graph__empty-exit" onClick={() => nav?.('graph')}>
-                  查看全局图谱
+              <div className="sub">
+                {scopeKind === 'kb'
+                  ? `「${scopeLabel}」内还没有笔记，或这些笔记之间尚未建立引用关系。`
+                  : scopeKind === 'files'
+                    ? '默认范围不含知识库里的文件 —— 如果笔记都在知识库里，切到「全部文件」或直接选一个知识库即可看到。'
+                    : '调整筛选条件、标签选择或图谱模式，图谱将重新显现。'}
+              </div>
+              {scopeKind === 'files' ? (
+                <button type="button" className="aurora-graph__empty-exit" onClick={() => setScope('all')}>
+                  查看全部文件
                 </button>
-              )}
+              ) : scopeKind === 'kb' ? (
+                <button type="button" className="aurora-graph__empty-exit" onClick={() => setScope(DEFAULT_GRAPH_SCOPE)}>
+                  回到文件列表
+                </button>
+              ) : null}
             </div>
           )}
         </div>

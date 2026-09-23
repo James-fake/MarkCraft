@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { scopeGraphToKb, type GNode, type GEdge } from './GraphPanel'
+import { scopeGraphToKb, excludeGraphFiles, type GNode, type GEdge } from './GraphPanel'
 
 /**
  * 双链图谱「知识库范围」裁剪回归锁（2026-09-23 用户报障）
@@ -110,6 +110,68 @@ describe('scopeGraphToKb —— 把全局图谱裁到某个知识库', () => {
     const input = baseGraph()
     const snapshot = JSON.stringify(input)
     scopeGraphToKb(input, KB)
+    expect(JSON.stringify(input)).toBe(snapshot)
+  })
+})
+
+/**
+ * 默认「文件列表」范围（2026-09-23 用户需求，口径 B）
+ *
+ * 用户原话：「进入双链图谱默认不显示知识库中文件节点，只显示文件列表中的文件节点」，
+ * 并明确选了口径 B —— **排除所有知识库**（含内置《MarkCraft 使用文档》）的文件，
+ * 只留不属于任何知识库的散装笔记；要看某个库就显式选它。
+ *
+ * 与 scopeGraphToKb 共用同一份两步裁剪核心，故这里的用例集中在「排除侧」的判据，
+ * 尤其是「只被被排除文件使用的标签不得残留」与「空排除集必须等价于不裁剪」。
+ */
+describe('excludeGraphFiles —— 排除所有知识库文件（默认「文件列表」范围）', () => {
+  // 场景同 baseGraph：A、B 属知识库；C 是散装笔记
+  const KB_FILES = new Set(['A', 'B'])
+
+  it('① 知识库里的文件节点整体消失，库外散装笔记保留', () => {
+    const out = excludeGraphFiles(baseGraph(), KB_FILES)
+    expect(ids(out.nodes)).toEqual(['C', 'tag:T2', 'tag:T3'])
+  })
+
+  it('② 只被被排除文件使用的标签不残留成孤岛', () => {
+    const out = excludeGraphFiles(baseGraph(), KB_FILES)
+    // tag:T1 仅被库内的 A 使用 ⇒ 随 A 一起离开
+    expect(ids(out.nodes)).not.toContain('tag:T1')
+    // tag:T3 库内库外都用 ⇒ 保留（库外笔记确实连到它）
+    expect(ids(out.nodes)).toContain('tag:T3')
+  })
+
+  it('③ 跨界的边整条丢弃 —— 不允许「线还在、对面是鬼」', () => {
+    const out = excludeGraphFiles(baseGraph(), KB_FILES)
+    expect(edgeKeys(out.edges)).toEqual(['C->tag:T2', 'C->tag:T3'])
+    expect(edgeKeys(out.edges).some((k) => k.includes('A') || k.includes('B'))).toBe(false)
+  })
+
+  it('④ 对照：空排除集等价于不裁剪（没有知识库时默认范围不得误伤整图）', () => {
+    const input = baseGraph()
+    const out = excludeGraphFiles(input, new Set<string>())
+    expect(ids(out.nodes)).toEqual(ids(input.nodes))
+    expect(edgeKeys(out.edges)).toEqual(edgeKeys(input.edges))
+  })
+
+  it('⑤ 全部排除 → 空图（图谱走空态，不留下任何标签或边）', () => {
+    const out = excludeGraphFiles(baseGraph(), new Set(['A', 'B', 'C']))
+    expect(out.nodes).toEqual([])
+    expect(out.edges).toEqual([])
+  })
+
+  it('⑥ 与 scopeGraphToKb 互为补集：同一集合下文件节点恰好被一分为二', () => {
+    const kept = scopeGraphToKb(baseGraph(), KB_FILES)
+    const rest = excludeGraphFiles(baseGraph(), KB_FILES)
+    const fileIds = (r: { nodes: GNode[] }) => r.nodes.filter((n) => n.type === 'file').map((n) => n.id).sort()
+    expect([...fileIds(kept), ...fileIds(rest)].sort()).toEqual(['A', 'B', 'C'])
+    expect(fileIds(kept).filter((id) => fileIds(rest).includes(id))).toEqual([])
+  })
+
+  it('⑦ 不改动入参（纯函数：同样的输入两次调用结果一致）', () => {
+    const input = baseGraph()
+    const snapshot = JSON.stringify(input)
+    excludeGraphFiles(input, KB_FILES)
     expect(JSON.stringify(input)).toBe(snapshot)
   })
 })
