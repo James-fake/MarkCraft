@@ -96,6 +96,23 @@ export const highlightInputRule = new InputRule({
   },
 })
 
+// 下划线：++text++ → 下划线标记
+// 内容排除 `|` 与 `+`：前者避免把 ++text|color++ 的颜色语法吞进正文文本，
+// 后者避免与 +++ 之类连续加号纠缠（宁可原样显示，也不静默改内容）。
+export const underlineInputRule = new InputRule({
+  find: /(?<!\+)\+\+([^+|]+?)\+\+$/,
+  handler: ({ range, match, chain }) => {
+    const text = match[1]
+    chain().command(({ tr, state }) => {
+      const mark = state.schema.marks.underline
+      if (!mark) return false
+      tr.insertText(text, range.from, range.to)
+      tr.addMark(range.from, range.from + text.length, mark.create())
+      return true
+    }).run()
+  },
+})
+
 // ─── appendTransaction 插件（用于粘贴/加载时批量转换） ───
 
 const markdownInlineKey = new PluginKey('markdownInlineAutoConvert')
@@ -107,6 +124,8 @@ const ITALIC_PATTERN = /(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g
 const CODE_PATTERN = /`(.+?)`/g
 const STRIKETHROUGH_PATTERN = /~~(.+?)~~/g
 const HIGHLIGHT_PATTERN = /==(.+?)==/g
+// 下划线：与输入规则同口径（内容排除 | 与 +），避免吞掉 ++text|color++ 的颜色语法
+const UNDERLINE_PATTERN = /(?<!\+)\+\+([^+|]+?)\+\+(?!\+)/g
 
 interface InlineMatch {
   index: number
@@ -154,6 +173,11 @@ function collectMatches(text: string): InlineMatch[] {
     matches.push({ index: m.index, fullLength: m[0].length, text: m[1], markType: 'highlight' })
   }
 
+  UNDERLINE_PATTERN.lastIndex = 0
+  while ((m = UNDERLINE_PATTERN.exec(text)) !== null) {
+    matches.push({ index: m.index, fullLength: m[0].length, text: m[1], markType: 'underline' })
+  }
+
   matches.sort((a, b) => a.index - b.index)
 
   const filtered: InlineMatch[] = []
@@ -172,7 +196,7 @@ const MarkdownInlineInputRules = Extension.create({
   name: 'markdownInlineInputRules',
 
   addInputRules() {
-    return [boldItalicInputRule, boldInputRule, italicInputRule, codeInputRule, strikethroughInputRule, highlightInputRule]
+    return [boldItalicInputRule, boldInputRule, italicInputRule, codeInputRule, strikethroughInputRule, highlightInputRule, underlineInputRule]
   },
 
   addProseMirrorPlugins() {

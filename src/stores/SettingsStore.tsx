@@ -6,6 +6,8 @@ export interface AppSettings {
   editorMode: 'source' | 'wysiwyg'
   /** 上次使用的高亮颜色（高亮按钮「记住上次颜色」用）。值域由 features 层校验，非法值回退 yellow。 */
   lastHighlightColor: string
+  /** 上次使用的下划线颜色（下划线按钮「记住上次颜色」用）。值域由 features 层校验，非法值回退 'auto'（跟随正文）。 */
+  lastUnderlineColor: string
   autoSaveInterval: number
   spellCheck: boolean
   smartPunctuation: boolean
@@ -64,6 +66,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   // 默认范式收敛：WYSIWYG（TipTap + Live Preview）为默认；源码模式为可选高级模式（P1-1.2 E1）
   editorMode: 'wysiwyg',
   lastHighlightColor: 'yellow',
+  lastUnderlineColor: 'auto',
   autoSaveInterval: 30,
   // 拼写检查默认关闭：英文词典对中文用户价值≈0（P1-1.2 E3）
   spellCheck: false,

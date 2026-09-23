@@ -205,6 +205,13 @@
   background-color: rgba(254, 240, 138, 0.3);
 }
 
+/* 下划线：着色由 Mark 扩展的 renderHTML 内联 style 给出（text-decoration-color），
+   这里只做兜底 —— 保证「跟随正文」时在任何主题下都有下划线，且继承文字色。 */
+.tiptap-editor-wrapper .tiptap u.mark-underline {
+  text-decoration: underline;
+  text-decoration-color: inherit;
+}
+
 .tiptap-editor-wrapper .tiptap sub.subscript {
   font-size: 0.75em;
 }

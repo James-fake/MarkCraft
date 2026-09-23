@@ -1,15 +1,22 @@
 /**
- * cdp-eval · 在已启动的 Edge(CDP@9444) 页面里执行一段 JS 并打印结果
+ * cdp-eval · 在已启动的 Edge(CDP) 页面里执行一段 JS 并打印结果
  *
  * 用法：
  *   node .workbuddy/artifacts/cdp-eval.mjs "document.title"
  *   node .workbuddy/artifacts/cdp-eval.mjs --url "#view=settings" "location.hash"
  *   node .workbuddy/artifacts/cdp-eval.mjs --all "document.querySelectorAll('.aurora-page').length"
+ *   CDP_PORT=9480 node .workbuddy/artifacts/cdp-eval.mjs "location.href"     # 非默认端口
  *
- * 前提：Edge 必须以 --remote-debugging-port=9444 且与脚本同一次 bash 启动（后台 bash 会收编子进程）。
+ * 前提：Edge 必须以同名 `--remote-debugging-port` 且与脚本同一次 bash 启动（后台 bash 会收编子进程）。
+ * ⚠️ 端口与 host 都必须与 Edge 实际启动的一致：
+ *   · 端口不一致 ⇒ 报 `fetch failed`，症状酷似「代理污染 / 浏览器没起」（本仓踩过）；
+ *   · 页面 host 可能是 `127.0.0.1` 而非 `localhost` ⇒ 只写 `localhost` 会「找不到页面」。
  */
 import { WebSocket } from 'ws'
 import { readFileSync } from 'node:fs'
+
+const CDP_PORT = Number(process.env.CDP_PORT || 9444)
+const APP_HOST_RE = /(localhost|127\.0\.0\.1):5174/
 
 const argv = process.argv.slice(2)
 let wantUrl = null
@@ -24,9 +31,9 @@ for (let i = 0; i < argv.length; i++) {
 }
 const expr = exprFile ? readFileSync(exprFile, 'utf8') : (rest.join(' ') || 'document.title')
 
-const list = await (await fetch('http://127.0.0.1:9444/json/list')).json()
-const pages = list.filter((t) => t.type === 'page' && t.url.includes('localhost:5174'))
-if (!pages.length) { console.error('❌ 无 5174 页面（Edge 起了吗？同一次 bash 启动？）'); process.exit(1) }
+const list = await (await fetch(`http://127.0.0.1:${CDP_PORT}/json/list`)).json()
+const pages = list.filter((t) => t.type === 'page' && APP_HOST_RE.test(t.url))
+if (!pages.length) { console.error(`❌ 无 5174 页面（CDP_PORT=${CDP_PORT}；Edge 起了吗？同一次 bash 启动？）`); process.exit(1) }
 
 let page = wantUrl ? pages.find((p) => p.url.includes(wantUrl)) : pages[pages.length - 1]
 if (!page) { console.error(`❌ 没有匹配 "${wantUrl}" 的页面，现有：`); pages.forEach((p) => console.error('   ' + p.url)); process.exit(1) }

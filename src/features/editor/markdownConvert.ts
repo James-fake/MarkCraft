@@ -148,6 +148,15 @@ export function markdownToHtml(md: string, imageStore: ImageStoreAPI): string {
     // ==text== 高亮转换为 <mark>（默认黄色）
     processed = processed.replace(/==([^=]+)==/g, '<mark>$1</mark>')
 
+    // ++text|color++ 下划线转换为 <u data-underline-color="color">（在 marked 解析之前）
+    // 与高亮 ==text|color== 对称；色名同样允许连字符（deep-orange 等）。
+    // 'auto'（跟随正文）归一化为无属性 <u> —— 与 htmlToMarkdown 侧归一化互逆。
+    processed = processed.replace(/\+\+([^+|]+)\|([-\w]+)\+\+/g, (_match, text: string, color: string) =>
+      color === 'auto' ? `<u>${text}</u>` : `<u data-underline-color="${color}">${text}</u>`)
+    // ++text++ 下划线（跟随正文颜色）。内容排除 | 与 + —— 避免把 ++a|b++ 这类
+    // 非色名竖线内容误吞进下划线（宁可原样显示，也不静默改内容）。
+    processed = processed.replace(/\+\+([^+|]+)\+\+/g, '<u>$1</u>')
+
     // ~text~ 下标（排除 ~~strikethrough~~）
     processed = processed.replace(/(?<!~)~([^~]+)~(?!~)/g, '<sub>$1</sub>')
 
@@ -436,6 +445,22 @@ export function htmlToMarkdown(html: string): string {
         return `==${content}|${color}==`
       }
       return `==${content}==`
+    },
+  })
+
+  td.addRule('underline', {
+    // ⚠️ 此规则同时修掉一个既有 bug：Turndown 默认不识 <u>，
+    // 会「保留子内容、丢弃标签」⇒ 下划线此前一保存就丢。
+    filter: (node: HTMLElement) => {
+      return node.nodeName === 'U' && !node.getAttribute('data-type')
+    },
+    replacement: (content: string, node: HTMLElement) => {
+      const color = node.getAttribute('data-underline-color')
+      // 'auto'（跟随正文）归一化为无后缀 ++text++，与高亮 yellow 归一化同构
+      if (color && color !== 'auto') {
+        return `++${content}|${color}++`
+      }
+      return `++${content}++`
     },
   })
 

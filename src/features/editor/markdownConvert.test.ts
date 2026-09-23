@@ -98,3 +98,72 @@ describe('高亮色名 Markdown 往返', () => {
     expect(html).not.toContain('==')
   })
 })
+
+/**
+ * 下划线（++文本++ / ++文本|颜色++）Markdown 往返。
+ *
+ * 两条独立的动机：
+ *  1. 【修 bug】Turndown 默认不识 <u>，会「保留子内容、丢弃标签」
+ *     ⇒ 下划线此前是「一保存就丢」的（`前<u>下划线</u>后` → `前下划线后`）。
+ *     本组第一条用例就是这条旧 bug 的回归锁。
+ *  2. 【新特性】下划线可着色，语法与高亮 ==文本|颜色== 对称；
+ *     'auto'（跟随正文）归一化为最短形态 ++文本++。
+ */
+describe('下划线 Markdown 往返', () => {
+  it('回归：<u> 不再被 Turndown 整段吃掉（此前「一下划线就丢」）', () => {
+    const md = htmlToMarkdown('<p>前<u>下划线</u>后</p>').trim()
+    expect(md).toContain('前')
+    expect(md).toContain('后')
+    expect(md).toContain('++下划线++')
+  })
+
+  it('跟随正文：++文本++ ⇄ <u>', () => {
+    expect(markdownToHtml('++重点++', noopImageStore)).toContain('<u>重点</u>')
+    expect(htmlToMarkdown('<p><u>重点</u></p>').trim()).toBe('++重点++')
+  })
+
+  it('指定色：++文本|red++ ⇄ <u data-underline-color="red">', () => {
+    expect(markdownToHtml('++重点|red++', noopImageStore)).toContain('data-underline-color="red"')
+    expect(htmlToMarkdown('<p><u data-underline-color="red">重点</u></p>').trim()).toBe('++重点|red++')
+  })
+
+  it("auto 归一化：显式 |auto 解析为无属性 <u>，回写为最短形态 ++文本++", () => {
+    const html = markdownToHtml('++重点|auto++', noopImageStore)
+    expect(html).toContain('<u>重点</u>')
+    expect(html).not.toContain('data-underline-color')
+    // auto 是默认值：回写时收敛成短形态，避免每次编辑都改 diff
+    expect(htmlToMarkdown('<p><u data-underline-color="auto">重点</u></p>').trim()).toBe('++重点++')
+  })
+
+  it('连字符色名不丢色（deep-orange / light-blue / deep-purple / light-green）', () => {
+    for (const color of ['deep-orange', 'light-blue', 'deep-purple', 'light-green']) {
+      const html = markdownToHtml(`++重点|${color}++`, noopImageStore)
+      expect(html, `${color} → html`).toContain(`data-underline-color="${color}"`)
+      expect(html, `${color} 不应退化成无属性 <u>`).not.toMatch(/<u>重点<\/u>/)
+
+      const md = htmlToMarkdown(`<p><u data-underline-color="${color}">重点</u></p>`).trim()
+      expect(md, `${color} → md`).toBe(`++重点|${color}++`)
+    }
+  })
+
+  it('全 16 色逐一往返不失真', () => {
+    for (const color of HIGHLIGHT_COLOR_OPTIONS) {
+      const md = `++重点|${color}++`
+      expect(markdownToHtml(md, noopImageStore), color).toContain(`data-underline-color="${color}"`)
+      const back = htmlToMarkdown(`<p><u data-underline-color="${color}">重点</u></p>`).trim()
+      expect(back, color).toBe(md)
+    }
+  })
+
+  it('含竖线的非色名内容不被静默吞进下划线（宁可原样显示）', () => {
+    const html = markdownToHtml('++a|b|c++', noopImageStore)
+    expect(html).toContain('++a|b|c++')
+    expect(html).not.toContain('<u>')
+  })
+
+  it('与高亮 == 语法互不串扰', () => {
+    const html = markdownToHtml('==高== 与 ++下++', noopImageStore)
+    expect(html).toContain('<mark>高</mark>')
+    expect(html).toContain('<u>下</u>')
+  })
+})

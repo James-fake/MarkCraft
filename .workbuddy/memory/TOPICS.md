@@ -112,6 +112,32 @@ subbar 52px。⚠️ `.aurora-kb-notes` 顶 padding 仅 2px 是为**自带 `__he
 - 探针 `artifacts/cdp-verify-highlight-split.mjs`（33 条）。**同目录另有一条**
   `cdp-verify-highlight-click.mjs` 守「portal 裁切」那条回归，别互相合并。
 
+## 编辑器下划线（split button + 16 色 + 「记住上次色」，2026-09-23 需求）
+> 需求原话：「下划线功能和这个高亮功能一样，支持切换 16 种颜色，并记住上一次使用的颜色」。
+> 与高亮**同构**（主按钮＝应用/切换上次色、不弹面板；右侧 12px 箭头＝开面板；只有**面板里显式挑色**
+> 才改写上次色；主按钮 / `Mod-u` / 右键菜单三入口同语义）。改任一处必须三处对齐。
+
+- **复用而非复制色表**：`extensions/underlineColors.ts` 只做 `{...HIGHLIGHT_UI_COLORS}` 的再导出
+  （`UNDERLINE_COLORS`），色序/键集合与高亮恒等 ⇒ 改色只改 `highlightColors.ts` 一处。
+  上次色单一数据源 = `SettingsStore.lastUnderlineColor`，读取过 `isUnderlineColor`、非法回退 `auto`。
+- 🚨 **下划线改的是「前景色」，必须用不透明 hex**（高亮改底色用半透明 rgba 无妨）：直接拿
+  `HIGHLIGHT_COLORS` 的 rgba 当 `text-decoration-color` 会让字发灰 ⇒ 一律用 `HIGHLIGHT_UI_COLORS`。
+- 🚨 **`auto`（跟随正文）≠ 某个色值**：判据必须是 `<u>` 的 computed `text-decoration-color`
+  **等于父级 `color`**（探针 §4 就是这么证的），而不是「有没有色属性」。不要为它写死任何颜色。
+- 🚨 **`setUnderline` 类型上不收参数**（`@tiptap/extension-underline`）⇒ 带色必须走
+  `setMark('underline', { color })`。`UnderlineColor` 用 `Underline.extend` 加 `color` 属性 +
+  `renderHTML` 写 `text-decoration-color`，并**接管 `Mod-u`**（同一色再按＝取消，否则＝切成上次色）。
+- 🚨 **修掉了「下划线一保存就丢」的旧 bug**：Turndown **不认 `<u>`**，默认规则会把整段内容丢掉。
+  修法 = `markdownConvert.ts` 里 `td.addRule('underline', …)`；解析侧加 `++文本|色++` / `++文本++`。
+  源码写法与高亮 `==文本|色==` **对称**，且 `++文本|auto++` 回写归一化为最短形态 `++文本++`。
+  ⚠️ 色名正则同样要 `[-\w]+`（`deep-orange` 等四个连字符色名，用 `\w+` 会静默退化成默认）。
+- ⚠️ **预览层就是编辑器本身**：`markdownToHtml` 只喂 TipTap ⇒ 除 `.mark-underline` 一条兜底外
+  **不需要新增预览 CSS**。
+- ⚠️ 导出链路（`documentExporter` / `staticSiteExporter` 各持本地副本）**不共享 `markdownConvert`**
+  ⇒ 导出里的下划线仍已知缺失（本次范围外，未修）。
+- 本次范围**只做 WYSIWYG**：源码模式编辑器（CodeMirror）的 `__` 包裹快捷键未改。
+- 探针 `artifacts/cdp-verify-underline-split.mjs`（44 条，含 §6 冷启动记忆）。
+
 ## 通用铁律 · 细则（续）：主文件 `MEMORY.md` 只留判据，本节存细则
 ### 二级栏高 / 密度
 二级栏高 = `--mc-subbar-h`（tokens §12，52px），三面板同源，**不参与密度切换**；⚠️ 栏高**被复制进派生偏移**（`blog__panelzone.top` 等）→ 改栏高必须同改，一律 `var()`。
@@ -148,6 +174,20 @@ subbar 52px。⚠️ `.aurora-kb-notes` 顶 padding 仅 2px 是为**自带 `__he
 - ⚠️ **截图必须按「被测元素的几何」裁切**：全页截图里 20px 的小色块会被误判成「没出现」（本仓曾据此怀疑断言造假）。截图是**独立于 `elementFromPoint` 的第二条证据通道**，两条一致才算证据闭合。
 - ⚠️ **返回码会被管道吃掉**：`node probe.mjs | tail -20` 之后 `$?` 是 `tail` 的。要拿探针真实退出码须重定向到文件再 `echo $?`。
 - ⚠️ **连续启停 Edge 会偶发 `ECONNREFUSED`（浏览器没起来）**：每轮用**全新端口 + 全新 profile 目录**，并在上一轮之后留几秒；该失败与探针逻辑无关，别混判成「探针坏了」。
+- 🚨 **整页 reload 会让 renderer 僵死 ⇒ 改用「新建标签页冷启动」（2026-09-23 下划线记忆验证）**：
+  对「已被深度使用过」的页面做 reload（`Page.navigate` 与 `location.reload()` 都试过、加
+  `--disable-sync` 也一样）后，renderer 进入**「CDP 能连上、但每条 `Runtime.evaluate` 都超时、
+  永不恢复」**的僵死态（连续 4 次超时后抛错），页面永远不就绪；`edge://sync-confirmation-dialog`
+  这类 Edge 自带页会抢前台、加剧此症。**修法 = 不开 reload，转而 `PUT /json/new?about:blank` 新建目标**
+  （新版本 Chromium 只接受 PUT），接上后**先 `Page.addScriptToEvaluateOnNewDocument` 注入 `__bootAt`
+  再导航** —— 这样 `__bootAt` 存在即证明「本 document 由本次冷启动产生」，比「reload 后标记变新」
+  **更强且更省事**（新目标天然是新 document，不存在「坑 P：同 URL 导航不产生新 document」）。
+  `localStorage` 同源共享 ⇒ 语义仍是「记忆从磁盘回来」。用完 `json/close/<id>` 关掉，免得污染
+  后续段落的前台与错误采集。
+- 🚨 **探针的 `send()` 必须带超时**：页面忙/reload 时 CDP 请求会**永不返回** ⇒ 探针**静默挂死**，
+  最后被工具 SIGTERM 杀掉，且因 **node stdout 是块缓冲**连「卡在哪」都看不到（日志恒停在 `=== 6.`）。
+  双保险：`send()` 加 `CDP_TIMEOUT_MS`；进度用 `appendFileSync` **直接落盘**（`MC_TRACE=<路径>`）而非 stdout；
+  `waitFor` 攒够连续超时次数就**快速失败并报出可读结论**，别靠 `tries` 兜满几十次 × 20s。
 ### 验证链路 细则
 > 七条验证链路（tsc／vitest／eslint 守卫／depgraph／vite build／真机 CDP／文件集合差）本体见 `MEMORY.md`；③ 空输出须先证「实扫文件数」非 0（`-f json` 数数组长度）；守卫升 error 后须**注入探针**验 `exit=1` 且报出预期规则名 → 还原 → 复跑 0；④ 看 `BIDIRECTIONAL PAIRS`／`MODULE-LEVEL CYCLES` 两节为 `(none)`；⑥ 不适用须**显式判定**并写明判据。
 ### git / 沙箱 完整细则

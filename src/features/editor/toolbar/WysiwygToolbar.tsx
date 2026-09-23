@@ -21,6 +21,7 @@ import { getRecentFiles } from '@core/files/recentFiles'
 import { buildRecentWikilink, buildReferenceTemplate, buildRelatedTemplate, buildBackindexTemplate, buildTodayWikilink, buildBacklinksList } from '@features/editor/toolbar/groups/linkTemplates'
 import { getShortcutLabel } from '@features/editor/toolbar/ShortcutManager'
 import { HIGHLIGHT_UI_COLORS, HIGHLIGHT_COLOR_OPTIONS, isHighlightColor, type HighlightColor } from '@features/editor/extensions/HighlightMark'
+import { UNDERLINE_COLORS, UNDERLINE_COLOR_OPTIONS, isUnderlineColor } from '@features/editor/extensions/UnderlineColor'
 import { useSettings } from '@stores/SettingsStore'
 
 interface WysiwygToolbarProps {
@@ -87,6 +88,7 @@ export default function WysiwygToolbar({
   const [diagramAnchor, setDiagramAnchor] = useState<HTMLElement | null>(null)
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [highlightDropdownOpen, setHighlightDropdownOpen] = useState(false)
+  const [underlineDropdownOpen, setUnderlineDropdownOpen] = useState(false)
   const emojiBtnRef = useRef<HTMLButtonElement>(null)
   // split button：主按钮应用「上次颜色」，右侧小箭头开调色板。锚点 = 整个包裹层（主按钮 + 箭头）。
   const highlightWrapRef = useRef<HTMLDivElement>(null)
@@ -94,10 +96,16 @@ export default function WysiwygToolbar({
   // 下拉面板经 createPortal 挂到 body（position:fixed）—— 若留在工具栏内会因
   // 容器 overflow:hidden 被裁掉，表现为「点高亮按钮没任何反应」（面板其实挂载了但不可见）。
   const highlightPos = useDropdownPosition(highlightDropdownOpen, highlightWrapRef)
+  // 下划线同一范式（与高亮并列，各自独立开合）
+  const underlineWrapRef = useRef<HTMLDivElement>(null)
+  const underlineMenuRef = useRef<HTMLDivElement>(null)
+  const underlinePos = useDropdownPosition(underlineDropdownOpen, underlineWrapRef)
   const moreBtnRef = useRef<HTMLButtonElement>(null)
   // 「记住上次颜色」：单一数据源 = SettingsStore.lastHighlightColor（持久化到 markcraft_settings）
   const { settings, updateSetting } = useSettings()
   const lastColor: HighlightColor = isHighlightColor(settings.lastHighlightColor) ? settings.lastHighlightColor : 'yellow'
+  // 下划线默认「跟随正文」（auto）—— 与用户对「加下划线」的默认预期一致：只加线、不改字色
+  const lastUnderlineColor: string = isUnderlineColor(settings.lastUnderlineColor) ? settings.lastUnderlineColor : 'auto'
 
   // Close highlight dropdown on outside click (must also exclude the panel itself,
   // otherwise clicking a color swatch unmounts the panel before its onClick fires)
@@ -114,6 +122,21 @@ export default function WysiwygToolbar({
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [highlightDropdownOpen])
+
+  // 下划线调色板的同款外部点击关闭（同样须排除面板自身，否则点色块会先卸载面板）
+  useEffect(() => {
+    if (!underlineDropdownOpen) return
+    const handler = (e: MouseEvent) => {
+      if (
+        underlineWrapRef.current && !underlineWrapRef.current.contains(e.target as Node) &&
+        underlineMenuRef.current && !underlineMenuRef.current.contains(e.target as Node)
+      ) {
+        setUnderlineDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [underlineDropdownOpen])
 
   const handleEmojiSelect = useCallback((emoji: string) => {
     if (!editor) return
@@ -142,6 +165,30 @@ export default function WysiwygToolbar({
     }
     updateSetting('lastHighlightColor', color)
     setHighlightDropdownOpen(false)
+  }, [editor, updateSetting])
+
+  /** 下划线主按钮：对选区应用/切换「上次颜色」（当前已是该色则取消下划线） */
+  const applyLastUnderlineColor = useCallback(() => {
+    if (!editor) return
+    const currentColor = editor.getAttributes('underline').color
+    if (currentColor === lastUnderlineColor) {
+      editor.chain().focus().unsetUnderline().run()
+    } else {
+      editor.chain().focus().unsetUnderline().setMark('underline', { color: lastUnderlineColor }).run()
+    }
+  }, [editor, lastUnderlineColor])
+
+  /** 下划线调色板选色：应用该色并写回「上次颜色」（同一色再点 = 取消下划线） */
+  const applyUnderlineColor = useCallback((color: string) => {
+    if (!editor) return
+    const currentColor = editor.getAttributes('underline').color
+    if (currentColor === color) {
+      editor.chain().focus().unsetUnderline().run()
+    } else {
+      editor.chain().focus().unsetUnderline().setMark('underline', { color }).run()
+    }
+    updateSetting('lastUnderlineColor', color)
+    setUnderlineDropdownOpen(false)
   }, [editor, updateSetting])
 
   // Only re-render when formatting state actually changes (rAF throttled)
@@ -300,13 +347,126 @@ export default function WysiwygToolbar({
         <span style={{ fontSize: '14px', fontStyle: 'italic', fontFamily: 'Georgia, serif' }}>I</span>
       </WysiwygToolbarButton>
 
-      <WysiwygToolbarButton
-        onClick={() => editor.chain().focus().toggleUnderline().run()}
-        title={`${t.toolbar.underline} (${getShortcutLabel('format.underline') || (navigator.platform.includes('Mac') ? '⌘U' : 'Ctrl+U')})`}
-        active={editor.isActive('underline')}
-      >
-        <span style={{ fontSize: '14px', textDecoration: 'underline' }}>U</span>
-      </WysiwygToolbarButton>
+      <div ref={underlineWrapRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        {/* 主按钮：对选区应用/切换「上次颜色」（默认「跟随正文」） */}
+        <WysiwygToolbarButton
+          onClick={applyLastUnderlineColor}
+          title={`${t.toolbar.underline} · ${lastUnderlineColor === 'auto' ? '跟随正文' : lastUnderlineColor} (${getShortcutLabel('format.underline') || (navigator.platform.includes('Mac') ? '⌘U' : 'Ctrl+U')})`}
+          active={editor.isActive('underline')}
+        >
+          <span style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: '14px', textDecoration: 'underline' }}>U</span>
+            {/* 「上次颜色」指示条：auto 用正文色（currentColor），一眼看出主按钮会用什么颜色 */}
+            <span
+              data-ul-last={lastUnderlineColor}
+              style={{
+                position: 'absolute',
+                left: '0px',
+                right: '0px',
+                bottom: '-4px',
+                height: '3px',
+                borderRadius: '2px',
+                backgroundColor: lastUnderlineColor === 'auto'
+                  ? 'currentColor'
+                  : (UNDERLINE_COLORS[lastUnderlineColor] || 'currentColor'),
+                pointerEvents: 'none',
+              }}
+            />
+          </span>
+        </WysiwygToolbarButton>
+        {/* 调色板开关（小箭头）：点开「跟随正文 + 16 色」面板 */}
+        <button
+          type="button"
+          onClick={() => setUnderlineDropdownOpen(v => !v)}
+          title="选择下划线颜色"
+          aria-label="选择下划线颜色"
+          aria-haspopup="true"
+          aria-expanded={underlineDropdownOpen}
+          onMouseDown={(e) => e.preventDefault()}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: '12px',
+            height: '28px',
+            padding: 0,
+            marginLeft: '-3px',
+            background: 'transparent',
+            border: 'none',
+            outline: 'none',
+            cursor: 'pointer',
+            color: 'inherit',
+            opacity: 0.65,
+          }}
+        >
+          <svg style={{ width: '8px', height: '8px' }} viewBox="0 0 10 6" fill="currentColor" aria-hidden="true">
+            <path d="M0 0l5 6 5-6z" />
+          </svg>
+        </button>
+        {underlineDropdownOpen && createPortal(
+          <div ref={underlineMenuRef} style={{
+            position: 'fixed',
+            top: `${underlinePos.top}px`,
+            left: `${underlinePos.left}px`,
+            display: 'grid',
+            gridTemplateColumns: 'repeat(8, 20px)',
+            gap: '7px',
+            padding: '8px',
+            backgroundColor: 'var(--editor-bg)',
+            border: '1px solid var(--editor-border)',
+            borderRadius: '6px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            zIndex: 9999,
+          }}>
+            {/* 「跟随正文」：跨满一行，避免在 8 列色块网格里显得像第 17 个色块 */}
+            <div
+              onClick={() => applyUnderlineColor('auto')}
+              title="跟随正文颜色"
+              data-ul-auto="true"
+              style={{
+                gridColumn: '1 / -1',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                height: '20px',
+                cursor: 'pointer',
+                paddingBottom: '5px',
+                marginBottom: '2px',
+                borderBottom: '1px solid var(--editor-border)',
+              }}
+            >
+              <span style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                textDecoration: 'underline',
+                color: editor.isActive('underline', { color: 'auto' }) ? 'var(--button-primary)' : 'inherit',
+              }}>A</span>
+              <span style={{ fontSize: '11px', opacity: 0.75 }}>跟随正文</span>
+            </div>
+            {UNDERLINE_COLOR_OPTIONS.filter(color => color !== 'auto').map(color => (
+              <div
+                key={color}
+                onClick={() => applyUnderlineColor(color)}
+                data-ul-color={color}
+                style={{
+                  width: '20px',
+                  height: '20px',
+                  borderRadius: '50%',
+                  backgroundColor: UNDERLINE_COLORS[color],
+                  cursor: 'pointer',
+                  boxSizing: 'border-box',
+                  border: editor.isActive('underline', { color }) ? '2px solid var(--button-primary)' : '2px solid var(--editor-border)',
+                  transition: 'transform 0.15s ease',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.18)' }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1)' }}
+                title={color}
+              />
+            ))}
+          </div>,
+          document.body,
+        )}
+      </div>
 
       <WysiwygToolbarButton
         onClick={() => editor.chain().focus().toggleStrike().run()}

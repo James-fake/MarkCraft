@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { getLastHighlightColor } from '@features/editor/extensions/highlightColorPref'
+import { getLastUnderlineColor } from '@features/editor/extensions/underlineColorPref'
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -424,6 +425,18 @@ export default function EditorContextMenu({
               else editor.chain().focus().unsetHighlight().setHighlight({ color }).run()
             },
             disabled: !safeCan(editor, 'toggleHighlight'),
+          },
+          {
+            label: '下划线',
+            checked: safeIsActive(editor, 'underline'),
+            // 与工具栏主按钮同语义：应用/切换「上次颜色」（默认「跟随正文」）
+            action: () => {
+              const color = getLastUnderlineColor()
+              const current = editor.getAttributes('underline').color
+              if (current === color) editor.chain().focus().unsetUnderline().run()
+              else editor.chain().focus().unsetUnderline().setMark('underline', { color }).run()
+            },
+            disabled: !safeCan(editor, 'toggleUnderline'),
           },
           {
             label: '行内代码',

@@ -6,7 +6,7 @@ import ImageNode from '../extensions/ImageNode'
 import Placeholder from '@tiptap/extension-placeholder'
 import TaskList from '@tiptap/extension-task-list'
 import TaskItem from '@tiptap/extension-task-item'
-import Underline from '@tiptap/extension-underline'
+import UnderlineColor from '../extensions/UnderlineColor'
 import Typography from '@tiptap/extension-typography'
 import { TableKit } from '@tiptap/extension-table'
 import TableTabNavigation from '../extensions/TableTabNavigation'
@@ -93,7 +93,7 @@ export function useTiptapExtensions({ t, livePreview, undoFnRef, redoFnRef }: Us
         nested: true,
         HTMLAttributes: { class: 'tiptap-task-item' },
       }),
-      Underline,
+      UnderlineColor,
       HighlightMark,
       Typography.configure({
         emDash: false,
