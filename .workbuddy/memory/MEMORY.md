@@ -26,7 +26,7 @@ Vite5+React18+TS、CodeMirror6+TipTap3、Excalidraw、Dexie/IDB。dev **5174**�
 - ⚠️ tsconfig 不含 `*.test.*` ⇒ tsc 干净≠测试无类型错；`vitest -t <s>` 正则含 `*` 全 skip 假绿。
 - ⚠️ 夹具显式种入被测数据且幂等；空态显式 `closeAllTabs()`；一条断言只证一事。
 - 🚨 零命中/零错误 须先证「扫描面非空」+ 跑 HEAD 阳性对照，否则全假绿；对照选择器须实现无关（用修复后才存在的类名=假阳性）；对照「连该绿的门也红」先疑冷 dev server→预热轮。
-- 🚨 合成输入预热**点在真实文本块**上、判据是「编辑器真拿到焦点」（点 `.tiptap` 几何中心拿不到焦点）；「点击无反应」须**双路取证**（按钮 click 计数器 + 直调命令），别读代码推理。细则 TOPICS.md。
+- 🚨 合成输入预热：点**真实文本块**、确认 `visibilityState==='visible'`（hidden 时重新 `bringToFront`），判据是「编辑器真拿到焦点」；「点击无反应」须**双路取证**（按钮 click 计数器 + 直调命令），别读代码推理。细则 TOPICS.md。
 
 ## git/沙箱
 PATH：`PortableGit/1.2.0/{cmd,usr/bin,mingw64/bin}`+`node/22.22.2-3`+`System32`。远端 `gitee.com/James-fake/markcraft.git`。

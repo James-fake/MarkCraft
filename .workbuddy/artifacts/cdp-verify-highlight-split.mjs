@@ -290,7 +290,21 @@ async function clickUntil(cdp, pt, readExpr, pred, { tries = 3, settle = 420 } =
  * 都会莫名其妙地间歇性失败（本探针在 §3 / §6 上各复现过一次）。
  * 这是**环境条件化**、不是产品断言，故如实打印成功所需的尝试次数。
  */
-async function ensureInputAlive(cdp, label = '', { tries = 10, ms = 500 } = {}) {
+async function ensureInputAlive(cdp, label = '', { tries = 14, ms = 600 } = {}) {
+  const first = await cdp.eval(`(() => {
+    const el = document.querySelector('.tiptap p, .tiptap h1, .tiptap h2, .tiptap li')
+    const tiptap = document.querySelector('.tiptap')
+    return {
+      readyState: document.readyState,
+      hasFocus: document.hasFocus(),
+      visibility: document.visibilityState,
+      tiptapCount: document.querySelectorAll('.tiptap').length,
+      textTargetFound: !!el,
+      tiptapRect: tiptap ? (({ left, top, width, height }) => ({ l: Math.round(left), t: Math.round(top), w: Math.round(width), h: Math.round(height) }))(tiptap.getBoundingClientRect()) : null,
+      onboarding: !!document.querySelector('.aurora-audience'),
+    }
+  })()`)
+  if (label) info(`预热起点环境：${JSON.stringify(first)}`)
   for (let i = 1; i <= tries; i++) {
     // ⚠️ 预热点必须落在**真实文本块**上：`.tiptap` 容器的几何中心常常落在正文下方的空白里，
     // 点那里拿不到焦点（实测 10 次全失败）⇒ 该点不是「输入死了」的证据，只是选错了预热点。
@@ -303,14 +317,24 @@ async function ensureInputAlive(cdp, label = '', { tries = 10, ms = 500 } = {}) 
       const at = document.elementFromPoint(x, y)
       return { x, y, tag: el.tagName, atTag: at ? at.tagName + '.' + (at.className || '').toString().slice(0, 40) : null }
     })()`)
-    if (!target) break
+    if (!target) { console.log(`   ⚠ 预热无目标（编辑器文本块不存在）${label ? ' · ' + label : ''}`); break }
+    // 🚨 根因（由环境快照定案）：失败时 `document.visibilityState === 'hidden'`
+    // —— Edge 窗口被判为不可见/被遮挡 ⇒ 渲染器节流 ⇒ 这期间派发的合成鼠标事件不可靠。
+    // 修法：每次点击前若发现 hidden，就**重新 bringToFront** 把标签页激活，而不是干等。
+    const vis = await cdp.eval('document.visibilityState')
+    if (vis !== 'visible') { try { await cdp.send('Page.bringToFront') } catch { /* ignore */ } }
+    await cdp.eval('window.focus()')
     await realClick(cdp, target.x, target.y, 260)
-    const focused = await cdp.eval(`!!(document.activeElement && document.activeElement.closest && document.activeElement.closest('.tiptap'))`)
-    if (focused) {
+    const probe = await cdp.eval(`({
+      focused: !!(document.activeElement && document.activeElement.closest && document.activeElement.closest('.tiptap')),
+      activeEl: document.activeElement ? document.activeElement.tagName + '.' + (document.activeElement.className || '').toString().slice(0, 30) : null,
+      hasFocus: document.hasFocus(),
+    })`)
+    if (probe.focused) {
       info(`输入预热就绪 @(${target.x},${target.y}) 命中=${target.atTag} 尝试=${i}${label ? ' · ' + label : ''}`)
       return { alive: true, tries: i, target }
     }
-    await cdp.eval('window.focus()')
+    if (i === 1 || i === tries) info(`预热第 ${i} 次未就绪：activeEl=${probe.activeEl} document.hasFocus=${probe.hasFocus} 命中=${target.atTag}`)
     await sleep(ms)
   }
   console.log(`   ⚠ 输入预热未就绪（${tries} 次后编辑器仍未获得焦点）${label ? ' · ' + label : ''}`)
@@ -478,7 +502,18 @@ async function main() {
   ok(`§3 🚨 每个色块都「屏幕上可命中」（elementFromPoint 命中自己）`, p1.hitOk === p1.count && p1.count > 0, `hitOk=${p1.hitOk}/${p1.count}`)
   const offscreen = (p1.hits || []).filter((h) => !h.onScreen).map((h) => h.title)
   ok('§3 无色块落在视口外', offscreen.length === 0, offscreen.length ? 'offscreen=' + offscreen.join(',') : '')
-  await shot(cdp, SHOT.replace(/\.png$/, '-palette.png'))
+  // 截图 = **独立于 elementFromPoint 的第二条证据通道**：按面板自身几何裁切，
+  // 全页截图里 16 个 20px 色块太小、容易被误判成「没出现」。
+  if (p1.panelR && p1.panelR.width > 0) {
+    await shot(cdp, SHOT.replace(/\.png$/, '-palette.png'), {
+      x: Math.max(0, p1.panelR.left - 90),
+      y: Math.max(0, p1.panelR.top - 70),
+      width: Math.ceil(p1.panelR.width + 180),
+      height: Math.ceil(p1.panelR.height + 140),
+    })
+  } else {
+    await shot(cdp, SHOT.replace(/\.png$/, '-palette.png'))
+  }
 
   // ---------- §4 主按钮：不开面板、直接应用「上次色」 ----------
   console.log('\n=== 4. 主按钮行为（应直接应用上次色，且不依赖面板）===')
