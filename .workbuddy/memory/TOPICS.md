@@ -249,3 +249,36 @@ panels→features/stores `../../../`，components/ui·app `../../`（新增文�
   须按**可见性 + `closest('.wysiwyg-toolbar')`** 限定，否则点了隐藏那个、症状酷似「产品坏了」。
 - ⚠️ **「全量 vitest」与「临时还原 HEAD 做对照」不可并发**：vitest 在 collect 期读源码，注入窗口内会读到
   HEAD 内容 ⇒ 假失败；顺序执行，判 flaky 用隔离复跑。
+
+---
+
+## 编辑界面「旧皮肤」审计 · 四轴判据与全模块矩阵（2026-09-24）
+
+**何时用**：报障「某处界面还是旧样式」，或需要定期体检「还有哪些界面没迁到当前设计体系」。
+
+**四轴判据**（缺一轴都会漏）
+1. **作用域逃逸**：`createPortal` → `document.body` 是 `#aurora-root` 的**兄弟**；
+   旧变量重映射层只写在 `#aurora-root{}` 内 ⇒ portal 内 `--editor-*` 等**必然**回落 `base.css`
+2. **旧变量引用**：对照 `tokens.css:497-519` 的 21 项重映射清单 —— 在清单内 = 作用域内安全 /
+   作用域外回落；**不在清单内**（`--hover-bg` 仅 `.aurora-editor` 内定义、`--code-block-bg`
+  = base.css `#0d1117`）⇒ 作用域外直接裸旧值
+3. **自持皮肤**：Tailwind 工具类 / 内联 hex·rgba ⇒ 与 token 零耦合。
+   ⚠️ 前提是 Tailwind **仍在构建链内**：`base.css:1-3` 有 `@tailwind` 指令、`aurora-main.tsx:15` 引入、
+   `tailwind.config.js` 的 `darkMode: ['class','[data-theme="dark"]']` ⇒ `bg-white dark:bg-gray-800`
+   是**生效的真实样式**，且**两种主题下都不等于 `--mc-*`**
+4. **层级越界**：内联 z-index 魔数覆盖基底带（`tokens.css:242-261` 明文「禁止随手写 9999/10000」）
+
+**矩阵结论**（扫描 209 文件 / 24 含 portal / 编辑界面 18）
+
+| 组 | 模块 |
+|---|---|
+| 🔴 旧皮肤（12+1） | ListMenuPopover、EmojiPicker、WysiwygToolbar 两调色板、TableGridSelector、LinkModal、ImageModal、GoToLineDialog、QuickSwitcher、WikiLinkAutocomplete、WikiLinkHoverPreview、NoteContextPanel 悬浮卡、ImagePreviewModal；子模块 mindmapTemplates |
+| 🟢 合规参照 | **MathPopover**（语义类名 + 全 CSS 皮肤 + z 1000 + 零字面量）、MindmapPopover（上轮修）、Modal（`aurora-modal-overlay`）、aurora 壳两个 ctxmenu、components/ui 三个 wheel popover |
+| 🟡 颜色合规但层级越界 | ListDropdown / MoreDropdown / SourceHeadingDropdown / WysiwygHeadingDropdown（内联 9999）、EditorContextMenu（10001 → 应 10030） |
+| ⚪ 技术债（作用域内，碰巧正确） | EditorLayout / EditorStatusBar / FrontMatterPanel / SearchReplaceBar / 各节点视图 / cm6 等约 40 文件用 `--editor-*`；**碰 portal 化即翻旧** |
+
+**锚定浮层的正确模板**（抄 `MathPopover`）：语义 `className` + 皮肤全在 CSS 用 `--mc-*` +
+`zIndex: 1000`（锚定带）+ 零内联色值。或直接用 `.aurora-dropdown` 基底 + `aurora-dropdown__item`。
+
+**修法清单见报告**：`src/aurora/docs/design/AUDIT-EDITOR-UI-LEGACY-SKIN-2026-09-24.md`（含 7 个修复批次）。
+

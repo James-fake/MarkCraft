@@ -40,3 +40,11 @@ PATH：`PortableGit/1.2.0/{cmd,usr/bin,mingw64/bin}`+`node/22.22.2-3`+`System32`
 - 🚨 内联 `node -e`/`bash -c` 禁反引号（`${}`/`$()` 同理）→ 长脚本写 `.cjs` 用完删。
 - 🚨 `credential.helper=helper-selector` 弹窗挂死 ⇒ 裸 `git push` 被 SIGTERM 静默杀、远端没更新；正解 `.git/config` 手写 `helper=`（空值）+`helper=wincred`；无头保险 `scripts/push-gitee.cjs`。
 - ⚠️ 暂存/提交显式 pathspec 禁 `git add -A`；单条 bash 禁 `git stash`。
+- 🚨 **浮层皮肤回归锁的扫描面必须含「浮层 import 的子模块」**：上轮修好 `MindmapPopover` 却漏掉
+  `mindmapTemplates.tsx`（宿主干净、子模块仍用 `--editor-*` + 老蓝）⇒ 只断言宿主文件 = 假绿。
+- 🚨 **z-index 魔数是独立于颜色的第二条缺陷轴**：4 个颜色已合规的下拉用内联 `9999` 顶掉了
+  `.aurora-dropdown` 的 1000。取值只认 `tokens.css:242-261` 的带表（锚定浮层 1000 / 模态 3000 /
+  命令 9000 / ctxmenu 10030）。
+- ⚠️ **统计「旧变量/字面量」必须先排除两类假阳性**：① `--button-primary`（`base.css:25` = `var(--mc-accent)`，
+  在 `:root` 解析、全局一致）不是隐患；② `var(--x, #hex)` 是死兜底（x 已定义则永不生效），
+  与裸字面量 `'#hex'` 的严重性完全不同。
