@@ -95,11 +95,19 @@ export default function WysiwygToolbar({
   const highlightMenuRef = useRef<HTMLDivElement>(null)
   // 下拉面板经 createPortal 挂到 body（position:fixed）—— 若留在工具栏内会因
   // 容器 overflow:hidden 被裁掉，表现为「点高亮按钮没任何反应」（面板其实挂载了但不可见）。
-  const highlightPos = useDropdownPosition(highlightDropdownOpen, highlightWrapRef)
+  // 🚨 align:'center' = 调色板**水平居中于按钮、挂在正下方**（需求）。必须同时给 panelRef：
+  // 面板实际宽 225px ≠ 估算值 180px，用估算值居中会整体左偏 ~22px。
+  const highlightPos = useDropdownPosition(highlightDropdownOpen, highlightWrapRef, {
+    align: 'center',
+    panelRef: highlightMenuRef,
+  })
   // 下划线同一范式（与高亮并列，各自独立开合）
   const underlineWrapRef = useRef<HTMLDivElement>(null)
   const underlineMenuRef = useRef<HTMLDivElement>(null)
-  const underlinePos = useDropdownPosition(underlineDropdownOpen, underlineWrapRef)
+  const underlinePos = useDropdownPosition(underlineDropdownOpen, underlineWrapRef, {
+    align: 'center',
+    panelRef: underlineMenuRef,
+  })
   const moreBtnRef = useRef<HTMLButtonElement>(null)
   // 「记住上次颜色」：单一数据源 = SettingsStore.lastHighlightColor（持久化到 markcraft_settings）
   const { settings, updateSetting } = useSettings()

@@ -19,6 +19,7 @@ Vite5+React18+TS、CodeMirror6+TipTap3、Excalidraw、Dexie/IDB。dev **5174**�
 - 视图上下文单源 = `useAuroraShell.nav` 映射；漏登记=参数静默丢。
 - **格式工具栏「高亮／下划线」= split button 家族**：主按钮/快捷键/右键菜单三入口同语义＝「应用上次色」，
   只有面板里显式挑色才改写上次色 ⇒ 改任一处必须三处对齐；色表单源 `extensions/highlightColors.ts`。
+  调色板定位＝**居中于按钮正下方**（`useDropdownPosition` 须传 `align:'center'` **且必传 `panelRef`**）。
   下划线改**前景色**须用不透明 hex；`auto`＝真的跟随正文（判据是 decoColor===父级 color）。细则 TOPICS.md。
 
 ## 验证链路（七条）

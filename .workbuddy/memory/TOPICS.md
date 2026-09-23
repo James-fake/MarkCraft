@@ -109,7 +109,14 @@ subbar 52px。⚠️ `.aurora-kb-notes` 顶 padding 仅 2px 是为**自带 `__he
   测往返时这是**预期**，不要当 bug 改。
 - 面板必须 `createPortal(..., document.body)` + `position:fixed`：留在工具栏内会被 `.wysiwyg-toolbar`
   的 `overflow:hidden` **裁掉**（挂载了但屏幕上不可见 ⇒ 用户报「点了没反应」）。
-- 探针 `artifacts/cdp-verify-highlight-split.mjs`（33 条）。**同目录另有一条**
+- **调色板定位契约（2026-09-24 需求）**：面板**水平居中于按钮、挂在按钮正下方**。
+  由 `toolbar/useDropdownPosition.ts` 的 `{ align: 'center', panelRef }` 实现：
+  🚨 **必须传 `panelRef`**（估算宽 180 ≠ 实测 226.33 ⇒ 不传就整体左偏 22.5px）；
+  🚨 实测尺寸用 `getBoundingClientRect()`（分数）而非 `offsetWidth`（取整，会留 0.17px 残差）；
+  🚨 `setPos` 要**值比较后回写**，否则「依赖里有 ref 对象 + 调用方传内联 ref」会自激成死循环。
+  锚点 = **split 包裹层**（主按钮 + 箭头），不是主按钮本身。回归锁
+  `toolbar/useDropdownPosition.test.ts`（13 例）；真机证据见两探针的 `§3c`。
+- 探针 `artifacts/cdp-verify-highlight-split.mjs`（37 条）。**同目录另有一条**
   `cdp-verify-highlight-click.mjs` 守「portal 裁切」那条回归，别互相合并。
 
 ## 编辑器下划线（split button + 16 色 + 「记住上次色」，2026-09-23 需求）
@@ -136,7 +143,7 @@ subbar 52px。⚠️ `.aurora-kb-notes` 顶 padding 仅 2px 是为**自带 `__he
 - ⚠️ 导出链路（`documentExporter` / `staticSiteExporter` 各持本地副本）**不共享 `markdownConvert`**
   ⇒ 导出里的下划线仍已知缺失（本次范围外，未修）。
 - 本次范围**只做 WYSIWYG**：源码模式编辑器（CodeMirror）的 `__` 包裹快捷键未改。
-- 探针 `artifacts/cdp-verify-underline-split.mjs`（44 条，含 §6 冷启动记忆）。
+- 探针 `artifacts/cdp-verify-underline-split.mjs`（48 条，含 §3c 调色板居中几何 + §6 冷启动记忆）。
 
 ## 通用铁律 · 细则（续）：主文件 `MEMORY.md` 只留判据，本节存细则
 ### 二级栏高 / 密度
@@ -188,6 +195,14 @@ subbar 52px。⚠️ `.aurora-kb-notes` 顶 padding 仅 2px 是为**自带 `__he
   最后被工具 SIGTERM 杀掉，且因 **node stdout 是块缓冲**连「卡在哪」都看不到（日志恒停在 `=== 6.`）。
   双保险：`send()` 加 `CDP_TIMEOUT_MS`；进度用 `appendFileSync` **直接落盘**（`MC_TRACE=<路径>`）而非 stdout；
   `waitFor` 攒够连续超时次数就**快速失败并报出可读结论**，别靠 `tries` 兜满几十次 × 20s。
+- 🚨 **`cmd1 && cmd2 && EDGE ... &` 会把整条 `&&` 链丢进后台子 shell**（2026-09-24 实测）：
+  前面的 `cd` 与变量赋值**都不在主 shell 生效** ⇒ `node .workbuddy/...` 按错误 cwd 解析、
+  `"$LOG"` 展开成空 ⇒ 症状是**莫名其妙的退出码（实测 23）+ 日志文件没生成 + 输出为零**，
+  极易误判成「探针坏了/产品坏了」。正解：**用 `;` 分隔**，`&` 只绑定最后那条浏览器启动命令
+  （`A ; B ; C &` ⇒ 只有 C 后台）。这是坑 A（`&` 之后丢 PATH）的同族变体。
+- 🚨 **不要在同一次浏览器会话的同一个 page target 上连跑两个探针**（2026-09-24 实测）：
+  第二个会在 §0 中途**静默中止**（日志只 178 字节却报 exit 0），换**全新实例**单跑即全绿。
+  另注：浏览器会在该次 bash 结束时被回收 ⇒「起浏览器 + 跑探针」必须同一次 bash。
 ### 验证链路 细则
 > 七条验证链路（tsc／vitest／eslint 守卫／depgraph／vite build／真机 CDP／文件集合差）本体见 `MEMORY.md`；③ 空输出须先证「实扫文件数」非 0（`-f json` 数数组长度）；守卫升 error 后须**注入探针**验 `exit=1` 且报出预期规则名 → 还原 → 复跑 0；④ 看 `BIDIRECTIONAL PAIRS`／`MODULE-LEVEL CYCLES` 两节为 `(none)`；⑥ 不适用须**显式判定**并写明判据。
 ### git / 沙箱 完整细则

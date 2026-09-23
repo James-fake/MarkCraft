@@ -103,6 +103,11 @@ const FIND_SPLIT = `(() => {
     arrowR: ar ? { left: ar.left, top: ar.top, width: ar.width, height: ar.height } : null,
     lastColorAttr: indicator ? indicator.getAttribute('data-ul-last') : null,
     indicatorBg: indicator ? getComputedStyle(indicator).backgroundColor : null,
+    // 锚点 = split 包裹层（主按钮 + 箭头）= 传给 useDropdownPosition 的那个 ref。
+    // 调色板应当**水平居中于它、挂在它正下方**（2026-09-24 需求）。
+    wrapR: wrap
+      ? (({ left, top, width, height }) => ({ left, top, width, height }))(wrap.getBoundingClientRect())
+      : null,
     mainBtnCenter: { x: Math.round(mr.left + mr.width / 2), y: Math.round(mr.top + mr.height / 2) },
     mainBtnVisible: mr.width > 0 && mr.height > 0,
   }
@@ -749,6 +754,36 @@ async function main() {
   info('跟随正文项：' + JSON.stringify(autoOpt))
   ok('§3b 🚨 调色板存在「跟随正文」项', autoOpt.found === true, JSON.stringify(autoOpt))
   ok('§3b 「跟随正文」项在屏幕可见区内', autoOpt.found === true && autoOpt.onScreen === true, `w=${autoOpt.w} h=${autoOpt.h}`)
+
+  // ---------- §3c 调色板几何：挂在按钮正下方 + 水平居中（2026-09-24 需求） ----------
+  console.log('\n=== 3c. 调色板几何：正下方 + 水平居中于按钮 ===')
+  // 正对照依据：改动前 `left = 锚点左边缘`（左对齐）⇒ 面板中线比锚点中线**右偏 ~94px**，
+  // 下面这条「Δcx ≤ 1px」在旧版必然红 ⇒ 它是能证伪的断言，不是恒真式。
+  const g3 = await cdp.eval(FIND_SPLIT)
+  const panel3 = await cdp.eval(FIND_PALETTE)
+  const vp3 = await cdp.eval('({ w: innerWidth, h: innerHeight })')
+  const A = g3.wrapR
+  const P = panel3.panelR
+  if (!A || !P || !P.width) {
+    ok('§3c 锚点与面板几何均可取（扫描面非空）', false, `anchor=${JSON.stringify(A)} panel=${JSON.stringify(P)}`)
+  } else {
+    const anchorCx = A.left + A.width / 2
+    const panelCx = P.left + P.width / 2
+    const dCx = panelCx - anchorCx
+    const gap = P.top - (A.top + A.height)
+    info(`锚点 wrap=${JSON.stringify(A)}`)
+    info(`面板=${JSON.stringify(P)} 视口=${JSON.stringify(vp3)}`)
+    info(`水平中线：锚点=${anchorCx.toFixed(1)} 面板=${panelCx.toFixed(1)} 差=${dCx.toFixed(2)}px；面板上沿距锚点下沿=${gap.toFixed(2)}px`)
+    ok('§3c 扫描面非空：锚点是 split 包裹层（主按钮 + 箭头），宽 > 28px',
+      A.width > 28 && A.height > 20, `w=${A.width.toFixed(1)} h=${A.height.toFixed(1)}`)
+    ok('§3c 🚨 调色板水平居中于按钮（中线偏差 ≤ 1px）',
+      Math.abs(dCx) <= 1, `Δcx=${dCx.toFixed(2)}px（面板宽 ${P.width.toFixed(1)}px；左对齐旧版约 +94px）`)
+    ok('§3c 调色板挂在锚点**正下方**（面板上沿 = 锚点下沿 + 间距）',
+      Math.abs(gap - 4) <= 1, `gap=${gap.toFixed(2)}px anchorBottom=${(A.top + A.height).toFixed(1)} panelTop=${P.top.toFixed(1)}`)
+    ok('§3c 面板整体在视口内（夹取后不越界）',
+      P.left >= 0 && P.top >= 0 && P.left + P.width <= vp3.w && P.top + P.height <= vp3.h,
+      `left=${P.left.toFixed(1)} top=${P.top.toFixed(1)} right=${(P.left + P.width).toFixed(1)} bottom=${(P.top + P.height).toFixed(1)} vp=${vp3.w}x${vp3.h}`)
+  }
 
   // ---------- §4 主按钮：不开面板、直接应用「上次色」 ----------
   console.log('\n=== 4. 主按钮行为（应直接应用上次色 auto，且不依赖面板）===')
