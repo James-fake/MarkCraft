@@ -1,0 +1,261 @@
+{
+  "appUrl": "http://localhost:5174/#view=editor",
+  "visibility": "visible",
+  "steps": {
+    "opened": {
+      "ok": true,
+      "via": "existing-tab",
+      "picked": "未命名-1790230159173"
+    },
+    "btnClicked": {
+      "ok": true,
+      "candidates": [
+        {
+          "h": 0,
+          "vis": true
+        },
+        {
+          "h": 28,
+          "vis": true
+        }
+      ],
+      "picked": 1
+    },
+    "menuUp": true,
+    "itemClicked": {
+      "ok": true,
+      "labels": [
+        "使用模板",
+        "ƒ(x)行内公式 (Ctrl+M)",
+        "∑块级公式 (Ctrl+Shift+M)",
+        "思维导图",
+        "插入脚注 (Ctrl+Shift+N)",
+        "[[ ]]维基链接",
+        "参考文献模板",
+        "相关笔记",
+        "反向索引",
+        "今日笔记",
+        "反向链接列表",
+        "文章元信息",
+        "优化图片 (Base64 转本地文件)",
+        "打开文件",
+        "另存为",
+        "打印 (Ctrl+P)",
+        "自动补全开关✓"
+      ]
+    },
+    "panelUp": true
+  },
+  "d": {
+    "found": true,
+    "isPortalToBody": true,
+    "insideAuroraRoot": false,
+    "fieldCount": 12,
+    "textareaCount": 2,
+    "selectCount": 1,
+    "truth": {
+      "bgContent": "#101218",
+      "bgElevated": "#1A1C24",
+      "radiusLg": "12px",
+      "radiusSm": "4px",
+      "borderSubtle": "#292E30",
+      "borderMedium": "#262B3B",
+      "textPrimary": "#E6E8EF",
+      "accent": "#7C8CFF",
+      "fontSans": "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    },
+    "overlay": {
+      "z": "3000",
+      "bg": "rgba(0, 0, 0, 0.5)"
+    },
+    "panel": {
+      "bg": "rgb(16, 18, 24)",
+      "radius": "12px",
+      "borderTop": "1px rgb(38, 43, 59)",
+      "overflow": "hidden"
+    },
+    "input": {
+      "bg": "rgb(26, 28, 36)",
+      "height": "28px",
+      "padding": "0px 12px",
+      "radius": "4px",
+      "color": "rgb(230, 232, 239)",
+      "font": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif"
+    },
+    "textarea": {
+      "height": "73.7812px",
+      "minHeight": "64px",
+      "padding": "8px 12px",
+      "resize": "vertical",
+      "lineHeight": "18.6px",
+      "bg": "rgb(26, 28, 36)"
+    },
+    "label": {
+      "color": "rgb(230, 232, 239)",
+      "fontSize": "12px",
+      "fontWeight": "600"
+    },
+    "switchEl": {
+      "w": "36px",
+      "h": "20px",
+      "bg": "rgb(31, 35, 48)"
+    },
+    "title": {
+      "color": "rgb(230, 232, 239)",
+      "fontSize": "14px"
+    },
+    "closeBtn": {
+      "w": "24px",
+      "color": "rgb(107, 114, 128)"
+    },
+    "footer": {
+      "borderTopColor": "rgb(41, 46, 48)",
+      "justify": "flex-end"
+    },
+    "primaryBtn": {
+      "bg": "rgb(124, 140, 255)",
+      "color": "rgb(255, 255, 255)"
+    }
+  },
+  "consoleErrors": [],
+  "checks": [
+    {
+      "name": "面板 portal 到 body（= #aurora-root 的兄弟，守卫前提成立）",
+      "pass": true,
+      "actual": "body=true inRoot=false",
+      "expected": "body=true / inRoot=false"
+    },
+    {
+      "name": "遮罩层级 = 模态带 3000（原实现是 200，给反了）",
+      "pass": true,
+      "actual": "3000",
+      "expected": "3000"
+    },
+    {
+      "name": "遮罩底色 = rgba(0,0,0,0.5) 单源遮罩",
+      "pass": true,
+      "actual": "rgba(0, 0, 0, 0.5)",
+      "expected": "rgba(0, 0, 0, 0.5)"
+    },
+    {
+      "name": "面板底 = --mc-bg-content 真值",
+      "pass": true,
+      "actual": "rgb(16, 18, 24)",
+      "expected": "rgb(16, 18, 24)"
+    },
+    {
+      "name": "面板底 **不**是旧 slate 指纹 rgb(15,23,42)（= --editor-bg 旧值）",
+      "pass": true,
+      "actual": "rgb(16, 18, 24)",
+      "expected": "≠ rgb(15, 23, 42)"
+    },
+    {
+      "name": "面板圆角 = --mc-radius-lg 真值（桌面端对话框档）",
+      "pass": true,
+      "actual": "12px",
+      "expected": "12px"
+    },
+    {
+      "name": "单行字段高 = 28px（.aurora-input 桌面密度）",
+      "pass": true,
+      "actual": "28px",
+      "expected": "28px"
+    },
+    {
+      "name": "单行字段底 = --mc-bg-elevated 真值",
+      "pass": true,
+      "actual": "rgb(26, 28, 36)",
+      "expected": "rgb(26, 28, 36)"
+    },
+    {
+      "name": "单行字段圆角 = --mc-radius-sm 真值",
+      "pass": true,
+      "actual": "4px",
+      "expected": "4px"
+    },
+    {
+      "name": "字段字体 = --mc-font-sans token 真值（而非写死的 Inter 栈）",
+      "pass": true,
+      "actual": "Inter, -apple-system, BlinkMacSystemFont, \"Segoe UI\", Roboto, sans-serif",
+      "expected": "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+    },
+    {
+      "name": "多行字段解开单行高度锁（height ≠ 28px）",
+      "pass": true,
+      "actual": "73.7812px",
+      "expected": "≠ 28px"
+    },
+    {
+      "name": "多行字段 min-height = 64px",
+      "pass": true,
+      "actual": "64px",
+      "expected": "64px"
+    },
+    {
+      "name": "多行字段 padding = 8px 12px（含内边距，非单行 0 12px）",
+      "pass": true,
+      "actual": "8px 12px",
+      "expected": "8px 12px"
+    },
+    {
+      "name": "多行字段 resize = vertical",
+      "pass": true,
+      "actual": "vertical",
+      "expected": "vertical"
+    },
+    {
+      "name": "字段标签色 = --mc-text-primary 真值（,.aurora-field__label）",
+      "pass": true,
+      "actual": "rgb(230, 232, 239)",
+      "expected": "rgb(230, 232, 239)"
+    },
+    {
+      "name": "草稿开关复用 .aurora-switch（36×20）",
+      "pass": true,
+      "actual": "36px×20px",
+      "expected": "36px×20px"
+    },
+    {
+      "name": "标题色 = --mc-text-primary 真值",
+      "pass": true,
+      "actual": "rgb(230, 232, 239)",
+      "expected": "rgb(230, 232, 239)"
+    },
+    {
+      "name": "关闭按钮复用 .aurora-modal__close（24px 命中区）",
+      "pass": true,
+      "actual": "24px",
+      "expected": "24px"
+    },
+    {
+      "name": "底栏分隔线 = --mc-border-subtle 真值",
+      "pass": true,
+      "actual": "rgb(41, 46, 48)",
+      "expected": "rgb(41, 46, 48)"
+    },
+    {
+      "name": "主按钮底 = --mc-accent 真值",
+      "pass": true,
+      "actual": "rgb(124, 140, 255)",
+      "expected": "rgb(124, 140, 255)"
+    },
+    {
+      "name": "字段数 ≥ 7（说明整表真的渲染出来了，而不是只探到空壳）",
+      "pass": true,
+      "actual": 12,
+      "expected": "≥7"
+    },
+    {
+      "name": "多行字段 2 个（描述 + 摘要，已展开高级设置）",
+      "pass": true,
+      "actual": 2,
+      "expected": "2"
+    },
+    {
+      "name": "高级设置里的下拉复用 .aurora-select--block",
+      "pass": true,
+      "actual": 1,
+      "expected": "1"
+    }
+  ]
+}

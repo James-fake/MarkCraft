@@ -15,6 +15,9 @@ Vite5+React18+TS、CodeMirror6+TipTap3、Excalidraw、Dexie/IDB。dev **5174**�
 - 🚨 **portal 浮层（createPortal→body）逃出 `#aurora-root` 作用域**：重映射 `--editor-*`→`--mc-*` 的那层**只写在 `#aurora-root{}` 内** ⇒ 浮层里 `--editor-*`/`--hover-bg`/`--code-bg` 静默回落旧 slate + 旧蓝 = **「最旧一版 UI」**。正解：浮层加 `className="aurora-dropdown"` 复用单源基底（材质/边框/圆角/阴影/z-index 1000），内部**只引用全局 `--mc-*`**，行用 `aurora-dropdown__item`。锁 `portalOverlayBasis.test.ts`。
 - 🚨 **`--mc-*` 运行时真值由第二层 `:root`（`src/styles/desktop-chrome.css`）决定**（`bg-elevated #1A1C24`／`border-subtle #292E30`／`text-primary #E6E8EF`，与 `tokens.css` 字面值不同）⇒ token 断言/探针**读 CSSOM 真值，禁抄字面值**。
 - ⚠️ 文件头注释先探 BOM；回写保真 EOL（仓混 CRLF/LF）→ 拆 `/\r?\n/` 原 EOL 回写。
+- ⚠️ **断言字体类判据不能写「不含某字体名」**：「--mc-font-sans」首项就是 `'Inter'`，且其**运行时真值在第二层 `:root`**（desktop-chrome.css:62 = `'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif` ≠ tokens.css:103 字面值）⇒ 判据只能是「归一化后 == CSSOM 真值」。
+- **caveat：`var(--x, <兜底>)` 死兜底 vs 旧 palette 色值**：`--mc-bg-panel` 其实**有定义**（desktop-chrome.css 第二层，暗 `#14161F`／浅 `#FFFFFF`）⇒ versionHistory.css 的 `#f7f7f8` 是**死兜底不是白卡**；而 `--katex-error-color`／`--blockquote-border` 属 base.css `:root` 的**旧 palette 色值**（后者=`#3b82f6` ⇒ 归 §7 蓝色轴）。
+- 层级带新增登记：**1095 编辑器遮罩式抽屉组**（版本历史 backdrop **1090** / drawer **1091** / 确认 mask **1095**；落 1000 与 1500 空档，`1100` 已被 kb-ui 占用）。
 
 ## UI 交互（细则 TOPICS.md）
 - 🚨 可点暗示与 handler 同源：可交互性由有无 `onClick/onSelect` 派生；SVG/画布恒 `cursor:pointer` 无 handler = 哑节点。
@@ -34,6 +37,9 @@ Vite5+React18+TS、CodeMirror6+TipTap3、Excalidraw、Dexie/IDB。dev **5174**�
 - 🚨 **「全量跑」与「临时还原 HEAD 做对照」不可并发** ⇒ vitest collect 期会读到 HEAD 源码、产出**假失败**（本轮实测）；判 flaky 用隔离复跑。
 - 🚨 合成输入：预热点**真实文本块**、确认 `visibilityState==='visible'`（hidden 时 `bringToFront`）；「点击无反应」须**双路取证**。
 - 🚨 探针**禁整页 reload**（renderer 僵死：能连但每条 eval 超时且不恢复）⇒ 改 `PUT /json/new?about:blank` + **先注入 `__bootAt` 再导航**；`send()` 须带超时 + 进度落盘，否则静默挂死。
+- 🚨 **等 `#aurora-root` 是假绿**（它写在 index.html 里、永远存在）⇒ 必须等「**其内部有内容**」`children.length > 0`。探针步骤 1 还要先判「**是否已有打开的文件**」（`.aurora-tab`）：空库=空态（`.aurora-editor__empty` + `.aurora-editor__newfile-btn`），会话恢复后已有标签页。
+- 🚨 **审计脚本判据缺锚点 = 假阳性工厂**：判「旧变量是缺陷」不能只查「是否在重映射表」⇒ 必须三锚点（重映射 / **别处有定义位** / 真·未定义）。定义位收集**必须排除 `getPropertyValue`/`removeProperty`**（读≠写）；TS 侧计算键 `['--x' as string]:` 也要认。本轮据此把 22 处「真缺陷」全部改判为假阳性（真缺陷 0）。
+- 🐛 **既有缺口（未修）**：`TiptapEditor.tsx` 的 `modalsValue` 里 `onOpenFrontMatter: () => {}`（同处 `onOptimizeImages`/`onUploadImage`）⇒ **WYSIWYG 模式「文章元信息」无响应**，只有源码模式（CodeMirrorEditor.tsx:316）接线；取证须先切 `.aurora-mode-toggle[title^="源码"]`。
 
 ## git/沙箱
 PATH：`PortableGit/1.2.0/{cmd,usr/bin,mingw64/bin}`+`node/22.22.2-3`+`System32`。远端 `gitee.com/James-fake/markcraft.git`。
@@ -58,4 +64,11 @@ PATH：`PortableGit/1.2.0/{cmd,usr/bin,mingw64/bin}`+`node/22.22.2-3`+`System32`
 - ⚠️ 大文件（WysiwygToolbar.tsx 宿主自身在作用域内合法用 --editor-*）无法整文件进守卫 ⇒ 守卫须支持
   **片区锚点**（[start, end) 切出只迁移了局部浮层的片段），否则要么漏扫、要么误报。
 - ⚠️ 守卫要有牙：写完必须做**注入式阳性对照**（临时塞 --editor-bg + zIndex:9999 跑红再还原）；
-  「全绿」本身不是证据。守卫 = src/features/editor/toolbar/portalOverlayBasis.test.ts（75 例 / 10 浮层 + 层级带）。
+  「全绿」本身不是证据。守卫 = src/features/editor/toolbar/portalOverlayBasis.test.ts（**91 例 / 12 浮层 + 层级带**）。
+- 🚨 **守卫三条盲区（本轮补齐）**：① **CSS 侧 `z-index` 也必须入表** —— 原守卫只扫 TSX，`versionHistory.css`
+  的 1090/1091/1095 长期裸奔；正解：新增「层级带契约 · CSS 侧」用例，把 `z-index` 取值全集与允许集比对，
+  并做「值 ↔ 表」双锚点（读**未剥注释**的 tokens.css 断言含该值）。② **规则要片区感知**：宿主文件自身
+  在 `#aurora-root` 作用域内合法用 `--editor-*`（WysiwygToolbar）⇒ 规则⑥须支持 `scope:[start,end)`
+  切片，否则要么漏扫要么误报。③ **自持 fixed 浮层（非 portal）也在逃逸面**：`EditorLayout.tsx` 的
+  `.aurora-toast-container` 用内联 `position:fixed` 自持，不走 createPortal 却同样脱离根作用域 ⇒
+  盲区台账须按「是否逃出根作用域」而非「是否 createPortal」列项。

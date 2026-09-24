@@ -4,10 +4,27 @@
 // 🎯 它是「环 #3 残余形态」两条反向边之一：寄居 features/shared 时构成
 // features/shared → stores，使 stores > hooks > features/shared > stores 成环。
 // 归位到消费方 feature 后，该边变为 features/editor → stores —— 合法（L5 → L3 向下）。
+//
+// ── 2026-09-24 旧皮肤迁移（审计 AUDIT-EDITOR-UI-LEGACY-SKIN §6 P2 收口）──────────
+// 它属「编辑器系模态」家族，与批次 3 的 GoToLineDialog / LinkModal / TableGridSelector
+// 同族，却是漏网的一个，且自持皮肤最完整：
+//   · 遮罩 `rgba(0,0,0,.5)` + `blur(4px)` + **z-index 200** 手写（200 落在锚定浮层带
+//     1000 之下 —— 模态本应阻断下层，层级给反了）；
+//   · 面板/头部/底栏/字段的 `--editor-*` 旧变量（仅在 #aurora-root 内被重映射，
+//     靠「碰巧在作用域内」才没翻旧）；
+//   · 字段焦点环 `rgba(59,130,246,.2)` = Tailwind blue-500（横向缺陷 §7）；
+//   · `handleFocus/handleBlur` 直接写 `currentTarget.style.*` 手搓 hover/focus 态。
+// 现统一：遮罩/面板/头/底 → `.aurora-modal-overlay` + `.aurora-modal*`（z 3000 带）；
+// 字段 → 共享 `Input`（`.aurora-field` label + `.aurora-input` 聚焦环）；开关 → 共享
+// `Switch`（`.aurora-switch*`）；按钮 → `.aurora-btn`。经 createPortal 挂 body ⇒ 内部
+// 只允许引用全局 `--mc-*`（见 features/editor/toolbar/portalOverlayBasis.test.ts）。
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { parseFrontMatter, generateFrontMatter } from '@utils/frontMatter'
 import { useLanguage } from '@stores/LanguageStore'
 import { AuroraSelect } from '@components/ui/AuroraSelect'
+import { Input } from '@components/ui/Input'
+import { Switch } from '@components/ui/Switch'
 
 interface FrontMatterPanelProps {
   isOpen: boolean
@@ -24,42 +41,15 @@ function getTodayString(): string {
   return `${year}-${month}-${day}`
 }
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '8px 12px',
-  fontSize: 14,
-  border: '1px solid var(--editor-border)',
-  borderRadius: 6,
-  backgroundColor: 'rgba(128, 128, 128, 0.08)',
-  color: 'var(--editor-text)',
-  outline: 'none',
-  fontFamily: "'Inter', -apple-system, sans-serif",
-  boxSizing: 'border-box',
-}
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 12,
-  fontWeight: 500,
-  color: 'var(--editor-text)',
-  opacity: 0.8,
-  fontFamily: "'Inter', -apple-system, sans-serif",
-}
-
-const fieldGroupStyle: React.CSSProperties = {
+/** 模态正文：字段纵向排布（间距走内联结构值，外观一律交给 aurora 类） */
+const bodyStyle: React.CSSProperties = {
   display: 'flex',
   flexDirection: 'column',
-  gap: 6,
+  gap: 16,
 }
 
-function handleFocus(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
-  e.currentTarget.style.borderColor = 'var(--link-color)'
-  e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)'
-}
-
-function handleBlur(e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) {
-  e.currentTarget.style.borderColor = 'var(--editor-border)'
-  e.currentTarget.style.boxShadow = 'none'
-}
+/** 多行字段（textarea）：复用 .aurora-input 的材质/聚焦环，仅解开单行高度锁 */
+const textareaClass = 'aurora-input aurora-input--multiline'
 
 export default function FrontMatterPanel({ isOpen, onClose, content, onContentChange }: FrontMatterPanelProps) {
   const { t } = useLanguage()
@@ -132,237 +122,118 @@ export default function FrontMatterPanel({ isOpen, onClose, content, onContentCh
 
   if (!isOpen) return null
 
-  return (
+  // 模态：遮罩/面板/头部/底栏/按钮一律走 aurora 单源类（z-index 3000 带、材质、hover、
+  // 聚焦环全由类提供）。createPortal 到 body 已脱离 #aurora-root，内部只引用全局 --mc-* token。
+  return createPortal(
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 200,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        backdropFilter: 'blur(4px)',
-        WebkitBackdropFilter: 'blur(4px)',
-      }}
+      className="aurora-modal-overlay"
       onClick={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={t.frontMatter.title}
-        style={{
-          width: 520,
-          maxWidth: '90vw',
-          maxHeight: '85vh',
-          backgroundColor: 'var(--editor-bg)',
-          color: 'var(--editor-text)',
-          border: '1px solid var(--editor-border)',
-          borderRadius: 12,
-          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        }}
+        className="aurora-modal"
+        style={{ minWidth: 0, width: 520, maxWidth: '90vw', maxHeight: '85vh' }}
       >
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '16px 20px 12px',
-          borderBottom: '1px solid var(--editor-border)',
-          flexShrink: 0,
-        }}>
-          <h3 style={{
-            fontSize: 16,
-            fontWeight: 600,
-            margin: 0,
-            fontFamily: "'Inter', -apple-system, sans-serif",
-            color: 'var(--editor-text)',
-          }}>
-            {t.frontMatter.title}
-          </h3>
+        <div className="aurora-modal__header">
+          <div className="aurora-modal__title">{t.frontMatter.title}</div>
           <button
+            className="aurora-modal__close"
             onClick={onClose}
             aria-label={t.frontMatter.close}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 28,
-              height: 28,
-              border: 'none',
-              borderRadius: 6,
-              background: 'transparent',
-              color: 'var(--editor-text)',
-              cursor: 'pointer',
-              transition: 'background-color 0.15s ease',
-              opacity: 0.7,
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(128, 128, 128, 0.15)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
           >
-            <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div style={{
-          padding: '16px 20px',
-          overflowY: 'auto',
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 16,
-        }}>
-          <div style={fieldGroupStyle}>
-            <label style={labelStyle}>{t.frontMatter.articleTitle}</label>
-            <input
-              type="text"
-              value={titleValue}
-              onChange={(e) => setTitleValue(e.target.value)}
-              placeholder={t.frontMatter.articleTitlePlaceholder}
-              style={inputStyle}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-            />
-          </div>
+        <div className="aurora-modal__body" style={bodyStyle}>
+          <Input
+            type="text"
+            label={t.frontMatter.articleTitle}
+            value={titleValue}
+            onChange={(e) => setTitleValue(e.target.value)}
+            placeholder={t.frontMatter.articleTitlePlaceholder}
+          />
 
-          <div style={fieldGroupStyle}>
-            <label style={labelStyle}>{t.frontMatter.date}</label>
-            <input
-              type="text"
-              value={dateValue}
-              onChange={(e) => setDateValue(e.target.value)}
-              placeholder="YYYY-MM-DD"
-              style={inputStyle}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-            />
-          </div>
+          <Input
+            type="text"
+            label={t.frontMatter.date}
+            value={dateValue}
+            onChange={(e) => setDateValue(e.target.value)}
+            placeholder="YYYY-MM-DD"
+          />
 
-          <div style={fieldGroupStyle}>
-            <label style={labelStyle}>{t.frontMatter.tags}</label>
-            <input
-              type="text"
-              value={tagsValue}
-              onChange={(e) => setTagsValue(e.target.value)}
-              placeholder={t.frontMatter.tagsPlaceholder}
-              style={inputStyle}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-            />
-          </div>
+          <Input
+            type="text"
+            label={t.frontMatter.tags}
+            value={tagsValue}
+            onChange={(e) => setTagsValue(e.target.value)}
+            placeholder={t.frontMatter.tagsPlaceholder}
+          />
 
-          <div style={fieldGroupStyle}>
-            <label style={labelStyle}>{t.frontMatter.category}</label>
-            <input
-              type="text"
-              value={categoryValue}
-              onChange={(e) => setCategoryValue(e.target.value)}
-              placeholder={t.frontMatter.categoryPlaceholder}
-              style={inputStyle}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-            />
-          </div>
+          <Input
+            type="text"
+            label={t.frontMatter.category}
+            value={categoryValue}
+            onChange={(e) => setCategoryValue(e.target.value)}
+            placeholder={t.frontMatter.categoryPlaceholder}
+          />
 
-          <div style={fieldGroupStyle}>
-            <label style={labelStyle}>{t.frontMatter.description}</label>
+          <div className="aurora-field">
+            <label className="aurora-field__label" htmlFor="fm-description">{t.frontMatter.description}</label>
             <textarea
+              id="fm-description"
+              className={textareaClass}
               value={descriptionValue}
               onChange={(e) => setDescriptionValue(e.target.value)}
               placeholder={t.frontMatter.descriptionPlaceholder}
               rows={3}
-              style={{
-                ...inputStyle,
-                resize: 'vertical',
-              }}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
             />
           </div>
 
-          <div style={fieldGroupStyle}>
-            <label style={labelStyle}>{t.frontMatter.author}</label>
-            <input
-              type="text"
-              value={authorValue}
-              onChange={(e) => setAuthorValue(e.target.value)}
-              placeholder={t.frontMatter.authorPlaceholder}
-              style={inputStyle}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-            />
-          </div>
+          <Input
+            type="text"
+            label={t.frontMatter.author}
+            value={authorValue}
+            onChange={(e) => setAuthorValue(e.target.value)}
+            placeholder={t.frontMatter.authorPlaceholder}
+          />
 
-          <div style={fieldGroupStyle}>
-            <label style={labelStyle}>{t.frontMatter.coverImage || '封面图片'}</label>
-            <input
-              type="text"
-              value={coverImageValue}
-              onChange={(e) => setCoverImageValue(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-              style={inputStyle}
-              onFocus={handleFocus}
-              onBlur={handleBlur}
-            />
-          </div>
+          <Input
+            type="text"
+            label={t.frontMatter.coverImage || '封面图片'}
+            value={coverImageValue}
+            onChange={(e) => setCoverImageValue(e.target.value)}
+            placeholder="https://example.com/image.jpg"
+          />
 
-          <div style={fieldGroupStyle}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <label style={labelStyle}>{t.frontMatter.draft || '草稿'}</label>
-              <button
-                type="button"
-                onClick={() => setDraftValue(!draftValue)}
-                style={{
-                  width: 40,
-                  height: 22,
-                  borderRadius: 11,
-                  border: 'none',
-                  backgroundColor: draftValue ? 'var(--button-primary)' : 'rgba(128,128,128,0.3)',
-                  cursor: 'pointer',
-                  position: 'relative',
-                  transition: 'background-color 0.2s',
-                }}
-              >
-                <span style={{
-                  position: 'absolute',
-                  top: 2,
-                  left: draftValue ? 20 : 2,
-                  width: 18,
-                  height: 18,
-                  borderRadius: 9,
-                  backgroundColor: '#fff',
-                  transition: 'left 0.2s',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-                }} />
-              </button>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span className="aurora-field__label">{t.frontMatter.draft || '草稿'}</span>
+            <Switch checked={draftValue} onChange={setDraftValue} />
           </div>
 
           {/* 高级设置折叠区域 */}
-          <div style={{ borderTop: '1px solid var(--editor-border)', paddingTop: 8 }}>
+          <div style={{ borderTop: '1px solid var(--mc-border-subtle)', paddingTop: 12 }}>
             <button
               type="button"
+              className="aurora-btn aurora-btn--sm aurora-btn--ghost"
               onClick={() => setShowAdvanced(!showAdvanced)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--editor-text)',
-                fontSize: 12,
-                fontWeight: 500,
-                opacity: 0.7,
-                padding: '4px 0',
-              }}
             >
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
-                style={{ transform: showAdvanced ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+                style={{
+                  transform: showAdvanced ? 'rotate(90deg)' : 'rotate(0deg)',
+                  transition: 'transform var(--mc-dur-fast) var(--mc-ease-out)',
+                }}
+              >
                 <path d="M9 18l6-6-6-6" />
               </svg>
               {t.frontMatter.advancedSettings || '高级设置'}
@@ -371,21 +242,16 @@ export default function FrontMatterPanel({ isOpen, onClose, content, onContentCh
 
           {showAdvanced && (
             <>
-              <div style={fieldGroupStyle}>
-                <label style={labelStyle}>{t.frontMatter.slug || 'URL 路径 (slug)'}</label>
-                <input
-                  type="text"
-                  value={slugValue}
-                  onChange={(e) => setSlugValue(e.target.value)}
-                  placeholder={t.frontMatter.slugPlaceholder || '留空则自动从标题生成'}
-                  style={inputStyle}
-                  onFocus={handleFocus}
-                  onBlur={handleBlur}
-                />
-              </div>
+              <Input
+                type="text"
+                label={t.frontMatter.slug || 'URL 路径 (slug)'}
+                value={slugValue}
+                onChange={(e) => setSlugValue(e.target.value)}
+                placeholder={t.frontMatter.slugPlaceholder || '留空则自动从标题生成'}
+              />
 
-              <div style={fieldGroupStyle}>
-                <label style={labelStyle}>{t.frontMatter.layout || '布局'}</label>
+              <div className="aurora-field">
+                <span className="aurora-field__label">{t.frontMatter.layout || '布局'}</span>
                 <AuroraSelect
                   value={layoutValue}
                   onChange={(v) => setLayoutValue(v)}
@@ -397,96 +263,47 @@ export default function FrontMatterPanel({ isOpen, onClose, content, onContentCh
                 />
               </div>
 
-              <div style={fieldGroupStyle}>
-                <label style={labelStyle}>{t.frontMatter.permalink || '永久链接'}</label>
-                <input
-                  type="text"
-                  value={permalinkValue}
-                  onChange={(e) => setPermalinkValue(e.target.value)}
-                  placeholder={t.frontMatter.permalinkPlaceholder || '留空则自动生成'}
-                  style={inputStyle}
-                  onFocus={handleFocus}
-                  onBlur={handleBlur}
-                />
-              </div>
+              <Input
+                type="text"
+                label={t.frontMatter.permalink || '永久链接'}
+                value={permalinkValue}
+                onChange={(e) => setPermalinkValue(e.target.value)}
+                placeholder={t.frontMatter.permalinkPlaceholder || '留空则自动生成'}
+              />
 
-              <div style={fieldGroupStyle}>
-                <label style={labelStyle}>{t.frontMatter.updated || '更新日期'}</label>
-                <input
-                  type="text"
-                  value={updatedValue}
-                  onChange={(e) => setUpdatedValue(e.target.value)}
-                  placeholder="YYYY-MM-DD"
-                  style={inputStyle}
-                  onFocus={handleFocus}
-                  onBlur={handleBlur}
-                />
-              </div>
+              <Input
+                type="text"
+                label={t.frontMatter.updated || '更新日期'}
+                value={updatedValue}
+                onChange={(e) => setUpdatedValue(e.target.value)}
+                placeholder="YYYY-MM-DD"
+              />
 
-              <div style={fieldGroupStyle}>
-                <label style={labelStyle}>{t.frontMatter.excerpt || '自定义摘要'}</label>
+              <div className="aurora-field">
+                <label className="aurora-field__label" htmlFor="fm-excerpt">{t.frontMatter.excerpt || '自定义摘要'}</label>
                 <textarea
+                  id="fm-excerpt"
+                  className={textareaClass}
                   value={excerptValue}
                   onChange={(e) => setExcerptValue(e.target.value)}
                   placeholder={t.frontMatter.excerptPlaceholder || '留空则自动截取正文前200字'}
                   rows={2}
-                  style={{ ...inputStyle, resize: 'vertical' }}
-                  onFocus={handleFocus}
-                  onBlur={handleBlur}
                 />
               </div>
             </>
           )}
         </div>
 
-        <div style={{
-          display: 'flex',
-          justifyContent: 'flex-end',
-          gap: 8,
-          padding: '12px 20px 16px',
-          borderTop: '1px solid var(--editor-border)',
-          flexShrink: 0,
-        }}>
-          <button
-            onClick={onClose}
-            style={{
-              padding: '8px 20px',
-              fontSize: 13,
-              fontWeight: 500,
-              borderRadius: 6,
-              border: '1px solid var(--editor-border)',
-              cursor: 'pointer',
-              backgroundColor: 'transparent',
-              color: 'var(--editor-text)',
-              fontFamily: "'Inter', -apple-system, sans-serif",
-              transition: 'background-color 0.15s ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(128, 128, 128, 0.1)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
-          >
+        <div className="aurora-modal__footer">
+          <button className="aurora-btn aurora-btn--sm aurora-btn--ghost" onClick={onClose}>
             {t.frontMatter.cancel}
           </button>
-          <button
-            onClick={handleApply}
-            style={{
-              padding: '8px 20px',
-              fontSize: 13,
-              fontWeight: 500,
-              borderRadius: 6,
-              border: 'none',
-              cursor: 'pointer',
-              backgroundColor: 'var(--button-primary)',
-              color: '#ffffff',
-              fontFamily: "'Inter', -apple-system, sans-serif",
-              transition: 'background-color 0.15s ease',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--button-primary-hover)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'var(--button-primary)' }}
-          >
+          <button className="aurora-btn aurora-btn--sm aurora-btn--primary" onClick={handleApply}>
             {t.frontMatter.apply}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

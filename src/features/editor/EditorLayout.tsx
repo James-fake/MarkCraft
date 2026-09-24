@@ -921,60 +921,34 @@ export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(fu
         </div>
       )}
     </div>
-    {/* 恢复滚动位置提示 */}
+    {/* 恢复滚动位置提示
+        ⚠️ 单源基底：复用 .aurora-toast-container（层级带 Toast = 9990）+ .aurora-toast（材质/圆角/阴影/字色）。
+        此前是自持皮肤浮层（紫色渐变底 + #fff 文字 + 自绘白色按钮 + z-index 99999），
+        既绕过 token 体系、又写死越带魔数 —— 属 portal 审计扫不到的盲区（它是 fixed 内联 div，非 createPortal）。 */}
     {showScrollRestoreHint && (
-      <div style={{
-        position: 'fixed',
-        bottom: 60,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 99999,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        padding: '12px 20px',
-        borderRadius: 10,
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        color: '#fff',
-        boxShadow: '0 8px 32px rgba(102, 126, 234, 0.5)',
-        fontSize: 14,
-        fontWeight: 500,
-        whiteSpace: 'nowrap',
-      }}>
-        <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />
-        </svg>
-        <span>{language === 'zh' ? '检测到上次浏览位置，是否恢复？' : 'Restore last read position?'}</span>
-        <button
-          onClick={handleRestoreScroll}
-          style={{
-            padding: '6px 16px',
-            borderRadius: 6,
-            border: 'none',
-            backgroundColor: '#fff',
-            color: '#667eea',
-            cursor: 'pointer',
-            fontSize: 13,
-            fontWeight: 600,
-            whiteSpace: 'nowrap',
-          }}
-        >
-          {language === 'zh' ? '恢复位置' : 'Restore'}
-        </button>
-        <button
-          onClick={() => setShowScrollRestoreHint(false)}
-          style={{
-            padding: '4px 8px',
-            borderRadius: 4,
-            border: '1px solid rgba(255,255,255,0.3)',
-            backgroundColor: 'transparent',
-            color: 'rgba(255,255,255,0.9)',
-            cursor: 'pointer',
-            fontSize: 12,
-          }}
-        >
-          {language === 'zh' ? '忽略' : 'Dismiss'}
-        </button>
+      <div className="aurora-toast-container" style={{ bottom: 60 }}>
+        <div className="aurora-toast aurora-toast--info">
+          <span className="aurora-toast__icon">
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />
+            </svg>
+          </span>
+          <span className="aurora-toast__msg">
+            {language === 'zh' ? '检测到上次浏览位置，是否恢复？' : 'Restore last read position?'}
+          </span>
+          <button
+            className="aurora-btn aurora-btn--sm aurora-btn--primary"
+            onClick={handleRestoreScroll}
+          >
+            {language === 'zh' ? '恢复位置' : 'Restore'}
+          </button>
+          <button
+            className="aurora-btn aurora-btn--sm aurora-btn--ghost"
+            onClick={() => setShowScrollRestoreHint(false)}
+          >
+            {language === 'zh' ? '忽略' : 'Dismiss'}
+          </button>
+        </div>
       </div>
     )}
     <GoToLineDialog

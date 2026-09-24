@@ -1,0 +1,1339 @@
+{
+  "zIndexHits": [
+    {
+      "file": "src/aurora/app/AuroraShell.tsx",
+      "line": 443,
+      "value": 999,
+      "band": null
+    },
+    {
+      "file": "src/aurora/panels/canvas/CanvasContextMenu.tsx",
+      "line": 86,
+      "value": 10001,
+      "band": "画布 ctxmenu / dock 更多菜单（保留画布局部原序）"
+    },
+    {
+      "file": "src/aurora/panels/canvas/CanvasDock.tsx",
+      "line": 292,
+      "value": 10001,
+      "band": "画布 ctxmenu / dock 更多菜单（保留画布局部原序）"
+    },
+    {
+      "file": "src/aurora/styles/command-palette.css",
+      "line": 10,
+      "value": 9000,
+      "band": "Command 命令/搜索浮层"
+    },
+    {
+      "file": "src/aurora/styles/components.css",
+      "line": 412,
+      "value": 1000,
+      "band": "锚定浮层带（dropdown / hover card / lint panel）"
+    },
+    {
+      "file": "src/aurora/styles/components.css",
+      "line": 755,
+      "value": 1000,
+      "band": "锚定浮层带（dropdown / hover card / lint panel）"
+    },
+    {
+      "file": "src/aurora/styles/components.css",
+      "line": 972,
+      "value": 3000,
+      "band": "Aurora 共享 Modal 遮罩"
+    },
+    {
+      "file": "src/aurora/styles/panels/canvas.css",
+      "line": 721,
+      "value": 200,
+      "band": null
+    },
+    {
+      "file": "src/aurora/styles/panels/canvas.css",
+      "line": 837,
+      "value": 9980,
+      "band": "Modal 阻断模态（filetree 确认 / 画布列表管理）"
+    },
+    {
+      "file": "src/aurora/styles/panels/canvas.css",
+      "line": 1055,
+      "value": 9998,
+      "band": "画布 dock 遮罩"
+    },
+    {
+      "file": "src/aurora/styles/panels/canvas.css",
+      "line": 1061,
+      "value": 9999,
+      "band": "画布 dock 上下文浮层"
+    },
+    {
+      "file": "src/aurora/styles/panels/editor.css",
+      "line": 781,
+      "value": 10030,
+      "band": "ContextMenu 瞬态右键菜单"
+    },
+    {
+      "file": "src/aurora/styles/panels/editor.css",
+      "line": 805,
+      "value": 9980,
+      "band": "Modal 阻断模态（filetree 确认 / 画布列表管理）"
+    },
+    {
+      "file": "src/aurora/styles/panels/editor.css",
+      "line": 1629,
+      "value": 10030,
+      "band": "ContextMenu 瞬态右键菜单"
+    },
+    {
+      "file": "src/aurora/styles/panels/editor.css",
+      "line": 2099,
+      "value": 1000,
+      "band": "锚定浮层带（dropdown / hover card / lint panel）"
+    },
+    {
+      "file": "src/aurora/styles/panels/editor.css",
+      "line": 2399,
+      "value": 1000,
+      "band": "锚定浮层带（dropdown / hover card / lint panel）"
+    },
+    {
+      "file": "src/aurora/styles/shell.css",
+      "line": 1040,
+      "value": 10060,
+      "band": "CrashRecovery 崩溃恢复"
+    },
+    {
+      "file": "src/aurora/styles/toast.css",
+      "line": 14,
+      "value": 9990,
+      "band": "Toast 轻提示"
+    },
+    {
+      "file": "src/features/blog/BlogModal.tsx",
+      "line": 219,
+      "value": 200,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/BlogStudio.tsx",
+      "line": 245,
+      "value": 300,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/components/panels/VisualCssEditor.tsx",
+      "line": 73,
+      "value": 99999,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/components/panels/VisualCssEditor.tsx",
+      "line": 169,
+      "value": 99998,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/templates/shareButtons.ts",
+      "line": 31,
+      "value": 9999,
+      "band": "画布 dock 上下文浮层"
+    },
+    {
+      "file": "src/features/blog/templates/styleBuilder/componentStyles.ts",
+      "line": 452,
+      "value": 1000,
+      "band": "锚定浮层带（dropdown / hover card / lint panel）"
+    },
+    {
+      "file": "src/features/blog/templates/styleBuilder/componentStyles.ts",
+      "line": 459,
+      "value": 999,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/templates/styleBuilder/componentStyles.ts",
+      "line": 477,
+      "value": 9999,
+      "band": "画布 dock 上下文浮层"
+    },
+    {
+      "file": "src/features/blog/templates/styleBuilder/componentStyles.ts",
+      "line": 597,
+      "value": 9999,
+      "band": "画布 dock 上下文浮层"
+    },
+    {
+      "file": "src/features/blog/themes/cyberpunk.ts",
+      "line": 70,
+      "value": 9999,
+      "band": "画布 dock 上下文浮层"
+    },
+    {
+      "file": "src/features/blog/themes/newThemes.ts",
+      "line": 7898,
+      "value": 101,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/themes/newThemes.ts",
+      "line": 7909,
+      "value": 101,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/themes/newThemes.ts",
+      "line": 9174,
+      "value": 101,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/themes/newThemes.ts",
+      "line": 9180,
+      "value": 101,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/themes/newThemes.ts",
+      "line": 10654,
+      "value": 9999,
+      "band": "画布 dock 上下文浮层"
+    },
+    {
+      "file": "src/features/blog/themes/terminal.ts",
+      "line": 37,
+      "value": 9999,
+      "band": "画布 dock 上下文浮层"
+    },
+    {
+      "file": "src/features/blog/utils/singleFile/classicThemeCssWidgets.ts",
+      "line": 19,
+      "value": 200,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/utils/singleFile/classicThemeCssWidgets.ts",
+      "line": 523,
+      "value": 9999,
+      "band": "画布 dock 上下文浮层"
+    },
+    {
+      "file": "src/features/blog/utils/singleFile/newThemeTemplate.ts",
+      "line": 374,
+      "value": 9999,
+      "band": "画布 dock 上下文浮层"
+    },
+    {
+      "file": "src/features/blog/utils/singleFile/newThemeTemplate.ts",
+      "line": 514,
+      "value": 101,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/utils/singleFile/newThemeTemplate.ts",
+      "line": 519,
+      "value": 101,
+      "band": null
+    },
+    {
+      "file": "src/features/canvas-v2/components/AutoLayoutPanel.tsx",
+      "line": 189,
+      "value": 500,
+      "band": null
+    },
+    {
+      "file": "src/features/editor/EditorContextMenu.tsx",
+      "line": 184,
+      "value": 10030,
+      "band": "ContextMenu 瞬态右键菜单"
+    },
+    {
+      "file": "src/features/editor/EditorContextMenu.tsx",
+      "line": 699,
+      "value": 10030,
+      "band": "ContextMenu 瞬态右键菜单"
+    },
+    {
+      "file": "src/features/editor/EditorLayout.tsx",
+      "line": 663,
+      "value": 1000,
+      "band": "锚定浮层带（dropdown / hover card / lint panel）"
+    },
+    {
+      "file": "src/features/editor/EditorLayout.tsx",
+      "line": 931,
+      "value": 99999,
+      "band": null
+    },
+    {
+      "file": "src/features/editor/extensions/FootnoteTooltip.tsx",
+      "line": 15,
+      "value": 1000,
+      "band": "锚定浮层带（dropdown / hover card / lint panel）"
+    },
+    {
+      "file": "src/features/editor/extensions/TableContextMenu.tsx",
+      "line": 78,
+      "value": 10001,
+      "band": "画布 ctxmenu / dock 更多菜单（保留画布局部原序）"
+    },
+    {
+      "file": "src/features/editor/FrontMatterPanel.tsx",
+      "line": 140,
+      "value": 200,
+      "band": null
+    },
+    {
+      "file": "src/features/editor/toolbar/MathPopover.tsx",
+      "line": 313,
+      "value": 1000,
+      "band": "锚定浮层带（dropdown / hover card / lint panel）"
+    },
+    {
+      "file": "src/features/editor/versionHistory.css",
+      "line": 7,
+      "value": 1090,
+      "band": null
+    },
+    {
+      "file": "src/features/editor/versionHistory.css",
+      "line": 24,
+      "value": 1091,
+      "band": null
+    },
+    {
+      "file": "src/features/editor/versionHistory.css",
+      "line": 290,
+      "value": 1095,
+      "band": null
+    },
+    {
+      "file": "src/features/fileManager/LinkRedirectDialog.tsx",
+      "line": 59,
+      "value": 100000,
+      "band": null
+    },
+    {
+      "file": "src/features/knowledgeBase/components/CrossKbSearch.tsx",
+      "line": 176,
+      "value": 1000,
+      "band": "锚定浮层带（dropdown / hover card / lint panel）"
+    },
+    {
+      "file": "src/features/knowledgeBase/components/FileDependencyPanel.tsx",
+      "line": 89,
+      "value": 1000,
+      "band": "锚定浮层带（dropdown / hover card / lint panel）"
+    },
+    {
+      "file": "src/features/knowledgeBase/components/KbChatPanel.tsx",
+      "line": 117,
+      "value": 1000,
+      "band": "锚定浮层带（dropdown / hover card / lint panel）"
+    },
+    {
+      "file": "src/features/knowledgeBase/components/KbExportMenu.tsx",
+      "line": 254,
+      "value": 1000,
+      "band": "锚定浮层带（dropdown / hover card / lint panel）"
+    },
+    {
+      "file": "src/features/knowledgeBase/kb-ui.css",
+      "line": 62,
+      "value": 200,
+      "band": null
+    },
+    {
+      "file": "src/features/knowledgeBase/kb-ui.css",
+      "line": 313,
+      "value": 1100,
+      "band": null
+    },
+    {
+      "file": "src/features/lint/LintPopover.tsx",
+      "line": 125,
+      "value": 1000,
+      "band": "锚定浮层带（dropdown / hover card / lint panel）"
+    },
+    {
+      "file": "src/features/themes/ThemeMarketPanel.tsx",
+      "line": 19,
+      "value": 1000,
+      "band": "锚定浮层带（dropdown / hover card / lint panel）"
+    },
+    {
+      "file": "src/styles/components.css",
+      "line": 15,
+      "value": 1000,
+      "band": "锚定浮层带（dropdown / hover card / lint panel）"
+    },
+    {
+      "file": "src/styles/tiptap.css",
+      "line": 647,
+      "value": 200,
+      "band": null
+    }
+  ],
+  "zOff": [
+    {
+      "file": "src/features/blog/themes/newThemes.ts",
+      "line": 7898,
+      "value": 101,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/themes/newThemes.ts",
+      "line": 7909,
+      "value": 101,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/themes/newThemes.ts",
+      "line": 9174,
+      "value": 101,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/themes/newThemes.ts",
+      "line": 9180,
+      "value": 101,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/utils/singleFile/newThemeTemplate.ts",
+      "line": 514,
+      "value": 101,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/utils/singleFile/newThemeTemplate.ts",
+      "line": 519,
+      "value": 101,
+      "band": null
+    },
+    {
+      "file": "src/aurora/styles/panels/canvas.css",
+      "line": 721,
+      "value": 200,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/BlogModal.tsx",
+      "line": 219,
+      "value": 200,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/utils/singleFile/classicThemeCssWidgets.ts",
+      "line": 19,
+      "value": 200,
+      "band": null
+    },
+    {
+      "file": "src/features/editor/FrontMatterPanel.tsx",
+      "line": 140,
+      "value": 200,
+      "band": null
+    },
+    {
+      "file": "src/features/knowledgeBase/kb-ui.css",
+      "line": 62,
+      "value": 200,
+      "band": null
+    },
+    {
+      "file": "src/styles/tiptap.css",
+      "line": 647,
+      "value": 200,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/BlogStudio.tsx",
+      "line": 245,
+      "value": 300,
+      "band": null
+    },
+    {
+      "file": "src/features/canvas-v2/components/AutoLayoutPanel.tsx",
+      "line": 189,
+      "value": 500,
+      "band": null
+    },
+    {
+      "file": "src/aurora/app/AuroraShell.tsx",
+      "line": 443,
+      "value": 999,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/templates/styleBuilder/componentStyles.ts",
+      "line": 459,
+      "value": 999,
+      "band": null
+    },
+    {
+      "file": "src/features/editor/versionHistory.css",
+      "line": 7,
+      "value": 1090,
+      "band": null
+    },
+    {
+      "file": "src/features/editor/versionHistory.css",
+      "line": 24,
+      "value": 1091,
+      "band": null
+    },
+    {
+      "file": "src/features/editor/versionHistory.css",
+      "line": 290,
+      "value": 1095,
+      "band": null
+    },
+    {
+      "file": "src/features/knowledgeBase/kb-ui.css",
+      "line": 313,
+      "value": 1100,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/components/panels/VisualCssEditor.tsx",
+      "line": 169,
+      "value": 99998,
+      "band": null
+    },
+    {
+      "file": "src/features/blog/components/panels/VisualCssEditor.tsx",
+      "line": 73,
+      "value": 99999,
+      "band": null
+    },
+    {
+      "file": "src/features/editor/EditorLayout.tsx",
+      "line": 931,
+      "value": 99999,
+      "band": null
+    },
+    {
+      "file": "src/features/fileManager/LinkRedirectDialog.tsx",
+      "line": 59,
+      "value": 100000,
+      "band": null
+    }
+  ],
+  "blueBare": [
+    {
+      "file": "src/styles/mermaid.css",
+      "line": 317,
+      "count": 31,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/styles/components.css",
+      "line": 80,
+      "count": 19,
+      "samples": [
+        "rgba(59, 130, 246",
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/styles/tiptap.css",
+      "line": 109,
+      "count": 15,
+      "samples": [
+        "rgba(59, 130, 246",
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/search/GlobalSearch.tsx",
+      "line": 320,
+      "count": 11,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/blog/themes/newThemes.ts",
+      "line": 4980,
+      "count": 9,
+      "samples": [
+        "#60a5fa",
+        "#3b82f6",
+        "rgba(59,130,246"
+      ]
+    },
+    {
+      "file": "src/features/editor/OptimizeImagesModal.tsx",
+      "line": 232,
+      "count": 9,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/editor/cm6/useCM6State.ts",
+      "line": 70,
+      "count": 8,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/blog/components/BlogConfigForm.tsx",
+      "line": 41,
+      "count": 6,
+      "samples": [
+        "rgba(59, 130, 246",
+        "rgba(59,130,246"
+      ]
+    },
+    {
+      "file": "src/features/editor/components/FootnoteSidebar.tsx",
+      "line": 29,
+      "count": 6,
+      "samples": [
+        "#3b82f6",
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/outline/Outline.tsx",
+      "line": 189,
+      "count": 6,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/editor/EditorLayout.tsx",
+      "line": 563,
+      "count": 5,
+      "samples": [
+        "rgba(59, 130, 246",
+        "rgba(59,130,246",
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/export/utils/exportCss.ts",
+      "line": 15,
+      "count": 5,
+      "samples": [
+        "#3b82f6",
+        "#60a5fa"
+      ]
+    },
+    {
+      "file": "src/features/editor/EditorStatusBar.tsx",
+      "line": 59,
+      "count": 4,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/editor/extensions/ImageView.tsx",
+      "line": 253,
+      "count": 4,
+      "samples": [
+        "rgba(59,130,246"
+      ]
+    },
+    {
+      "file": "src/features/editor/extensions/mindmap/MindmapCanvas.tsx",
+      "line": 36,
+      "count": 4,
+      "samples": [
+        "#3b82f6",
+        "rgba(59,130,246"
+      ]
+    },
+    {
+      "file": "src/features/editor/FocusModeToolbar.tsx",
+      "line": 53,
+      "count": 4,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/editor/toolbar/MarkdownToolbar.tsx",
+      "line": 241,
+      "count": 4,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/search/QuickOpen.tsx",
+      "line": 360,
+      "count": 4,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/themes/CodeThemeManager.ts",
+      "line": 21,
+      "count": 4,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/fileManager/LinkRedirectDialog.tsx",
+      "line": 79,
+      "count": 3,
+      "samples": [
+        "rgba(59,130,246",
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/knowledgeBase/kbTheme.ts",
+      "line": 42,
+      "count": 3,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/blog/components/GenerationResult.tsx",
+      "line": 29,
+      "count": 2,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/blog/themes/glassmorphism.ts",
+      "line": 8,
+      "count": 2,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/canvas-v2/types.ts",
+      "line": 45,
+      "count": 2,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/editor/extensions/EditableNodeView.tsx",
+      "line": 147,
+      "count": 2,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/editor/extensions/FootnoteReferenceView.tsx",
+      "line": 114,
+      "count": 2,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/editor/toolbar/groups/shared.tsx",
+      "line": 30,
+      "count": 2,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/editor/toolbar/WysiwygToolbarButton.tsx",
+      "line": 42,
+      "count": 2,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/blog/components/panels/CssPresetChips.tsx",
+      "line": 54,
+      "count": 1,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/blog/hooks/useBlogGenerator.ts",
+      "line": 214,
+      "count": 1,
+      "samples": [
+        "#60a5fa"
+      ]
+    },
+    {
+      "file": "src/features/canvas-v2/engine/OverlayCards.tsx",
+      "line": 449,
+      "count": 1,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/dashboard/useDashboardData.ts",
+      "line": 41,
+      "count": 1,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/diary/diaryMoods.ts",
+      "line": 21,
+      "count": 1,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/editor/BlockBacklinksPanel.tsx",
+      "line": 92,
+      "count": 1,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/editor/components/SearchReplaceBar.tsx",
+      "line": 99,
+      "count": 1,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/editor/extensions/CalloutView.tsx",
+      "line": 6,
+      "count": 1,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/editor/extensions/EmbedContentView.tsx",
+      "line": 243,
+      "count": 1,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/editor/FrontMatterPanel.tsx",
+      "line": 56,
+      "count": 1,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/editor/TableBubbleMenu.tsx",
+      "line": 283,
+      "count": 1,
+      "samples": [
+        "rgba(59,130,246"
+      ]
+    },
+    {
+      "file": "src/features/editor/versionHistory.css",
+      "line": 113,
+      "count": 1,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    },
+    {
+      "file": "src/features/editor/VersionHistoryPanel.tsx",
+      "line": 18,
+      "count": 1,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/knowledgeBase/export/documentExporter.ts",
+      "line": 188,
+      "count": 1,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/knowledgeBase/export/staticSiteExporter.ts",
+      "line": 157,
+      "count": 1,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/styles/markdown.css",
+      "line": 376,
+      "count": 1,
+      "samples": [
+        "rgba(59, 130, 246"
+      ]
+    }
+  ],
+  "blueFallback": [
+    {
+      "file": "src/components/ui/ErrorBoundary.tsx",
+      "count": 1,
+      "samples": [
+        "rgba(59,130,246,0.12)"
+      ]
+    },
+    {
+      "file": "src/features/editor/components/LinkBreadcrumb.tsx",
+      "count": 1,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/editor/EditorLayout.tsx",
+      "count": 3,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/editor/extensions/CodeBlockView.tsx",
+      "count": 2,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/editor/extensions/EditableNodeView.tsx",
+      "count": 1,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/editor/extensions/EmbedContentView.tsx",
+      "count": 2,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/editor/extensions/FootnoteReferenceView.tsx",
+      "count": 2,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/editor/extensions/ImageView.tsx",
+      "count": 2,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/editor/extensions/MathBlockView.tsx",
+      "count": 1,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/editor/extensions/MermaidBlockView.tsx",
+      "count": 1,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/editor/extensions/PlantUmlBlockView.tsx",
+      "count": 1,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/editor/extensions/WikiLink.ts",
+      "count": 1,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/editor/toolbar/WysiwygToolbarButton.tsx",
+      "count": 1,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/editor/versionHistory.css",
+      "count": 4,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/knowledgeBase/kb-ui.css",
+      "count": 1,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/features/knowledgeBase/kbTheme.ts",
+      "count": 2,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/styles/markdown.css",
+      "count": 3,
+      "samples": [
+        "#3b82f6"
+      ]
+    },
+    {
+      "file": "src/styles/mermaid.css",
+      "count": 2,
+      "samples": [
+        "#3b82f6",
+        "#60a5fa"
+      ]
+    },
+    {
+      "file": "src/styles/tiptap.css",
+      "count": 5,
+      "samples": [
+        "#3b82f6"
+      ]
+    }
+  ],
+  "legacyVar": {
+    "src/aurora/styles/shell.css": {
+      "count": 1,
+      "distinct": 1,
+      "unmappedCount": 1,
+      "unmapped": [
+        "--sidebar-current-w"
+      ]
+    },
+    "src/features/blog/BlogModal.tsx": {
+      "count": 13,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/blog/components/BlogConfigForm.tsx": {
+      "count": 16,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/blog/components/FilePreviewPanel.tsx": {
+      "count": 8,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/blog/components/GenerationResult.tsx": {
+      "count": 7,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/BlockBacklinksPanel.tsx": {
+      "count": 17,
+      "distinct": 2,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/cm6/imagePreviewExtension.ts": {
+      "count": 1,
+      "distinct": 1,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/cm6/mathPreviewExtension.ts": {
+      "count": 3,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/cm6/useCM6State.ts": {
+      "count": 19,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/CodeMirrorEditor.tsx": {
+      "count": 1,
+      "distinct": 1,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/components/DraftInsightPanel.tsx": {
+      "count": 3,
+      "distinct": 1,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/components/FootnoteFromClipboard.tsx": {
+      "count": 2,
+      "distinct": 1,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/components/LinkBreadcrumb.tsx": {
+      "count": 1,
+      "distinct": 1,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/components/SearchReplaceBar.tsx": {
+      "count": 6,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/components/WritingAidPanel.tsx": {
+      "count": 17,
+      "distinct": 1,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/EditorLayout.tsx": {
+      "count": 14,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/EditorStatusBar.tsx": {
+      "count": 7,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/extensions/CalloutView.tsx": {
+      "count": 3,
+      "distinct": 1,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/extensions/CodeBlockView.tsx": {
+      "count": 10,
+      "distinct": 6,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/extensions/EditableNodeView.tsx": {
+      "count": 3,
+      "distinct": 2,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/extensions/FootnoteReferenceView.tsx": {
+      "count": 2,
+      "distinct": 2,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/extensions/FootnoteTooltip.tsx": {
+      "count": 3,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/extensions/IframeView.tsx": {
+      "count": 1,
+      "distinct": 1,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/extensions/ImageView.tsx": {
+      "count": 14,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/extensions/MathBlockView.tsx": {
+      "count": 5,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/extensions/MermaidBlockView.tsx": {
+      "count": 5,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/extensions/PdfEmbedView.tsx": {
+      "count": 5,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/extensions/PlantUmlBlockView.tsx": {
+      "count": 5,
+      "distinct": 4,
+      "unmappedCount": 1,
+      "unmapped": [
+        "--code-font-family"
+      ]
+    },
+    "src/features/editor/extensions/TocView.tsx": {
+      "count": 5,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/FocusModeToolbar.tsx": {
+      "count": 7,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/FrontMatterPanel.tsx": {
+      "count": 15,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/LargeImageConfirmDialog.tsx": {
+      "count": 6,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/OptimizeImagesModal.tsx": {
+      "count": 11,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/TableBubbleMenu.tsx": {
+      "count": 4,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/TiptapEditor.tsx": {
+      "count": 2,
+      "distinct": 2,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/toolbar/groups/shared.tsx": {
+      "count": 1,
+      "distinct": 1,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/toolbar/MarkdownToolbar.tsx": {
+      "count": 4,
+      "distinct": 2,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/editor/toolbar/WysiwygToolbar.tsx": {
+      "count": 3,
+      "distinct": 2,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/export/utils/exportCss.ts": {
+      "count": 22,
+      "distinct": 8,
+      "unmappedCount": 2,
+      "unmapped": [
+        "--blockquote-border"
+      ]
+    },
+    "src/features/export/utils/exportPdf.ts": {
+      "count": 1,
+      "distinct": 1,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/search/SearchReplace.tsx": {
+      "count": 14,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/settings/ShortcutRecorder.tsx": {
+      "count": 3,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/themes/CodeThemeManager.ts": {
+      "count": 16,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/features/themes/ThemeMarketPanel.tsx": {
+      "count": 8,
+      "distinct": 5,
+      "unmappedCount": 5,
+      "unmapped": [
+        "--sidebar-text",
+        "--sidebar-border"
+      ]
+    },
+    "src/styles/components.css": {
+      "count": 5,
+      "distinct": 5,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/styles/markdown.css": {
+      "count": 21,
+      "distinct": 9,
+      "unmappedCount": 1,
+      "unmapped": [
+        "--blockquote-border"
+      ]
+    },
+    "src/styles/mermaid.css": {
+      "count": 32,
+      "distinct": 10,
+      "unmappedCount": 7,
+      "unmapped": [
+        "--katex-error-color",
+        "--blockquote-border"
+      ]
+    },
+    "src/styles/syntax.css": {
+      "count": 3,
+      "distinct": 3,
+      "unmappedCount": 0,
+      "unmapped": []
+    },
+    "src/styles/tiptap.css": {
+      "count": 28,
+      "distinct": 11,
+      "unmappedCount": 5,
+      "unmapped": [
+        "--editor-font-family",
+        "--editor-font-size",
+        "--editor-line-height",
+        "--katex-error-color"
+      ]
+    }
+  },
+  "undefinedTokenHits": []
+}

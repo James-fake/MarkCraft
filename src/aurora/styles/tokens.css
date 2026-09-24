@@ -257,6 +257,10 @@
  *    9000  Command 命令/搜索浮层（shell command overlay · canvas cmdk overlay）
  *    3000  Aurora 共享 Modal 遮罩（aurora-modal-overlay，含 Confirm 宿主）
  *    1500  编辑器 kb-menu 浮层（mask 1499 配套）
+ *    1095  编辑器遮罩式抽屉组（版本历史：backdrop 1090 / drawer 1091 / 确认 mask 1095。
+ *           刻意落在锚定浮层带 1000 之上、kb-menu 1500 之下的空档 —— 抽屉必须压住
+ *           编辑器内所有 dropdown(1000)，又不该盖过全局菜单/模态；与既有带无同值冲突
+ *           （1100 已被 kb-ui 占用，故取 109x）。实现见 features/editor/versionHistory.css）
  *    1000  锚定浮层带（dropdown / lint panel / tabs ctxmenu / 滚动按钮等局部）
  * ========================================================== */
 

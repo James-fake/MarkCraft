@@ -4,7 +4,7 @@
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.35);
-  z-index: 1090;
+  z-index: 1090; /* 层级带：编辑器遮罩式抽屉组（tokens.css §14）—— 非随手魔数 */
   opacity: 0;
   transition: opacity 0.22s ease;
   -webkit-backdrop-filter: blur(1px);
@@ -21,7 +21,7 @@
   bottom: 0;
   width: 400px;
   max-width: 92vw;
-  z-index: 1091;
+  z-index: 1091; /* 层级带：同上（drawer 恒高于自己的 backdrop 1090） */
   display: flex;
   flex-direction: column;
   background: var(--mc-bg-panel, #f7f7f8);
@@ -287,7 +287,7 @@
 .vh-confirm-mask {
   position: fixed;
   inset: 0;
-  z-index: 1095;
+  z-index: 1095; /* 层级带：同上（恢复确认需盖过抽屉本体 1091） */
   display: flex;
   align-items: center;
   justify-content: center;

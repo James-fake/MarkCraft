@@ -40,6 +40,12 @@
  *                                同时被 NoteContextPanel / CanvasSidebarPanel 复用
  *   · QuickSwitcher             文件快速切换命令浮层（原 z 100000 + #1e1e2e）
  *   · ImagePreviewModal         图片灯箱（原全内联 rgba/#fff + z 9999）
+ *   ── 2026-09-24 阶段二补入（旧审计只扫 createPortal，这两处都是盲区）──────────────
+ *   · EditorLayout 滚动恢复提示   ★**自持 fixed 浮层但非 createPortal** ⇒ 不在 portal
+ *                                搜索结果里；原为紫色渐变底 + #fff + 自绘白按钮 + z 99999
+ *   · FrontMatterPanel           文档属性模态：原 z 200（给反了，落在锚定带 1000 之下）
+ *                                + --editor-* 旧变量 + rgba(59,130,246,.2) 焦点环
+ *                                 + handleFocus/Blur 直接写 currentTarget.style
  *
  * 本文件钉死（改坏任一条即报红）：
  *  1. 根元素必须带对应单源基底类（材质/边框/圆角/阴影/z-index 单一来源）；
@@ -124,6 +130,17 @@ const OVERLAYS: OverlaySpec[] = [
   { label: '笔记悬停预览卡（跨作用域共享）', file: 'features/editor/components/NoteHoverCard.tsx', base: 'aurora-dropdown' },
   { label: '快速切换命令浮层', file: 'features/editor/components/QuickSwitcher.tsx', base: 'aurora-command-overlay', item: 'aurora-command__item' },
   { label: '图片灯箱', file: 'features/editor/ImagePreviewModal.tsx', base: 'aurora-modal-overlay aurora-modal-overlay--dim' },
+  {
+    label: '文档属性（Front Matter）模态',
+    file: 'features/editor/FrontMatterPanel.tsx',
+    base: 'aurora-modal-overlay',
+  },
+  {
+    label: '编辑器滚动恢复提示（自持 fixed 浮层 · 非 portal）',
+    file: 'features/editor/EditorLayout.tsx',
+    base: 'aurora-toast-container',
+    scope: ['{showScrollRestoreHint &&', '\n    )}'],
+  },
 ]
 
 /** 旧版遗留字面量（出现即说明有片段没跟着迁移） */
@@ -191,8 +208,10 @@ describe('浮层基底同源契约（portal 浮层不得逃出 aurora 作用域�
     expect(region, `未复用 ${item} ⇒ 行样式各写各的，hover/选中态必然漂移`).toContain(item)
   })
 
-  it.each(OVERLAYS)('$label：层级魔数不得回流', ({ file }) => {
-    expect(read(file), '取值只认 tokens.css §14 层级带表，禁写 9999/10000 档').not.toMatch(BAND_BAN)
+  it.each(OVERLAYS)('$label：层级魔数不得回流', ({ file, scope }) => {
+    const src = read(file)
+    const region = scope ? scopeOf(src, scope) : src
+    expect(region, '取值只认 tokens.css §14 层级带表，禁写 9999/10000 档').not.toMatch(BAND_BAN)
   })
 })
 
@@ -214,6 +233,39 @@ describe('浮层层级带契约（tokens.css §14）', () => {
     } else {
       expect(values.length, '扫描面为 0 ⇒ 断言无意义（先证明确实有层级声明）').toBeGreaterThan(0)
       expect([...new Set(values)].sort()).toEqual([...allowed].sort())
+    }
+  })
+})
+
+/**
+ * 层级带契约 · **CSS 侧**（2026-09-24 阶段二补：原守卫的盲区）
+ * ------------------------------------------------------------
+ * 根因：上方两条契约只匹配 TSX 里的内联 `zIndex:`，**CSS 里的 `z-index:` 完全没扫**
+ *   ⇒ `EditorLayout` 的 `zIndex:99999` 与 `versionHistory.css` 的 1090/1091/1095
+ *     都因此长期漏检（前者已随 toast 迁移修掉，后者属「补登记专用带」）。
+ * 判据：CSS 文件里的 `z-index` 取值必须**逐值可回溯到 tokens.css §14 表**；
+ *   `z-index:1` 这类容器内局部档（sticky 表头）不属于全局带，单独白名单放行。
+ */
+describe('层级带契约 · CSS 侧', () => {
+  /** [人读名, 相对 src/ 的路径, 允许的取值全集] */
+  const CSS_BANDS: Array<[string, string, number[]]> = [
+    // 1090 backdrop / 1091 drawer / 1095 确认 mask（三档专用带）+ 1（抽屉内 sticky 分组标题，局部档）
+    ['版本历史抽屉组', 'features/editor/versionHistory.css', [1090, 1091, 1095, 1]],
+  ]
+
+  it.each(CSS_BANDS)('%s：CSS 内 z-index 只允许出现在层级带内（含局部 1 档）', (_label, file, allowed) => {
+    const src = read(file)
+    const values = [...src.matchAll(/z-index:\s*(\d+)/g)].map((m) => Number(m[1]))
+    expect(values.length, '扫描面为 0 ⇒ 这条断言等于没写').toBeGreaterThan(0)
+    expect([...new Set(values)].sort((a, b) => a - b)).toEqual([...allowed].sort((a, b) => a - b))
+  })
+
+  it('版本历史抽屉组的取值必须已登记进层级带表（值 ↔ 表 双锚点）', () => {
+    // ⚠️ 必须读**未剥注释**的原文：层级带表本身就在 tokens.css 的块注释里，
+    //    用 read()（会剥注释）查表会永远查不到 ⇒ 假红/假绿（本轮踩过）。
+    const raw = readFileSync(resolve(SRC, 'aurora/styles/tokens.css'), 'utf-8')
+    for (const v of [1090, 1091, 1095]) {
+      expect(raw, `tokens.css §14 层级带表未登记 ${v} ⇒ 「只认表」的纪律无从执行`).toContain(String(v))
     }
   })
 })
