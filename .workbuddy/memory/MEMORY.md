@@ -48,3 +48,14 @@ PATH：`PortableGit/1.2.0/{cmd,usr/bin,mingw64/bin}`+`node/22.22.2-3`+`System32`
 - ⚠️ **统计「旧变量/字面量」必须先排除两类假阳性**：① `--button-primary`（`base.css:25` = `var(--mc-accent)`，
   在 `:root` 解析、全局一致）不是隐患；② `var(--x, #hex)` 是死兜底（x 已定义则永不生效），
   与裸字面量 `'#hex'` 的严重性完全不同。
+- 🚨 **逃逸机制的实测真像（CDP 证伪）**：「portal 到 body 后 --editor-* 未定义」是错的 —— base.css 在
+  :root 就定义了它们，值 = 旧 slate（--editor-bg=#0f172a）。逃逸不是「落 CSS 兜底」，而是**静默命中旧值**
+  ⇒ 判据只能是「同变量在 #aurora-root 内外取值不同」（CDP 实测：域外 rgb(15,23,42) / 域内 rgb(16,18,24)）。
+- 🚨 **第三条缺陷轴：跨作用域共享子组件**。NoteHoverCard.tsx 被 3 处消费（cm6/wikiLinkHoverTooltip 用
+  createRoot 挂 body = 完全逃逸 ⇒ 暗色主题下白卡；另有 NoteContextPanel / CanvasSidebarPanel）⇒ 只查
+  「浮层本体」必漏，须沿 import 图查每个子模块的**全部消费方挂载点**。同族单源类：锚定 .aurora-dropdown
+  (1000) / 模态 .aurora-modal-overlay(3000，深色遮罩用 --dim 变体) / 命令 .aurora-command*(9000)。
+- ⚠️ 大文件（WysiwygToolbar.tsx 宿主自身在作用域内合法用 --editor-*）无法整文件进守卫 ⇒ 守卫须支持
+  **片区锚点**（[start, end) 切出只迁移了局部浮层的片段），否则要么漏扫、要么误报。
+- ⚠️ 守卫要有牙：写完必须做**注入式阳性对照**（临时塞 --editor-bg + zIndex:9999 跑红再还原）；
+  「全绿」本身不是证据。守卫 = src/features/editor/toolbar/portalOverlayBasis.test.ts（75 例 / 10 浮层 + 层级带）。

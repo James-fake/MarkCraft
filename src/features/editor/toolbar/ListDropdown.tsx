@@ -79,7 +79,6 @@ export default function ListDropdown({ editor, t }: { editor: Editor; t: Transla
             position: 'fixed',
             top: `${pos.top}px`,
             left: `${pos.left}px`,
-            zIndex: 9999,
             minWidth: '140px',
           }}
         >

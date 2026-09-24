@@ -91,7 +91,6 @@ export default function MoreDropdown({ items, buttonRef }: MoreDropdownProps) {
             position: 'fixed',
             top: `${menuPos.top}px`,
             left: `${menuPos.left}px`,
-            zIndex: 9999,
             minWidth: '180px',
           }}
         >

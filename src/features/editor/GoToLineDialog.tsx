@@ -45,24 +45,16 @@ export default function GoToLineDialog({ visible, onClose, currentLine, totalLin
 
   if (!visible) return null
 
+  // 模态：遮罩/面板/按钮一律走 aurora 单源类（z-index 3000 带、材质、hover 全由类提供）。
+  // createPortal 到 body 已脱离 #aurora-root，内部只引用全局 --mc-* token。
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+      className="aurora-modal-overlay"
       onClick={handleOverlayClick}
     >
-      <div
-        style={{
-          width: '360px',
-          backgroundColor: 'var(--editor-bg)',
-          color: 'var(--editor-text)',
-          border: '1px solid var(--editor-border)',
-          borderRadius: '8px',
-          boxShadow: '0 4px 24px rgba(0, 0, 0, 0.3)',
-        }}
-      >
+      <div className="aurora-modal aurora-modal--sm">
         <div style={{ padding: '16px 20px 12px' }}>
-          <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>
+          <div style={{ fontSize: 'var(--mc-font-md)', fontWeight: 600, marginBottom: '12px', color: 'var(--mc-text-primary)' }}>
             跳转到行
           </div>
           <ScrollNumberInput
@@ -76,16 +68,16 @@ export default function GoToLineDialog({ visible, onClose, currentLine, totalLin
             style={{
               width: '100%',
               padding: '6px 10px',
-              fontSize: '13px',
-              backgroundColor: 'rgba(128, 128, 128, 0.1)',
-              color: 'var(--editor-text)',
-              border: '1px solid var(--editor-border)',
-              borderRadius: '4px',
+              fontSize: 'var(--mc-font-base)',
+              backgroundColor: 'var(--mc-bg-window)',
+              color: 'var(--mc-text-primary)',
+              border: '1px solid var(--mc-border-medium)',
+              borderRadius: 'var(--mc-radius-sm)',
               outline: 'none',
               boxSizing: 'border-box',
             }}
           />
-          <div style={{ fontSize: '12px', opacity: 0.5, marginTop: '8px' }}>
+          <div style={{ fontSize: 'var(--mc-font-sm)', color: 'var(--mc-text-tertiary)', marginTop: '8px' }}>
             当前行: {currentLine} / 总行数: {totalLines}
           </div>
         </div>
@@ -95,39 +87,13 @@ export default function GoToLineDialog({ visible, onClose, currentLine, totalLin
             display: 'flex',
             justifyContent: 'flex-end',
             gap: '8px',
-            borderTop: '1px solid var(--editor-border)',
+            borderTop: '1px solid var(--mc-border-subtle)',
           }}
         >
-          <button
-            onClick={onClose}
-            style={{
-              padding: '6px 16px',
-              fontSize: '13px',
-              borderRadius: '4px',
-              backgroundColor: 'rgba(128, 128, 128, 0.1)',
-              color: 'var(--editor-text)',
-              border: '1px solid var(--editor-border)',
-              cursor: 'pointer',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(128, 128, 128, 0.2)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(128, 128, 128, 0.1)' }}
-          >
+          <button className="aurora-btn aurora-btn--sm aurora-btn--secondary" onClick={onClose}>
             取消
           </button>
-          <button
-            onClick={handleGoToLine}
-            style={{
-              padding: '6px 16px',
-              fontSize: '13px',
-              borderRadius: '4px',
-              backgroundColor: 'var(--button-primary, #3b82f6)',
-              color: '#fff',
-              border: '1px solid transparent',
-              cursor: 'pointer',
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.85' }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = '1' }}
-          >
+          <button className="aurora-btn aurora-btn--sm aurora-btn--primary" onClick={handleGoToLine}>
             跳转
           </button>
         </div>

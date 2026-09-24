@@ -94,7 +94,7 @@ export default function ListMenuPopover({
       label: t.listMenu.unorderedList,
       shortcut: '- ',
       icon: (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <circle cx="4" cy="6" r="1.5" fill="currentColor" stroke="none" />
           <line x1="9" y1="6" x2="20" y2="6" />
           <circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none" />
@@ -109,7 +109,7 @@ export default function ListMenuPopover({
       label: t.listMenu.orderedList,
       shortcut: '1. ',
       icon: (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <text x="2" y="9" fontSize="8" fill="currentColor" stroke="none" fontFamily="sans-serif">1</text>
           <line x1="10" y1="6" x2="20" y2="6" />
           <text x="2" y="15" fontSize="8" fill="currentColor" stroke="none" fontFamily="sans-serif">2</text>
@@ -124,7 +124,7 @@ export default function ListMenuPopover({
       label: t.listMenu.taskList,
       shortcut: '- [ ] ',
       icon: (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <rect x="3" y="5" width="4" height="4" rx="0.5" />
           <line x1="10" y1="7" x2="20" y2="7" />
           <path d="M4.5 7L5.5 8L7.5 6" strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} />
@@ -139,7 +139,7 @@ export default function ListMenuPopover({
       label: t.listMenu.indent,
       shortcut: 'Tab',
       icon: (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l4 4-4 4" />
           <line x1="11" y1="12" x2="21" y2="12" />
         </svg>
@@ -150,7 +150,7 @@ export default function ListMenuPopover({
       label: t.listMenu.outdent,
       shortcut: 'Shift+Tab',
       icon: (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <svg width={16} height={16} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M7 8l-4 4 4 4" />
           <line x1="11" y1="12" x2="21" y2="12" />
         </svg>
@@ -162,13 +162,13 @@ export default function ListMenuPopover({
   return createPortal(
     <div
       ref={popoverRef}
+      className="aurora-dropdown"
       style={{
         position: 'fixed',
         top: `${position.top}px`,
         left: `${position.left}px`,
-        zIndex: 9999,
+        minWidth: '200px',
       }}
-      className="rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 min-w-[200px] py-1 bg-white dark:bg-gray-800"
       role="menu"
       aria-label={t.listMenu.unorderedList}
     >
@@ -177,8 +177,7 @@ export default function ListMenuPopover({
           return (
             <div
               key={`sep-${index}`}
-              className="my-1 mx-2"
-              style={{ height: '1px', backgroundColor: 'var(--editor-border)' }}
+              style={{ height: '1px', margin: '4px 8px', backgroundColor: 'var(--mc-border-subtle)' }}
             />
           )
         }
@@ -188,23 +187,16 @@ export default function ListMenuPopover({
         return (
           <button
             key={menuItem.label}
-            className="w-full flex items-center gap-3 px-3 py-2 text-sm transition-colors cursor-pointer text-left text-gray-700 dark:text-gray-300"
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--hover-bg, rgba(59, 130, 246, 0.1))'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent'
-            }}
+            className="aurora-dropdown__item"
             onClick={() => handleAction(menuItem.action)}
             role="menuitem"
           >
-            <span className="flex-shrink-0 w-5 h-5 flex items-center justify-center opacity-70">
+            <span style={{ flexShrink: 0, width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--mc-icon)' }}>
               {menuItem.icon}
             </span>
-            <span className="flex-1">{menuItem.label}</span>
+            <span style={{ flex: 1 }}>{menuItem.label}</span>
             <span
-              className="text-xs opacity-40 font-mono"
-              style={{ fontFamily: "'Fira Code', 'Consolas', monospace" }}
+              style={{ fontSize: 'var(--mc-font-xs)', color: 'var(--mc-text-tertiary)', fontFamily: 'var(--mc-font-mono)' }}
             >
               {menuItem.shortcut}
             </span>

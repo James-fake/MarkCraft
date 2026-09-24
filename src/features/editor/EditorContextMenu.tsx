@@ -181,7 +181,7 @@ function MenuItem({
             position: 'fixed',
             left: submenuPosition.x,
             top: submenuPosition.y,
-            zIndex: 10001,
+            zIndex: 10030, // 层级带 §14：ContextMenu 瞬态右键菜单（子菜单靠 DOM 顺序压在父菜单之上）
             border: '1px solid var(--mc-border-medium)',
             borderRadius: 'var(--mc-radius-md, 8px)',
             boxShadow: 'var(--mc-shadow-popover)',
@@ -696,7 +696,7 @@ export default function EditorContextMenu({
         position: 'fixed',
         left: position.left,
         top: position.top,
-        zIndex: 10000,
+        zIndex: 10030, // 层级带 §14：ContextMenu 瞬态右键菜单
         border: '1px solid var(--mc-border-medium)',
         borderRadius: 'var(--mc-radius-md, 8px)',
         boxShadow: 'var(--mc-shadow-popover)',

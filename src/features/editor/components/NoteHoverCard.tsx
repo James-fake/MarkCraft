@@ -37,36 +37,38 @@ interface NoteHoverCardViewProps {
 
 /** 纯展示层：不依赖任何 context，供 createRoot 等脱离 Provider 的环境使用 */
 export function NoteHoverCardView({ data, onOpen, width = 300 }: NoteHoverCardViewProps) {
+  // ⚠️ 本卡片是**跨作用域共享**组件，三个消费方的挂载点都在 #aurora-root 之外或不保证在作用域内：
+  //   - cm6/wikiLinkHoverTooltip：createRoot 挂到 body（CM6 hoverTooltip 自管 DOM）⇒ 完全逃逸；
+  //   - NoteContextPanel / CanvasSidebarPanel：position:fixed 浮层。
+  // 因此一律只引用全局 --mc-* token，并复用 .aurora-dropdown 单源基底
+  // （材质 / 边框 / 圆角 / 阴影 / z-index 1000 带），**禁止**再引用 --editor-*（会静默回落旧 slate）。
   const cardStyle: React.CSSProperties = {
+    position: 'relative',
     maxWidth: width,
     padding: 12,
-    background: 'var(--editor-bg, #fff)',
-    border: '1px solid var(--editor-border, #333)',
-    borderRadius: 8,
-    boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-    fontSize: 12,
-    color: 'var(--editor-text, #111)',
+    fontSize: 'var(--mc-font-sm)',
+    color: 'var(--mc-text-primary)',
     pointerEvents: 'auto',
   }
 
   if (data.broken) {
     return (
-      <div style={cardStyle}>
-        <span style={{ color: '#ef4444', fontSize: 14 }}>⚠ </span>
-        <span style={{ color: '#ef4444', fontSize: 12 }}>文件不存在：{data.title}</span>
+      <div className="aurora-dropdown" style={cardStyle}>
+        <span style={{ color: 'var(--mc-danger)', fontSize: 'var(--mc-font-md)' }}>⚠ </span>
+        <span style={{ color: 'var(--mc-danger)', fontSize: 'var(--mc-font-sm)' }}>文件不存在：{data.title}</span>
       </div>
     )
   }
 
   return (
-    <div style={cardStyle}>
+    <div className="aurora-dropdown" style={cardStyle}>
       {/* 标题行 */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 13, fontWeight: 700 }}>{truncate(data.title, 24)}</span>
+        <span style={{ fontSize: 'var(--mc-font-base)', fontWeight: 700 }}>{truncate(data.title, 24)}</span>
         {data.fuzzy && (
           <span style={{
-            fontSize: 10, padding: '1px 6px', borderRadius: 3,
-            background: 'rgba(245,158,11,0.15)', color: '#f59e0b', whiteSpace: 'nowrap',
+            fontSize: 'var(--mc-font-xs)', padding: '1px 6px', borderRadius: 'var(--mc-radius-sm)',
+            background: 'var(--mc-warning-soft)', color: 'var(--mc-warning)', whiteSpace: 'nowrap',
           }}>
             模糊匹配
           </span>
@@ -78,8 +80,8 @@ export function NoteHoverCardView({ data, onOpen, width = 300 }: NoteHoverCardVi
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
           {data.tags.slice(0, 5).map(tag => (
             <span key={tag} style={{
-              fontSize: 10, padding: '1px 6px', borderRadius: 3,
-              background: 'rgba(34,197,94,0.12)', color: '#22c55e',
+              fontSize: 'var(--mc-font-xs)', padding: '1px 6px', borderRadius: 'var(--mc-radius-sm)',
+              background: 'var(--mc-success-soft)', color: 'var(--mc-success)',
             }}>
               #{tag}
             </span>
@@ -90,7 +92,7 @@ export function NoteHoverCardView({ data, onOpen, width = 300 }: NoteHoverCardVi
       {/* 摘要 */}
       {data.summary && (
         <div style={{
-          fontSize: 12, opacity: 0.85, lineHeight: 1.5, maxHeight: 120,
+          fontSize: 'var(--mc-font-sm)', opacity: 0.85, lineHeight: 1.5, maxHeight: 120,
           overflow: 'hidden', whiteSpace: 'pre-wrap', wordBreak: 'break-word', marginBottom: 6,
         }}>
           {data.summary}
@@ -98,17 +100,13 @@ export function NoteHoverCardView({ data, onOpen, width = 300 }: NoteHoverCardVi
       )}
 
       {/* 统计 + 打开 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 11, opacity: 0.6 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, fontSize: 'var(--mc-font-xs)', color: 'var(--mc-text-tertiary)' }}>
         <span>{data.backlinkCount} 反链 · {data.outgoingCount} 出链</span>
         {onOpen && data.fileId && (
           <button
             type="button"
+            className="aurora-btn aurora-btn--sm aurora-btn--ghost"
             onClick={() => onOpen(data.fileId)}
-            style={{
-              border: '1px solid var(--editor-border, #444)',
-              borderRadius: 4, background: 'transparent', cursor: 'pointer',
-              fontSize: 11, padding: '2px 8px', color: 'var(--editor-text, #111)',
-            }}
           >
             打开
           </button>

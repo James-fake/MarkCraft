@@ -21,29 +21,19 @@ export default function TableGridSelector({
     onClose()
   }, [editor, hoveredCell, onClose])
 
+  // 模态：遮罩/面板一律走 aurora 单源类（遮罩 rgba(0,0,0,.5) + z-index 3000 带由类提供）。
+  // createPortal 到 body 已脱离 #aurora-root，内部只引用全局 --mc-* token。
   return createPortal(
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 10000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(0,0,0,0.3)',
-      }}
+      className="aurora-modal-overlay"
       onClick={onClose}
     >
       <div
-        style={{
-          backgroundColor: 'var(--editor-bg)',
-          borderRadius: '12px',
-          boxShadow: '0 16px 48px rgba(0,0,0,0.2)',
-          padding: '16px',
-        }}
+        className="aurora-modal"
+        style={{ minWidth: 0, padding: '16px' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '10px', color: 'var(--editor-text)' }}>
+        <div style={{ fontSize: 'var(--mc-font-base)', fontWeight: 500, marginBottom: '10px', color: 'var(--mc-text-primary)' }}>
           插入表格
         </div>
         <div
@@ -63,11 +53,11 @@ export default function TableGridSelector({
                   style={{
                     width: '20px',
                     height: '20px',
-                    borderRadius: '3px',
-                    backgroundColor: isHighlighted ? 'rgba(59, 130, 246, 0.2)' : 'var(--editor-border)',
-                    border: isHighlighted ? '1px solid var(--button-primary, #3b82f6)' : '1px solid transparent',
+                    borderRadius: 'var(--mc-radius-sm)',
+                    backgroundColor: isHighlighted ? 'var(--mc-accent-soft)' : 'var(--mc-border-medium)',
+                    border: isHighlighted ? '1px solid var(--mc-accent)' : '1px solid transparent',
                     cursor: 'pointer',
-                    transition: 'all 0.1s',
+                    transition: 'background-color var(--mc-dur-micro) ease-out, border-color var(--mc-dur-micro) ease-out',
                   }}
                   onMouseEnter={() => setHoveredCell({ row: r + 1, col: c + 1 })}
                   onClick={handleSelect}
@@ -76,7 +66,7 @@ export default function TableGridSelector({
             })
           )}
         </div>
-        <div style={{ fontSize: '12px', color: 'var(--editor-text)', opacity: 0.6, marginTop: '8px', textAlign: 'center' }}>
+        <div style={{ fontSize: 'var(--mc-font-sm)', color: 'var(--mc-text-secondary)', marginTop: '8px', textAlign: 'center' }}>
           {hoveredCell.row > 0 ? `${hoveredCell.row} × ${hoveredCell.col} 表格` : '选择大小'}
         </div>
       </div>

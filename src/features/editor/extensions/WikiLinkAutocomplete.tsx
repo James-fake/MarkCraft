@@ -424,23 +424,21 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
     return headings.length > 0 ? headings[0] : null
   }
 
+  // 单源基底：本组件经 createPortal 挂到 body，逃出 #aurora-root 的 --editor-* 重映射作用域，
+  // 故必须复用 .aurora-dropdown（材质/边框/圆角/阴影/z-index:1000/padding 全部由它提供），
+  // 内部一律只引用全局 --mc-* token，禁止再写旧 slate 变量或裸色值。
   return createPortal(
     <div
       ref={containerRef}
       onKeyDown={handleKeyDown}
+      className="aurora-dropdown"
       style={{
         position: 'fixed',
         left: coords.left,
         top: coords.top,
-        background: 'var(--mc-bg-panel, #1e1e2e)',
-        border: '1px solid var(--border-color)',
-        borderRadius: 8,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
         maxHeight: 300,
-        overflowY: 'auto',
         minWidth: 280,
-        zIndex: 9999,
-        padding: 4,
+        maxWidth: 420,
       }}
     >
       {headingMode ? (
@@ -448,9 +446,9 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
         <>
           <div style={{
             padding: '6px 12px',
-            fontSize: 11,
-            color: 'var(--text-muted, #888)',
-            borderBottom: '1px solid var(--border-color)',
+            fontSize: 'var(--mc-font-xs)',
+            color: 'var(--mc-text-tertiary)',
+            borderBottom: '1px solid var(--mc-border-subtle)',
             marginBottom: 4,
           }}>
             标题 - {headingMode.fileName}
@@ -460,20 +458,15 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
               key={heading}
               onClick={() => insertHeadingLink(heading)}
               onMouseEnter={() => setSelectedIndex(index)}
+              className={`aurora-dropdown__item${index === selectedIndex ? ' aurora-dropdown__item--highlighted' : ''}`}
               style={{
-                display: 'flex',
-                alignItems: 'center',
+                height: 'auto',
+                padding: '6px 12px',
                 gap: 8,
-                padding: '8px 12px',
-                cursor: 'pointer',
-                borderRadius: 4,
-                background:
-                  index === selectedIndex
-                    ? 'rgba(59,130,246,0.15)'
-                    : 'transparent',
+                borderRadius: 'var(--mc-radius-sm)',
                 borderLeft:
                   index === selectedIndex
-                    ? '3px solid #3b82f6'
+                    ? '3px solid var(--mc-accent)'
                     : '3px solid transparent',
               }}
               onMouseDown={(e) => {
@@ -486,8 +479,8 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
-                  fontSize: 13,
-                  color: 'var(--text-primary, #e0e0e0)',
+                  fontSize: 'var(--mc-font-base)',
+                  color: 'var(--mc-text-primary)',
                 }}
               >
                 {heading}
@@ -504,20 +497,15 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
               key={`date-${ds.dateStr}`}
               onClick={() => insertDateLink(ds.dateStr)}
               onMouseEnter={() => setSelectedIndex(index)}
+              className={`aurora-dropdown__item${index === selectedIndex ? ' aurora-dropdown__item--highlighted' : ''}`}
               style={{
-                display: 'flex',
-                alignItems: 'center',
+                height: 'auto',
+                padding: '6px 12px',
                 gap: 8,
-                padding: '8px 12px',
-                cursor: 'pointer',
-                borderRadius: 4,
-                background:
-                  index === selectedIndex
-                    ? 'rgba(59,130,246,0.15)'
-                    : 'transparent',
+                borderRadius: 'var(--mc-radius-sm)',
                 borderLeft:
                   index === selectedIndex
-                    ? '3px solid #3b82f6'
+                    ? '3px solid var(--mc-accent)'
                     : '3px solid transparent',
               }}
               onMouseDown={(e) => {
@@ -531,16 +519,16 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    fontSize: 13,
-                    color: 'var(--text-primary, #e0e0e0)',
+                    fontSize: 'var(--mc-font-base)',
+                    color: 'var(--mc-text-primary)',
                   }}
                 >
                   {ds.dateStr}
                 </span>
                 <span
                   style={{
-                    fontSize: 11,
-                    color: '#3b82f6',
+                    fontSize: 'var(--mc-font-xs)',
+                    color: 'var(--mc-accent-text)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -566,20 +554,15 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
               key={file.id}
               onClick={() => insertWikiLink(file)}
               onMouseEnter={() => setSelectedIndex(adjustedIndex)}
+              className={`aurora-dropdown__item${adjustedIndex === selectedIndex ? ' aurora-dropdown__item--highlighted' : ''}`}
               style={{
-                display: 'flex',
-                alignItems: 'center',
+                height: 'auto',
+                padding: '6px 12px',
                 gap: 8,
-                padding: '8px 12px',
-                cursor: 'pointer',
-                borderRadius: 4,
-                background:
-                  adjustedIndex === selectedIndex
-                    ? 'rgba(59,130,246,0.15)'
-                    : 'transparent',
+                borderRadius: 'var(--mc-radius-sm)',
                 borderLeft:
                   adjustedIndex === selectedIndex
-                    ? '3px solid #3b82f6'
+                    ? '3px solid var(--mc-accent)'
                     : '3px solid transparent',
               }}
               onMouseDown={(e) => {
@@ -593,8 +576,8 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    fontSize: 13,
-                    color: 'var(--text-primary, #e0e0e0)',
+                    fontSize: 'var(--mc-font-base)',
+                    color: 'var(--mc-text-primary)',
                   }}
                 >
                   {stripMdExtension(file.name)}
@@ -602,8 +585,8 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
                 {hasDuplicateName && filePath ? (
                   <span
                     style={{
-                      fontSize: 11,
-                      color: '#f59e0b',
+                      fontSize: 'var(--mc-font-xs)',
+                      color: 'var(--mc-warning)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
@@ -614,8 +597,8 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
                 ) : firstHeading ? (
                   <span
                     style={{
-                      fontSize: 11,
-                      color: 'var(--text-muted, #888)',
+                      fontSize: 'var(--mc-font-xs)',
+                      color: 'var(--mc-text-tertiary)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
@@ -626,8 +609,8 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
                 ) : (
                   <span
                     style={{
-                      fontSize: 11,
-                      color: 'var(--text-muted, #888)',
+                      fontSize: 'var(--mc-font-xs)',
+                      color: 'var(--mc-text-tertiary)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',

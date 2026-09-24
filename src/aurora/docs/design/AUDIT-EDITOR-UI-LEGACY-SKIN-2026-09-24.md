@@ -321,3 +321,72 @@ node .workbuddy/artifacts/audit-editor-ui-skin-literals.cjs
 2. **主题取值依赖运行时**：`data-theme` 由 `ThemeManager.ts:210/246` 写入，深色/浅色两态下 Tailwind 皮肤的**具体色值不同**，但**两态都不等于 `--mc-*`** —— 结论不依赖默认主题。
 3. `ImagePreviewModal` / `WikiLinkHoverPreview` 是全自持浮层，**视觉上可能「看起来还行」**；列入清单的理由是「token 零耦合 + 层级越界」，属一致性缺陷而非明显错色。若你希望按「肉眼可见」排序，这两项可降级。
 4. 节点视图族（`CalloutView` 等）的 11 处裸 hex（`#3b82f6 #22c55e #f59e0b #ef4444 #06b6d4`）是**语义色板**，在 `#aurora-root` 内可用；是否替换为 `--mc-success|warning|danger` 需先确认与 `--mc-*` 语义色的映射关系，本轮**未擅自判定**。
+
+---
+
+## 12. 执行台账（2026-09-24 同日完成）
+
+按 §9 顺序执行 **批次 4 → 1 → 2 → 3 → 5 → 6**（批次 4 提前，先闭合上轮漏网）。
+
+| 批次 | 状态 | 落点 |
+|---|---|---|
+| 4 | ✅ | `mindmapTemplates.tsx` 子模块：stroke/fill/缩略图配色 → `--mc-border-strong` / `--mc-text-inverse` / `--mc-accent(-hover/-text)` / `--mc-warning` |
+| 1 | ✅ | `ListMenuPopover`：删 Tailwind 整层 + `zIndex:9999` → `aurora-dropdown` + `aurora-dropdown__item` |
+| 2 | ✅ | `EmojiPicker`、`WysiwygToolbar` 两调色板（L414/L553）→ 同基底 + `--mc-*` |
+| 3 | ✅ | `TableGridSelector` / `GoToLineDialog` / `LinkModal` / `ImageModal` → `aurora-modal-overlay` + `aurora-modal`(+`--sm`)，按钮改 `aurora-btn--sm --secondary/--primary/--ghost/--danger` |
+| 5 | ✅ | `QuickSwitcher` → `.aurora-command*`；`WikiLinkHoverPreview` / `WikiLinkAutocomplete` → `aurora-dropdown`；**`NoteHoverCard`（新增发现：跨作用域共享子组件）** → 基底 + `--mc-*`；`NoteContextPanel` 紫字面量/旧变量 → `--mc-accent-text` / `--mc-graph-*`；`ImagePreviewModal` → 新增 `--dim` 遮罩变体 + `.aurora-lightbox__*` |
+| 6 | ✅ | 4 个下拉删内联 `9999`；`EditorContextMenu` 10001/10000 → **10030**；`NoteContextPanel`/`CanvasSidebarPanel` 的 `10002` 移除；`QuickSwitcher` `100000` → 9000 |
+| 7 | ⏸️ 未做 | P2「作用域内旧变量」46 处 —— 按原计划**仅随 portal 化进行**，仍保持不动 |
+
+### 新增发现（原报告未列）
+- 🚨 **第三条缺陷轴：跨作用域共享子组件**。`components/NoteHoverCard.tsx` 被 3 处消费，其中
+  `cm6/wikiLinkHoverTooltip.tsx` 用 `createRoot(document.createElement('div'))` 挂 body ——
+  既不在 `createPortal` 的搜索结果里，也拿不到 Provider ⇒ **完全逃逸**：
+  `background: 'var(--editor-bg, #fff)'` 在暗色主题下渲染成**白卡**。
+  该卡同时被 `NoteContextPanel` / `CanvasSidebarPanel` 复用 ⇒ 必须整卡按逃逸标准迁移。
+- **单源基底族补全**：原报告只列了 `.aurora-dropdown`，实测另有更贴合的
+  `.aurora-modal-overlay`+`.aurora-modal`（z 3000）与 `.aurora-command*`（z 9000，`command-palette.css`）。
+- **新增单源件**：`.aurora-modal-overlay--dim`（恒暗遮罩变体）与 `.aurora-lightbox__btn/__stage/__bar`
+  （`components.css`，图片灯箱；反色控件走 `color-mix`，两主题可读）。
+
+### 验证链结果
+| 项 | 结果 |
+|---|---|
+| 类型检查 | `tsc --noEmit` exit 0 |
+| 全量测试 | **130 文件 / 1738 例通过**（2 skipped） |
+| Lint | 本轮 12 文件 **0 error**；20 warning 全为既有 `no-explicit-any`/`exhaustive-deps`/`react-refresh`，非本轮引入 |
+| 构建 | `✓ built in 1m 15s`（注：直接 build 会在清空旧 `dist/` 时被沙箱批量删除守卫拦下 ⇒ 用 `--outDir` 新目录复跑，属环境而非代码） |
+| 浮层契约守卫 | `portalOverlayBasis.test.ts` 重构为 spec 驱动，**75 例 / 10 浮层 + 层级带**全绿；并做**注入式阳性对照**（塞 `var(--editor-bg)`+`zIndex:9999` → 3 条轴同时报红后还原） |
+| 真机 CDP | 无头 Edge 153，`13/13` 通过（见 §12.1） |
+
+### 12.1 真机取证（`http://localhost:5174/`）
+探针 `.workbuddy/artifacts/cdp-overlay-verify.cjs`：探针元素**刻意挂在 `document.body`**
+（= `#aurora-root` 的兄弟，复现 portal 真实处境），读 CSSOM 真值比对而非抄字面值。
+
+| 断言 | 实测 |
+|---|---|
+| `.aurora-dropdown` 背景 = `--mc-bg-elevated` | `rgb(26,28,36)` ✅ |
+| `.aurora-dropdown` 圆角 = `--mc-radius-md` | `8px` ✅ |
+| `.aurora-dropdown` 层级 = 锚定带 | `1000` ✅ |
+| `.aurora-dropdown` 边框含 `--mc-border-medium` / 阴影 | `1px solid rgb(38,43,59)` / 已生效 ✅ |
+| `.aurora-modal-overlay--dim` 遮罩 / 层级 | `rgba(0,0,0,0.85)` / `3000` ✅ |
+| `.aurora-command-overlay` 层级 | `9000` ✅ |
+| `.aurora-lightbox__btn` 前景 / 底色 | `rgb(255,255,255)` / `color(srgb 1 1 1 / 0.1)` ✅ |
+
+**⭐ 机制修正（实测证伪原假设）**：原推断「portal 到 body 后 `--editor-*` 未定义 → 落 CSS 兜底」是**错的**。
+`base.css` 在 `:root` 就定义了这些变量，值 = **旧 slate**。实测同一变量：
+
+| 位置 | `var(--editor-bg)` 实测 |
+|---|---|
+| `document.body`（portal 处境） | `rgb(15, 23, 42)` = **#0f172a（旧 slate 指纹）** |
+| `#aurora-root` 内 | `rgb(16, 18, 24)` = `--mc-bg-content` 真值 |
+
+⇒ 逃逸**不是**「变量缺失」而是「**静默命中旧值**」：不报错、不崩溃，只是颜色是旧的。
+这正是报障「界面是最旧一版 UI」的成因，也说明判据只能是「**同变量在作用域内外取值不同**」。
+
+### 12.2 收尾
+- 真机与构建用的 dev server（5174）/ 无头 Edge（9222）已停止，`netstat` 复核端口已释放
+  （避免下次 `--strictPort` 启动直接失败）
+- 记忆：`.workbuddy/memory/MEMORY.md`（+5 条铁律）、`TOPICS.md`（浮层单源基底族 + 守卫写法）、
+  `2026-09-24.md`（批次执行全记录）
+- 技能：`ui-legacy-skin-audit` 由「四轴」升级为「五轴」，新增「迁移后上锁（守卫 + 真机取证）」整节

@@ -75,26 +75,25 @@ const QuickSwitcher: React.FC<QuickSwitcherProps> = ({ visible, onClose, onOpenF
 
   if (!visible) return null
 
+  // 命令浮层：复用 aurora 单源命令面板类（遮罩 rgba(0,0,0,.45)、顶部 15vh 定位、
+  // z-index 9000 带、材质/圆角/阴影全部由 .aurora-command* 提供）。
+  // createPortal 到 body 已脱离 #aurora-root，内部不得使用任何局部作用域变量。
   return createPortal(
-    <div
-      style={{ position: 'fixed', inset: 0, zIndex: 100000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '15vh', background: 'rgba(0,0,0,0.5)' }}
-      onClick={onClose}
-    >
-      <div
-        style={{ width: 480, maxHeight: 400, background: 'var(--mc-bg-panel, #1e1e2e)', border: '1px solid var(--border-color, #333)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.5)' }}
-        onClick={e => e.stopPropagation()}
-      >
-        <input
-          ref={inputRef}
-          value={query}
-          onChange={e => { setQuery(e.target.value); setSelectedIndex(0) }}
-          onKeyDown={handleKeyDown}
-          placeholder="切换打开的文件…"
-          style={{ width: '100%', padding: '14px 16px', border: 'none', borderBottom: '1px solid var(--border-color, #333)', background: 'transparent', color: 'var(--mc-text-secondary, #e0e0e0)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }}
-        />
-        <div ref={listRef} style={{ maxHeight: 340, overflowY: 'auto', padding: '4px 0' }}>
+    <div className="aurora-command-overlay" onClick={onClose}>
+      <div className="aurora-command" style={{ width: 480 }} onClick={e => e.stopPropagation()}>
+        <div className="aurora-command__input-wrap">
+          <input
+            ref={inputRef}
+            className="aurora-command__input"
+            value={query}
+            onChange={e => { setQuery(e.target.value); setSelectedIndex(0) }}
+            onKeyDown={handleKeyDown}
+            placeholder="切换打开的文件…"
+          />
+        </div>
+        <div ref={listRef} className="aurora-command__list" style={{ maxHeight: 340 }}>
           {results.length === 0 && (
-            <div style={{ padding: '20px', textAlign: 'center', color: 'var(--mc-text-secondary, #888)', opacity: 0.5, fontSize: 13 }}>
+            <div className="aurora-command__empty">
               {tabs.length === 0 ? '没有打开的文件' : '无匹配结果'}
             </div>
           )}
@@ -103,15 +102,13 @@ const QuickSwitcher: React.FC<QuickSwitcherProps> = ({ visible, onClose, onOpenF
               key={file.id}
               onClick={() => handleSelect(file.id)}
               onMouseEnter={() => setSelectedIndex(i)}
-              style={{
-                padding: '8px 16px', cursor: 'pointer', display: 'flex', flexDirection: 'column',
-                background: i === selectedIndex ? 'rgba(59,130,246,0.15)' : 'transparent',
-              }}
+              className={`aurora-command__item${i === selectedIndex ? ' aurora-command__item--highlighted' : ''}`}
+              style={{ height: 'auto', padding: '8px 12px' }}
             >
-              <span style={{ fontSize: 13, color: 'var(--mc-text-secondary, #e0e0e0)' }}>{file.name}</span>
-              {file.heading && (
-                <span style={{ fontSize: 11, color: 'var(--mc-text-secondary, #888)', opacity: 0.6, marginTop: 1 }}>{file.heading}</span>
-              )}
+              <div className="aurora-command__item-content">
+                <span className="aurora-command__item-title">{file.name}</span>
+                {file.heading && <span className="aurora-command__item-desc">{file.heading}</span>}
+              </div>
             </div>
           ))}
         </div>

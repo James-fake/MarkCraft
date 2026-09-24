@@ -53,36 +53,24 @@ export default function LinkModal({
     onClose()
   }, [editor, onClose])
 
+  // 模态：遮罩/面板/按钮一律走 aurora 单源类（z-index 3000 带、材质、hover、disabled 全由类提供）。
+  // createPortal 到 body 已脱离 #aurora-root，内部只引用全局 --mc-* token。
   return createPortal(
     <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 10000,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'rgba(0,0,0,0.3)',
-      }}
+      className="aurora-modal-overlay"
       onClick={onClose}
     >
       <div
-        style={{
-          backgroundColor: 'var(--editor-bg)',
-          borderRadius: '12px',
-          boxShadow: '0 16px 48px rgba(0,0,0,0.2)',
-          padding: '20px',
-          width: '380px',
-          maxWidth: '90vw',
-        }}
+        className="aurora-modal"
+        style={{ minWidth: 0, width: '380px', maxWidth: '90vw', padding: '20px' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div style={{ fontSize: '15px', fontWeight: 600, marginBottom: '16px', color: 'var(--editor-text)' }}>
+        <div style={{ fontSize: 'var(--mc-font-md)', fontWeight: 600, marginBottom: '16px', color: 'var(--mc-text-primary)' }}>
           插入链接
         </div>
 
         <div style={{ marginBottom: '12px' }}>
-          <label style={{ display: 'block', fontSize: '12px', color: 'var(--editor-text)', opacity: 0.7, marginBottom: '4px' }}>
+          <label style={{ display: 'block', fontSize: 'var(--mc-font-sm)', color: 'var(--mc-text-secondary)', marginBottom: '4px' }}>
             链接文字
           </label>
           <input
@@ -92,11 +80,11 @@ export default function LinkModal({
             style={{
               width: '100%',
               padding: '8px 10px',
-              borderRadius: '6px',
-              border: '1px solid var(--editor-border)',
-              backgroundColor: 'var(--editor-bg)',
-              color: 'var(--editor-text)',
-              fontSize: '13px',
+              borderRadius: 'var(--mc-radius-sm)',
+              border: '1px solid var(--mc-border-medium)',
+              backgroundColor: 'var(--mc-bg-window)',
+              color: 'var(--mc-text-primary)',
+              fontSize: 'var(--mc-font-base)',
               outline: 'none',
               boxSizing: 'border-box',
             }}
@@ -104,7 +92,7 @@ export default function LinkModal({
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', fontSize: '12px', color: 'var(--editor-text)', opacity: 0.7, marginBottom: '4px' }}>
+          <label style={{ display: 'block', fontSize: 'var(--mc-font-sm)', color: 'var(--mc-text-secondary)', marginBottom: '4px' }}>
             URL
           </label>
           <input
@@ -116,11 +104,11 @@ export default function LinkModal({
             style={{
               width: '100%',
               padding: '8px 10px',
-              borderRadius: '6px',
-              border: '1px solid var(--editor-border)',
-              backgroundColor: 'var(--editor-bg)',
-              color: 'var(--editor-text)',
-              fontSize: '13px',
+              borderRadius: 'var(--mc-radius-sm)',
+              border: '1px solid var(--mc-border-medium)',
+              backgroundColor: 'var(--mc-bg-window)',
+              color: 'var(--mc-text-primary)',
+              fontSize: 'var(--mc-font-base)',
               outline: 'none',
               boxSizing: 'border-box',
             }}
@@ -129,48 +117,17 @@ export default function LinkModal({
 
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
           {editor.isActive('link') && (
-            <button
-              onClick={handleRemove}
-              style={{
-                padding: '6px 14px',
-                borderRadius: '6px',
-                border: '1px solid #ef4444',
-                backgroundColor: 'transparent',
-                color: '#ef4444',
-                cursor: 'pointer',
-                fontSize: '13px',
-              }}
-            >
+            <button className="aurora-btn aurora-btn--sm aurora-btn--danger" onClick={handleRemove}>
               移除链接
             </button>
           )}
-          <button
-            onClick={onClose}
-            style={{
-              padding: '6px 14px',
-              borderRadius: '6px',
-              border: '1px solid var(--editor-border)',
-              backgroundColor: 'transparent',
-              color: 'var(--editor-text)',
-              cursor: 'pointer',
-              fontSize: '13px',
-            }}
-          >
+          <button className="aurora-btn aurora-btn--sm aurora-btn--ghost" onClick={onClose}>
             取消
           </button>
           <button
+            className="aurora-btn aurora-btn--sm aurora-btn--primary"
             onClick={handleConfirm}
             disabled={!href.trim()}
-            style={{
-              padding: '6px 14px',
-              borderRadius: '6px',
-              border: 'none',
-              backgroundColor: href.trim() ? 'var(--button-primary, #3b82f6)' : 'var(--editor-border)',
-              color: href.trim() ? '#fff' : 'var(--editor-text)',
-              cursor: href.trim() ? 'pointer' : 'not-allowed',
-              fontSize: '13px',
-              opacity: href.trim() ? 1 : 0.5,
-            }}
           >
             确认
           </button>

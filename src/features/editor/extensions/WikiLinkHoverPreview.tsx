@@ -225,57 +225,54 @@ const WikiLinkHoverPreview: React.FC<WikiLinkHoverPreviewProps> = ({ editor }) =
 
   if (!visible || !previewData) return null
 
+  // 锚定浮层：复用 .aurora-dropdown 基底（材质/边框/圆角/阴影/z-index 1000 全由基底提供）。
+  // createPortal 到 body 已脱离 #aurora-root，内部一律引用全局 --mc-* token（含语义色三族）。
   const popup = (
     <div
       ref={popupRef}
       onMouseEnter={handlePopupMouseEnter}
       onMouseLeave={handlePopupMouseLeave}
+      className="aurora-dropdown"
       style={{
         position: 'fixed',
         top: position.top,
         left: position.left,
-        zIndex: 9999,
         maxWidth: 320,
         padding: 12,
-        background: '#1e1e2e',
-        border: '1px solid var(--border-color, #333)',
-        borderRadius: 8,
-        boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
         pointerEvents: 'auto',
-        fontSize: 12,
       }}
     >
       {previewData.broken ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ color: '#ef4444', fontSize: 14 }}>⚠</span>
-          <span style={{ color: '#ef4444', fontSize: 12 }}>文件不存在</span>
+          <span style={{ color: 'var(--mc-danger)', fontSize: 'var(--mc-font-md)' }}>⚠</span>
+          <span style={{ color: 'var(--mc-danger)', fontSize: 'var(--mc-font-sm)' }}>文件不存在</span>
         </div>
       ) : (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: (previewData.fuzzy || previewData.relation) ? 6 : 0 }}>
             {previewData.relation && (
               <span style={{
-                fontSize: 10,
+                fontSize: 'var(--mc-font-xs)',
                 padding: '1px 6px',
-                borderRadius: 3,
-                background: 'rgba(139, 92, 246, 0.15)',
-                color: '#8b5cf6',
+                borderRadius: 'var(--mc-radius-sm)',
+                background: 'var(--mc-accent-soft)',
+                color: 'var(--mc-accent-text)',
                 whiteSpace: 'nowrap',
                 flexShrink: 0,
               }}>
                 {previewData.relation}
               </span>
             )}
-            <span style={{ fontSize: 13, fontWeight: 'bold', color: '#e0e0e0' }}>
+            <span style={{ fontSize: 'var(--mc-font-base)', fontWeight: 600, color: 'var(--mc-text-primary)' }}>
               {previewData.title}
             </span>
             {previewData.fuzzy && (
               <span style={{
-                fontSize: 10,
+                fontSize: 'var(--mc-font-xs)',
                 padding: '1px 6px',
-                borderRadius: 3,
-                background: 'rgba(245,158,11,0.15)',
-                color: '#f59e0b',
+                borderRadius: 'var(--mc-radius-sm)',
+                background: 'var(--mc-warning-soft)',
+                color: 'var(--mc-warning)',
                 whiteSpace: 'nowrap',
               }}>
                 模糊匹配
@@ -287,11 +284,11 @@ const WikiLinkHoverPreview: React.FC<WikiLinkHoverPreviewProps> = ({ editor }) =
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
               {previewData.tags.slice(0, 5).map(tag => (
                 <span key={tag} style={{
-                  fontSize: 10,
+                  fontSize: 'var(--mc-font-xs)',
                   padding: '1px 6px',
-                  borderRadius: 3,
-                  background: 'rgba(34,197,94,0.12)',
-                  color: '#22c55e',
+                  borderRadius: 'var(--mc-radius-sm)',
+                  background: 'var(--mc-success-soft)',
+                  color: 'var(--mc-success)',
                 }}>
                   #{tag}
                 </span>
@@ -301,8 +298,8 @@ const WikiLinkHoverPreview: React.FC<WikiLinkHoverPreviewProps> = ({ editor }) =
           {previewData.summary && (
             <div
               style={{
-                fontSize: 12,
-                color: '#aaa',
+                fontSize: 'var(--mc-font-sm)',
+                color: 'var(--mc-text-secondary)',
                 lineHeight: 1.5,
                 maxHeight: 100,
                 overflow: 'hidden',
@@ -317,21 +314,21 @@ const WikiLinkHoverPreview: React.FC<WikiLinkHoverPreviewProps> = ({ editor }) =
           {/* Note section */}
           {previewData.note && (
             <div style={{
-              fontSize: 11,
-              color: '#c4b5fd',
+              fontSize: 'var(--mc-font-xs)',
+              color: 'var(--mc-text-secondary)',
               lineHeight: 1.5,
               marginBottom: 6,
               padding: '4px 8px',
-              background: 'rgba(139, 92, 246, 0.08)',
-              borderRadius: 4,
-              borderLeft: '2px solid rgba(139, 92, 246, 0.3)',
+              background: 'var(--mc-accent-soft)',
+              borderRadius: 'var(--mc-radius-sm)',
+              borderLeft: '2px solid var(--mc-accent)',
             }}>
-              <span style={{ fontSize: 10, opacity: 0.6, marginRight: 4 }}>备注:</span>
+              <span style={{ fontSize: 'var(--mc-font-xs)', color: 'var(--mc-text-tertiary)', marginRight: 4 }}>备注:</span>
               {previewData.note}
             </div>
           )}
           {/* Stats row */}
-          <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#666', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 8, fontSize: 'var(--mc-font-xs)', color: 'var(--mc-text-tertiary)', flexWrap: 'wrap' }}>
             <span>{previewData.backlinkCount} 个反向链接</span>
             <span>{previewData.outgoingCount} 个出链</span>
             {previewData.lastModified && <span>{previewData.lastModified}</span>}

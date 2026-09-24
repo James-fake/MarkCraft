@@ -108,19 +108,14 @@ export default function ImagePreviewModal({ visible, src, alt, onClose }: ImageP
 
   if (!visible) return null
 
+  // 单源基底：遮罩复用 .aurora-modal-overlay（fixed/inset:0/居中/z-index 3000/入场动效），
+  // --dim 变体把 scrim 加深到 0.85；控件与底部信息条走 .aurora-lightbox__*（见 components.css）。
+  // 本组件经 portal 挂到 body ⇒ 一律不用 --editor-*，只用全局 --mc-*。
   const modal = (
     <div
       ref={containerRef}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        backgroundColor: 'rgba(0, 0, 0, 0.85)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        userSelect: 'none',
-      }}
+      className="aurora-modal-overlay aurora-modal-overlay--dim"
+      style={{ userSelect: 'none' }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -128,27 +123,18 @@ export default function ImagePreviewModal({ visible, src, alt, onClose }: ImageP
       {/* Close button */}
       <button
         onClick={onClose}
+        className="aurora-lightbox__btn"
         style={{
           position: 'absolute',
           top: 16,
           right: 16,
           width: 40,
           height: 40,
-          border: 'none',
-          borderRadius: '50%',
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          color: '#fff',
-          fontSize: 20,
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          transition: 'background-color 0.2s',
-          zIndex: 10,
-          lineHeight: 1,
+          fontSize: 'var(--mc-font-xl)',
+          // 容器内局部层：图元带 transform 自成堆叠上下文，控件须显式压在其上
+          // （属 §14 豁免的「容器内局部层级」，非全局带）
+          zIndex: 1,
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)' }}
         title="Close (Esc)"
       >
         ✕
@@ -162,7 +148,7 @@ export default function ImagePreviewModal({ visible, src, alt, onClose }: ImageP
           right: 68,
           display: 'flex',
           gap: 4,
-          zIndex: 10,
+          zIndex: 1,
         }}
       >
         {[
@@ -173,23 +159,12 @@ export default function ImagePreviewModal({ visible, src, alt, onClose }: ImageP
           <button
             key={btn.label}
             onClick={btn.onClick}
+            className="aurora-lightbox__btn"
             style={{
               width: 40,
               height: 40,
-              border: 'none',
-              borderRadius: '50%',
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              color: '#fff',
-              fontSize: 18,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'background-color 0.2s',
-              lineHeight: 1,
+              fontSize: 'var(--mc-font-lg)',
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.25)' }}
-            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)' }}
             title={btn.title}
           >
             {btn.label}
@@ -199,10 +174,8 @@ export default function ImagePreviewModal({ visible, src, alt, onClose }: ImageP
 
       {/* Image container */}
       <div
+        className="aurora-lightbox__stage"
         style={{
-          maxWidth: '90vw',
-          maxHeight: '85vh',
-          overflow: 'hidden',
           cursor: scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'default',
         }}
         onPointerDown={handlePointerDown}
@@ -220,30 +193,14 @@ export default function ImagePreviewModal({ visible, src, alt, onClose }: ImageP
             objectFit: 'contain',
             transform: `translate(${translate.x}px, ${translate.y}px) scale(${scale})`,
             transformOrigin: 'center center',
-            transition: isDragging ? 'none' : 'transform 0.2s ease',
+            transition: isDragging ? 'none' : 'transform var(--mc-dur-fast) var(--mc-ease-out)',
             pointerEvents: 'none',
           }}
         />
       </div>
 
       {/* Bottom info bar */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 16,
-          padding: '10px 16px',
-          backgroundColor: 'rgba(0, 0, 0, 0.6)',
-          color: 'rgba(255, 255, 255, 0.75)',
-          fontSize: 13,
-          fontFamily: 'system-ui, -apple-system, sans-serif',
-        }}
-      >
+      <div className="aurora-lightbox__bar">
         <span>{filename}</span>
         {imgSize.width > 0 && imgSize.height > 0 && (
           <span style={{ opacity: 0.6 }}>

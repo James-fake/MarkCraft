@@ -418,7 +418,8 @@ function BacklinksTab({
         position: 'fixed',
         left: Math.min(hover.x + 14, window.innerWidth - 300),
         top: Math.min(hover.y + 10, window.innerHeight - 120),
-        zIndex: 10002,
+        // 层级由卡片自带的 .aurora-dropdown 基底（锚定浮层带 1000）决定，
+        // 定位容器不再自持 z-index（原 10002 属越带魔数，见 tokens.css §14）。
         pointerEvents: 'none',
       }}
       onMouseLeave={() => setHover(null)}

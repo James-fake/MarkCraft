@@ -69,25 +69,24 @@ export default function EmojiPicker({ onSelect, onClose, anchorEl }: EmojiPicker
     return all.filter(e => e.name.toLowerCase().includes(q) || e.keywords.toLowerCase().includes(q) || e.emoji.includes(q))
   }, [search, activeCategory])
 
+  // 锚定浮层：回归 aurora 单源基底（材质/边框/圆角/阴影/z-index 1000 全由 .aurora-dropdown 承担）。
+  // portal 到 body 后已脱离 #aurora-root 作用域，内部一律引用全局 --mc-* token，不得用 --editor-*。
   return createPortal(
     <div
       ref={containerRef}
+      className="aurora-dropdown"
       style={{
         position: 'fixed',
         top: position?.top,
         left: position?.left,
         width: 320,
         maxHeight: 360,
-        backgroundColor: 'var(--editor-bg, #fff)',
-        border: '1px solid var(--editor-border, #e5e7eb)',
-        borderRadius: 8,
-        boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+        padding: 0,
         overflow: 'hidden',
-        zIndex: 10000,
       }}
     >
       {/* Search bar */}
-      <div style={{ padding: '8px', borderBottom: '1px solid var(--editor-border, #e5e7eb)' }}>
+      <div style={{ padding: '8px', borderBottom: '1px solid var(--mc-border-subtle)' }}>
         <input
           type="text"
           value={search}
@@ -97,11 +96,11 @@ export default function EmojiPicker({ onSelect, onClose, anchorEl }: EmojiPicker
           style={{
             width: '100%',
             padding: '6px 8px',
-            border: '1px solid var(--editor-border, #e5e7eb)',
-            borderRadius: 4,
-            fontSize: 13,
-            backgroundColor: 'var(--editor-bg, #fff)',
-            color: 'var(--editor-text, #333)',
+            border: '1px solid var(--mc-border-medium)',
+            borderRadius: 'var(--mc-radius-sm)',
+            fontSize: 'var(--mc-font-sm)',
+            backgroundColor: 'var(--mc-bg-content)',
+            color: 'var(--mc-text-primary)',
             outline: 'none',
             boxSizing: 'border-box',
           }}
@@ -109,7 +108,7 @@ export default function EmojiPicker({ onSelect, onClose, anchorEl }: EmojiPicker
       </div>
       {/* Category tabs */}
       {!search && (
-        <div style={{ display: 'flex', borderBottom: '1px solid var(--editor-border, #e5e7eb)' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid var(--mc-border-subtle)' }}>
           {Object.keys(EMOJI_DATA).map(cat => (
             <button
               key={cat}
@@ -119,10 +118,10 @@ export default function EmojiPicker({ onSelect, onClose, anchorEl }: EmojiPicker
                 border: 'none',
                 background: 'none',
                 cursor: 'pointer',
-                fontSize: 12,
-                color: activeCategory === cat ? 'var(--button-primary, #3b82f6)' : 'var(--editor-text, #333)',
-                borderBottom: activeCategory === cat ? '2px solid var(--button-primary, #3b82f6)' : '2px solid transparent',
-                transition: 'border-color 0.15s, color 0.15s',
+                fontSize: 'var(--mc-font-xs)',
+                color: activeCategory === cat ? 'var(--mc-accent-text)' : 'var(--mc-text-secondary)',
+                borderBottom: activeCategory === cat ? '2px solid var(--mc-accent)' : '2px solid transparent',
+                transition: 'border-color var(--mc-dur-micro) ease-out, color var(--mc-dur-micro) ease-out',
               }}
             >
               {cat}
@@ -146,21 +145,15 @@ export default function EmojiPicker({ onSelect, onClose, anchorEl }: EmojiPicker
             key={`${e.name}-${i}`}
             onClick={() => { onSelect(e.emoji); onClose() }}
             title={`${e.name} ${e.keywords}`}
+            className="aurora-dropdown__item"
             style={{
               width: 36,
               height: 36,
-              border: 'none',
-              background: 'none',
-              fontSize: 22,
-              cursor: 'pointer',
-              borderRadius: 4,
-              display: 'flex',
-              alignItems: 'center',
+              padding: 0,
+              gap: 0,
               justifyContent: 'center',
-              transition: 'background-color 0.1s',
+              fontSize: 22,
             }}
-            onMouseEnter={ev => { (ev.currentTarget as HTMLElement).style.background = 'var(--editor-border, #e5e7eb)' }}
-            onMouseLeave={ev => { (ev.currentTarget as HTMLElement).style.background = 'none' }}
           >
             {e.emoji}
           </button>
@@ -170,8 +163,8 @@ export default function EmojiPicker({ onSelect, onClose, anchorEl }: EmojiPicker
         <div style={{
           padding: '16px',
           textAlign: 'center',
-          fontSize: 12,
-          color: 'var(--editor-text, #666)',
+          fontSize: 'var(--mc-font-xs)',
+          color: 'var(--mc-text-tertiary)',
           opacity: 0.6,
         }}>
           未找到匹配的 Emoji

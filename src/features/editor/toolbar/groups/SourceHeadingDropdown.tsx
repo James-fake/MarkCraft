@@ -135,7 +135,6 @@ export default function SourceHeadingDropdown({ t, editorViewRef, onChange, onPu
             position: 'fixed',
             top: `${menuPos.top}px`,
             left: `${menuPos.left}px`,
-            zIndex: 9999,
             minWidth: '120px',
           }}
         >

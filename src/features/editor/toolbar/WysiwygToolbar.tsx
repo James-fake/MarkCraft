@@ -412,7 +412,9 @@ export default function WysiwygToolbar({
           </svg>
         </button>
         {underlineDropdownOpen && createPortal(
-          <div ref={underlineMenuRef} style={{
+          // 锚定浮层：复用 aurora 单源基底（材质/边框/圆角/阴影/z-index 1000 全由 .aurora-dropdown 承担）。
+          // portal 到 body 已脱离 #aurora-root，内部只引用全局 --mc-* token，不得用 --editor-*。
+          <div ref={underlineMenuRef} className="aurora-dropdown" style={{
             position: 'fixed',
             top: `${underlinePos.top}px`,
             left: `${underlinePos.left}px`,
@@ -420,11 +422,6 @@ export default function WysiwygToolbar({
             gridTemplateColumns: 'repeat(8, 20px)',
             gap: '7px',
             padding: '8px',
-            backgroundColor: 'var(--editor-bg)',
-            border: '1px solid var(--editor-border)',
-            borderRadius: '6px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            zIndex: 9999,
           }}>
             {/* 「跟随正文」：跨满一行，避免在 8 列色块网格里显得像第 17 个色块 */}
             <div
@@ -440,14 +437,14 @@ export default function WysiwygToolbar({
                 cursor: 'pointer',
                 paddingBottom: '5px',
                 marginBottom: '2px',
-                borderBottom: '1px solid var(--editor-border)',
+                borderBottom: '1px solid var(--mc-border-subtle)',
               }}
             >
               <span style={{
                 fontSize: '12px',
                 fontWeight: 600,
                 textDecoration: 'underline',
-                color: editor.isActive('underline', { color: 'auto' }) ? 'var(--button-primary)' : 'inherit',
+                color: editor.isActive('underline', { color: 'auto' }) ? 'var(--mc-accent-text)' : 'inherit',
               }}>A</span>
               <span style={{ fontSize: '11px', opacity: 0.75 }}>跟随正文</span>
             </div>
@@ -463,7 +460,7 @@ export default function WysiwygToolbar({
                   backgroundColor: UNDERLINE_COLORS[color],
                   cursor: 'pointer',
                   boxSizing: 'border-box',
-                  border: editor.isActive('underline', { color }) ? '2px solid var(--button-primary)' : '2px solid var(--editor-border)',
+                  border: editor.isActive('underline', { color }) ? '2px solid var(--mc-accent)' : '2px solid var(--mc-border-medium)',
                   transition: 'transform 0.15s ease',
                 }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.18)' }}
@@ -551,7 +548,8 @@ export default function WysiwygToolbar({
           </svg>
         </button>
         {highlightDropdownOpen && createPortal(
-          <div ref={highlightMenuRef} style={{
+          // 同上：复用 aurora 单源基底 + 全局 --mc-* token。
+          <div ref={highlightMenuRef} className="aurora-dropdown" style={{
             position: 'fixed',
             top: `${highlightPos.top}px`,
             left: `${highlightPos.left}px`,
@@ -559,11 +557,6 @@ export default function WysiwygToolbar({
             gridTemplateColumns: 'repeat(8, 20px)',
             gap: '7px',
             padding: '8px',
-            backgroundColor: 'var(--editor-bg)',
-            border: '1px solid var(--editor-border)',
-            borderRadius: '6px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-            zIndex: 9999,
           }}>
             {HIGHLIGHT_COLOR_OPTIONS.map(color => (
               <div
@@ -576,7 +569,7 @@ export default function WysiwygToolbar({
                   backgroundColor: HIGHLIGHT_UI_COLORS[color],
                   cursor: 'pointer',
                   boxSizing: 'border-box',
-                  border: editor.isActive('highlight', { color }) ? '2px solid var(--button-primary)' : '2px solid var(--editor-border)',
+                  border: editor.isActive('highlight', { color }) ? '2px solid var(--mc-accent)' : '2px solid var(--mc-border-medium)',
                   transition: 'transform 0.15s ease',
                 }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.transform = 'scale(1.18)' }}

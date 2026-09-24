@@ -19,7 +19,9 @@ export const colorThemes: Record<ColorTheme, { labelZh: string; labelEn: string;
   default: {
     labelZh: '默认',
     labelEn: 'Default',
-    color: '#3b82f6',
+    // 「默认」配色 = 跟随应用强调色（此字段仅用于浮层里的色板圆点；default 的 classDef 为空，
+    // 不会注入生成代码，因此可安全用 var()）。其余 4 个主题的 color/classDef 是 Mermaid 输出数据，保持字面量。
+    color: 'var(--mc-accent)',
     classDef: '',
   },
   ocean: {
@@ -84,17 +86,19 @@ const BangNode = ({ x, y, color }: { x: number; y: number; color: string }) => {
   return <polygon points={points} fill={color} stroke="none" />
 }
 
+// 缩略图位于 MindmapPopover 的 portal 内（已脱离 #aurora-root 作用域），因此**只能**引用
+// 定义在 :root 的全局 --mc-* token —— 用 --editor-* 会静默回落 base.css 旧 slate。
 const Line = ({ x1, y1, x2, y2 }: { x1: number; y1: number; x2: number; y2: number }) => (
-  <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="var(--editor-border, #475569)" strokeWidth={1} opacity={0.5} />
+  <line x1={x1} y1={y1} x2={x2} y2={y2} stroke="var(--mc-border-strong)" strokeWidth={1} opacity={0.5} />
 )
 
 const SmallText = ({ x, y, children }: { x: number; y: number; children: string }) => (
-  <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fill="var(--editor-text, #e2e8f0)" fontSize={4.5} fontFamily="sans-serif">{children}</text>
+  <text x={x} y={y} textAnchor="middle" dominantBaseline="central" fill="var(--mc-text-inverse)" fontSize={4.5} fontFamily="sans-serif">{children}</text>
 )
 
-const c = '#3b82f6'
-const c2 = '#60a5fa'
-const c3 = '#93c5fd'
+const c = 'var(--mc-accent)'
+const c2 = 'var(--mc-accent-hover)'
+const c3 = 'var(--mc-accent-text)'
 
 export const templates: MindmapTemplate[] = [
   {
@@ -328,8 +332,8 @@ export const templates: MindmapTemplate[] = [
         <RoundedNode x={62} y={12} w={16} h={10} color={c2} />
         <CircleNode x={10} y={38} r={4} color={c3} />
         <CircleNode x={70} y={38} r={4} color={c3} />
-        <text x={26} y={9} fontSize={5} fill="#fbbf24">📌</text>
-        <text x={70} y={9} fontSize={5} fill="#fbbf24">📌</text>
+        <text x={26} y={9} fontSize={5} fill="var(--mc-warning)">📌</text>
+        <text x={70} y={9} fontSize={5} fill="var(--mc-warning)">📌</text>
         <SmallText x={40} y={25}>Root</SmallText>
       </svg>
     ),

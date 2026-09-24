@@ -282,3 +282,35 @@ panels→features/stores `../../../`，components/ui·app `../../`（新增文�
 
 **修法清单见报告**：`src/aurora/docs/design/AUDIT-EDITOR-UI-LEGACY-SKIN-2026-09-24.md`（含 7 个修复批次）。
 
+---
+
+## 浮层单源基底族（2026-09-24 批次执行后固化）
+
+**三层单源类**（按浮层语义选，别一律用 `.aurora-dropdown`）：
+
+| 语义 | 基底类 | z 带 | 位置 |
+|---|---|---|---|
+| 锚定浮层（下拉/调色板/补全/悬停卡） | `.aurora-dropdown`（+ 行 `.aurora-dropdown__item` / `--highlighted` / `__separator` / `__group-label`） | 1000 | `components.css:410` |
+| 阻断模态（对话框/确认/灯箱） | `.aurora-modal-overlay`（+ `.aurora-modal`，宽度档 `--sm/--md/--lg`） | 3000 | `components.css:965/982` |
+| 命令/搜索浮层 | `.aurora-command-overlay` + `.aurora-command__input-wrap/__input/__list/__item(--highlighted)/__empty` | 9000 | `command-palette.css` |
+| 深色遮罩变体（图片灯箱等恒暗场景） | `.aurora-modal-overlay--dim` + `.aurora-lightbox__btn/__stage/__bar` | 随 3000 | `components.css`（本轮新增） |
+
+**第五条判据：跨作用域共享子组件**。仅查「浮层本体」必漏 —— 须沿 import 图追每个子模块的
+**全部消费方挂载点**，任一处是 `createPortal`/`createRoot` 挂 body 即翻旧。
+样本：`NoteHoverCard.tsx` 被 `cm6/wikiLinkHoverTooltip`（`createRoot` → 完全逃逸，暗色下白卡）、
+`NoteContextPanel`、`CanvasSidebarPanel` 三处消费。
+
+**守卫写法**（`src/features/editor/toolbar/portalOverlayBasis.test.ts`，spec 驱动）：
+- ① 根元素含基底类 ② 根标签不回写外观（`rootTagOf` 切到第一个 `>`）③ 变量必须全 `--mc-*`
+  ④ 禁 `currentTarget.style.*` 手写改色 ⑤ 旧字面量/层级魔数不回流
+- **片区锚点** `scope: [start, end)`：宿主文件自身在作用域内合法用 `--editor-*` 时
+  （如 `WysiwygToolbar.tsx` 只有两调色板迁移），按锚点切出片段单独断言，避免误报
+- `read()` 对缺失文件抛错（零命中 ≠ 通过）；写完必须做**注入式阳性对照**再还原
+
+**CDP 探针**（`.workbuddy/artifacts/cdp-overlay-verify.cjs`）：探针元素挂 `document.body`
+（刻意复现 portal 处境），读 CSSOM 真值比对，不抄字面值。核心对照：
+同一 `var(--editor-bg, magenta)` 在 body 上 → `rgb(15,23,42)`（base.css 旧 slate 指纹）、
+在 `#aurora-root` 内 → `rgb(16,18,24)`（= `--mc-bg-content`）。
+⇒ **逃逸的真相是「静默命中旧值」而非「未定义落兜底」**。
+
+

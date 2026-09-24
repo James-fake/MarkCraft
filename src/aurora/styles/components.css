@@ -1101,6 +1101,56 @@
   flex-shrink: 0;
 }
 
+/* ------------------------------------------------------------
+ * Image Lightbox · 图片灯箱（ImagePreviewModal / ImageView 点击放大）
+ * 与 .aurora-modal-overlay 同族，故层级随其走「锚定模态带 3000」
+ * （原实现写死 z-index 9999 = 越带魔数，见 tokens.css §14 层级带表）。
+ * 遮罩恒为深色 —— 查看图片时需要压过底层内容，与明暗主题无关，
+ * 因此浮层控件一律用「反色前景 + 半透明反色底」，保证两主题下都可读。
+ * ---------------------------------------------------------- */
+.aurora-modal-overlay--dim {
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.aurora-lightbox__btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--mc-text-inverse) 10%, transparent);
+  color: var(--mc-text-inverse);
+  cursor: pointer;
+  line-height: 1;
+  transition: background-color var(--mc-dur-micro) ease-out;
+}
+
+.aurora-lightbox__btn:hover {
+  background: color-mix(in srgb, var(--mc-text-inverse) 25%, transparent);
+}
+
+.aurora-lightbox__stage {
+  max-width: 90vw;
+  max-height: 85vh;
+  overflow: hidden;
+}
+
+.aurora-lightbox__bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 10px 16px;
+  background: rgba(0, 0, 0, 0.6);
+  color: color-mix(in srgb, var(--mc-text-inverse) 75%, transparent);
+  font-size: var(--mc-font-base);
+  font-family: var(--mc-font-sans);
+}
+
 /* Switch · 开关（macOS 动效方案 §3.10）
  * thumb 位移走 translateX（合成器属性），替代 layout 属性 left；
  * 翻转 280ms ease-mac——「懒」的最小样本（320ms 归并入 --mc-dur-base token） */

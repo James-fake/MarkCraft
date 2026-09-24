@@ -1,5 +1,5 @@
 /**
- * 浮层基底同源契约（2026-09-24）
+ * 浮层基底同源契约（2026-09-24 建立 / 同日扩至全家族）
  * ------------------------------------------------------------
  * 报障：编辑界面里「思维导图模板」列表浮层仍是**最旧一版 UI**。
  *
@@ -26,63 +26,143 @@
  *   内部一律直接引用全局 --mc-* token（--mc-* 定义在 :root，portal 拿得到）。
  *   同族参照：ListDropdown / WysiwygHeadingDropdown / MoreDropdown /
  *   SourceHeadingDropdown 全都是 className="aurora-dropdown"。
+ *   模态族用 .aurora-modal-overlay（z 3000），命令浮层用 .aurora-command*（z 9000）。
+ *
+ * ── 2026-09-24 迁移台账（本表即防回归清单，新增浮层迁移完成后逐条入表）──────────
+ *   · MindmapPopover            思维导图模板浮层（首个报障）
+ *   · ListMenuPopover           列表/任务菜单（原 Tailwind 类 + z 9999）
+ *   · EmojiPicker               Emoji 选择器（原内联旧色 + z 10000）
+ *   · WysiwygToolbar ×2         下划线 / 高亮调色板（原 --editor-bg + z 9999）
+ *   · WikiLinkAutocomplete      源码模式 [[ 输入补全（原 --text-* + z 9999）
+ *   · WikiLinkHoverPreview      WYSIWYG wikilink 悬停预览卡
+ *   · NoteHoverCard             ★跨作用域共享卡片：CM6 hoverTooltip 用 createRoot 挂 body
+ *                                （--editor-bg 回落 #fff = 暗色主题下白卡），
+ *                                同时被 NoteContextPanel / CanvasSidebarPanel 复用
+ *   · QuickSwitcher             文件快速切换命令浮层（原 z 100000 + #1e1e2e）
+ *   · ImagePreviewModal         图片灯箱（原全内联 rgba/#fff + z 9999）
  *
  * 本文件钉死（改坏任一条即报红）：
- *  1. 根元素必须带 aurora-dropdown 基底类（材质/边框/圆角/阴影/z-index 单源）；
- *  2. 面板外观不得回写内联（backgroundColor/boxShadow/border/borderRadius/zIndex）；
- *  3. 模板行复用 .aurora-dropdown__item，不得手写 onMouseEnter 改色；
- *  4. **浮层内引用的每个 CSS 变量都必须以 --mc- 开头** —— 这是本契约的核心：
+ *  1. 根元素必须带对应单源基底类（材质/边框/圆角/阴影/z-index 单一来源）；
+ *  2. 根标签外观不得回写内联（backgroundColor/boxShadow/borderRadius/border/zIndex）；
+ *  3. **浮层内引用的每个 CSS 变量都必须以 --mc- 开头** —— 这是本契约的核心：
  *     portal 浮层在 #aurora-root 外，任何 --editor-* / --hover-bg / --code-bg
- *     都会静默回落旧版值，所以它们不是「另一种写法」，而是「必然变旧」。
- *  5. 旧版遗留字面量不得回流（Tailwind 0.5rem / shadow-lg、旧蓝 #3b82f6）。
+ *     都会静默回落旧版值，所以它们不是「另一种写法」，而是「必然变旧」；
+ *  4. 不得手写 hover 改色（currentTarget.style.background*）—— 交给基底类的 :hover；
+ *  5. 旧版遗留字面量不得回流（Tailwind 0.5rem / shadow-lg、旧 slate、旧蓝 #3b82f6）；
+ *  6. 层级魔数不得回流（9999 / 10000-10002 / 100000），取值只认 tokens.css §14 层级带表。
  *
  * 注：静态断言只证「已归位」；「真的以 aurora 配色渲染」由 CDP 真机取证。
+ *     另：本仓铁律 —— 零命中不等于通过，故 read() 对缺失文件直接抛错（证明扫描面非空）。
  */
-import { readFileSync } from 'fs'
+import { readFileSync, existsSync } from 'fs'
 import { resolve } from 'path'
 import { describe, it, expect } from 'vitest'
 
-const toolbarDir = __dirname
+/** src/ 根（本文件位于 src/features/editor/toolbar/） */
+const SRC = resolve(__dirname, '../../..')
 
-/** 必须剥离注释再断言：本组件内含中文说明，正文里就写了 `--editor-*` 等字样，
+/** 必须剥离注释再断言：组件内含中文说明，正文里就写了 `--editor-*` / `zIndex 9999` 等字样，
  *  不剥离会**自命中**（本仓既有铁律，见 styles/subbarUnify.test.ts 同款处理）。 */
 const stripComments = (s: string) =>
   s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '')
 
-/** 待守护的 portal 浮层表：[人读名, 文件名]。新增迁移完成的浮层时逐条加入。 */
-const OVERLAYS: Array<[string, string]> = [
-  ['思维导图模板浮层', 'MindmapPopover.tsx'],
-  // 待迁移（本轮未动，逐一确认后再入表）：EmojiPicker / ImageModal / LinkModal /
-  // TableGridSelector / ListMenuPopover / WysiwygToolbar 的高亮·下划线调色板。
+const read = (relPath: string): string => {
+  const abs = resolve(SRC, relPath)
+  if (!existsSync(abs)) {
+    throw new Error(`扫描面缺失：src/${relPath} —— 路径写错会让下方断言静默全绿`)
+  }
+  return stripComments(readFileSync(abs, 'utf-8'))
+}
+
+/** 取浮层根标签：从基底锚点所在的最近 '<' 到其后第一个 '>' */
+function rootTagOf(src: string, anchor: string): string {
+  const idx = src.indexOf(anchor)
+  if (idx < 0) return ''
+  return src.slice(src.lastIndexOf('<', idx), src.indexOf('>', idx) + 1)
+}
+
+/** 取局部片段（大文件里只迁移了局部浮层时使用）：[起始锚点, 结束锚点) */
+function scopeOf(src: string, [start, end]: [string, string]): string {
+  const s = src.indexOf(start)
+  if (s < 0) throw new Error(`片区起始锚点未命中：${start}`)
+  const e = src.indexOf(end, s + start.length)
+  if (e < 0) throw new Error(`片区结束锚点未命中：${end}`)
+  return src.slice(s, e)
+}
+
+interface OverlaySpec {
+  /** 人读名 */
+  label: string
+  /** 相对 src/ 的路径 */
+  file: string
+  /** 必须出现的单源基底类（className="<base>" 形式或子串） */
+  base: string
+  /** 行级项类（可选）：迁移后应复用统一行，而非手写行样式 */
+  item?: string
+  /** 仅扫描该片区（可选）：用于「大文件里只迁移了局部浮层」的场景 */
+  scope?: [string, string]
+}
+
+const OVERLAYS: OverlaySpec[] = [
+  { label: '思维导图模板浮层', file: 'features/editor/toolbar/MindmapPopover.tsx', base: 'aurora-dropdown', item: 'aurora-dropdown__item' },
+  { label: '列表菜单浮层', file: 'features/editor/toolbar/ListMenuPopover.tsx', base: 'aurora-dropdown', item: 'aurora-dropdown__item' },
+  { label: 'Emoji 选择浮层', file: 'features/editor/toolbar/EmojiPicker.tsx', base: 'aurora-dropdown', item: 'aurora-dropdown__item' },
+  {
+    label: 'Wysiwyg 下划线调色板',
+    file: 'features/editor/toolbar/WysiwygToolbar.tsx',
+    base: 'aurora-dropdown',
+    scope: ['<div ref={underlineMenuRef} className="aurora-dropdown"', '\n        )}'],
+  },
+  {
+    label: 'Wysiwyg 高亮调色板',
+    file: 'features/editor/toolbar/WysiwygToolbar.tsx',
+    base: 'aurora-dropdown',
+    scope: ['<div ref={highlightMenuRef} className="aurora-dropdown"', '\n        )}'],
+  },
+  { label: 'WikiLink 输入补全浮层', file: 'features/editor/extensions/WikiLinkAutocomplete.tsx', base: 'aurora-dropdown', item: 'aurora-dropdown__item' },
+  { label: 'WikiLink 悬停预览卡', file: 'features/editor/extensions/WikiLinkHoverPreview.tsx', base: 'aurora-dropdown' },
+  { label: '笔记悬停预览卡（跨作用域共享）', file: 'features/editor/components/NoteHoverCard.tsx', base: 'aurora-dropdown' },
+  { label: '快速切换命令浮层', file: 'features/editor/components/QuickSwitcher.tsx', base: 'aurora-command-overlay', item: 'aurora-command__item' },
+  { label: '图片灯箱', file: 'features/editor/ImagePreviewModal.tsx', base: 'aurora-modal-overlay aurora-modal-overlay--dim' },
 ]
 
-const read = (file: string) => stripComments(readFileSync(resolve(toolbarDir, file), 'utf-8'))
+/** 旧版遗留字面量（出现即说明有片段没跟着迁移） */
+const LEGACY_LITERALS: Array<[string, RegExp]> = [
+  ['Tailwind 遗留圆角 0.5rem', /0\.5rem/],
+  ['Tailwind shadow-lg 硬编码', /shadow-lg/],
+  ['旧蓝强调色 #3b82f6', /#3b82f6/],
+  ['旧蓝半透明 rgba(59,130,246…)', /rgba\(\s*59\s*,\s*130\s*,\s*246/],
+  ['旧 slate 浮层底 #1e1e2e', /#1e1e2e/],
+  ['旧 slate 底 #0f172a', /#0f172a/],
+  ['旧 slate 文本 #e2e8f0', /#e2e8f0/],
+  ['旧 slate 边框 #334155', /#334155/],
+]
+
+/** 越带魔数：层级带表以外的取值（见 tokens.css §14） */
+const BAND_BAN = /zIndex:\s*(9999|10000|10001|10002|100000)\b/
 
 describe('浮层基底同源契约（portal 浮层不得逃出 aurora 作用域）', () => {
-  it.each(OVERLAYS)('%s：根元素复用 .aurora-dropdown 基底类', (_label, file) => {
+  it.each(OVERLAYS)('$label：根元素复用单源基底类', ({ file, base, scope }) => {
     const src = read(file)
-    const root = src.match(/<div\s+ref=\{popoverRef\}[\s\S]{0,600}?>/)![0]
-    expect(root, '根元素缺 aurora-dropdown 基底类 ⇒ 材质/圆角/阴影/z-index 无从继承').toContain(
-      'className="aurora-dropdown"',
-    )
+    const region = scope ? scopeOf(src, scope) : src
+    expect(
+      region.includes(`className="${base}"`),
+      `缺少 className="${base}" ⇒ 材质/圆角/阴影/z-index 无从继承（逐字写死 = 下一轮又变旧）`,
+    ).toBe(true)
   })
 
-  it.each(OVERLAYS)('%s：面板外观不得回写内联（否则覆盖单源基底）', (_label, file) => {
+  it.each(OVERLAYS)('$label：根标签外观不得回写内联', ({ file, base, scope }) => {
     const src = read(file)
-    const root = src.match(/<div\s+ref=\{popoverRef\}[\s\S]{0,600}?>/)![0]
-    expect(root).not.toMatch(/backgroundColor|boxShadow|borderRadius|\bborder:|zIndex/)
+    const region = scope ? scopeOf(src, scope) : src
+    const tag = rootTagOf(region, `className="${base}"`)
+    expect(tag.length, '未能切出根标签 ⇒ 上面那条「基底类」断言可能被放宽成了纯子串匹配').toBeGreaterThan(0)
+    expect(tag).not.toMatch(/backgroundColor|boxShadow|borderRadius|\bborder\s*:|zIndex/)
   })
 
-  it.each(OVERLAYS)('%s：模板行复用 .aurora-dropdown__item（hover 由基底类负责）', (_label, file) => {
+  it.each(OVERLAYS)('$label：引用的 CSS 变量必须全部是全局 --mc-*', ({ file, scope }) => {
     const src = read(file)
-    expect(src).toContain('className="aurora-dropdown__item"')
-    expect(src, '手写 onMouseEnter 改色 = 旧版 hover hack（曾回落旧蓝）').not.toMatch(/onMouseEnter/)
-  })
-
-  it.each(OVERLAYS)('%s：引用的 CSS 变量必须全部是全局 --mc-*', (_label, file) => {
-    const src = read(file)
-    const vars = [...src.matchAll(/var\(\s*(--[\w-]+)/g)].map((m) => m[1])
-    expect(vars.length, '扫描面为 0 ⇒ 断言无意义（先证明确实引用了 token）').toBeGreaterThan(0)
+    const region = scope ? scopeOf(src, scope) : src
+    const vars = [...region.matchAll(/var\(\s*(--[\w-]+)/g)].map((m) => m[1])
     const offending = [...new Set(vars)].filter((v) => !v.startsWith('--mc-'))
     expect(
       offending,
@@ -90,11 +170,50 @@ describe('浮层基底同源契约（portal 浮层不得逃出 aurora 作用域�
     ).toEqual([])
   })
 
-  it.each(OVERLAYS)('%s：旧版遗留字面量不得回流', (_label, file) => {
+  it.each(OVERLAYS)('$label：不得手写 hover 改色（交给基底类 :hover）', ({ file, scope }) => {
     const src = read(file)
-    expect(src, 'Tailwind 遗留圆角').not.toMatch(/0\.5rem/)
-    expect(src, 'Tailwind shadow-lg 硬编码').not.toMatch(/shadow-lg/)
-    expect(src, '旧蓝回退色').not.toMatch(/#3b82f6/)
-    expect(src, '旧蓝半透明').not.toMatch(/rgba\(\s*59\s*,\s*130\s*,\s*246/)
+    const region = scope ? scopeOf(src, scope) : src
+    expect(region).not.toMatch(/currentTarget\.style\./)
+  })
+
+  it.each(OVERLAYS)('$label：旧版遗留字面量不得回流', ({ file, scope }) => {
+    const src = read(file)
+    const region = scope ? scopeOf(src, scope) : src
+    for (const [name, re] of LEGACY_LITERALS) {
+      expect(region, name).not.toMatch(re)
+    }
+  })
+
+  it.each(OVERLAYS)('$label：行级项复用统一行类（若该浮层有行）', ({ file, item, scope }) => {
+    if (!item) return
+    const src = read(file)
+    const region = scope ? scopeOf(src, scope) : src
+    expect(region, `未复用 ${item} ⇒ 行样式各写各的，hover/选中态必然漂移`).toContain(item)
+  })
+
+  it.each(OVERLAYS)('$label：层级魔数不得回流', ({ file }) => {
+    expect(read(file), '取值只认 tokens.css §14 层级带表，禁写 9999/10000 档').not.toMatch(BAND_BAN)
+  })
+})
+
+describe('浮层层级带契约（tokens.css §14）', () => {
+  /** 浮层消费方 → 允许内联出现的 z-index 取值（空数组 = 完全交给基底类） */
+  const BAND_CONSUMERS: Array<[string, string, number[]]> = [
+    ['列表下拉', 'features/editor/toolbar/ListDropdown.tsx', []],
+    ['Wysiwyg 标题下拉', 'features/editor/toolbar/WysiwygHeadingDropdown.tsx', []],
+    ['更多菜单', 'features/editor/toolbar/groups/MoreDropdown.tsx', []],
+    ['源码标题下拉', 'features/editor/toolbar/groups/SourceHeadingDropdown.tsx', []],
+    ['编辑器右键菜单', 'features/editor/EditorContextMenu.tsx', [10030]],
+  ]
+
+  it.each(BAND_CONSUMERS)('%s：内联 z-index 取值只允许出现在带内', (_label, file, allowed) => {
+    const src = read(file)
+    const values = [...src.matchAll(/zIndex:\s*(\d+)/g)].map((m) => Number(m[1]))
+    if (allowed.length === 0) {
+      expect(values, '该浮层已完全交给 .aurora-dropdown 的 z-index:1000，不应再自持层级').toEqual([])
+    } else {
+      expect(values.length, '扫描面为 0 ⇒ 断言无意义（先证明确实有层级声明）').toBeGreaterThan(0)
+      expect([...new Set(values)].sort()).toEqual([...allowed].sort())
+    }
   })
 })

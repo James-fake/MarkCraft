@@ -93,7 +93,7 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           width: '100%', padding: '8px 12px', background: 'transparent', border: 'none',
-          cursor: 'pointer', color: 'var(--editor-text)', fontSize: 11, fontWeight: 600,
+          cursor: 'pointer', color: 'var(--mc-text-primary)', fontSize: 'var(--mc-font-xs)', fontWeight: 600,
           letterSpacing: '0.04em', textTransform: 'uppercase', opacity: 0.7,
         }}
       >
@@ -101,8 +101,8 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {backlinkGroups.length > 0 && (
             <span style={{
-              fontSize: 10, fontWeight: 700, color: '#a78bfa',
-              background: 'rgba(167,139,250,0.12)', borderRadius: 999, padding: '1px 6px',
+              fontSize: 'var(--mc-font-xs)', fontWeight: 700, color: 'var(--mc-accent-text)',
+              background: 'var(--mc-accent-soft)', borderRadius: 'var(--mc-radius-pill)', padding: '1px 6px',
             }}>
               {backlinkGroups.length}
             </span>
@@ -115,11 +115,11 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
         <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 10, maxHeight: 300, overflow: 'auto' }}>
           {/* 反链 */}
           <div>
-            <div style={{ fontSize: 10, color: 'var(--editor-text)', opacity: 0.5, marginBottom: 6 }}>
+            <div style={{ fontSize: 'var(--mc-font-xs)', color: 'var(--mc-text-primary)', opacity: 0.5, marginBottom: 6 }}>
               反链 · {backlinkGroups.length}
             </div>
             {backlinkGroups.length === 0 ? (
-              <div style={{ fontSize: 11, color: 'var(--editor-text)', opacity: 0.4, lineHeight: 1.6 }}>
+              <div style={{ fontSize: 'var(--mc-font-xs)', color: 'var(--mc-text-primary)', opacity: 0.4, lineHeight: 1.6 }}>
                 暂无其他笔记链接到此。
               </div>
             ) : (
@@ -130,7 +130,7 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
                     onMouseEnter={(e) => showHover(b.id, e)}
                     onMouseLeave={() => setHover(null)}
                     style={{
-                      border: '1px solid var(--mc-border-subtle)', borderRadius: 8,
+                      border: '1px solid var(--mc-border-subtle)', borderRadius: 'var(--mc-radius-md)',
                       background: 'transparent', overflow: 'hidden',
                     }}
                   >
@@ -140,10 +140,10 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         width: '100%', textAlign: 'left', padding: '6px 8px', border: 'none',
-                        background: 'transparent', cursor: 'pointer', color: 'var(--editor-text)',
-                        fontSize: 11, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        background: 'transparent', cursor: 'pointer', color: 'var(--mc-text-primary)',
+                        fontSize: 'var(--mc-font-xs)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(128,128,128,0.06)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--mc-bg-hover)' }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
                     >
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -151,8 +151,8 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
                       </span>
                       {b.count > 1 && (
                         <span style={{
-                          fontSize: 10, fontWeight: 700, color: '#a78bfa',
-                          background: 'rgba(167,139,250,0.12)', borderRadius: 999, padding: '0 6px',
+                          fontSize: 'var(--mc-font-xs)', fontWeight: 700, color: 'var(--mc-accent-text)',
+                          background: 'var(--mc-accent-soft)', borderRadius: 'var(--mc-radius-pill)', padding: '0 6px',
                           flexShrink: 0,
                         }}>
                           {b.count}
@@ -162,8 +162,8 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
                     {b.context && (
                       <div
                         style={{
-                          padding: '4px 8px 6px', fontSize: 10, lineHeight: 1.5,
-                          color: 'var(--editor-text)', opacity: 0.55,
+                          padding: '4px 8px 6px', fontSize: 'var(--mc-font-xs)', lineHeight: 1.5,
+                          color: 'var(--mc-text-primary)', opacity: 0.55,
                           borderTop: '1px solid var(--mc-border-subtle)',
                           display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
                           overflow: 'hidden',
@@ -180,11 +180,11 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
 
           {/* 迷你图谱 */}
           <div>
-            <div style={{ fontSize: 10, color: 'var(--editor-text)', opacity: 0.5, marginBottom: 6 }}>
+            <div style={{ fontSize: 'var(--mc-font-xs)', color: 'var(--mc-text-primary)', opacity: 0.5, marginBottom: 6 }}>
               迷你图谱
             </div>
             {!activeFileId ? (
-              <div style={{ fontSize: 11, color: 'var(--editor-text)', opacity: 0.4 }}>
+              <div style={{ fontSize: 'var(--mc-font-xs)', color: 'var(--mc-text-primary)', opacity: 0.4 }}>
                 打开笔记后显示关联图谱。
               </div>
             ) : (
@@ -194,7 +194,8 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
                 role="img"
                 aria-label="当前笔记关联图谱"
                 style={{
-                  background: 'rgba(128,128,128,0.03)', borderRadius: 10,
+                  // 「凹陷画布」语义：两主题下都比周边表面更深一档，保证迷你图谱底板可见
+                  background: 'var(--mc-bg-window)', borderRadius: 'var(--mc-radius-lg)',
                   border: '1px solid var(--mc-border-subtle)', display: 'block',
                 }}
               >
@@ -205,7 +206,7 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
                     <line
                       key={i}
                       x1={a.x} y1={a.y} x2={b.x} y2={b.y}
-                      stroke="rgba(128,128,128,0.35)" strokeWidth={1}
+                      stroke="var(--mc-graph-edge)" strokeWidth={1}
                     />
                   )
                 })}
@@ -218,15 +219,15 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
                     <circle
                       cx={p.x} cy={p.y}
                       r={p.isCenter ? 9 : 6}
-                      fill={p.isCenter ? '#a78bfa' : 'rgba(167,139,250,0.35)'}
-                      stroke={p.isCenter ? '#c084fc' : 'rgba(167,139,250,0.6)'}
+                      fill={p.isCenter ? 'var(--mc-accent)' : 'var(--mc-graph-file)'}
+                      stroke={p.isCenter ? 'var(--mc-accent-hover)' : 'var(--mc-graph-file-stroke)'}
                       strokeWidth={1}
                     />
                     <text
                       x={p.x} y={p.y - (p.isCenter ? 14 : 11)}
                       textAnchor="middle"
                       fontSize={8}
-                      fill="var(--editor-text)"
+                      fill="var(--mc-text-primary)"
                       opacity={0.7}
                     >
                       {truncate(p.label, 6)}
@@ -234,7 +235,7 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
                   </g>
                 ))}
                 {!hasGraph && (
-                  <text x={GRAPH_W / 2} y={GRAPH_H / 2 + 26} textAnchor="middle" fontSize={9} fill="var(--editor-text)" opacity={0.35}>
+                  <text x={GRAPH_W / 2} y={GRAPH_H / 2 + 26} textAnchor="middle" fontSize={9} fill="var(--mc-text-primary)" opacity={0.35}>
                     暂无关联笔记
                   </text>
                 )}
@@ -244,10 +245,12 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
         </div>
       )}
 
-      {/* 反链条目悬浮预览（对标 Obsidian hover preview） */}
+      {/* 反链条目悬浮预览（对标 Obsidian hover preview）
+          定位容器本身不带 z-index：层级由卡片自带的 .aurora-dropdown 基底（锚定浮层带 1000）决定，
+          禁止再写 10002 之类越带魔数（见 tokens.css §14 层级带表）。 */}
       {hover && createPortal(
         <div
-          style={{ position: 'fixed', left: hover.x, top: hover.y, zIndex: 10002 }}
+          style={{ position: 'fixed', left: hover.x, top: hover.y }}
           onMouseEnter={() => setHover(null)}
           onMouseLeave={() => setHover(null)}
         >
