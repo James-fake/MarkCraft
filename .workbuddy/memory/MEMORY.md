@@ -35,6 +35,7 @@ Vite5+React18+TS、CodeMirror6+TipTap3、Excalidraw、Dexie/IDB。dev **5174**�
 - ⚠️ 夹具显式种入被测数据且幂等；空态显式 `closeAllTabs()`；一条断言只证一事。
 - 🚨 零命中/零错误 须先证「扫描面非空」+ 跑 HEAD 阳性对照；对照选择器须实现无关（用修复后才存在的类名=假阳性）。
 - 🚨 **「全量跑」与「临时还原 HEAD 做对照」不可并发** ⇒ vitest collect 期会读到 HEAD 源码、产出**假失败**（本轮实测）；判 flaky 用隔离复跑。
+- 🚨 **vitest 全量报「No test suite found」先清 `node_modules/.vite` 缓存**：陈旧 Vite 变换缓存会让 `import {describe,it,expect} from 'vitest'` 的文件收集不到用例（用全局 `describe/it` 的文件不受影响），清空缓存即恢复；勿先疑源码。`--no-coverage` 与此无关（已证伪）。
 - 🚨 合成输入：预热点**真实文本块**、确认 `visibilityState==='visible'`（hidden 时 `bringToFront`）；「点击无反应」须**双路取证**。
 - 🚨 探针**禁整页 reload**（renderer 僵死：能连但每条 eval 超时且不恢复）⇒ 改 `PUT /json/new?about:blank` + **先注入 `__bootAt` 再导航**；`send()` 须带超时 + 进度落盘，否则静默挂死。
 - 🚨 **等 `#aurora-root` 是假绿**（它写在 index.html 里、永远存在）⇒ 必须等「**其内部有内容**」`children.length > 0`。探针步骤 1 还要先判「**是否已有打开的文件**」（`.aurora-tab`）：空库=空态（`.aurora-editor__empty` + `.aurora-editor__newfile-btn`），会话恢复后已有标签页。
