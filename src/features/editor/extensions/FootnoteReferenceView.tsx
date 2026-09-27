@@ -112,11 +112,11 @@ export default function FootnoteReferenceView({ node, updateAttributes, selected
           padding: '0 2px',
           transition: 'background-color 0.15s',
           border: selected ? '1px solid var(--button-primary, #3b82f6)' : '1px solid transparent',
-          backgroundColor: selected ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+          backgroundColor: selected ? 'var(--mc-accent-soft)' : 'transparent',
         }}
         onMouseEnter={(e) => {
           if (!selected) {
-            (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(59, 130, 246, 0.08)'
+            (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--mc-accent-soft)'
           }
         }}
         onMouseLeave={(e) => {

@@ -33,7 +33,7 @@ function serializeTree(root: MindmapNode, configBlock?: string): string {
 
 const DEPTH_COLORS = [
   { bg: '#eef2ff', border: '#6366f1', text: '#4338ca' },
-  { bg: '#eff6ff', border: '#3b82f6', text: '#1d4ed8' },
+  { bg: '#eff6ff', border: 'var(--mc-accent)', text: '#1d4ed8' },
   { bg: '#ecfdf5', border: '#10b981', text: '#047857' },
   { bg: '#fffbeb', border: '#f59e0b', text: '#b45309' },
   { bg: '#fef2f2', border: '#ef4444', text: '#b91c1c' },
@@ -277,7 +277,7 @@ const MindmapCanvas: React.FC<MindmapCanvasProps> = ({
     const rnx = node.x - renderW / 2
     const rny = node.y - renderH / 2
 
-    const strokeColor = isEditingNode ? '#3b82f6' : color.border
+    const strokeColor = isEditingNode ? 'var(--mc-accent)' : color.border
     const strokeWidth = isEditingNode ? 2 : 1.5
 
     return (
@@ -428,8 +428,8 @@ const MindmapCanvas: React.FC<MindmapCanvasProps> = ({
             <circle
               cx={rnx - 10} cy={node.y}
               r="10"
-              fill="rgba(59,130,246,0.9)"
-              stroke="rgba(59,130,246,0.5)"
+              fill="var(--mc-accent-soft)"
+              stroke="var(--mc-accent-soft)"
               strokeWidth="1"
             />
             <text

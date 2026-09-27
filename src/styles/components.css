@@ -78,11 +78,11 @@
 }
 
 .hover-blue:hover {
-  background-color: rgba(59, 130, 246, 0.08) !important;
+  background-color: var(--mc-accent-soft) !important;
 }
 
 .hover-blue-active:hover {
-  background-color: rgba(59, 130, 246, 0.15) !important;
+  background-color: var(--mc-accent-soft) !important;
 }
 
 /* 编辑器工具栏 */
@@ -107,27 +107,27 @@
 
 /* 标题高亮样式 */
 .heading-highlight {
-  background: linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
+  background: linear-gradient(90deg, var(--mc-accent-soft) 0%, var(--mc-accent-soft) 100%);
   padding: 0.5rem;
   border-radius: 0.5rem;
   animation: headingPulse 0.6s ease-out;
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4), 0 0 20px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 0 2px var(--mc-accent-soft), 0 0 20px var(--mc-accent-soft);
   transition: all var(--mc-dur-base) var(--mc-ease-out);
 }
 
 @keyframes headingPulse {
   0% {
-    background: linear-gradient(90deg, rgba(59, 130, 246, 0.35) 0%, rgba(59, 130, 246, 0.15) 100%);
-    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3), 0 0 30px rgba(59, 130, 246, 0.3);
+    background: linear-gradient(90deg, var(--mc-accent-soft) 0%, var(--mc-accent-soft) 100%);
+    box-shadow: 0 0 0 4px var(--mc-accent-soft), 0 0 30px var(--mc-accent-soft);
     transform: scale(1.02);
   }
   50% {
-    background: linear-gradient(90deg, rgba(59, 130, 246, 0.25) 0%, rgba(59, 130, 246, 0.1) 100%);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25), 0 0 20px rgba(59, 130, 246, 0.2);
+    background: linear-gradient(90deg, var(--mc-accent-soft) 0%, var(--mc-accent-soft) 100%);
+    box-shadow: 0 0 0 3px var(--mc-accent-soft), 0 0 20px var(--mc-accent-soft);
   }
   100% {
-    background: linear-gradient(90deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.4), 0 0 20px rgba(59, 130, 246, 0.2);
+    background: linear-gradient(90deg, var(--mc-accent-soft) 0%, var(--mc-accent-soft) 100%);
+    box-shadow: 0 0 0 2px var(--mc-accent-soft), 0 0 20px var(--mc-accent-soft);
     transform: scale(1);
   }
 }
@@ -201,7 +201,7 @@
   opacity: 0.7;
 }
 .canvas-card-md a {
-  color: #3b82f6;
+  color: var(--mc-accent);
   text-decoration: none;
 }
 .canvas-card-md a:hover {

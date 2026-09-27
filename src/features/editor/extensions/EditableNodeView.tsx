@@ -144,12 +144,12 @@ export default function EditableNodeView({
           borderRadius: '3px',
           padding: inline ? '1px 4px' : undefined,
           border: selected ? '1px solid var(--button-primary, #3b82f6)' : '1px solid transparent',
-          backgroundColor: selected ? 'rgba(59, 130, 246, 0.1)' : 'rgba(127, 127, 127, 0.08)',
+          backgroundColor: selected ? 'var(--mc-accent-soft)' : 'rgba(127, 127, 127, 0.08)',
           transition: 'background-color 0.15s',
         }}
         onMouseEnter={(e) => {
           if (!selected) {
-            (e.currentTarget as HTMLElement).style.backgroundColor = 'rgba(59, 130, 246, 0.12)'
+            (e.currentTarget as HTMLElement).style.backgroundColor = 'var(--mc-accent-soft)'
           }
         }}
         onMouseLeave={(e) => {

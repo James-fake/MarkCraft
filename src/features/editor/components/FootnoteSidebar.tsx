@@ -26,7 +26,7 @@ function FootnoteSidebar({ content, onFootnoteClick, activeFootnoteId }: Footnot
   }, [onFootnoteClick])
 
   const getFootnoteColor = (index: number): string => {
-    const colors = ['#3b82f6', '#a78bfa', '#f472b6', '#34d399', '#fbbf24']
+    const colors = ['var(--mc-accent)', '#a78bfa', '#f472b6', '#34d399', '#fbbf24']
     return colors[index % colors.length]
   }
 
@@ -76,7 +76,7 @@ function FootnoteSidebar({ content, onFootnoteClick, activeFootnoteId }: Footnot
               fontSize: 10,
               fontWeight: 600,
               color: 'var(--button-primary)',
-              backgroundColor: 'rgba(59, 130, 246, 0.08)',
+              backgroundColor: 'var(--mc-accent-soft)',
               padding: '1px 6px',
               borderRadius: 10,
               fontFamily: "'Inter', -apple-system, sans-serif",
@@ -101,8 +101,8 @@ function FootnoteSidebar({ content, onFootnoteClick, activeFootnoteId }: Footnot
             transition: 'all 0.15s ease',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.06)'
-            e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.2)'
+            e.currentTarget.style.backgroundColor = 'var(--mc-accent-soft)'
+            e.currentTarget.style.borderColor = 'var(--mc-accent-soft)'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = 'transparent'
@@ -203,9 +203,9 @@ function FootnoteSidebar({ content, onFootnoteClick, activeFootnoteId }: Footnot
                     padding: '6px 8px',
                     border: 'none',
                     background: isActive
-                      ? 'rgba(59, 130, 246, 0.08)'
+                      ? 'var(--mc-accent-soft)'
                       : isHovered
-                        ? 'rgba(59, 130, 246, 0.04)'
+                        ? 'var(--mc-accent-soft)'
                         : 'transparent',
                     cursor: 'pointer',
                     textAlign: 'left',

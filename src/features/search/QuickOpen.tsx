@@ -358,7 +358,7 @@ const QuickOpen: React.FC<QuickOpenProps> = ({ isOpen, onClose }) => {
                   className="px-2 py-1.5 rounded cursor-pointer flex items-center gap-2"
                   style={{ color: 'var(--mc-text-secondary)', fontSize: '13px' }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                    e.currentTarget.style.backgroundColor = 'var(--mc-accent-soft)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.backgroundColor = 'transparent';
@@ -386,12 +386,12 @@ const QuickOpen: React.FC<QuickOpenProps> = ({ isOpen, onClose }) => {
               key={result.item.id}
               className="px-3 py-2 cursor-pointer flex items-center gap-2 mx-1 rounded"
               style={{
-                backgroundColor: index === selectedIndex ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                backgroundColor: index === selectedIndex ? 'var(--mc-accent-soft)' : 'transparent',
                 color: 'var(--mc-text-secondary)',
               }}
               onMouseEnter={(e) => {
                 if (index !== selectedIndex) {
-                  e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.08)';
+                  e.currentTarget.style.backgroundColor = 'var(--mc-accent-soft)';
                 }
                 setSelectedIndex(index);
               }}
@@ -422,7 +422,7 @@ const QuickOpen: React.FC<QuickOpenProps> = ({ isOpen, onClose }) => {
                 <span
                   className="flex-shrink-0 text-xs px-1.5 py-0.5 rounded"
                   style={{
-                    backgroundColor: 'rgba(59, 130, 246, 0.15)',
+                    backgroundColor: 'var(--mc-accent-soft)',
                     color: 'var(--link-color)',
                     fontSize: '10px',
                   }}

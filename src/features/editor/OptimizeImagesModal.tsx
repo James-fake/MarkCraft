@@ -229,7 +229,7 @@ export default function OptimizeImagesModal({
                         <span
                           className="text-xs px-1.5 py-0.5 rounded"
                           style={{
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            backgroundColor: 'var(--mc-accent-soft)',
                             color: 'var(--link-color)',
                           }}
                         >
@@ -267,16 +267,16 @@ export default function OptimizeImagesModal({
                           disabled={!isFileSystemSupported}
                           className="px-3 py-1 text-xs rounded transition-colors"
                           style={{
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            backgroundColor: 'var(--mc-accent-soft)',
                             color: 'var(--link-color)',
-                            border: '1px solid rgba(59, 130, 246, 0.3)',
+                            border: '1px solid var(--mc-accent-soft)',
                             opacity: isFileSystemSupported ? 1 : 0.5,
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.2)'
+                            e.currentTarget.style.backgroundColor = 'var(--mc-accent-soft)'
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)'
+                            e.currentTarget.style.backgroundColor = 'var(--mc-accent-soft)'
                           }}
                         >
                           {t.optimizeImages.save}
@@ -334,16 +334,16 @@ export default function OptimizeImagesModal({
                 disabled={savingAll}
                 className="px-4 py-2 text-sm rounded transition-colors"
                 style={{
-                  backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                  backgroundColor: 'var(--mc-accent-soft)',
                   color: 'var(--link-color)',
-                  border: '1px solid rgba(59, 130, 246, 0.3)',
+                  border: '1px solid var(--mc-accent-soft)',
                   opacity: savingAll ? 0.5 : 1,
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.2)'
+                  e.currentTarget.style.backgroundColor = 'var(--mc-accent-soft)'
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)'
+                  e.currentTarget.style.backgroundColor = 'var(--mc-accent-soft)'
                 }}
               >
                 {savingAll ? t.optimizeImages.saving : t.optimizeImages.saveAll}

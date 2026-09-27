@@ -186,7 +186,7 @@ function Outline({ content, onHeadingClick, activeHeadingId }: OutlineProps) {
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.opacity = '0.8'
-                e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.08)'
+                e.currentTarget.style.backgroundColor = 'var(--mc-accent-soft)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.opacity = '0.4'
@@ -231,9 +231,9 @@ function Outline({ content, onHeadingClick, activeHeadingId }: OutlineProps) {
               transition: 'all 0.15s ease',
               color: isActive ? levelColor : 'var(--mc-text-secondary)',
               backgroundColor: isActive
-                ? `rgba(59, 130, 246, 0.08)`
+                ? `var(--mc-accent-soft)`
                 : isHovered
-                  ? 'rgba(59, 130, 246, 0.04)'
+                  ? 'var(--mc-accent-soft)'
                   : 'transparent',
               border: 'none',
               cursor: 'pointer',
@@ -390,7 +390,7 @@ function Outline({ content, onHeadingClick, activeHeadingId }: OutlineProps) {
                 fontSize: 10,
                 fontWeight: 600,
                 color: 'var(--button-primary)',
-                backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                backgroundColor: 'var(--mc-accent-soft)',
                 padding: '1px 6px',
                 borderRadius: 10,
                 fontFamily: "'Inter', -apple-system, sans-serif",
@@ -418,8 +418,8 @@ function Outline({ content, onHeadingClick, activeHeadingId }: OutlineProps) {
                 fontFamily: "'Inter', -apple-system, sans-serif",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.06)'
-                e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.2)'
+                e.currentTarget.style.backgroundColor = 'var(--mc-accent-soft)'
+                e.currentTarget.style.borderColor = 'var(--mc-accent-soft)'
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent'

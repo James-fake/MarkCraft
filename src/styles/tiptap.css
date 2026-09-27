@@ -110,7 +110,7 @@
   padding: 0.5em 1em;
   margin: 0.75em 0;
   opacity: 0.85;
-  background: rgba(59, 130, 246, 0.05);
+  background: var(--mc-accent-soft);
   border-radius: 0 4px 4px 0;
 }
 
@@ -500,7 +500,7 @@
 }
 
 .tiptap-editor-wrapper .tiptap sup[data-type="footnoteReference"]:hover {
-  background-color: rgba(59, 130, 246, 0.08);
+  background-color: var(--mc-accent-soft);
 }
 
 .tiptap-editor-wrapper .tiptap table {
@@ -535,7 +535,7 @@
 }
 
 .tiptap-editor-wrapper .tiptap .selectedCell {
-  background: rgba(59, 130, 246, 0.15);
+  background: var(--mc-accent-soft);
 }
 
 .tiptap-editor-wrapper .tiptap .column-resize-handle {
@@ -544,7 +544,7 @@
   top: 0;
   bottom: -2px;
   width: 4px;
-  background-color: #3b82f6;
+  background-color: var(--mc-accent);
   pointer-events: none;
 }
 
@@ -580,7 +580,7 @@
 }
 
 .tiptap-editor-wrapper .tiptap table.markcraft-table .selectedCell {
-  background: rgba(59, 130, 246, 0.15);
+  background: var(--mc-accent-soft);
 }
 
 .tiptap-editor-wrapper .tiptap table.markcraft-table .column-resize-handle {
@@ -626,11 +626,11 @@
 }
 
 .tiptap-bubble-menu button:hover {
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--mc-accent-soft);
 }
 
 .tiptap-bubble-menu button.is-active {
-  background: rgba(59, 130, 246, 0.15);
+  background: var(--mc-accent-soft);
   color: var(--button-primary, #3b82f6);
 }
 
@@ -735,7 +735,7 @@
 
 .save-as-input:focus {
   border-color: var(--link-color);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 0 2px var(--mc-accent-soft);
 }
 
 .save-as-select {
@@ -816,9 +816,9 @@
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  background-color: rgba(59, 130, 246, 0.06);
+  background-color: var(--mc-accent-soft);
   border-radius: var(--mc-radius-sm);
-  border: 1px solid rgba(59, 130, 246, 0.1);
+  border: 1px solid var(--mc-accent-soft);
 }
 
 .save-as-preview-label {
@@ -974,8 +974,8 @@
 }
 
 .save-as-location-btn:hover:not(:disabled) {
-  background-color: rgba(59, 130, 246, 0.06);
-  border-color: rgba(59, 130, 246, 0.3);
+  background-color: var(--mc-accent-soft);
+  border-color: var(--mc-accent-soft);
 }
 
 .save-as-location-btn:disabled {
@@ -1008,8 +1008,8 @@
 }
 
 .save-as-manage-style-btn:hover {
-  background-color: rgba(59, 130, 246, 0.06);
-  border-color: rgba(59, 130, 246, 0.3);
+  background-color: var(--mc-accent-soft);
+  border-color: var(--mc-accent-soft);
 }
 
 /* ── Style Editor Dialog ── */
@@ -1036,7 +1036,7 @@
 
 .save-as-textarea:focus {
   border-color: var(--link-color);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 0 0 2px var(--mc-accent-soft);
 }
 
 .save-as-style-list {

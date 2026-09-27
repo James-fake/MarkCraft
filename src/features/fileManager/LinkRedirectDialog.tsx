@@ -76,7 +76,7 @@ const LinkRedirectDialog: React.FC<Props> = ({ visible, onClose }) => {
         </div>
 
         {preview && (
-          <div style={{ fontSize: 12, color: 'var(--mc-text-secondary)', opacity: 0.7, padding: '8px 12px', background: 'rgba(59,130,246,0.1)', borderRadius: 6 }}>
+          <div style={{ fontSize: 12, color: 'var(--mc-text-secondary)', opacity: 0.7, padding: '8px 12px', background: 'var(--mc-accent-soft)', borderRadius: 6 }}>
             将影响 {preview.fileCount} 个文件中的 {preview.linkCount} 个链接
           </div>
         )}
@@ -94,7 +94,7 @@ const inputStyle: React.CSSProperties = {
 
 const btnStyle: React.CSSProperties = {
   padding: '6px 14px', borderRadius: 6, border: '1px solid var(--border-color)',
-  background: 'rgba(59,130,246,0.15)', color: '#3b82f6', fontSize: 12, cursor: 'pointer',
+  background: 'var(--mc-accent-soft)', color: 'var(--mc-accent)', fontSize: 12, cursor: 'pointer',
 }
 
 export default LinkRedirectDialog

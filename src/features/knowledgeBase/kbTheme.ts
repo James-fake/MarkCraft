@@ -48,11 +48,11 @@ export const KB_STAT_COLORS = [
 
 /** 知识库卡片渐变背景（保持渐变效果，深浅模式通用） */
 export const KB_CARD_GRADIENTS = [
-  'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-  'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
+  'linear-gradient(135deg, var(--mc-accent) 0%, #8b5cf6 100%)',
+  'linear-gradient(135deg, #10b981 0%, var(--mc-accent) 100%)',
   'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
   'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-  'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+  'linear-gradient(135deg, #06b6d4 0%, var(--mc-accent) 100%)',
 ] as const
 
 /** 获取知识库卡片的渐变色（基于 id 稳定取色） */

@@ -39,7 +39,7 @@ function WysiwygToolbarButton({
     if (active) {
       return {
         ...base,
-        backgroundColor: 'rgba(59, 130, 246, 0.15)',
+        backgroundColor: 'var(--mc-accent-soft)',
         color: 'var(--button-primary, #3b82f6)',
         cursor: 'pointer',
       }
@@ -47,7 +47,7 @@ function WysiwygToolbarButton({
     if (hovered) {
       return {
         ...base,
-        backgroundColor: 'rgba(59, 130, 246, 0.08)',
+        backgroundColor: 'var(--mc-accent-soft)',
         cursor: 'pointer',
       }
     }

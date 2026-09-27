@@ -560,7 +560,7 @@ export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(fu
             const activeStyle = (active: boolean): React.CSSProperties => active ? {
               fontWeight: 600,
               border: '1px solid var(--button-primary, #3b82f6)',
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              backgroundColor: 'var(--mc-accent-soft)',
               color: 'var(--button-primary, #3b82f6)',
               opacity: 1,
             } : {}
@@ -633,7 +633,7 @@ export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(fu
                         ? '1px solid var(--button-primary, #3b82f6)'
                         : '1px solid transparent',
                       backgroundColor: showKbPicker
-                        ? 'rgba(59, 130, 246, 0.1)'
+                        ? 'var(--mc-accent-soft)'
                         : 'transparent',
                       color: showKbPicker
                         ? 'var(--button-primary, #3b82f6)'
@@ -714,7 +714,7 @@ export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(fu
                                   textAlign: 'left',
                                   transition: 'background 0.15s',
                                 }}
-                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.08)' }}
+                                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--mc-accent-soft)' }}
                                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
                               >
                                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -748,7 +748,7 @@ export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(fu
                       border: isVersionHistoryOpen
                         ? '1px solid var(--button-primary, #3b82f6)'
                         : '1px solid transparent',
-                      backgroundColor: isVersionHistoryOpen ? 'rgba(59,130,246,0.1)' : 'transparent',
+                      backgroundColor: isVersionHistoryOpen ? 'var(--mc-accent-soft)' : 'transparent',
                       color: 'var(--editor-text)',
                       opacity: isVersionHistoryOpen ? 1 : 0.85,
                       cursor: 'pointer',
@@ -815,7 +815,7 @@ export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(fu
                       <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
                     </svg>
                   ) : (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: '#3b82f6' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--mc-accent)' }}>
                       <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
                     </svg>
                   )}

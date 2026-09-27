@@ -56,15 +56,15 @@ export default function EditorStatusBar({
             style={{
               borderRadius: '4px',
               padding: '2px 8px',
-              background: 'rgba(59, 130, 246, 0.08)',
-              border: '1px solid rgba(59, 130, 246, 0.15)',
+              background: 'var(--mc-accent-soft)',
+              border: '1px solid var(--mc-accent-soft)',
               fontSize: '10px',
               fontWeight: 500,
               color: 'var(--editor-text)',
               cursor: 'pointer'
             }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'rgba(59, 130, 246, 0.08)' }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--mc-accent-soft)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'var(--mc-accent-soft)' }}
             title={wordCountMode === 'text' ? t.editor.switchToStandard : t.editor.switchToText}
           >
             {wordCountMode === 'text' ? t.editor.textMode : t.editor.standardMode}

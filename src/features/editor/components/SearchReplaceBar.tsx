@@ -96,7 +96,7 @@ const SearchReplaceBar: React.FC<SearchReplaceBarProps> = ({
         onClick={toggleSearchInSelection}
         style={{
           color: searchInSelection ? 'var(--button-primary)' : 'var(--mc-text-secondary)',
-          background: searchInSelection ? 'rgba(59, 130, 246, 0.1)' : 'none',
+          background: searchInSelection ? 'var(--mc-accent-soft)' : 'none',
           border: searchInSelection ? '1px solid var(--button-primary)' : '1px solid transparent',
           cursor: 'pointer',
           padding: '4px',

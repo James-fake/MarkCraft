@@ -15,7 +15,7 @@ type GroupKey = 'today' | 'yesterday' | 'earlier'
 type ViewMode = 'list' | 'preview' | 'diff'
 
 const operationMeta: Record<string, { label: string; color: string }> = {
-  save: { label: '保存', color: '#3b82f6' },
+  save: { label: '保存', color: 'var(--mc-accent)' },
   manual: { label: '手动', color: '#10b981' },
   auto: { label: '自动', color: '#6b7280' },
 }

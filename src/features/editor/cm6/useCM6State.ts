@@ -67,10 +67,10 @@ const cm6DarkTheme = EditorView.theme({
     borderLeftColor: 'var(--editor-text)',
   },
   '.cm-selectionBackground': {
-    backgroundColor: 'rgba(59, 130, 246, 0.3) !important',
+    backgroundColor: 'var(--mc-accent-soft) !important',
   },
   '&.cm-focused .cm-selectionBackground': {
-    backgroundColor: 'rgba(59, 130, 246, 0.4) !important',
+    backgroundColor: 'var(--mc-accent-soft) !important',
   },
   '.cm-gutters': {
     backgroundColor: 'var(--editor-bg)',
@@ -78,7 +78,7 @@ const cm6DarkTheme = EditorView.theme({
     borderRight: '1px solid var(--editor-border)',
   },
   '.cm-activeLineGutter': {
-    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    backgroundColor: 'var(--mc-accent-soft)',
   },
   '.cm-activeLine': {
     backgroundColor: 'rgba(255, 255, 255, 0.04)',
@@ -110,7 +110,7 @@ const cm6DarkTheme = EditorView.theme({
     color: 'var(--editor-text)',
   },
   '.cm-tooltip-autocomplete > ul > li[aria-selected]': {
-    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+    backgroundColor: 'var(--mc-accent-soft)',
     color: 'var(--editor-text)',
   },
   '.cm-lintRange-error': {
@@ -398,16 +398,16 @@ export function useCM6State({
             opacity: '0.6',
           },
           '.cm-activeLineGutter': {
-            backgroundColor: 'rgba(59, 130, 246, 0.08)',
+            backgroundColor: 'var(--mc-accent-soft)',
           },
           '.cm-activeLine': {
-            backgroundColor: focusMode ? 'rgba(59, 130, 246, 0.06)' : 'rgba(0, 0, 0, 0.02)',
+            backgroundColor: focusMode ? 'var(--mc-accent-soft)' : 'rgba(0, 0, 0, 0.02)',
           },
           '.cm-selectionBackground': {
-            backgroundColor: 'rgba(59, 130, 246, 0.2) !important',
+            backgroundColor: 'var(--mc-accent-soft) !important',
           },
           '&.cm-focused .cm-selectionBackground': {
-            backgroundColor: 'rgba(59, 130, 246, 0.3) !important',
+            backgroundColor: 'var(--mc-accent-soft) !important',
           },
           '.cm-cursor': {
             borderLeftColor: 'var(--editor-text)',

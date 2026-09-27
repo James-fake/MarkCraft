@@ -241,7 +241,7 @@ const EmbedContentView: React.FC<{ node: any; editor: any }> = ({ node }) => {
         <div
           style={{
             padding: '6px 12px',
-            backgroundColor: 'rgba(59, 130, 246, 0.06)',
+            backgroundColor: 'var(--mc-accent-soft)',
             borderBottom: '1px solid var(--border-color, #444)',
             display: 'flex',
             alignItems: 'center',

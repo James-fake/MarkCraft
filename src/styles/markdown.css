@@ -378,7 +378,7 @@
 }
 
 .markdown-preview .block-reference:hover {
-  background-color: rgba(59, 130, 246, 0.1);
+  background-color: var(--mc-accent-soft);
   border-bottom-style: solid;
 }
 

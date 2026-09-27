@@ -114,7 +114,7 @@
   background: rgba(128, 128, 128, 0.06);
 }
 .vh-item.is-selected {
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--mc-accent-soft);
   border-left-color: var(--button-primary, #3b82f6);
 }
 

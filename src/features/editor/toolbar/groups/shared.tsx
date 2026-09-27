@@ -27,10 +27,10 @@ export function ToolbarButton({ onClick, title, ariaLabel, disabled = false, chi
       return { ...base, opacity: 0.3, cursor: 'not-allowed' }
     }
     if (active) {
-      return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.15)', cursor: 'pointer' }
+      return { ...base, backgroundColor: 'var(--mc-accent-soft)', cursor: 'pointer' }
     }
     if (hovered) {
-      return { ...base, backgroundColor: 'rgba(59, 130, 246, 0.08)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', cursor: 'pointer' }
+      return { ...base, backgroundColor: 'var(--mc-accent-soft)', boxShadow: '0 1px 3px rgba(0,0,0,0.06)', cursor: 'pointer' }
     }
     return { ...base, cursor: 'pointer' }
   }

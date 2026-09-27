@@ -50,17 +50,17 @@ export default function FocusModeToolbar({ typewriterMode, onToggleTypewriterMod
           borderRadius: '6px',
           fontSize: '11px',
           fontWeight: 500,
-          border: typewriterMode ? '1px solid rgba(59, 130, 246, 0.3)' : '1px solid var(--editor-border)',
-          backgroundColor: typewriterMode ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+          border: typewriterMode ? '1px solid var(--mc-accent-soft)' : '1px solid var(--editor-border)',
+          backgroundColor: typewriterMode ? 'var(--mc-accent-soft)' : 'transparent',
           color: typewriterMode ? 'var(--link-color)' : 'var(--mc-text-secondary)',
           cursor: 'pointer',
           transition: 'all 0.2s ease',
         }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.backgroundColor = typewriterMode ? 'rgba(59, 130, 246, 0.15)' : 'var(--mc-bg-panel)'
+          e.currentTarget.style.backgroundColor = typewriterMode ? 'var(--mc-accent-soft)' : 'var(--mc-bg-panel)'
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.backgroundColor = typewriterMode ? 'rgba(59, 130, 246, 0.1)' : 'transparent'
+          e.currentTarget.style.backgroundColor = typewriterMode ? 'var(--mc-accent-soft)' : 'transparent'
         }}
         title={t.editorExtra.typewriterModeTitle}
       >

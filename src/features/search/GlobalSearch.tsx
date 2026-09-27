@@ -317,7 +317,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
     return (
       <>
         <span style={{ opacity: 0.5 }}>{truncatedBefore}</span>
-        <span style={{ color: 'var(--link-color)', fontWeight: 600, backgroundColor: 'rgba(59, 130, 246, 0.15)', borderRadius: '2px', padding: '0 1px' }}>
+        <span style={{ color: 'var(--link-color)', fontWeight: 600, backgroundColor: 'var(--mc-accent-soft)', borderRadius: '2px', padding: '0 1px' }}>
           {match}
         </span>
         <span style={{ opacity: 0.5 }}>{truncatedAfter}</span>
@@ -378,7 +378,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
             style={{
               ...toggleBtnBase,
               border: `1px solid ${showReplace ? 'var(--button-primary)' : 'var(--mc-border-subtle)'}`,
-              backgroundColor: showReplace ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+              backgroundColor: showReplace ? 'var(--mc-accent-soft)' : 'transparent',
               color: showReplace ? 'var(--button-primary)' : 'var(--mc-text-secondary)',
               opacity: booleanMode ? 0.3 : (showReplace ? 1 : 0.6),
               cursor: booleanMode ? 'not-allowed' : 'pointer',
@@ -390,7 +390,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
             style={{
               ...toggleBtnBase,
               border: `1px solid ${showFilters || hasActiveFilters ? 'var(--button-primary)' : 'var(--mc-border-subtle)'}`,
-              backgroundColor: showFilters || hasActiveFilters ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+              backgroundColor: showFilters || hasActiveFilters ? 'var(--mc-accent-soft)' : 'transparent',
               color: showFilters || hasActiveFilters ? 'var(--button-primary)' : 'var(--mc-text-secondary)',
               opacity: showFilters || hasActiveFilters ? 1 : 0.6,
             }}
@@ -401,7 +401,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
             style={{
               ...toggleBtnBase,
               border: `1px solid ${caseSensitive ? 'var(--button-primary)' : 'var(--mc-border-subtle)'}`,
-              backgroundColor: caseSensitive ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+              backgroundColor: caseSensitive ? 'var(--mc-accent-soft)' : 'transparent',
               color: caseSensitive ? 'var(--button-primary)' : 'var(--mc-text-secondary)',
               opacity: caseSensitive ? 1 : 0.6,
             }}
@@ -412,7 +412,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
             style={{
               ...toggleBtnBase,
               border: `1px solid ${wholeWord ? 'var(--button-primary)' : 'var(--mc-border-subtle)'}`,
-              backgroundColor: wholeWord ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+              backgroundColor: wholeWord ? 'var(--mc-accent-soft)' : 'transparent',
               color: wholeWord ? 'var(--button-primary)' : 'var(--mc-text-secondary)',
               opacity: wholeWord ? 1 : 0.6,
             }}
@@ -428,7 +428,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
             style={{
               ...toggleBtnBase,
               border: `1px solid ${useRegex ? 'var(--button-primary)' : 'var(--mc-border-subtle)'}`,
-              backgroundColor: useRegex ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+              backgroundColor: useRegex ? 'var(--mc-accent-soft)' : 'transparent',
               color: useRegex ? 'var(--button-primary)' : 'var(--mc-text-secondary)',
               opacity: useRegex ? 1 : 0.6,
             }}
@@ -444,7 +444,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
             style={{
               ...toggleBtnBase,
               border: `1px solid ${booleanMode ? 'var(--button-primary)' : 'var(--mc-border-subtle)'}`,
-              backgroundColor: booleanMode ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+              backgroundColor: booleanMode ? 'var(--mc-accent-soft)' : 'transparent',
               color: booleanMode ? 'var(--button-primary)' : 'var(--mc-text-secondary)',
               opacity: booleanMode ? 1 : 0.6,
             }}
@@ -662,7 +662,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                 </span>
                 <span
                   className="ml-auto px-1.5 py-0.5 rounded text-xs flex-shrink-0"
-                  style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--link-color)', fontSize: '10px' }}
+                  style={{ backgroundColor: 'var(--mc-accent-soft)', color: 'var(--link-color)', fontSize: '10px' }}
                 >
                   {result.matches.length} {t.globalSearch.matchCount}
                 </span>
@@ -681,7 +681,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                     key={matchKey}
                     className="px-3 py-1.5 cursor-pointer mx-1 rounded"
                     style={{
-                      backgroundColor: isEditing ? 'rgba(59, 130, 246, 0.1)' : (flatIdx === selectedIndex ? 'rgba(59, 130, 246, 0.15)' : 'transparent'),
+                      backgroundColor: isEditing ? 'var(--mc-accent-soft)' : (flatIdx === selectedIndex ? 'var(--mc-accent-soft)' : 'transparent'),
                       paddingLeft: `${24 + 12}px`,
                     }}
                     onMouseEnter={() => setSelectedIndex(flatIdx)}
@@ -715,7 +715,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                           ...toggleBtnBase,
                           flexShrink: 0,
                           border: `1px solid ${isEditing ? 'var(--button-primary)' : 'var(--mc-border-subtle)'}`,
-                          backgroundColor: isEditing ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                          backgroundColor: isEditing ? 'var(--mc-accent-soft)' : 'transparent',
                           color: isEditing ? 'var(--button-primary)' : 'var(--mc-text-secondary)',
                           opacity: isEditing ? 1 : 0.6,
                         }}

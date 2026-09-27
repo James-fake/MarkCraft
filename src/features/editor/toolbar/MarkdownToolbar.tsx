@@ -238,7 +238,7 @@ export default function MarkdownToolbar(props: MarkdownToolbarProps) {
           padding: 0,
           flexShrink: 0,
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.06)' }}
+        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--mc-accent-soft)' }}
         onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
         title={`${t.toolbar.searchReplace || '搜索替换'} (${formatShortcut(getShortcut('edit.find'))})`}
       >
@@ -315,7 +315,7 @@ export default function MarkdownToolbar(props: MarkdownToolbarProps) {
           height: '28px',
           border: 'none',
           borderRadius: '4px',
-          backgroundColor: emojiOpen ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+          backgroundColor: emojiOpen ? 'var(--mc-accent-soft)' : 'transparent',
           color: 'var(--editor-text)',
           cursor: 'pointer',
           transition: 'background-color 0.15s',
@@ -323,8 +323,8 @@ export default function MarkdownToolbar(props: MarkdownToolbarProps) {
           flexShrink: 0,
           fontSize: '16px',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.06)' }}
-        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = emojiOpen ? 'rgba(59, 130, 246, 0.1)' : 'transparent' }}
+        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--mc-accent-soft)' }}
+        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = emojiOpen ? 'var(--mc-accent-soft)' : 'transparent' }}
         title={t.toolbar.emoji || 'Emoji'}
       >
         😊

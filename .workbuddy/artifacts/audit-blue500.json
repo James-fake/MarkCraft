@@ -1,0 +1,1102 @@
+{
+  "total": 117,
+  "byBucket": {
+    "token-def": 12,
+    "fallback": 49,
+    "accent": 55,
+    "comment": 1
+  },
+  "byFileCount": 35,
+  "byFile": {
+    "aurora/styles/tokens.css": 2,
+    "components/ui/ErrorBoundary.tsx": 2,
+    "features/blog/components/panels/CssPresetChips.tsx": 1,
+    "features/blog/themes/glassmorphism.ts": 2,
+    "features/blog/themes/newThemes.ts": 5,
+    "features/canvas-v2/engine/OverlayCards.tsx": 1,
+    "features/canvas-v2/types.ts": 2,
+    "features/dashboard/useDashboardData.ts": 1,
+    "features/diary/diaryMoods.ts": 1,
+    "features/editor/components/LinkBreadcrumb.tsx": 1,
+    "features/editor/EditorLayout.tsx": 5,
+    "features/editor/extensions/CodeBlockView.tsx": 2,
+    "features/editor/extensions/EditableNodeView.tsx": 2,
+    "features/editor/extensions/EmbedContentView.tsx": 2,
+    "features/editor/extensions/FootnoteReferenceView.tsx": 4,
+    "features/editor/extensions/highlightColors.ts": 1,
+    "features/editor/extensions/ImageView.tsx": 3,
+    "features/editor/extensions/MathBlockView.tsx": 1,
+    "features/editor/extensions/MermaidBlockView.tsx": 2,
+    "features/editor/extensions/PlantUmlBlockView.tsx": 1,
+    "features/editor/extensions/WikiLink.ts": 1,
+    "features/editor/FrontMatterPanel.tsx": 1,
+    "features/editor/toolbar/portalOverlayBasis.test.ts": 5,
+    "features/editor/toolbar/WysiwygToolbarButton.tsx": 1,
+    "features/editor/versionHistory.css": 6,
+    "features/export/utils/exportCss.ts": 4,
+    "features/knowledgeBase/export/documentExporter.ts": 1,
+    "features/knowledgeBase/export/staticSiteExporter.ts": 1,
+    "features/knowledgeBase/kb-ui.css": 1,
+    "features/knowledgeBase/kbTheme.ts": 2,
+    "features/themes/CodeThemeManager.ts": 4,
+    "styles/base.css": 5,
+    "styles/markdown.css": 4,
+    "styles/mermaid.css": 32,
+    "styles/tiptap.css": 8
+  },
+  "hits": [
+    {
+      "rel": "aurora/styles/tokens.css",
+      "line": 221,
+      "col": 28,
+      "text": "#3B82F6",
+      "bucket": "token-def",
+      "reason": "legit --mc-* categorical definition",
+      "raw": "--mc-cat-markdown:        #3B82F6;"
+    },
+    {
+      "rel": "aurora/styles/tokens.css",
+      "line": 232,
+      "col": 28,
+      "text": "#3B82F6",
+      "bucket": "token-def",
+      "reason": "legit --mc-* categorical definition",
+      "raw": "--mc-cat-group-5:         #3B82F6;"
+    },
+    {
+      "rel": "components/ui/ErrorBoundary.tsx",
+      "line": 98,
+      "col": 52,
+      "text": "rgba(59,130,246,0.12)",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "background: 'var(--button-primary-bg, rgba(59,130,246,0.12))',"
+    },
+    {
+      "rel": "components/ui/ErrorBoundary.tsx",
+      "line": 102,
+      "col": 44,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "color: 'var(--button-primary, #3b82f6)',"
+    },
+    {
+      "rel": "features/blog/components/panels/CssPresetChips.tsx",
+      "line": 54,
+      "col": 33,
+      "text": "#3b82f6",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "css: ':root { --accent-warm: #3b82f6; --bg-primary: #f0f4f8; --bg-secondary: #e2e8f0; --bg-card: #f8fafc; --text-primary: #1e293b; --text-secondary: #475569; --border-color: #cbd5e1; --radius: 4px; --shadow-card: 0 2px 8px rgba(0,0,0,0.1); } body { background: var(--bg-primary); color: var(--text-primary); }' },"
+    },
+    {
+      "rel": "features/blog/themes/glassmorphism.ts",
+      "line": 8,
+      "col": 16,
+      "text": "#3b82f6",
+      "bucket": "token-def",
+      "reason": "legit --mc-* categorical definition",
+      "raw": "--glass-blue: #3b82f6;"
+    },
+    {
+      "rel": "features/blog/themes/glassmorphism.ts",
+      "line": 26,
+      "col": 56,
+      "text": "#3b82f6",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background: linear-gradient(-45deg, #7c3aed, #ec4899, #3b82f6, #7c3aed);"
+    },
+    {
+      "rel": "features/blog/themes/newThemes.ts",
+      "line": 6555,
+      "col": 39,
+      "text": "#3b82f6",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "const accent = isDark ? '#60a5fa' : '#3b82f6'"
+    },
+    {
+      "rel": "features/blog/themes/newThemes.ts",
+      "line": 6556,
+      "col": 57,
+      "text": "rgba(59,130,246,0.08)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "const accentLight = isDark ? 'rgba(96,165,250,0.1)' : 'rgba(59,130,246,0.08)'"
+    },
+    {
+      "rel": "features/blog/themes/newThemes.ts",
+      "line": 6567,
+      "col": 81,
+      "text": "rgba(59,130,246,0.12)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "const shadowHover = isDark ? '0 20px 60px rgba(96,165,250,0.2)' : '0 20px 60px rgba(59,130,246,0.12)'"
+    },
+    {
+      "rel": "features/blog/themes/newThemes.ts",
+      "line": 6964,
+      "col": 62,
+      "text": "rgba(59,130,246,0.2)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "box-shadow: 0 4px 12px ${isDark ? 'rgba(96,165,250,0.3)' : 'rgba(59,130,246,0.2)'};"
+    },
+    {
+      "rel": "features/blog/themes/newThemes.ts",
+      "line": 7232,
+      "col": 45,
+      "text": "#3b82f6",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "const mondrianBlue = isDark ? '#2563eb' : '#3b82f6'"
+    },
+    {
+      "rel": "features/canvas-v2/engine/OverlayCards.tsx",
+      "line": 456,
+      "col": 53,
+      "text": "#3b82f6",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "const colorDef = getColorDef(shape.props.color ?? '#3b82f6')"
+    },
+    {
+      "rel": "features/canvas-v2/types.ts",
+      "line": 45,
+      "col": 3,
+      "text": "#3b82f6",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "'#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6',"
+    },
+    {
+      "rel": "features/canvas-v2/types.ts",
+      "line": 163,
+      "col": 20,
+      "text": "#3b82f6",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "derive: { color: '#3b82f6', dash: '2,3', label: '衍生' },"
+    },
+    {
+      "rel": "features/dashboard/useDashboardData.ts",
+      "line": 41,
+      "col": 35,
+      "text": "#3b82f6",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "export const DASHBOARD_PALETTE = ['#3b82f6', '#22c55e', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316']"
+    },
+    {
+      "rel": "features/diary/diaryMoods.ts",
+      "line": 21,
+      "col": 56,
+      "text": "#3b82f6",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "{ key: 'fulfilled', emoji: '💪', label: '充实', color: '#3b82f6', cat: 'pos' },"
+    },
+    {
+      "rel": "features/editor/components/LinkBreadcrumb.tsx",
+      "line": 45,
+      "col": 70,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "style={{ cursor: 'pointer', color: 'var(--button-primary, #3b82f6)', opacity: 0.8 }}"
+    },
+    {
+      "rel": "features/editor/EditorLayout.tsx",
+      "line": 562,
+      "col": 55,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "border: '1px solid var(--button-primary, #3b82f6)',"
+    },
+    {
+      "rel": "features/editor/EditorLayout.tsx",
+      "line": 564,
+      "col": 44,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "color: 'var(--button-primary, #3b82f6)',"
+    },
+    {
+      "rel": "features/editor/EditorLayout.tsx",
+      "line": 633,
+      "col": 59,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "? '1px solid var(--button-primary, #3b82f6)'"
+    },
+    {
+      "rel": "features/editor/EditorLayout.tsx",
+      "line": 639,
+      "col": 49,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "? 'var(--button-primary, #3b82f6)'"
+    },
+    {
+      "rel": "features/editor/EditorLayout.tsx",
+      "line": 749,
+      "col": 59,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "? '1px solid var(--button-primary, #3b82f6)'"
+    },
+    {
+      "rel": "features/editor/extensions/CodeBlockView.tsx",
+      "line": 96,
+      "col": 47,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "? '2px solid var(--button-primary, #3b82f6)'"
+    },
+    {
+      "rel": "features/editor/extensions/CodeBlockView.tsx",
+      "line": 132,
+      "col": 59,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "border: '1px solid var(--button-primary, #3b82f6)',"
+    },
+    {
+      "rel": "features/editor/extensions/EditableNodeView.tsx",
+      "line": 114,
+      "col": 55,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "border: '1px solid var(--button-primary, #3b82f6)',"
+    },
+    {
+      "rel": "features/editor/extensions/EditableNodeView.tsx",
+      "line": 146,
+      "col": 62,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "border: selected ? '1px solid var(--button-primary, #3b82f6)' : '1px solid transparent',"
+    },
+    {
+      "rel": "features/editor/extensions/EmbedContentView.tsx",
+      "line": 250,
+      "col": 42,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "color: 'var(--button-primary, #3b82f6)',"
+    },
+    {
+      "rel": "features/editor/extensions/EmbedContentView.tsx",
+      "line": 285,
+      "col": 44,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "color: 'var(--button-primary, #3b82f6)',"
+    },
+    {
+      "rel": "features/editor/extensions/FootnoteReferenceView.tsx",
+      "line": 54,
+      "col": 38,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "color: 'var(--link-color, #3b82f6)',"
+    },
+    {
+      "rel": "features/editor/extensions/FootnoteReferenceView.tsx",
+      "line": 80,
+      "col": 55,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "border: '1px solid var(--button-primary, #3b82f6)',"
+    },
+    {
+      "rel": "features/editor/extensions/FootnoteReferenceView.tsx",
+      "line": 106,
+      "col": 36,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "color: 'var(--link-color, #3b82f6)',"
+    },
+    {
+      "rel": "features/editor/extensions/FootnoteReferenceView.tsx",
+      "line": 114,
+      "col": 62,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "border: selected ? '1px solid var(--button-primary, #3b82f6)' : '1px solid transparent',"
+    },
+    {
+      "rel": "features/editor/extensions/highlightColors.ts",
+      "line": 38,
+      "col": 9,
+      "text": "#3b82f6",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "blue: '#3b82f6',"
+    },
+    {
+      "rel": "features/editor/extensions/ImageView.tsx",
+      "line": 198,
+      "col": 51,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "background: 'var(--button-primary, #3b82f6)',"
+    },
+    {
+      "rel": "features/editor/extensions/ImageView.tsx",
+      "line": 218,
+      "col": 54,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "backgroundColor: 'var(--button-primary, #3b82f6)',"
+    },
+    {
+      "rel": "features/editor/extensions/ImageView.tsx",
+      "line": 399,
+      "col": 55,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "border: '2px solid var(--button-primary, #3b82f6)',"
+    },
+    {
+      "rel": "features/editor/extensions/MathBlockView.tsx",
+      "line": 109,
+      "col": 62,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "border: selected ? '2px solid var(--button-primary, #3b82f6)' : '1px solid var(--editor-border)',"
+    },
+    {
+      "rel": "features/editor/extensions/MermaidBlockView.tsx",
+      "line": 314,
+      "col": 47,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "? '2px solid var(--button-primary, #3b82f6)'"
+    },
+    {
+      "rel": "features/editor/extensions/MermaidBlockView.tsx",
+      "line": 419,
+      "col": 42,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "backgroundColor: 'var(--button-primary, #3b82f6)',"
+    },
+    {
+      "rel": "features/editor/extensions/PlantUmlBlockView.tsx",
+      "line": 60,
+      "col": 47,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "? '2px solid var(--button-primary, #3b82f6)'"
+    },
+    {
+      "rel": "features/editor/extensions/WikiLink.ts",
+      "line": 104,
+      "col": 42,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": ": 'color: var(--button-primary, #3b82f6); cursor: pointer; border-bottom: 1px dashed currentColor; text-decoration: none;',"
+    },
+    {
+      "rel": "features/editor/FrontMatterPanel.tsx",
+      "line": 15,
+      "col": 14,
+      "text": "rgba(59,130,246,.2)",
+      "bucket": "comment",
+      "reason": "inside comment",
+      "raw": "//   · 字段焦点环 `rgba(59,130,246,.2)` = Tailwind blue-500（横向缺陷 §7）；"
+    },
+    {
+      "rel": "features/editor/toolbar/portalOverlayBasis.test.ts",
+      "line": 13,
+      "col": 44,
+      "text": "rgba(59,130,246,0.1)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "*      .aurora-editor 内定义，portal 里直接落回内联旧蓝 rgba(59,130,246,0.1)。"
+    },
+    {
+      "rel": "features/editor/toolbar/portalOverlayBasis.test.ts",
+      "line": 47,
+      "col": 53,
+      "text": "rgba(59,130,246,.2)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "*                                + --editor-* 旧变量 + rgba(59,130,246,.2) 焦点环"
+    },
+    {
+      "rel": "features/editor/toolbar/portalOverlayBasis.test.ts",
+      "line": 57,
+      "col": 58,
+      "text": "#3b82f6",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "*  5. 旧版遗留字面量不得回流（Tailwind 0.5rem / shadow-lg、旧 slate、旧蓝 #3b82f6）；"
+    },
+    {
+      "rel": "features/editor/toolbar/portalOverlayBasis.test.ts",
+      "line": 150,
+      "col": 10,
+      "text": "#3b82f6",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "['旧蓝强调色 #3b82f6', /#3b82f6/],"
+    },
+    {
+      "rel": "features/editor/toolbar/portalOverlayBasis.test.ts",
+      "line": 150,
+      "col": 21,
+      "text": "#3b82f6",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "['旧蓝强调色 #3b82f6', /#3b82f6/],"
+    },
+    {
+      "rel": "features/editor/toolbar/WysiwygToolbarButton.tsx",
+      "line": 43,
+      "col": 38,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "color: 'var(--button-primary, #3b82f6)',"
+    },
+    {
+      "rel": "features/editor/versionHistory.css",
+      "line": 118,
+      "col": 43,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "border-left-color: var(--button-primary, #3b82f6);"
+    },
+    {
+      "rel": "features/editor/versionHistory.css",
+      "line": 161,
+      "col": 36,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "background: var(--button-primary, #3b82f6);"
+    },
+    {
+      "rel": "features/editor/versionHistory.css",
+      "line": 200,
+      "col": 36,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "background: var(--button-primary, #3b82f6);"
+    },
+    {
+      "rel": "features/editor/versionHistory.css",
+      "line": 201,
+      "col": 38,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "border-color: var(--button-primary, #3b82f6);"
+    },
+    {
+      "rel": "features/editor/versionHistory.css",
+      "line": 204,
+      "col": 84,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": ".vh-btn-primary:hover { filter: brightness(1.06); background: var(--button-primary, #3b82f6); }"
+    },
+    {
+      "rel": "features/editor/versionHistory.css",
+      "line": 280,
+      "col": 42,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "border-top-color: var(--button-primary, #3b82f6);"
+    },
+    {
+      "rel": "features/export/utils/exportCss.ts",
+      "line": 15,
+      "col": 23,
+      "text": "#3b82f6",
+      "bucket": "token-def",
+      "reason": "legit --mc-* categorical definition",
+      "raw": "--blockquote-border: #3b82f6;"
+    },
+    {
+      "rel": "features/export/utils/exportCss.ts",
+      "line": 18,
+      "col": 20,
+      "text": "#3b82f6",
+      "bucket": "token-def",
+      "reason": "legit --mc-* categorical definition",
+      "raw": "--button-primary: #3b82f6;"
+    },
+    {
+      "rel": "features/export/utils/exportCss.ts",
+      "line": 28,
+      "col": 23,
+      "text": "#3b82f6",
+      "bucket": "token-def",
+      "reason": "legit --mc-* categorical definition",
+      "raw": "--blockquote-border: #3b82f6;"
+    },
+    {
+      "rel": "features/export/utils/exportCss.ts",
+      "line": 31,
+      "col": 20,
+      "text": "#3b82f6",
+      "bucket": "token-def",
+      "reason": "legit --mc-* categorical definition",
+      "raw": "--button-primary: #3b82f6;"
+    },
+    {
+      "rel": "features/knowledgeBase/export/documentExporter.ts",
+      "line": 188,
+      "col": 36,
+      "text": "#3b82f6",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "blockquote { border-left: 4px solid #3b82f6; margin: 1em 0; padding: 0.5em 1em; color: #64748b; background: #f8fafc; }"
+    },
+    {
+      "rel": "features/knowledgeBase/export/staticSiteExporter.ts",
+      "line": 157,
+      "col": 22,
+      "text": "#3b82f6",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "blue: { primary: '#3b82f6', accent: '#1e40af' },"
+    },
+    {
+      "rel": "features/knowledgeBase/kb-ui.css",
+      "line": 17,
+      "col": 34,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "--kb-primary: var(--cv-primary, #3b82f6);"
+    },
+    {
+      "rel": "features/knowledgeBase/kbTheme.ts",
+      "line": 11,
+      "col": 30,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "primary: 'var(--kb-primary, #3b82f6)',"
+    },
+    {
+      "rel": "features/knowledgeBase/kbTheme.ts",
+      "line": 24,
+      "col": 28,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "accent: 'var(--kb-accent, #3b82f6)',"
+    },
+    {
+      "rel": "features/themes/CodeThemeManager.ts",
+      "line": 21,
+      "col": 22,
+      "text": "rgba(59, 130, 246, 0.3)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "backgroundColor: 'rgba(59, 130, 246, 0.3) !important',"
+    },
+    {
+      "rel": "features/themes/CodeThemeManager.ts",
+      "line": 24,
+      "col": 22,
+      "text": "rgba(59, 130, 246, 0.4)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "backgroundColor: 'rgba(59, 130, 246, 0.4) !important',"
+    },
+    {
+      "rel": "features/themes/CodeThemeManager.ts",
+      "line": 32,
+      "col": 22,
+      "text": "rgba(59, 130, 246, 0.1)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "backgroundColor: 'rgba(59, 130, 246, 0.1)',"
+    },
+    {
+      "rel": "features/themes/CodeThemeManager.ts",
+      "line": 64,
+      "col": 22,
+      "text": "rgba(59, 130, 246, 0.2)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "backgroundColor: 'rgba(59, 130, 246, 0.2)',"
+    },
+    {
+      "rel": "styles/base.css",
+      "line": 31,
+      "col": 23,
+      "text": "#3b82f6",
+      "bucket": "token-def",
+      "reason": "legit --mc-* categorical definition",
+      "raw": "--blockquote-border: #3b82f6;"
+    },
+    {
+      "rel": "styles/base.css",
+      "line": 53,
+      "col": 16,
+      "text": "#3b82f6",
+      "bucket": "token-def",
+      "reason": "legit --mc-* categorical definition",
+      "raw": "--cv-primary: #3b82f6;"
+    },
+    {
+      "rel": "styles/base.css",
+      "line": 125,
+      "col": 23,
+      "text": "#3b82f6",
+      "bucket": "token-def",
+      "reason": "legit --mc-* categorical definition",
+      "raw": "--blockquote-border: #3b82f6;"
+    },
+    {
+      "rel": "styles/base.css",
+      "line": 146,
+      "col": 15,
+      "text": "#3b82f6",
+      "bucket": "token-def",
+      "reason": "legit --mc-* categorical definition",
+      "raw": "--cv-accent: #3b82f6;"
+    },
+    {
+      "rel": "styles/base.css",
+      "line": 147,
+      "col": 16,
+      "text": "#3b82f6",
+      "bucket": "token-def",
+      "reason": "legit --mc-* categorical definition",
+      "raw": "--cv-primary: #3b82f6;"
+    },
+    {
+      "rel": "styles/markdown.css",
+      "line": 372,
+      "col": 27,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "color: var(--link-color, #3b82f6);"
+    },
+    {
+      "rel": "styles/markdown.css",
+      "line": 374,
+      "col": 46,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "border-bottom: 1px dashed var(--link-color, #3b82f6);"
+    },
+    {
+      "rel": "styles/markdown.css",
+      "line": 388,
+      "col": 43,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "border-left: 3px solid var(--link-color, #3b82f6);"
+    },
+    {
+      "rel": "styles/markdown.css",
+      "line": 395,
+      "col": 27,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "color: var(--link-color, #3b82f6);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 32,
+      "col": 42,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "border-top-color: var(--button-primary, #3b82f6);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 328,
+      "col": 20,
+      "text": "rgba(59, 130, 246, 0.1)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background-color: rgba(59, 130, 246, 0.1);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 381,
+      "col": 20,
+      "text": "rgba(59, 130, 246, 0.15)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background-color: rgba(59, 130, 246, 0.15);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 395,
+      "col": 37,
+      "text": "rgba(59, 130, 246, 0.2)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.05) 100%);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 395,
+      "col": 65,
+      "text": "rgba(59, 130, 246, 0.05)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.05) 100%);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 412,
+      "col": 39,
+      "text": "rgba(59, 130, 246, 0.35)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background: linear-gradient(90deg, rgba(59, 130, 246, 0.35) 0%, rgba(59, 130, 246, 0.15) 100%);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 412,
+      "col": 68,
+      "text": "rgba(59, 130, 246, 0.15)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background: linear-gradient(90deg, rgba(59, 130, 246, 0.35) 0%, rgba(59, 130, 246, 0.15) 100%);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 449,
+      "col": 14,
+      "text": "rgba(59, 130, 246, 0.06)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background: rgba(59, 130, 246, 0.06);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 450,
+      "col": 25,
+      "text": "rgba(59, 130, 246, 0.3)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "border-left: 2px solid rgba(59, 130, 246, 0.3);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 466,
+      "col": 14,
+      "text": "rgba(59, 130, 246, 0.06)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background: rgba(59, 130, 246, 0.06);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 467,
+      "col": 25,
+      "text": "rgba(59, 130, 246, 0.3)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "border-left: 2px solid rgba(59, 130, 246, 0.3);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 716,
+      "col": 20,
+      "text": "rgba(59, 130, 246, 0.12)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background-color: rgba(59, 130, 246, 0.12);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 799,
+      "col": 37,
+      "text": "rgba(59, 130, 246, 0.2)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.05) 100%);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 799,
+      "col": 65,
+      "text": "rgba(59, 130, 246, 0.05)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.05) 100%);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 807,
+      "col": 39,
+      "text": "rgba(59, 130, 246, 0.35)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background: linear-gradient(90deg, rgba(59, 130, 246, 0.35) 0%, rgba(59, 130, 246, 0.15) 100%);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 807,
+      "col": 68,
+      "text": "rgba(59, 130, 246, 0.15)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background: linear-gradient(90deg, rgba(59, 130, 246, 0.35) 0%, rgba(59, 130, 246, 0.15) 100%);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 810,
+      "col": 39,
+      "text": "rgba(59, 130, 246, 0.25)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background: linear-gradient(90deg, rgba(59, 130, 246, 0.25) 0%, rgba(59, 130, 246, 0.08) 100%);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 810,
+      "col": 68,
+      "text": "rgba(59, 130, 246, 0.08)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background: linear-gradient(90deg, rgba(59, 130, 246, 0.25) 0%, rgba(59, 130, 246, 0.08) 100%);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 813,
+      "col": 39,
+      "text": "rgba(59, 130, 246, 0.2)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.05) 100%);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 813,
+      "col": 67,
+      "text": "rgba(59, 130, 246, 0.05)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background: linear-gradient(90deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.05) 100%);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 907,
+      "col": 20,
+      "text": "rgba(59, 130, 246, 0.08)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background-color: rgba(59, 130, 246, 0.08);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 908,
+      "col": 16,
+      "text": "rgba(59, 130, 246, 0.2)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "border-color: rgba(59, 130, 246, 0.2);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 912,
+      "col": 20,
+      "text": "rgba(59, 130, 246, 0.15)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background-color: rgba(59, 130, 246, 0.15);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 994,
+      "col": 20,
+      "text": "rgba(59, 130, 246, 0.08)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background-color: rgba(59, 130, 246, 0.08);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 995,
+      "col": 16,
+      "text": "rgba(59, 130, 246, 0.2)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "border-color: rgba(59, 130, 246, 0.2);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 1041,
+      "col": 20,
+      "text": "rgba(59, 130, 246, 0.08)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background-color: rgba(59, 130, 246, 0.08);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 1099,
+      "col": 20,
+      "text": "rgba(59, 130, 246, 0.15)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background-color: rgba(59, 130, 246, 0.15);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 1129,
+      "col": 20,
+      "text": "rgba(59, 130, 246, 0.15)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background-color: rgba(59, 130, 246, 0.15);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 1161,
+      "col": 20,
+      "text": "rgba(59, 130, 246, 0.1)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background-color: rgba(59, 130, 246, 0.1);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 1162,
+      "col": 16,
+      "text": "rgba(59, 130, 246, 0.2)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "border-color: rgba(59, 130, 246, 0.2);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 1194,
+      "col": 20,
+      "text": "rgba(59, 130, 246, 0.1)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "background-color: rgba(59, 130, 246, 0.1);"
+    },
+    {
+      "rel": "styles/mermaid.css",
+      "line": 1195,
+      "col": 16,
+      "text": "rgba(59, 130, 246, 0.2)",
+      "bucket": "accent",
+      "reason": "default interactive/accent blue",
+      "raw": "border-color: rgba(59, 130, 246, 0.2);"
+    },
+    {
+      "rel": "styles/tiptap.css",
+      "line": 109,
+      "col": 47,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "border-left: 4px solid var(--button-primary, #3b82f6);"
+    },
+    {
+      "rel": "styles/tiptap.css",
+      "line": 160,
+      "col": 38,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "accent-color: var(--button-primary, #3b82f6);"
+    },
+    {
+      "rel": "styles/tiptap.css",
+      "line": 175,
+      "col": 27,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "color: var(--link-color, #3b82f6);"
+    },
+    {
+      "rel": "styles/tiptap.css",
+      "line": 492,
+      "col": 27,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "color: var(--link-color, #3b82f6);"
+    },
+    {
+      "rel": "styles/tiptap.css",
+      "line": 592,
+      "col": 42,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "background-color: var(--button-primary, #3b82f6);"
+    },
+    {
+      "rel": "styles/tiptap.css",
+      "line": 634,
+      "col": 31,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "color: var(--button-primary, #3b82f6);"
+    },
+    {
+      "rel": "styles/tiptap.css",
+      "line": 1106,
+      "col": 31,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "color: var(--button-primary, #3b82f6);"
+    },
+    {
+      "rel": "styles/tiptap.css",
+      "line": 1123,
+      "col": 31,
+      "text": "#3b82f6",
+      "bucket": "fallback",
+      "reason": "dead fallback inside var(--x, #3b82f6)",
+      "raw": "color: var(--button-primary, #3b82f6);"
+    }
+  ]
+}

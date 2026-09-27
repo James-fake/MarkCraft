@@ -89,7 +89,7 @@ const BlockBacklinksPanel: React.FC<BlockBacklinksPanelProps> = ({ fileId, onOpe
                   fontSize: 10,
                   padding: '2px 6px',
                   borderRadius: 8,
-                  backgroundColor: backlinks.length > 0 ? 'rgba(59, 130, 246, 0.15)' : 'transparent',
+                  backgroundColor: backlinks.length > 0 ? 'var(--mc-accent-soft)' : 'transparent',
                   color: backlinks.length > 0 ? 'var(--button-primary)' : 'var(--editor-text)',
                   opacity: backlinks.length > 0 ? 1 : 0.4,
                 }}>

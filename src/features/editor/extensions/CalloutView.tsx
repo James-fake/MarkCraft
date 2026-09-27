@@ -3,7 +3,7 @@ import type { NodeViewProps } from '@tiptap/react'
 import { useState } from 'react'
 
 const CALLOUT_STYLES: Record<string, { color: string; icon: string }> = {
-  note: { color: '#3b82f6', icon: 'ℹ️' },
+  note: { color: 'var(--mc-accent)', icon: 'ℹ️' },
   tip: { color: '#22c55e', icon: '💡' },
   warning: { color: '#f59e0b', icon: '⚠️' },
   danger: { color: '#ef4444', icon: '🔥' },

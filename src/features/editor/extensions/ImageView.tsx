@@ -251,7 +251,7 @@ export default function ImageView({ node, updateAttributes, selected }: NodeView
                 style={{
                   padding: '4px 6px',
                   border: 'none',
-                  background: currentAlign === 'left' ? 'rgba(59,130,246,0.15)' : 'none',
+                  background: currentAlign === 'left' ? 'var(--mc-accent-soft)' : 'none',
                   borderRadius: '4px',
                   cursor: 'pointer',
                   color: 'var(--editor-text)',
@@ -272,7 +272,7 @@ export default function ImageView({ node, updateAttributes, selected }: NodeView
                 style={{
                   padding: '4px 6px',
                   border: 'none',
-                  background: currentAlign === 'center' ? 'rgba(59,130,246,0.15)' : 'none',
+                  background: currentAlign === 'center' ? 'var(--mc-accent-soft)' : 'none',
                   borderRadius: '4px',
                   cursor: 'pointer',
                   color: 'var(--editor-text)',
@@ -293,7 +293,7 @@ export default function ImageView({ node, updateAttributes, selected }: NodeView
                 style={{
                   padding: '4px 6px',
                   border: 'none',
-                  background: currentAlign === 'right' ? 'rgba(59,130,246,0.15)' : 'none',
+                  background: currentAlign === 'right' ? 'var(--mc-accent-soft)' : 'none',
                   borderRadius: '4px',
                   cursor: 'pointer',
                   color: 'var(--editor-text)',
@@ -320,7 +320,7 @@ export default function ImageView({ node, updateAttributes, selected }: NodeView
                   style={{
                     padding: '4px 6px',
                     border: 'none',
-                    background: isUploading ? 'rgba(59,130,246,0.1)' : 'none',
+                    background: isUploading ? 'var(--mc-accent-soft)' : 'none',
                     borderRadius: '4px',
                     cursor: isUploading ? 'wait' : 'pointer',
                     color: 'var(--editor-text)',

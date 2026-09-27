@@ -38,7 +38,7 @@ const fieldGroupStyle: React.CSSProperties = {
 
 const handleFocus = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
   e.currentTarget.style.borderColor = 'var(--link-color)'
-  e.currentTarget.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)'
+  e.currentTarget.style.boxShadow = '0 0 0 2px var(--mc-accent-soft)'
 }
 
 const handleBlur = (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -112,7 +112,7 @@ export default function BlogConfigForm({ config, setConfig, t }: BlogConfigFormP
               fontWeight: 500,
               border: config.theme === 'light' ? '2px solid var(--link-color)' : '1px solid var(--editor-border)',
               borderRadius: 6,
-              backgroundColor: config.theme === 'light' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+              backgroundColor: config.theme === 'light' ? 'var(--mc-accent-soft)' : 'transparent',
               color: 'var(--editor-text)',
               cursor: 'pointer',
               fontFamily: "'Inter', -apple-system, sans-serif",
@@ -130,7 +130,7 @@ export default function BlogConfigForm({ config, setConfig, t }: BlogConfigFormP
               fontWeight: 500,
               border: config.theme === 'dark' ? '2px solid var(--link-color)' : '1px solid var(--editor-border)',
               borderRadius: 6,
-              backgroundColor: config.theme === 'dark' ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+              backgroundColor: config.theme === 'dark' ? 'var(--mc-accent-soft)' : 'transparent',
               color: 'var(--editor-text)',
               cursor: 'pointer',
               fontFamily: "'Inter', -apple-system, sans-serif",
@@ -166,7 +166,7 @@ export default function BlogConfigForm({ config, setConfig, t }: BlogConfigFormP
             flex: '1 1 auto', padding: '8px 12px', fontSize: 12, fontWeight: 500,
             border: config.enableBusuanzi ? '2px solid var(--link-color)' : '1px solid var(--editor-border)',
             borderRadius: 6, cursor: 'pointer',
-            backgroundColor: config.enableBusuanzi ? 'rgba(59,130,246,0.1)' : 'transparent',
+            backgroundColor: config.enableBusuanzi ? 'var(--mc-accent-soft)' : 'transparent',
             color: 'var(--editor-text)', fontFamily: "'Inter', sans-serif", transition: 'all 0.15s',
           }}
         >👁️ 阅读量统计</button>
@@ -176,7 +176,7 @@ export default function BlogConfigForm({ config, setConfig, t }: BlogConfigFormP
             flex: '1 1 auto', padding: '8px 12px', fontSize: 12, fontWeight: 500,
             border: config.enableApplause ? '2px solid var(--link-color)' : '1px solid var(--editor-border)',
             borderRadius: 6, cursor: 'pointer',
-            backgroundColor: config.enableApplause ? 'rgba(59,130,246,0.1)' : 'transparent',
+            backgroundColor: config.enableApplause ? 'var(--mc-accent-soft)' : 'transparent',
             color: 'var(--editor-text)', fontFamily: "'Inter', sans-serif", transition: 'all 0.15s',
           }}
         >👏 文章点赞</button>
@@ -190,7 +190,7 @@ export default function BlogConfigForm({ config, setConfig, t }: BlogConfigFormP
             padding: '6px 12px', fontSize: 12, fontWeight: 500,
             border: config.reward?.enable ? '2px solid var(--link-color)' : '1px solid var(--editor-border)',
             borderRadius: 6, cursor: 'pointer', width: 'fit-content',
-            backgroundColor: config.reward?.enable ? 'rgba(59,130,246,0.1)' : 'transparent',
+            backgroundColor: config.reward?.enable ? 'var(--mc-accent-soft)' : 'transparent',
             color: 'var(--editor-text)', fontFamily: "'Inter', sans-serif",
           }}
         >{config.reward?.enable ? '✅ 已启用' : '启用打赏'}</button>

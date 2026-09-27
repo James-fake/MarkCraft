@@ -26,7 +26,7 @@ export default function GenerationResult({ result, totalSize, onPreview, t }: Ge
         alignItems: 'center',
         justifyContent: 'space-between',
         padding: '10px 12px',
-        backgroundColor: 'rgba(59, 130, 246, 0.06)',
+        backgroundColor: 'var(--mc-accent-soft)',
         borderBottom: '1px solid var(--editor-border)',
       }}>
         <span style={{
@@ -51,7 +51,7 @@ export default function GenerationResult({ result, totalSize, onPreview, t }: Ge
             fontFamily: "'Inter', -apple-system, sans-serif",
             transition: 'background-color 0.15s ease',
           }}
-          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--mc-accent-soft)' }}
           onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
         >
           {t.blogModal.preview}

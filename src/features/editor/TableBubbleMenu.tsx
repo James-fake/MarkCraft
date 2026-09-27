@@ -280,7 +280,7 @@ function MenuBtn({
       onMouseEnter={(e) => {
         if (!disabled) {
           e.currentTarget.style.opacity = '1'
-          e.currentTarget.style.backgroundColor = danger ? 'rgba(239,68,68,0.1)' : 'rgba(59,130,246,0.1)'
+          e.currentTarget.style.backgroundColor = danger ? 'rgba(239,68,68,0.1)' : 'var(--mc-accent-soft)'
         }
       }}
       onMouseLeave={(e) => {
