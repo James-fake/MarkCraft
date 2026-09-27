@@ -2,6 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import { clearKbTab } from './kbSession'
 
+// 可变桩：canvasIds 随 add/remove 真实增删，用于验证「关联后界面立即更新」（非静态假桩）
+const mocks = vi.hoisted(() => ({ canvasIds: ['c1', 'c2'] as string[] }))
+
 // 真实数据桩：替换 stores/kbStore，使 jsdom 下可确定性验证
 vi.mock('../../../stores/kbStore', () => ({
   getKbList: vi.fn(async () => [
@@ -13,7 +16,7 @@ vi.mock('../../../stores/kbStore', () => ({
   loadKb: vi.fn(async (id: string) => ({
     id, name: '测试知识库 X', description: 'd', folderId: 'f1',
     createdAt: Date.now(), updatedAt: Date.now(),
-    canvasIds: ['c1', 'c2'], fileIds: [], rules: [],
+    canvasIds: [...mocks.canvasIds], fileIds: [], rules: [],
     aiSummary: '本库 AI 摘要（真实字段）。',
   })),
   getKbFiles: vi.fn(() => []),
@@ -24,8 +27,13 @@ vi.mock('../../../stores/kbStore', () => ({
   renameKb: vi.fn(async () => {}),
   updateDescription: vi.fn(async () => {}),
   deleteKb: vi.fn(async () => {}),
-  addCanvasToKb: vi.fn(async () => {}),
-  removeCanvasFromKb: vi.fn(async () => {}),
+  addCanvasToKb: vi.fn(async (_kbId: string, canvasId: string) => {
+    if (!mocks.canvasIds.includes(canvasId)) mocks.canvasIds.push(canvasId)
+  }),
+  removeCanvasFromKb: vi.fn(async (_kbId: string, canvasId: string) => {
+    const i = mocks.canvasIds.indexOf(canvasId)
+    if (i >= 0) mocks.canvasIds.splice(i, 1)
+  }),
 }))
 
 // 白板列表桩：c1 已关联（loadKb mock canvasIds 含 c1/c2）应被「关联已有」选择器过滤掉
@@ -60,6 +68,9 @@ function renderPanel() {
 // 用例之间必须显式清空，否则前一个用例留下的 Tab 会让后一个用例的初始态不确定。
 beforeEach(() => {
   clearKbTab()
+  // 每个用例把关联关系复位到 c1/c2（用例间不得串台）
+  mocks.canvasIds.length = 0
+  mocks.canvasIds.push('c1', 'c2')
 })
 
 /**
@@ -222,6 +233,23 @@ describe('KbPanel 接真实知识库数据（kbStore + LinkIndex + TagIndex）',
     await vi.waitFor(() => {
       expect(addCanvasToKb).toHaveBeenCalledWith('kb-test', 'c3')
     })
+  })
+
+  it('🚨 回归：点「新建并关联」后列表与计数**立即更新**，无需刷新页面重挂载', async () => {
+    renderPanel()
+    await screen.findAllByText('测试知识库 X')
+    // 初始 2 块
+    expect(await screen.findByText(/关联白板（2）/)).toBeTruthy()
+    fireEvent.click(screen.getByText('新建并关联'))
+    // 计数 2 → 3，且新白板行出现在列表（名称来自 createCanvas 返回值，不闪「未命名白板」）
+    await vi.waitFor(() => {
+      expect(screen.getByText(/关联白板（3）/)).toBeTruthy()
+    })
+    expect(await screen.findByText('测试知识库 X 白板')).toBeTruthy()
+    // 顶部 KPI「关联白板」值同步为 3
+    const kpi = [...document.querySelectorAll('.aurora-kb-kpi')]
+      .find(el => el.textContent?.includes('关联白板'))
+    expect(kpi?.textContent).toContain('3')
   })
 
   it('P1 闭环：概览「查看完整图谱」跳转双链图谱，且**带上库 id 限定范围**（KB↔图谱串联）', async () => {

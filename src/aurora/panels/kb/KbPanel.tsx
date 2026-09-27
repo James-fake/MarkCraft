@@ -351,6 +351,20 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
     }
   }, [kbId])
 
+  /**
+   * 写操作后回写本页 kb 文档。
+   *
+   * 🚨 单源澄清：本页的 kb 是**组件本地 state**（上面 useEffect 里 loadKb 得到），
+   * store 的 addCanvas/removeCanvas 只负责持久化并刷新它自己那份 activeKb，
+   * **不会**回流到这里的 state ⇒ 若不回写，「关联白板」列表新增/取消后界面不动，
+   * 必须刷新页面重挂载才可见（2026-09-27 用户实测报障）。
+   */
+  const reloadKb = useCallback(async () => {
+    if (!kb?.id) return
+    const doc = await loadKb(kb.id)
+    if (doc) setKb(doc)
+  }, [kb?.id])
+
   // KB 文件集合（folder + 手动 + 规则）
   const kbFileIds = useMemo(() => (kb ? getKbFiles(rootFolder, kb) : []), [kb, rootFolder])
   const kbFiles = useMemo(
@@ -541,7 +555,7 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
               data={data}
               onOpenFullGraph={openFullGraph}
               onOpenNote={openInEditor}
-              canvasSlot={<KbCanvasSection kb={kb} nav={nav} toast={toast} />}
+              canvasSlot={<KbCanvasSection kb={kb} nav={nav} toast={toast} onKbChanged={reloadKb} />}
             />
           ) : tab === 'notes' ? (
             <NotesTab files={kbFiles} onOpen={openInEditor} onCreate={handleCreateNote} />
@@ -841,10 +855,16 @@ function KbCanvasSection({
   kb,
   nav,
   toast,
+  onKbChanged,
 }: {
   kb: KnowledgeBase
   nav?: (id: string, param?: string) => void
   toast?: (msg: string) => void
+  /**
+   * 关联关系写入后的回写动作（由 KbPanel 注入：重新 loadKb 并 setKb）。
+   * 有了它，新增/取消关联即刻反映到列表与顶部 KPI，无需刷新页面。
+   */
+  onKbChanged?: () => Promise<void>
 }) {
   const kbStore = useKbStore()
   const [canvasNames, setCanvasNames] = useState<Record<string, string>>({})
@@ -860,7 +880,13 @@ function KbCanvasSection({
         const list = await getCanvasList()
         const map: Record<string, string> = {}
         for (const c of list) if (kb.canvasIds.includes(c.id)) map[c.id] = c.name
-        if (alive) setCanvasNames(map)
+        // 🚨 不做整表替换：列表里查不到的（刚创建、尚未入列表的）项保留乐观命名，
+        // 否则新关联的白板会被覆盖成「未命名白板」闪一下（2026-09-27 实测）。
+        if (alive) setCanvasNames((prev) => {
+          const next = { ...map }
+          for (const id of kb.canvasIds) if (!next[id] && prev[id]) next[id] = prev[id]
+          return next
+        })
       } catch {
         /* 名称解析失败按空处理 */
       }
@@ -876,26 +902,36 @@ function KbCanvasSection({
     setBusy(true)
     try {
       await kbStore.removeCanvas(kb.id, id)
+      // 即时移除本地名称缓存，随后由回写驱动列表刷新
+      setCanvasNames((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+      await onKbChanged?.()
       toast?.('已取消关联白板')
     } catch (err) {
       toast?.(`取消关联失败：${(err as Error).message}`)
     } finally {
       setBusy(false)
     }
-  }, [kb.id, kbStore, toast])
+  }, [kb.id, kbStore, onKbChanged, toast])
 
   const handleCreateAndLink = useCallback(async () => {
     setBusy(true)
     try {
       const doc = await createCanvas(`${kb.name} 白板`)
+      // 乐观命名：先落到名称缓存，避免回写完成前列表闪一下「未命名白板」
+      setCanvasNames((prev) => ({ ...prev, [doc.id]: doc.name }))
       await kbStore.addCanvas(kb.id, doc.id)
+      await onKbChanged?.()
       toast?.(`已新建并关联白板：${doc.name}`)
     } catch (err) {
       toast?.(`新建白板失败：${(err as Error).message}`)
     } finally {
       setBusy(false)
     }
-  }, [kb.id, kb.name, kbStore, toast])
+  }, [kb.id, kb.name, kbStore, onKbChanged, toast])
 
   // 「关联已有」选择器：展开时拉全量白板列表，排除本库已关联项；关联成功后 kb.canvasIds
   // 变化驱动本 effect 重算，刚关联的那块自动从候选里消失（可连续关联多块）。
@@ -916,14 +952,16 @@ function KbCanvasSection({
   const handleLinkExisting = useCallback(async (c: CanvasListItem) => {
     setBusy(true)
     try {
+      setCanvasNames((prev) => ({ ...prev, [c.id]: c.name }))
       await kbStore.addCanvas(kb.id, c.id)
+      await onKbChanged?.()
       toast?.(`已关联白板：${c.name}`)
     } catch (err) {
       toast?.(`关联失败：${(err as Error).message}`)
     } finally {
       setBusy(false)
     }
-  }, [kb.id, kbStore, toast])
+  }, [kb.id, kbStore, onKbChanged, toast])
 
   return (
     <div className="aurora-kb-canvas">
