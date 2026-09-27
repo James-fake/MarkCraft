@@ -21,7 +21,7 @@ import { generateKbMoc } from '@features/knowledgeBase'
 import { findNode } from '@core/files/fileTree'
 import { loadKb, getKbList, getKbFiles, renameKb, updateDescription, deleteKb } from '@stores/kbStore'
 import { useKbStore } from '@stores/useKbStore'
-import { getCanvasList, createCanvas } from '@features/canvas-v2'
+import { getCanvasList, createCanvas, type CanvasListItem } from '@features/canvas-v2'
 import { calculateKbHealth } from '@features/knowledgeBase'
 import type { KnowledgeBase } from '@stores/kbTypes'
 import type { FileNode } from '@src/types/fileManager'
@@ -823,7 +823,7 @@ function DeleteKbModal({
   )
 }
 
-// 关联白板区块（P1 白板串联）：列出知识库关联白板，可打开 / 取消关联 / 新建并关联
+// 关联白板区块（P1 白板串联）：列出知识库关联白板，可打开 / 取消关联 / 新建并关联 / 关联已有
 // 打通 知识库 ↔ 白板：canvasIds 僵尸字段复活，双向回跳
 function KbCanvasSection({
   kb,
@@ -837,6 +837,8 @@ function KbCanvasSection({
   const kbStore = useKbStore()
   const [canvasNames, setCanvasNames] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [candidates, setCandidates] = useState<CanvasListItem[]>([])
 
   // 解析已关联白板的名称（canvasIds → getCanvasList 名称）
   useEffect(() => {
@@ -883,17 +885,75 @@ function KbCanvasSection({
     }
   }, [kb.id, kb.name, kbStore, toast])
 
+  // 「关联已有」选择器：展开时拉全量白板列表，排除本库已关联项；关联成功后 kb.canvasIds
+  // 变化驱动本 effect 重算，刚关联的那块自动从候选里消失（可连续关联多块）。
+  useEffect(() => {
+    if (!pickerOpen) return
+    let alive = true
+    ;(async () => {
+      try {
+        const list = await getCanvasList()
+        if (alive) setCandidates(list.filter((c) => !kb.canvasIds.includes(c.id)))
+      } catch {
+        if (alive) setCandidates([])
+      }
+    })()
+    return () => { alive = false }
+  }, [pickerOpen, kb.canvasIds])
+
+  const handleLinkExisting = useCallback(async (c: CanvasListItem) => {
+    setBusy(true)
+    try {
+      await kbStore.addCanvas(kb.id, c.id)
+      toast?.(`已关联白板：${c.name}`)
+    } catch (err) {
+      toast?.(`关联失败：${(err as Error).message}`)
+    } finally {
+      setBusy(false)
+    }
+  }, [kb.id, kbStore, toast])
+
   return (
     <div className="aurora-kb-canvas">
       <div className="aurora-kb-canvas__head">
         <span className="aurora-kb-canvas__title">关联白板（{kb.canvasIds.length}）</span>
-        <button className="aurora-kb-btn aurora-kb-btn--sm" onClick={handleCreateAndLink} disabled={busy}>
-          <Icon.plus size={14} /> 新建并关联
-        </button>
+        <div className="aurora-kb-canvas__head-actions">
+          <button className="aurora-kb-btn aurora-kb-btn--sm" onClick={handleCreateAndLink} disabled={busy}>
+            <Icon.plus size={14} /> 新建并关联
+          </button>
+          <button
+            className="aurora-kb-btn aurora-kb-btn--sm aurora-kb-btn--ghost"
+            onClick={() => setPickerOpen((v) => !v)}
+            disabled={busy}
+          >
+            {pickerOpen ? '收起' : '关联已有'}
+          </button>
+        </div>
       </div>
+      {pickerOpen && (
+        <div className="aurora-kb-canvas__picker">
+          {candidates.length === 0 ? (
+            <div className="aurora-kb-canvas__picker-empty">
+              没有可关联的白板——现有白板均已关联本库，或先到白板视图新建。
+            </div>
+          ) : (
+            candidates.map((c) => (
+              <button
+                key={c.id}
+                className="aurora-kb-canvas__pick"
+                onClick={() => handleLinkExisting(c)}
+                disabled={busy}
+              >
+                <span className="aurora-kb-canvas__pick-name"><Icon.canvas size={14} /> {c.name}</span>
+                <span className="aurora-kb-canvas__pick-meta">{c.cardCount} 元素</span>
+              </button>
+            ))
+          )}
+        </div>
+      )}
       {kb.canvasIds.length === 0 ? (
         <div className="aurora-kb-canvas__empty">
-          本知识库尚未关联任何白板。点击「新建并关联」即可创建一块专属白板，用于梳理该库概念关系。
+          本知识库尚未关联任何白板。可「新建并关联」创建一块专属白板，或点「关联已有」把现有白板挂入本库，用于梳理该库概念关系。
         </div>
       ) : (
         <div className="aurora-kb-canvas__list">

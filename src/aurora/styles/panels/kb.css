@@ -982,6 +982,62 @@
   display: flex;
   gap: 6px;
 }
+.aurora-kb-canvas__head-actions {
+  display: flex;
+  gap: 6px;
+}
+/* 「关联已有」内联选择器：非浮层、就地展开，无 portal/层级问题 */
+.aurora-kb-canvas__picker {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px dashed var(--mc-border-strong);
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-bg-content);
+}
+.aurora-kb-canvas__picker-empty {
+  font-size: var(--mc-font-xs);
+  line-height: 1.6;
+  color: var(--mc-text-tertiary);
+}
+.aurora-kb-canvas__pick {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-bg-elevated, var(--mc-bg-content));
+  color: var(--mc-text-primary);
+  font-size: var(--mc-font-sm);
+  cursor: pointer;
+  text-align: left;
+}
+.aurora-kb-canvas__pick:hover {
+  border-color: var(--mc-accent);
+  background: var(--mc-bg-hover);
+}
+.aurora-kb-canvas__pick:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.aurora-kb-canvas__pick-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aurora-kb-canvas__pick-meta {
+  flex-shrink: 0;
+  margin-left: 12px;
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+}
 
 .aurora-kb-card__link {
   margin-left: auto;

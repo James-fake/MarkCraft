@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { render, screen, fireEvent, within, waitFor } from '@testing-library/react'
 import { clearKbTab } from './kbSession'
 
 // 真实数据桩：替换 stores/kbStore，使 jsdom 下可确定性验证
@@ -24,11 +24,28 @@ vi.mock('../../../stores/kbStore', () => ({
   renameKb: vi.fn(async () => {}),
   updateDescription: vi.fn(async () => {}),
   deleteKb: vi.fn(async () => {}),
+  addCanvasToKb: vi.fn(async () => {}),
+  removeCanvasFromKb: vi.fn(async () => {}),
 }))
+
+// 白板列表桩：c1 已关联（loadKb mock canvasIds 含 c1/c2）应被「关联已有」选择器过滤掉
+vi.mock('@features/canvas-v2', async () => {
+  const actual = await vi.importActual<typeof import('@features/canvas-v2')>('@features/canvas-v2')
+  return {
+    ...actual,
+    getCanvasList: vi.fn(async () => [
+      { id: 'c3', name: '已有白板 C3', createdAt: 1, updatedAt: 3, cardCount: 5 },
+      { id: 'c1', name: '已关联白板 C1', createdAt: 1, updatedAt: 2, cardCount: 1 },
+    ]),
+    createCanvas: vi.fn(async (name: string) => ({
+      id: 'c-new', name, createdAt: 1, updatedAt: 1, cardCount: 0,
+    })),
+  }
+})
 
 import { RealProviders } from '../../providers/RealProviders'
 import { KbPanel } from './KbPanel'
-import { getKbList } from '../../../stores/kbStore'
+import { getKbList, addCanvasToKb } from '../../../stores/kbStore'
 import { FileDependencyPanel } from '@features/knowledgeBase/components/FileDependencyPanel'
 
 function renderPanel() {
@@ -183,6 +200,28 @@ describe('KbPanel 接真实知识库数据（kbStore + LinkIndex + TagIndex）',
     expect(screen.getByText('新建并关联')).toBeTruthy()
     // 已关联白板提供「打开」入口（点击 → nav('canvas', id) 跳转白板）
     expect(screen.getAllByText('打开').length).toBeGreaterThan(0)
+  })
+
+  it('P1 补口：「关联已有」选择器只列未关联白板（已关联的过滤掉），点击写入 canvasIds', async () => {
+    renderPanel()
+    await screen.findAllByText('测试知识库 X')
+    // 打开内联选择器
+    fireEvent.click(screen.getByText('关联已有'))
+    // ⚠️ 断言必须限定在 picker 容器内：主列表也会显示已关联项的名字（c1），
+    // 全局 queryByText 会测到主列表 → 假失败。
+    const picker = await waitFor(() => {
+      const el = document.querySelector('.aurora-kb-canvas__picker')
+      if (!el) throw new Error('「关联已有」选择器未渲染')
+      return el as HTMLElement
+    })
+    // 候选只含未关联的 c3；已关联的 c1（canvasIds=['c1','c2']）被过滤
+    expect(within(picker).getByText('已有白板 C3')).toBeTruthy()
+    expect(within(picker).queryByText('已关联白板 C1')).toBeNull()
+    // 点击候选 → 落到数据层 addCanvasToKb(kb-test, c3)
+    fireEvent.click(within(picker).getByText('已有白板 C3'))
+    await vi.waitFor(() => {
+      expect(addCanvasToKb).toHaveBeenCalledWith('kb-test', 'c3')
+    })
   })
 
   it('P1 闭环：概览「查看完整图谱」跳转双链图谱，且**带上库 id 限定范围**（KB↔图谱串联）', async () => {
