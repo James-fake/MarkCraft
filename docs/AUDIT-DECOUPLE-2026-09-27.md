@@ -256,3 +256,25 @@ node .workbuddy/artifacts/audit-decouple-structure.cjs
 **判据**：中层通用组件（`aurora/components`）需要的是「命令数据结构 + 快捷键显示」这类**零依赖纯能力**，本就不该落在业务层；下沉后通用层只依赖 `services`，方向合法。
 
 **验证**：tsc 干净 · 全量 vitest **1767 通过 / 0 失败** · ESLint 0 error · 审计 §1 = `(none)` · vite build 通过 · 真机 CDP 冒烟（菜单栏下拉正常、accelerator 显示 `Ctrl+N`/`Ctrl+S` 等、零控制台错误）。
+
+---
+
+## 12. 实施记录 · P1-3（`newThemes.ts` 22,752 行拆分）
+
+**结论**：头号巨型文件消失——`features/blog/themes/newThemes.ts` 从 **22,752 行 → 57 行桶**；内容按「一主题一文件」拆为 `themes/generators/<theme>.ts`（**48 个**）。
+
+| 项 | 拆分前 | 拆分后 |
+|---|---|---|
+| `newThemes.ts` | 22,752 行（48 个 `getXCss` 生成器挤在一个文件） | 57 行桶（`export * from './generators/<theme>'`） |
+| 单文件最大体量 | 22,752 行 | 763 行（单个主题生成器， inherent CSS 模板体量） |
+| 新增主题成本 | 在 22k 行文件里定位插入点 | 在 `generators/` 加一个文件 + 桶里登记一行（**零侵入**） |
+
+**为什么能安全拆**：该文件由 48 个**互不依赖**的 `getXCss(isDark): string` 纯函数组成，每个自带注释头、无共享状态、无跨函数调用——天然可按函数切分。
+
+**安全措施**：拆分脚本先做「原文件函数体 vs 拆分后函数体」**逐函数 sha256 校验**（含注释头、行尾归一化），一致才落盘；校验失败即中止、不改写原文件。
+
+**诚实备注（副作用）**：≥400 行文件数由 83 → 108。因为每个主题生成器本身就是 300–700 行的 CSS 模板字符串，切得更碎没有意义；换来的是「单文件最大体量从 22.7k 降到 763 行」和「新增主题零侵入」，这是本次治理的核心收益。
+
+**回归锁**：`src/features/blog/themes/newThemes.barrel.test.ts` —— ① 桶仍导出全部 48 个生成器（API 不缩水）；② 每个生成器明暗两模式均返回含 `:root` 的合法 CSS；③ 明暗产物确有差异（`getCinematicCss`/`getNeonCss` 签名 `_isDark` 不使用该参数，已作对照组排除）。
+
+**验证**：tsc 干净 · 全量 vitest **1770 通过 / 0 失败** · ESLint 0 error · 审计 §2 TOP30 已无该文件 · vite build 通过。

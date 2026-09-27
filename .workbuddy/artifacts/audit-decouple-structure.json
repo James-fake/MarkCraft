@@ -2,11 +2,6 @@
   "violations": [],
   "giant": [
     {
-      "file": "features/blog/themes/newThemes.ts",
-      "loc": 22752,
-      "mod": "features/blog"
-    },
-    {
       "file": "core/data/defaultDocs/en.ts",
       "loc": 2764,
       "mod": "core"
@@ -87,6 +82,11 @@
       "mod": "aurora/panels"
     },
     {
+      "file": "features/blog/themes/generators/blueprint.ts",
+      "loc": 826,
+      "mod": "features/blog"
+    },
+    {
       "file": "features/search/GlobalSearch.tsx",
       "loc": 819,
       "mod": "features/search"
@@ -99,6 +99,11 @@
     {
       "file": "features/blog/components/panels/VisualCssEditor.tsx",
       "loc": 810,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/generators/hacker.ts",
+      "loc": 788,
       "mod": "features/blog"
     },
     {
@@ -117,14 +122,34 @@
       "mod": "stores"
     },
     {
+      "file": "features/blog/themes/generators/sunset.ts",
+      "loc": 768,
+      "mod": "features/blog"
+    },
+    {
       "file": "features/editor/EditorContextMenu.tsx",
       "loc": 753,
       "mod": "features/editor"
     },
     {
+      "file": "features/blog/themes/generators/mosaic.ts",
+      "loc": 740,
+      "mod": "features/blog"
+    },
+    {
       "file": "features/editor/markdownConvert.ts",
       "loc": 727,
       "mod": "features/editor"
+    },
+    {
+      "file": "features/blog/themes/generators/wiki.ts",
+      "loc": 723,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/generators/carbon.ts",
+      "loc": 718,
+      "mod": "features/blog"
     },
     {
       "file": "features/editor/TiptapEditor.tsx",
@@ -147,13 +172,33 @@
       "mod": "stores"
     },
     {
+      "file": "features/blog/themes/generators/docs.ts",
+      "loc": 688,
+      "mod": "features/blog"
+    },
+    {
       "file": "features/blog/themes/aurora.ts",
       "loc": 687,
       "mod": "features/blog"
     },
     {
+      "file": "features/blog/themes/generators/showcase.ts",
+      "loc": 676,
+      "mod": "features/blog"
+    },
+    {
       "file": "features/blog/themes/academia.ts",
       "loc": 671,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/generators/neon.ts",
+      "loc": 671,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/generators/cinematic.ts",
+      "loc": 669,
       "mod": "features/blog"
     },
     {
@@ -177,6 +222,21 @@
       "mod": "features/blog"
     },
     {
+      "file": "features/blog/themes/generators/artdeco.ts",
+      "loc": 646,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/generators/origami.ts",
+      "loc": 640,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/generators/trending.ts",
+      "loc": 637,
+      "mod": "features/blog"
+    },
+    {
       "file": "aurora/panels/editor/FileTree.tsx",
       "loc": 634,
       "mod": "aurora/panels"
@@ -192,6 +252,11 @@
       "mod": "features/editor"
     },
     {
+      "file": "features/blog/themes/generators/bauhaus.ts",
+      "loc": 632,
+      "mod": "features/blog"
+    },
+    {
       "file": "features/blog/themes/inkWash.ts",
       "loc": 627,
       "mod": "features/blog"
@@ -199,6 +264,11 @@
     {
       "file": "features/blog/templates/styleBuilder/componentStyles.ts",
       "loc": 626,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/generators/dispatch.ts",
+      "loc": 620,
       "mod": "features/blog"
     },
     {
@@ -215,6 +285,11 @@
       "file": "features/templates/TemplateInsertModal.tsx",
       "loc": 608,
       "mod": "features/templates"
+    },
+    {
+      "file": "features/blog/themes/generators/ocean.ts",
+      "loc": 605,
+      "mod": "features/blog"
     },
     {
       "file": "features/export/utils/exportCss.ts",
@@ -237,8 +312,28 @@
       "mod": "features/outline"
     },
     {
+      "file": "features/blog/themes/generators/vaporwave.ts",
+      "loc": 595,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/generators/fashion.ts",
+      "loc": 592,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/generators/neumorphism.ts",
+      "loc": 592,
+      "mod": "features/blog"
+    },
+    {
       "file": "features/blog/themes/newspaper.ts",
       "loc": 592,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/generators/gallery.ts",
+      "loc": 590,
       "mod": "features/blog"
     },
     {
@@ -257,7 +352,17 @@
       "mod": "features/blog"
     },
     {
+      "file": "features/blog/themes/generators/pixel.ts",
+      "loc": 571,
+      "mod": "features/blog"
+    },
+    {
       "file": "features/blog/hooks/useBlogGenerator.ts",
+      "loc": 568,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/generators/forest.ts",
       "loc": 568,
       "mod": "features/blog"
     },
@@ -277,8 +382,18 @@
       "mod": "features/editor"
     },
     {
+      "file": "features/blog/themes/generators/typewriter.ts",
+      "loc": 558,
+      "mod": "features/blog"
+    },
+    {
       "file": "features/blog/utils/singleFile/htmlTemplate.ts",
       "loc": 554,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/generators/editorial.ts",
+      "loc": 551,
       "mod": "features/blog"
     },
     {
@@ -299,6 +414,16 @@
     {
       "file": "features/blog/themes/glassmorphism.ts",
       "loc": 531,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/generators/poetry.ts",
+      "loc": 521,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/generators/notion.ts",
+      "loc": 519,
       "mod": "features/blog"
     },
     {
@@ -448,7 +573,11 @@
     },
     "themes": {
       "n": 16,
-      "loc": 30873
+      "loc": 8178
+    },
+    "themes/generators": {
+      "n": 48,
+      "loc": 22985
     },
     "utils": {
       "n": 9,
