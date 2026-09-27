@@ -49,13 +49,16 @@
   min-height: 0;
   display: flex;
   position: relative;
+  /* 边缘 hoverzone 几何单源：hoverzone 自身 flex-basis / edge 宽度 / 缩放控件避让位移
+     三处共用同一变量，防魔数漂移（overlay 宽度单源用全局 token --mc-inspector-w） */
+  --aurora-canvas-hoverzone-w: 7px;
 }
 
 /* 白板内部左面板（不属于书脊，可折叠） */
 /* 边缘悬停召唤面板（对齐编辑器 v7）：左/右缘 hoverzone + 滑入浮层，不挤压画布重排 */
 .aurora-canvas__hoverzone {
   position: relative;
-  flex: 0 0 7px;
+  flex: 0 0 var(--aurora-canvas-hoverzone-w);
   height: 100%;
   min-height: 0;
   z-index: 6;
@@ -65,7 +68,7 @@
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 7px;
+  width: var(--aurora-canvas-hoverzone-w);
   pointer-events: none;
   background: transparent;
   transition: background-color var(--mc-dur-fast) ease-out;
@@ -89,7 +92,9 @@
   top: 0;
   bottom: 0;
   height: 100%;
-  width: 280px;
+  /* 宽度单源 = 全局 token --mc-inspector-w（与壳层右 Inspector 同语义同宽 280px），
+     「缩放控件避让位移」也引用同一 token，改一处两处跟随 */
+  width: var(--mc-inspector-w);
   display: flex;
   flex-direction: column;
   background: var(--mc-bg-elevated);
@@ -314,6 +319,17 @@
   border: 1px solid var(--mc-border-medium);
   border-radius: var(--mc-radius-md);
   box-shadow: var(--mc-shadow-popover);
+  /* 避让位移平滑跟随右栏展开/收起（同一档从容时长；reduced-motion 由 tokens.css 全局减半） */
+  transition: right var(--mc-dur-slow) var(--mc-ease-mac);
+}
+
+/* 右栏（检视）展开时避让（用户 2026-09-27）：整体左移让出侧栏宽度，不再与浮层重叠。
+   位移推导：浮层锚定 .aurora-canvas__row 右缘（宽 --mc-inspector-w = 280px），而本控件锚定
+   .aurora-canvas__main —— 其右缘因右 hoverzone（--aurora-canvas-hoverzone-w = 7px）比 row
+   窄 7px ⇒ 保持与浮层左缘 16px 视觉边距 = 280 + 16 - 7 = 289px。
+   展开态由 CanvasPanel 传 rightPanelOpen（= rightOverlay.mounted，覆盖入场/展开/退场全程）驱动。 */
+.aurora-zoom-controls--right-open {
+  right: calc(var(--mc-inspector-w) + 16px - var(--aurora-canvas-hoverzone-w));
 }
 
 .aurora-zoom-controls__row {

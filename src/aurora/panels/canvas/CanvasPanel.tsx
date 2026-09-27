@@ -739,7 +739,10 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
                 </div>
               )}
 
-              {engine && view === 'canvas' && <CanvasZoomControls engine={engine} />}
+              {/* rightPanelOpen = 右栏浮层挂载中（含退场相位）：缩放控件整体左移避让，不与检视浮层重叠 */}
+              {engine && view === 'canvas' && (
+                <CanvasZoomControls engine={engine} rightPanelOpen={rightOverlay.mounted} />
+              )}
               {engine && view === 'canvas' && !locked && (
                 <CanvasDock
                   engine={engine}

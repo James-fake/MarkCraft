@@ -5,13 +5,15 @@ import { useEngineSnapshot } from './canvasHooks'
 /** Aurora 缩放控件（.aurora-zoom-controls）—— 缩小/级别/放大 + 适应 */
 export interface CanvasZoomControlsProps {
   engine: CanvasEngine | null
+  /** 右栏（检视）浮层可见中（含入场/退场相位）：为 true 时整体左移避让，不与浮层重叠 */
+  rightPanelOpen?: boolean
 }
 
-export function CanvasZoomControls({ engine }: CanvasZoomControlsProps) {
+export function CanvasZoomControls({ engine, rightPanelOpen }: CanvasZoomControlsProps) {
   const zoom = useEngineSnapshot(engine, (e) => Math.round((e.getZoomLevel() || 1) * 100), 'session') ?? 100
 
   return (
-    <div className="aurora-zoom-controls">
+    <div className={`aurora-zoom-controls${rightPanelOpen ? ' aurora-zoom-controls--right-open' : ''}`}>
       <div className="aurora-zoom-controls__row">
         <button
           className="aurora-zoom-controls__btn"
