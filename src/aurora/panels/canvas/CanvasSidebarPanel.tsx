@@ -10,6 +10,9 @@ import { useNoteVersion } from '@stores/NoteVersionStore'
 import { useFileManager } from '@stores/FileStore'
 import type { FileNode } from '@src/types/fileManager'
 import { collectFolderIds, flattenFileTree } from '@core/files/fileTree'
+// 与编辑器文件列表同源过滤内置「使用文档」（单源判定：core/files/usageDocs，
+// 由本 hook 包成响应式、useMemo 保证整树只算一次；绝不在白板侧另写一份判定）。
+import { useUsageDocsScope } from '@hooks/useUsageDocsScope'
 import { NoteHoverCardView } from '@features/editor/components/NoteHoverCard'
 
 /**
@@ -751,7 +754,14 @@ function FilesTab({
   // 搜索框默认隐藏，下滑（scrolled）或已输入查询时才浮现，回到顶部且查询空则收起
   const revealSearch = scrolled || search.trim().length > 0
 
-  const rows = flattenFileTree(rootFolder, 0, expanded).filter((r) => r.depth > 0)
+  // 与编辑器文件列表同源过滤：内置「MarkCraft 使用文档」知识库的内置篇章（及其所在
+  // 文件夹，当里面无用户内容时）**不进白板文件列表**——它们本就不在编辑功能的文件列表里，
+  // 否则白板会多出一批编辑器侧看不到的内置说明文件，两者内容不同步。
+  // 仅做视图层面过滤（hiddenIds），文件仍留在树里、仍属知识库，数据一个字都不动。
+  const usageDocs = useUsageDocsScope()
+  const rows = flattenFileTree(rootFolder, 0, expanded).filter(
+    (r) => r.depth > 0 && !usageDocs.hiddenIds.has(r.node.id),
+  )
   const filtered = search.trim()
     ? rows.filter((r) => r.node.name.toLowerCase().includes(search.trim().toLowerCase()))
     : rows
