@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from 'react'
+import { useMemo, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { Modal } from '@components/ui/Modal'
 import { PageFrame } from '../../components/shell/PageFrame'
 import { useCommandPalette } from '../../components/command-palette/CommandPaletteContext'
@@ -101,6 +101,7 @@ function OverviewTab({
   data,
   onOpenFullGraph,
   onOpenNote,
+  canvasSlot,
 }: {
   toast?: (m: string) => void
   data: OverviewData
@@ -115,6 +116,11 @@ function OverviewTab({
    * 缺省时「最近活动」退化为纯展示列表 —— 不再出现「看着可点、点了没反应」的哑行。
    */
   onOpenNote?: (id: string) => void
+  /**
+   * 「关联白板」区块的插槽：与「专属图谱」同排双卡（左图谱 / 右白板）。
+   * 由 KbPanel 注入 KbCanvasSection——概览 Tab 保持哑组件，区块自身逻辑不内联。
+   */
+  canvasSlot?: ReactNode
 }) {
   const kpiData = [
     { icon: 'file' as IconName, title: '笔记文件', value: String(data.fileCount), sub: '本库收录' },
@@ -216,28 +222,31 @@ function OverviewTab({
         </div>
       </div>
 
-      {/* 专属图谱 */}
-      <div className="aurora-kb-card aurora-kb-card--graph">
-        <div className="aurora-kb-card__title">
-          专属图谱<span className="aurora-kb-card__hint">节点=笔记 · 连线=引用</span>
-          {onOpenFullGraph && (
-            <button className="aurora-kb-card__link" onClick={onOpenFullGraph} title="在完整双链图谱中查看（仅本库）">
-              查看完整图谱 →
-            </button>
+      {/* 专属图谱 + 关联白板：同排双卡（左图谱 / 右白板），免去「图谱下面还有一屏」的查找成本 */}
+      <div className="aurora-kb-row aurora-kb-row--graph">
+        <div className="aurora-kb-card aurora-kb-card--graph">
+          <div className="aurora-kb-card__title">
+            专属图谱<span className="aurora-kb-card__hint">节点=笔记 · 连线=引用</span>
+            {onOpenFullGraph && (
+              <button className="aurora-kb-card__link" onClick={onOpenFullGraph} title="在完整双链图谱中查看（仅本库）">
+                查看完整图谱 →
+              </button>
+            )}
+          </div>
+          {/* 节点=笔记：点节点即「在编辑器中打开该笔记」，与列表行同一动作
+              （此前节点只有手型没有 handler —— 点第一篇毫无反应，见 MiniGraph.tsx） */}
+          {data.miniNodes.length === 0 ? (
+            <div className="aurora-kb-recent__empty">库内暂无引用关系</div>
+          ) : (
+            <MiniGraph
+              nodes={data.miniNodes}
+              edges={data.miniEdges}
+              currentId={data.miniNodes[0]?.id}
+              onSelect={onOpenNote}
+            />
           )}
         </div>
-        {/* 节点=笔记：点节点即「在编辑器中打开该笔记」，与列表行同一动作
-            （此前节点只有手型没有 handler —— 点第一篇毫无反应，见 MiniGraph.tsx） */}
-        {data.miniNodes.length === 0 ? (
-          <div className="aurora-kb-recent__empty">库内暂无引用关系</div>
-        ) : (
-          <MiniGraph
-            nodes={data.miniNodes}
-            edges={data.miniEdges}
-            currentId={data.miniNodes[0]?.id}
-            onSelect={onOpenNote}
-          />
-        )}
+        {canvasSlot}
       </div>
     </div>
   )
@@ -527,10 +536,13 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
                 <div className="aurora-kb-placeholder__desc">点击左侧「知识库」返回列表，选择或新建一个知识库。</div>
               </div>
           ) : tab === 'overview' ? (
-            <>
-              <OverviewTab toast={toast} data={data} onOpenFullGraph={openFullGraph} onOpenNote={openInEditor} />
-              <KbCanvasSection kb={kb} nav={nav} toast={toast} />
-            </>
+            <OverviewTab
+              toast={toast}
+              data={data}
+              onOpenFullGraph={openFullGraph}
+              onOpenNote={openInEditor}
+              canvasSlot={<KbCanvasSection kb={kb} nav={nav} toast={toast} />}
+            />
           ) : tab === 'notes' ? (
             <NotesTab files={kbFiles} onOpen={openInEditor} onCreate={handleCreateNote} />
           ) : tab === 'search' ? (
