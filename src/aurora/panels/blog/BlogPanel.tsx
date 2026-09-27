@@ -13,6 +13,7 @@ import { findNode, collectMarkdownFiles } from '@core/files/fileTree'
 import { loadKb, getKbFiles } from '@stores/kbStore'
 import type { KnowledgeBase } from '@stores/kbTypes'
 import type { FileNode } from '@src/types/fileManager'
+import { peekBlogEntryFileId, clearBlogEntryFileId } from '@services/blogEntry'
 import {
   COLOR_SCHEMES as REAL_COLOR_SCHEMES,
   THEME_INFO_LIST,
@@ -856,14 +857,14 @@ export interface BlogPanelProps {
 }
 
 /**
- * B3 发布闭环入口标记：编辑器「发布为博客」（右栏辅助 Tab / 标签右键菜单 / ⌘K）跳转时
+ * B3 发布闭环：编辑器「发布为博客」（右栏辅助 Tab / 标签右键菜单 / ⌘K）跳转时
  * 写入目标文件 id，BlogPanel 激活后进入「单篇」模式 —— 待发布清单只显示这一篇
  * （可点来源条「查看全部笔记」退出）；消费后自动清除。
+ *
+ * 通道本体位于 `@services/blogEntry`（P2-1）：此前它是本文件的模块级变量，
+ * 逼得 EditorPanel 直接 import BlogPanel（平级面板横向耦合）。现两端各自依赖 services，
+ * 本文件只作为**消费者**（peek / clear）。
  */
-let blogEntryFileId: string | null = null
-export function setBlogEntryFileId(id: string | null): void {
-  blogEntryFileId = id
-}
 
 export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
   const [panel, setPanel] = useState<PanelKey>('style')
@@ -915,12 +916,12 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
   // B3 发布闭环：来自编辑器「发布为博客」时，锁定该文件为唯一待发布笔记
   const appliedEntryFile = useRef<string | null>(null)
   useLayoutEffect(() => {
-    const target = blogEntryFileId
+    const target = peekBlogEntryFileId()
     if (!target || target === appliedEntryFile.current) return
     // 目标尚未出现在清单里（知识库来源异步加载中）或文件已不存在：本次不锁定，等清单变化后重试
     if (!allDocs.some((d) => d.id === target)) return
     appliedEntryFile.current = target
-    blogEntryFileId = null
+    clearBlogEntryFileId()
     setSingleFileId(target)
     setExcluded(new Set())
     toast?.('已切换为单篇发布，仅发布当前笔记')

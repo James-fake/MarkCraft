@@ -159,7 +159,8 @@ describe('BlogPanel 接真实数据（FileStore 文档 + 真实主题市场）',
   })
 
   it('B3 发布闭环：无标记 = 全部文档；无效 id 不锁定；有效 id = 单篇（清单只显示该篇，可退回全部）', async () => {
-    const { setBlogEntryFileId } = await import('./BlogPanel')
+    // 入口通道已下沉 services（P2-1）：不再从 BlogPanel 面板模块取（避免面板横向耦合回归）
+    const { setBlogEntryFileId } = await import('@services/blogEntry')
     // 同一棵 Provider 树内改 key 重挂 Harness：保证文件 id 不变，只让面板重新消费入口标记
     // （种子按名幂等，重挂不会重复建笔记 → 各段的 docs.length 可比）
     const renderPhase = (key: string) => (
