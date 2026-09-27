@@ -1,37 +1,35 @@
-# UI 改动 PR 模板（Aurora 桌面原生设计基线 · §18）
+# UI PR 自检 · §18 桌面原生设计基线（入站闸门 Pre-flight Gate）
 
-> 本模板用于**任何涉及 `src/aurora/` 界面、组件、样式、动效**的 PR。
-> 提交前必须逐条勾选下方「入站闸门（Pre-flight Gate）」，**任一未过则先修再提**。
-> 完整规范见 `docs/MarkCraft-Desktop-Native-Baseline.md`（§18）。
+> 本模板对应设计基线 [`docs/MarkCraft-Desktop-Native-Baseline.md`](../../docs/MarkCraft-Desktop-Native-Baseline.md) 的 **§18 / §12 入站闸门**。
+> **任何改动 `src/aurora/`（或 MarkCraft / Aurora 界面 UI）的 PR，合并前必须逐条勾选下方 14 项闸门；任一未过则先修再提。**
+> 本 PR 不涉及 UI 时，在「改动概述」注明「不涉及 UI」即可，无需逐条勾选。
 
-## 变更概述
-<!-- 改了什么、为什么、影响范围 -->
+## 改动概述
+<!-- 一句话说明本次 UI 改动的范围与意图；非 UI PR 注明「不涉及 UI」 -->
+
+## §18 入站闸门自检（必勾）
+
+- [ ] 1. 色值走 token：无新增硬编码 hex；无引用未定义 token
+- [ ] 2. 分类色单来源：新文件/分组色已入 `categoricalColors.ts`；无紫粉
+- [ ] 3. 圆角合规：仅 `--mc-radius-sm/md/lg/pill`；无裸 px 圆角
+- [ ] 4. 字号语义：仅 `--mc-font-*`；无裸 `font-size`
+- [ ] 5. 动效合规：仅 transform/opacity；<300ms；ease-out；非键盘高频动作
+- [ ] 6. 降动守卫：新动效在 `prefers-reduced-motion` 下仍可理解
+- [ ] 7. 危险分隔：删除等危险动作右置 + 分隔，不平铺
+- [ ] 8. 无假 affordance：可点元素接真实行为；不可点去指针
+- [ ] 9. 单主入口：同语义动作无多入口分散
+- [ ] 10. 无 FAB / 占位：主动作在工具栏 / subbar；无 toast 摆设按钮
+- [ ] 11. 弹层统一：对话框走 `Modal`；遮罩无 blur
+- [ ] 12. 交互桌面化：键盘可达 + 右键菜单 + hover + 拖拽（按需）
+- [ ] 13. 可达性：图标有 label；对比度达标；焦点序合理
+- [ ] 14. 反模式扫描：过 §11 硬禁令清单，零命中
+
+## 回归守卫（如适用）
+<!-- 新增/修改界面是否同步更新了对应回归锁？例如 portalOverlayBasis.test.ts 的
+     「浮层单源基底 + 变量全 --mc-* + 层级魔数不回流」契约 -->
+
+- [ ] 相关界面回归守卫已同步更新（如适用）
 
 ## 关联
-<!-- Issue / 设计依据（如 §18.x、历史轮次 Px / A / B / D4 …） -->
-
-## 入站闸门（Pre-flight Gate · §18.12）— 必勾
-<!-- 逐条自检，全部勾选后方可提交；判据锚定 §18 对应小节 -->
-
-- [ ] 1. 色值走 token：无新增硬编码 hex；无未定义 token 引用（§18.4.1）
-- [ ] 2. 分类色单来源：新文件/分组色入 `categoricalColors.ts`；无紫粉（§18.4.3）
-- [ ] 3. 圆角合规：仅 `--mc-radius-sm/md/lg/pill`；无裸 px 圆角（§18.6）
-- [ ] 4. 字号语义：仅 `--mc-font-*`；无裸 `font-size`（§18.5）
-- [ ] 5. 动效合规：仅 transform/opacity；<300ms；ease-out；非键盘高频（§18.7）
-- [ ] 6. 降动守卫：新动效在 `prefers-reduced-motion` 下仍可理解（§18.7.4）
-- [ ] 7. 危险分隔：删除等危险动作右置 + 分隔，不平铺（§18.8.2）
-- [ ] 8. 无假 affordance：可点元素接真实行为；不可点去指针（§18.8.3）
-- [ ] 9. 单主入口：同语义动作无多入口分散（§18.8.4）
-- [ ] 10. 无 FAB/占位：主动作在工具栏/subbar；无 toast 摆设按钮（§18.8.5）
-- [ ] 11. 弹层统一：对话框走 `Modal`；遮罩无 blur（§18.3.4 / §18.3.5）
-- [ ] 12. 交互桌面化：键盘可达 + 右键菜单 + hover + 拖拽（按需）（§18.9）
-- [ ] 13. 可达性：图标有 label；对比度达标；焦点序合理（§18.10）
-- [ ] 14. 反模式扫描：过 §18.11 硬禁令清单，零命中
-
-## 截图验收（before / after）
-<!-- 桌面原生效果肉眼核对；本地 dev 端口 5174 -->
-
-## 验证
-- [ ] `tsc --noEmit` 无错误
-- [ ] `vitest run src/aurora` 全绿（注：严禁同时 mock TagIndexStore 与 LinkIndexStore）
-- [ ] 已在 dev(5174) 截图核对桌面原生效果
+- 设计基线：`docs/MarkCraft-Desktop-Native-Baseline.md`
+- 硬禁令清单：§11 ｜ 入站闸门：§12 ｜ 维护约定：§14
