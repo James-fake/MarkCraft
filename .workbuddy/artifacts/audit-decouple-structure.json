@@ -1,30 +1,5 @@
 {
-  "violations": [
-    {
-      "rule": "V6 aurora/components 通用不依赖业务",
-      "from": "aurora/components/command-palette/CommandPalette.tsx",
-      "to": "features/commandPalette",
-      "spec": "@features/commandPalette"
-    },
-    {
-      "rule": "V6 aurora/components 通用不依赖业务",
-      "from": "aurora/components/shell/MenuBar.tsx",
-      "to": "features/commandPalette",
-      "spec": "../../../features/commandPalette/commandRegistry"
-    },
-    {
-      "rule": "V6 aurora/components 通用不依赖业务",
-      "from": "aurora/components/shell/MenuBar.tsx",
-      "to": "features/commandPalette",
-      "spec": "../../../features/commandPalette/shortcutFormat"
-    },
-    {
-      "rule": "V6 aurora/components 通用不依赖业务",
-      "from": "aurora/components/shell/PageFrame.tsx",
-      "to": "features/commandPalette",
-      "spec": "../../../features/commandPalette/commandRegistry"
-    }
-  ],
+  "violations": [],
   "giant": [
     {
       "file": "features/blog/themes/newThemes.ts",

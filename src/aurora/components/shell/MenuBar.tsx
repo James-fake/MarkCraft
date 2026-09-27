@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
-import { commandRegistry } from '../../../features/commandPalette/commandRegistry'
-import { formatShortcut } from '../../../features/commandPalette/shortcutFormat'
+import { commandRegistry } from '@services/command/commandRegistry'
+import { formatShortcut } from '@services/command/shortcutFormat'
 import { useSettings } from '../../../stores/SettingsStore'
 import { useFileManager } from '../../../stores/FileStore'
 import { usePresence, POPOVER_EXIT_MS } from '@components/ui/usePresence'
@@ -284,11 +284,12 @@ export function MenuBar() {
         if (mi > 0) { setOpenIndex(mi - 1); setHighlight(0) }
         return
       case 'Enter':
-      case ' ':
+      case ' ': {
         ev.preventDefault()
         const target = list[cur]
         if (target) runEntry(target)
         return
+      }
       default:
         return
     }

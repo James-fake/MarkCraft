@@ -10,7 +10,7 @@
 | 维度 | 结论 | 级别 |
 |---|---|---|
 | 模块级分层（types→core→services→stores→hooks→components/ui→features→aurora） | ✅ **零环、零双向对**（本轮实测，非历史结论） | 健康 |
-| 分层违规残留 | V6 ×4（aurora/components→features/commandPalette）、V8 ×1（EditorPanel→@app/useAppLogic） | P1 |
+| 分层违规残留（审计时） | V6 ×4（aurora/components→features/commandPalette）、V8 ×1（EditorPanel→@app/useAppLogic） | ~~P1~~ **已清零** |
 | **架构缺陷：全局副作用随视图切换中断** | `useAppLogic`（MOC 自动更新 S5 / 备份调度 S7 / beforeunload）只挂在 `EditorPanel`，切走即停 | **P0** |
 | 巨型文件 | ≥400 行共 **83 个**；第一名 `features/blog/themes/newThemes.ts` **22,752 行** | P1 |
 | 壳层业务渗漏 | aurora/panels 按设计允许引用 features（组合层），但 EditorPanel 一文件引 7 个 feature，职责过宽 | P2 |
@@ -41,7 +41,10 @@
 
 ---
 
-## 2. 分层违规矩阵（V1–V8 残留）
+## 2. 分层违规矩阵（V1–V8）——**截至 2026-09-27 夜：全部归零**
+
+> 审计时的 5 处违规（V6 ×4 / V8 ×1）已在 P0、P1-2 两轮实施中清零；
+> 复跑 `audit-decouple-structure.cjs` 的 §1 输出为 `(none)`。以下保留原文以便追溯。
 
 守卫规则全集见 `.workbuddy/artifacts/audit-decouple-structure.cjs`（V1–V8 逐条落码）。残留违规共 **5 处**：
 
@@ -233,3 +236,23 @@ node .workbuddy/artifacts/audit-decouple-structure.cjs
 **验证**：tsc 干净 · 全量 vitest **1767 通过 / 0 失败** · ESLint 反向依赖守卫 0 error（回归锁已按守卫移至 `aurora/app/`）· 依赖图无环无双向 · 结构审计 §1 仅剩 V6×4 · vite build 通过 · 真机 CDP 冒烟（白板视图启动 + 来回切换视图无异常）。
 
 **回归锁**：`src/aurora/app/useAppGlobalEffects.test.tsx` —— ① 非编辑器视图也启动备份调度器；② 编辑器面板卸载（切白板）后调度器不清理、也不重复启动。
+
+---
+
+## 11. 实施记录 · P1-2（V6 清零，2026-09-27 完成）
+
+**结论**：`aurora/components`（通用层）不再依赖任何业务 `features`；V1–V8 全部归零。
+
+| 变更 | 说明 |
+|---|---|
+| `services/command/commandRegistry.ts`（新，原 `features/commandPalette/`） | 零 import 纯模块：命令注册表 + `CommandIds` + `CategoryLabels` + 类型 |
+| `services/command/shortcutFormat.ts`（新，原同上） | 零 import 纯模块：`IS_MAC` / `normalizeShortcutToken` / `formatShortcut` |
+| 4 处违规改指 `@services/command/*` | `CommandPalette.tsx`（桶导入）、`MenuBar.tsx`×2、`PageFrame.tsx` |
+| 其余消费方一并改指 | `AuroraShell.tsx`、`commandAdapter.ts`、`commandWiring.test.tsx`、`MenuBar.smoke.test.tsx` |
+| `features/commandPalette/index.ts` | 保留**兼容再导出**（catalog + 两个 services 模块），旧路径不炸，后续可自行收敛 |
+| `commandCatalog.ts` | 类型引用改指 `@services/command/commandRegistry` |
+| 顺带修 `MenuBar.tsx` | 既有 `no-case-declarations` ESLint **error**（case 块内 `const target` 未加块级作用域） |
+
+**判据**：中层通用组件（`aurora/components`）需要的是「命令数据结构 + 快捷键显示」这类**零依赖纯能力**，本就不该落在业务层；下沉后通用层只依赖 `services`，方向合法。
+
+**验证**：tsc 干净 · 全量 vitest **1767 通过 / 0 失败** · ESLint 0 error · 审计 §1 = `(none)` · vite build 通过 · 真机 CDP 冒烟（菜单栏下拉正常、accelerator 显示 `Ctrl+N`/`Ctrl+S` 等、零控制台错误）。

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { commandRegistry } from '../../features/commandPalette/commandRegistry'
+import { commandRegistry } from '@services/command/commandRegistry'
 import { COMMAND_CATALOG } from '../../features/commandPalette/commandCatalog'
 import { adaptCommands } from './commandAdapter'
 import { buildAuroraActions, type AuroraActionDeps } from './auroraActions'

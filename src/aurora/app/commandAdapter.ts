@@ -9,9 +9,9 @@
  * 若 Aurora `icons.tsx` 无该名，CommandPalette 内部 `Icon[item.icon]` 为 undefined → 渲染 null（安全降级）。
  */
 
-import type { CommandItem as RealCommandItem } from '../../features/commandPalette/commandRegistry'
+import type { CommandItem as RealCommandItem } from '@services/command/commandRegistry'
 import type { CommandItem as AuroraCommandItem } from '../components/command-palette/CommandPalette'
-import { normalizeShortcutToken } from '../../features/commandPalette/shortcutFormat'
+import { normalizeShortcutToken } from '@services/command/shortcutFormat'
 import type { IconName } from '../types'
 
 function parseShortcut(shortcut?: string): string[] | undefined {

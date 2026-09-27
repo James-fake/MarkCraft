@@ -4,7 +4,7 @@ import { MenuBar } from './MenuBar'
 import { Sidebar, SidebarGroup } from './Sidebar'
 import { Inspector, InspectorTab } from './Inspector'
 import { StatusBar, StatusBarItem } from './StatusBar'
-import { commandRegistry } from '../../../features/commandPalette/commandRegistry'
+import { commandRegistry } from '@services/command/commandRegistry'
 
 /**
  * Aurora 桌面页面框架组件

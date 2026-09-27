@@ -3,7 +3,7 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { RealProviders } from '../../../providers/RealProviders'
-import { commandRegistry } from '../../../../features/commandPalette/commandRegistry'
+import { commandRegistry } from '@services/command/commandRegistry'
 import { MenuBar } from '../MenuBar'
 
 /**
@@ -175,7 +175,7 @@ describe('formatShortcut（accelerator 平台归一）', () => {
     vi.resetModules()
     Object.defineProperty(window.navigator, 'platform', { value: 'MacIntel', configurable: true })
     try {
-      const mod = await import('../../../../features/commandPalette/shortcutFormat')
+      const mod = await import('@services/command/shortcutFormat')
       expect(mod.IS_MAC).toBe(true)
       expect(mod.formatShortcut('Ctrl+Q')).toBe('⌘Q')
       expect(mod.formatShortcut('Ctrl+Shift+N')).toBe('⌘⇧N')
@@ -194,7 +194,7 @@ describe('formatShortcut（accelerator 平台归一）', () => {
     vi.resetModules()
     Object.defineProperty(window.navigator, 'platform', { value: 'Win32', configurable: true })
     try {
-      const mod = await import('../../../../features/commandPalette/shortcutFormat')
+      const mod = await import('@services/command/shortcutFormat')
       expect(mod.IS_MAC).toBe(false)
       expect(mod.formatShortcut('Ctrl+S')).toBe('Ctrl+S')
       expect(mod.formatShortcut('Ctrl+Shift+N')).toBe('Ctrl+Shift+N')

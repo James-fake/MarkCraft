@@ -11,7 +11,7 @@
  * - `src/aurora/app/*`：配 Aurora 本地 action/overlay 注册（Phase 3 接管）。
  */
 
-import type { CommandCategory } from './commandRegistry'
+import type { CommandCategory } from '@services/command/commandRegistry'
 
 /** 命令静态元数据（不含 action / visible） */
 export interface CommandMeta {

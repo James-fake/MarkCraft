@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { Icon } from '../../icons'
 import type { IconName } from '../../types'
-import { CategoryLabels, type CommandCategory } from '@features/commandPalette'
+import { CategoryLabels, type CommandCategory } from '@services/command/commandRegistry'
 import { recordCommandUse, getRecentCommandIds } from './commandHistory'
 
 /** 最近使用分组的内置标记（非真实分类，渲染时显示中文标题） */
