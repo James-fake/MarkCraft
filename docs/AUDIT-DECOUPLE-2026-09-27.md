@@ -188,9 +188,9 @@ src/
 
 ## 8. 解耦路线图（P0–P2）
 
-| 级别 | 事项 | 动作 | 预估 | 验收 |
-|---|---|---|---|---|
-| **P0** | useAppLogic 视图切换副作用中断 | 迁 hooks/ + 拆应用级/视图级挂载，应用级上提 AuroraShell | 1 天 | 切视图后 MOC/备份仍存活 + vitest 断言 |
+| 级别 | 事项 | 动作 | 预估 | 验收 | 状态 |
+|---|---|---|---|---|---|
+| **P0** | useAppLogic 视图切换副作用中断 | 拆分为 `useAppGlobalEffects`（S5/S7/S6b，挂 AuroraShell 常驻）+ `useAppLogic`（S1/S2/S3/S4/S6a，留 EditorPanel）；落在新域 `features/appRuntime`，旧壳 `src/app` 与 `@app` 别名一并删除 | 1 天 | 切视图后 MOC/备份仍存活 + vitest 断言 | ✅ **已实施**（2026-09-27，V8 归零） |
 | **P1-1** | V8 清零 | 随 P0 迁移自动归零 | — | eslint guard / 审计脚本 V8=0 |
 | **P1-2** | V6 清零 | commandRegistry/shortcutFormat 下沉 services/command，改 4 处 import | 0.5 天 | V6=0 + CommandPalette/菜单行为回归 |
 | **P1-3** | newThemes.ts 拆分 | 一主题一文件 + 桶兼容 | 1–2 天（可脚本化） | 桶 API 不变 + 博客主题目检 |
@@ -213,3 +213,23 @@ node .workbuddy/artifacts/audit-decouple-structure.cjs
 ```
 
 审计脚本含扩展名探测修复与两类假阳性排除（桶导出、测试基建），可直接作为后续「解耦验收」的量化基线工具。
+
+---
+
+## 10. 实施记录 · P0（2026-09-27 完成）
+
+**结论**：应用级副作用不再随视图切换停摆；V8（禁引旧壳 `app`）归零，旧壳目录与别名彻底删除。
+
+| 变更 | 说明 |
+|---|---|
+| 新增 `features/appRuntime/useAppGlobalEffects.ts` | 承载 **S5 MOC 自动更新 / S7 备份调度 / S6b beforeunload**，只依赖 store（FileStore / LinkIndex / TagIndex），无参数 |
+| 迁移 `src/app/useAppLogic.ts` → `features/appRuntime/useAppLogic.ts` | 保留 **S1 自动保存 / S2 版本快照 / S3 块索引 / S4 块解析器 / S6a tab dirty**（编辑器耦合） |
+| `AuroraShell.tsx` | `ShellInner` 调用 `useAppGlobalEffects()`，常驻挂载，与视图无关 |
+| `EditorPanel.tsx` | 仅挂载视图级 `useAppLogic`；不再透传 `isAnyTabDirty` |
+| 删除 `src/app/` + 4 处 `@app` 别名 | tsconfig / vite / vitest / vite.smoke 同改（`aliasSync.test.ts` 守卫通过） |
+
+**为何落在 `features/` 而非 `hooks/`**：守卫规则 V7 禁止 `hooks → features`，而 MOC 生成仍在 `features/fileManager`；故新建业务域 `appRuntime` 承载「应用运行时副作用」，两端（aurora 壳 / 编辑器面板）引用它都是合法方向。
+
+**验证**：tsc 干净 · 全量 vitest **1767 通过 / 0 失败** · ESLint 反向依赖守卫 0 error（回归锁已按守卫移至 `aurora/app/`）· 依赖图无环无双向 · 结构审计 §1 仅剩 V6×4 · vite build 通过 · 真机 CDP 冒烟（白板视图启动 + 来回切换视图无异常）。
+
+**回归锁**：`src/aurora/app/useAppGlobalEffects.test.tsx` —— ① 非编辑器视图也启动备份调度器；② 编辑器面板卸载（切白板）后调度器不清理、也不重复启动。

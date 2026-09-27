@@ -15,7 +15,6 @@ const alias = {
   '@services': resolve(SRC, 'services'),
   '@utils': resolve(SRC, 'utils'),
   '@hooks': resolve(SRC, 'hooks'),
-  '@app': resolve(SRC, 'app'),
   '@locales': resolve(SRC, 'locales'),
   '@styles': resolve(SRC, 'styles'),
   '@workers': resolve(SRC, 'workers'),

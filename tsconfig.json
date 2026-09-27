@@ -36,8 +36,6 @@
       "@utils/*": ["src/utils/*"],
       "@hooks": ["src/hooks"],
       "@hooks/*": ["src/hooks/*"],
-      "@app": ["src/app"],
-      "@app/*": ["src/app/*"],
       "@locales": ["src/locales"],
       "@locales/*": ["src/locales/*"],
       "@styles": ["src/styles"],

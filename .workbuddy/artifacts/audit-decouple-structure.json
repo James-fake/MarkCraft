@@ -23,12 +23,6 @@
       "from": "aurora/components/shell/PageFrame.tsx",
       "to": "features/commandPalette",
       "spec": "../../../features/commandPalette/commandRegistry"
-    },
-    {
-      "rule": "V8 禁引旧壳 app",
-      "from": "aurora/panels/editor/EditorPanel.tsx",
-      "to": "app",
-      "spec": "@app/useAppLogic"
     }
   ],
   "giant": [
@@ -78,6 +72,11 @@
       "mod": "aurora/panels"
     },
     {
+      "file": "aurora/panels/kb/KbPanel.tsx",
+      "loc": 1024,
+      "mod": "aurora/panels"
+    },
+    {
       "file": "features/editor/EditorLayout.tsx",
       "loc": 964,
       "mod": "features/editor"
@@ -91,11 +90,6 @@
       "file": "locales/zh/index.ts",
       "loc": 952,
       "mod": "locales"
-    },
-    {
-      "file": "aurora/panels/kb/KbPanel.tsx",
-      "loc": 914,
-      "mod": "aurora/panels"
     },
     {
       "file": "locales/en.ts",
@@ -114,7 +108,7 @@
     },
     {
       "file": "aurora/panels/canvas/CanvasPanel.tsx",
-      "loc": 848,
+      "loc": 835,
       "mod": "aurora/panels"
     },
     {
@@ -338,14 +332,14 @@
       "mod": "features/editor"
     },
     {
+      "file": "aurora/app/AuroraShell.tsx",
+      "loc": 507,
+      "mod": "aurora/app"
+    },
+    {
       "file": "features/search/useGlobalSearch.ts",
       "loc": 505,
       "mod": "features/search"
-    },
-    {
-      "file": "aurora/app/AuroraShell.tsx",
-      "loc": 503,
-      "mod": "aurora/app"
     },
     {
       "file": "features/knowledgeBase/components/CrossKbSearch.tsx",
@@ -494,6 +488,7 @@
     {
       "file": "aurora/panels/editor/EditorPanel.tsx",
       "features": [
+        "features/appRuntime",
         "features/editor",
         "features/fileManager",
         "features/import",
@@ -502,7 +497,7 @@
         "features/templates",
         "features/themes"
       ],
-      "n": 7
+      "n": 8
     },
     {
       "file": "aurora/panels/diary/DiaryPanel.tsx",
@@ -680,6 +675,10 @@
     "setupTests.ts"
   ],
   "crossFeature": [
+    {
+      "from": "features/appRuntime/useAppGlobalEffects.ts",
+      "to": "features/fileManager"
+    },
     {
       "from": "features/blog/BlogStudio.tsx",
       "to": "features/themes"

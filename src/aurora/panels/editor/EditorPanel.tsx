@@ -45,7 +45,7 @@ import { useMarkdownRenderer } from '@hooks/useMarkdownRenderer'
 import { useAppLayout } from '@hooks/useAppLayout'
 import { useUsageDocsScope } from '@hooks/useUsageDocsScope'
 import { usePresence, OVERLAY_EXIT_MS } from '@components/ui/usePresence'
-import { useAppLogic } from '@app/useAppLogic'
+import { useAppLogic } from '@features/appRuntime/useAppLogic'
 import { textFromStorage, textToStorage } from '@core/storage/imageStore'
 
 /** Aurora 弹层开关（由 AuroraShell 以单一数据源持有，命令与编辑器 UI 共用；方案 B 就近归属渲染） */
@@ -133,7 +133,9 @@ function uniqueFileName(root: FileNode, base: string): string {
  * renderedHtml 由 useMarkdownRenderer 计算；gridColumns 由 useAppLayout 推导。
  */
 export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette }: EditorPanelProps) {
-  const { rootFolder, getActiveFileId, getActiveFileContent, updateFileContent, createFile, openFile, activeTabId, tabs, markTabDirty, isAnyTabDirty, closeTransientTabs } = useFileManager()
+  // 注：isAnyTabDirty 不再由此处透传——beforeunload 守卫已上提到应用级 useAppGlobalEffects，
+  // 它自己从 FileStore 取脏标记（视图无关）。
+  const { rootFolder, getActiveFileId, getActiveFileContent, updateFileContent, createFile, openFile, activeTabId, tabs, markTabDirty, closeTransientTabs } = useFileManager()
   const { settings, updateSetting } = useSettings()
   const { theme, toggleTheme } = useTheme()
   const { language, toggleLanguage } = useLanguage()
@@ -287,11 +289,10 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFileId])
 
-  // —— Phase 4 B2：接入共享 useAppLogic（策略 A 单一来源）——
-  // 使 Aurora 编辑器获得 S1–S6 等价（自动保存/崩溃备份/版本快照/块索引/tab dirty/beforeunload）。
-  // S5/S7（MOC/备份调度）此前由 AuroraShell 壳层 useAppLogic() 承担；本步统一后将从壳层移除，
-  // 避免 S5/S7 双跑（尤其双备份调度器会写两份备份）。灰度期 S5/S7 仅在编辑器视图运行，
-  // 非编辑器视图不跑 —— 此为已知取舍，待 4.4（AuroraShell 成为唯一外壳）时再评估「常驻壳层」放置。
+  // —— 编辑器视图级副作用（S1 自动保存 / S2 版本快照 / S3 块索引 / S4 块解析器 / S6a tab dirty）——
+  // P0 解耦（2026-09-27）：应用级的 S5 MOC 自动更新 / S7 备份调度 / S6b beforeunload 已上提到
+  // useAppGlobalEffects，由 AuroraShell 常驻挂载——它们只依赖 store，与当前视图无关；
+  // 此前挂在 EditorPanel 上，切到白板/图谱等视图时 EditorPanel 卸载 ⇒ MOC 不更新、备份停摆。
   const { scheduleSave, createVersion } = useAppLogic({
     activeFileId,
     activeFileName: activeNode?.name,
@@ -300,7 +301,6 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
     updateFileContent,
     openFile,
     markTabDirty,
-    isAnyTabDirty,
   })
 
   const handleChange = useCallback(

@@ -21,6 +21,7 @@ import QuickOpen from '../../features/search/QuickOpen'
 import GlobalSearch from '../../features/search/GlobalSearch'
 import { CrossKbSearch } from '../../features/knowledgeBase/components/CrossKbSearch'
 import { navigationTracker } from '../../features/editor/NavigationTracker'
+import { useAppGlobalEffects } from '../../features/appRuntime/useAppGlobalEffects'
 import type { FileNode } from '../../types/fileManager'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import { getBackup, clearBackup } from '../../services/crashRecovery'
@@ -57,9 +58,12 @@ function ShellInner() {
   const { view, params, auxView, commandOpen, setCommandOpen, nav, settingsInitialCategory } = useAuroraShell()
   const toast = useToast()
 
-  // —— Phase 4 B2：数据保护副作用（S1–S7）已下沉至 EditorPanel 的 useAppLogic 调用 ——
-  // 编辑器视图挂载时即获得完整等价能力；非编辑器视图（dashboard/canvas 等）灰度期不跑 S5/S7，
-  // 此为已知取舍（见 docs/PHASE4_PLAN.md），待 4.4 成为唯一外壳时再评估「常驻壳层」放置以避免双跑/遗漏。
+  // —— P0 · 应用级副作用常驻壳层（S5 MOC 自动更新 / S7 备份调度 / S6b beforeunload）——
+  // 🚨 这三组原本寄生在 useAppLogic，而 useAppLogic 只被 EditorPanel 挂载；
+  // renderView 是 switch/case ⇒ 切到白板/图谱/知识库时 EditorPanel 卸载，它们全部停摆
+  // （白板改完链接关系 MOC 不更新；长时间停在白板备份不跑）。它们只依赖 store，与视图无关，
+  // 故常驻于此。编辑器耦合的 S1/S2/S3/S4/S6a 仍由 EditorPanel 的 useAppLogic 承载，不双跑。
+  useAppGlobalEffects()
 
   const renderPanel = () => {
     if (auxView === 'welcome') return <WelcomePanel nav={nav} toast={toast.show} onUseTemplate={() => { nav('editor'); modalOpen('templateInsert') }} />

@@ -20,7 +20,6 @@ const alias = {
   '@services': join(SRC, 'services'),
   '@utils': join(SRC, 'utils'),
   '@hooks': join(SRC, 'hooks'),
-  '@app': join(SRC, 'app'),
   '@locales': join(SRC, 'locales'),
   '@styles': join(SRC, 'styles'),
   '@workers': join(SRC, 'workers'),
