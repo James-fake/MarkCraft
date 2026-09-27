@@ -40,7 +40,7 @@ Vite5+React18+TS、CodeMirror6+TipTap3、Excalidraw、Dexie/IDB。dev **5174**�
 - 🚨 探针**禁整页 reload**（renderer 僵死：能连但每条 eval 超时且不恢复）⇒ 改 `PUT /json/new?about:blank` + **先注入 `__bootAt` 再导航**；`send()` 须带超时 + 进度落盘，否则静默挂死。
 - 🚨 **等 `#aurora-root` 是假绿**（它写在 index.html 里、永远存在）⇒ 必须等「**其内部有内容**」`children.length > 0`。探针步骤 1 还要先判「**是否已有打开的文件**」（`.aurora-tab`）：空库=空态（`.aurora-editor__empty` + `.aurora-editor__newfile-btn`），会话恢复后已有标签页。
 - 🚨 **审计脚本判据缺锚点 = 假阳性工厂**：判「旧变量是缺陷」不能只查「是否在重映射表」⇒ 必须三锚点（重映射 / **别处有定义位** / 真·未定义）。定义位收集**必须排除 `getPropertyValue`/`removeProperty`**（读≠写）；TS 侧计算键 `['--x' as string]:` 也要认。本轮据此把 22 处「真缺陷」全部改判为假阳性（真缺陷 0）。
-- 🐛 **既有缺口（未修）**：`TiptapEditor.tsx` 的 `modalsValue` 里 `onOpenFrontMatter: () => {}`（同处 `onOptimizeImages`/`onUploadImage`）⇒ **WYSIWYG 模式「文章元信息」无响应**，只有源码模式（CodeMirrorEditor.tsx:316）接线；取证须先切 `.aurora-mode-toggle[title^="源码"]`。
+- 🐛 **既有缺口 → 已修（计划项 B，commit `28d9712`）**：`TiptapEditor.tsx` 的 `modalsValue` 里 `onOpenFrontMatter`/`onOptimizeImages` 原为空 `() => {}` ⇒ WYSIWYG 模式「文章元信息/优化图片」无响应。根因：WYSIWYG 端缺 `showFrontMatter`/`showOptimizeModal` 可见性状态（源码模式在 `useSourceFileOps`/`useCM6State`），`EditorSlots` 已是模式无关渲染（`ctx.value`/`ctx.onChange`），故补两 `useState` + 接真实 state 即修。`onUploadImage` 仍 `() => {}`（WYSIWYG 图片走自身 `ImageModal`，非缺口）。
 
 ## git/沙箱
 PATH：`PortableGit/1.2.0/{cmd,usr/bin,mingw64/bin}`+`node/22.22.2-3`+`System32`。远端 `gitee.com/James-fake/markcraft.git`。
