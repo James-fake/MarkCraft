@@ -18,6 +18,7 @@ import { getIgnoredLinks } from '@features/canvas-v2/store/ignoredLinks'
 import { RELATION_TYPES } from '@features/canvas-v2/theme/canvasTheme'
 import AutoLayoutPanel from '@features/canvas-v2/components/AutoLayoutPanel'
 import { exportCanvasJSON, exportCanvasPNG } from '@features/canvas-v2/utils/canvasExport'
+import { cardToNotePlan } from '@features/canvas-v2/utils/cardToNote'
 import { loadKb } from '@stores/kbStore'
 import { inferRelationType } from '@features/canvas-v2/utils/relationInfer'
 import { useLinkIndex } from '@stores/LinkIndexStore'
@@ -62,7 +63,7 @@ export interface CanvasPanelProps {
 
 export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelProps) {
   const { theme } = useTheme()
-  const { rootFolder, openFile } = useFileManager()
+  const { rootFolder, openFile, createFile } = useFileManager()
   const kbStore = useKbStore()
   const [engine, setEngine] = useState<CanvasEngine | null>(null)
   const [doc, setDoc] = useState<CanvasDocument | null>(null)
@@ -161,7 +162,7 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
   useEffect(() => {
     let alive = true
     if (!doc?.id) { setOwningKb(null); return }
-    ;(async () => {
+    (async () => {
       try {
         const ids = await kbStore.getKbsContainingCanvas(doc.id)
         if (!alive || ids.length === 0) { setOwningKb(null); return }
@@ -555,6 +556,35 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
     toast?.(`已插入笔记：${name}`)
   }, [rootFolder, toast])
 
+  // ─── 转为笔记：把选中的自由便签（无 fileId 的 note-card）全文落成真实笔记文件 ───
+  // 文件建在根目录（openAfterCreate=false：留在白板不打断），新文件 id 回写绑定到卡片
+  // → 卡片原地升级为「文件便签」：点卡跳编辑器 / 改首行标题同步文件名 / 参与「同步笔记链接」。
+  // 命名/去重规划在 cardToNotePlan（纯函数，含单测）；本回调只做编排（引擎读写 + FileStore + toast）。
+  const convertSelectedNotes = useCallback(() => {
+    const eng = engineRef.current
+    if (!eng) return
+    // 只取「未绑文件」的便签；已绑文件的是笔记替身，无需也无法转换
+    const cards = eng
+      .getSelectedShapeIds()
+      .flatMap((id) => {
+        const s = eng.getShape(id)
+        return s && s.type === 'note-card' && !s.props.fileId ? [s] : []
+      })
+    if (cards.length === 0) return
+    // 占位集合 = 根目录已有节点名 + 本批次已创建名（大小写不敏感去重在 plan 内做）
+    const taken = new Set((rootFolder.children ?? []).map((c) => c.name))
+    let converted = 0
+    for (const card of cards) {
+      const plan = cardToNotePlan(String(card.props.text ?? ''), taken)
+      const fileId = createFile(rootFolder.id, plan.fileName, plan.content, false)
+      if (!fileId) continue
+      eng.updateShape({ id: card.id, props: { fileId } })
+      taken.add(plan.fileName)
+      converted++
+    }
+    toast?.(converted > 0 ? `已转为笔记 ${converted} 篇（文件列表根目录）` : '转换失败')
+  }, [rootFolder, createFile, toast])
+
   // ─── 导出当前白板：PNG（Excalidraw 场景）+ JSON（完整数据，可再导入）───
   const handleExport = useCallback(async () => {
     const editor = engineRef.current
@@ -804,6 +834,7 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
           x={ctxMenu.value.x}
           y={ctxMenu.value.y}
           engine={engine}
+          onConvertToNote={convertSelectedNotes}
           exiting={ctxMenu.exiting}
           onClose={() => setCtx(null)}
         />

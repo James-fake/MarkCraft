@@ -13,6 +13,11 @@ export interface CanvasContextMenuProps {
   engine: CanvasEngine | null
   onClose: () => void
   /**
+   * 「转为笔记」：把选中的自由便签（未绑文件的 note-card）全文落成真实笔记文件，
+   * 并把新文件 id 回写绑定到卡片（编排逻辑在 CanvasPanel）。未传则隐藏该能力。
+   */
+  onConvertToNote?: () => void
+  /**
    * 退场相位（由父级 `usePresenceValue` 驱动）：为 true 时本组件仍在 DOM 中，
    * 只播 100ms 退场动画后由父级卸载（动效审计 P0-3）。x/y 由父级在退场窗口内保留，
    * 所以菜单「从哪弹出来的，就缩回哪去」。
@@ -27,12 +32,26 @@ const ITEMS: { id: string; label: string; icon: string }[] = [
   { id: 'sep' as string, label: '', icon: '' },
   { id: 'delete', label: '删除选中', icon: 'trash' },
   { id: 'duplicate', label: '复制选中', icon: 'copy' },
+  { id: 'to-note', label: '转为笔记', icon: 'fileText' },
   { id: 'lock', label: '锁定/解锁', icon: 'target' },
 ]
 
-export function CanvasContextMenu({ x, y, engine, onClose, exiting }: CanvasContextMenuProps) {
+export function CanvasContextMenu({ x, y, engine, onClose, onConvertToNote, exiting }: CanvasContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null)
   const selectedCount = useEngineSnapshot(engine, (e) => e.getSelectedShapeIds().length, 'session')
+  // 「转为笔记」可用性 = 选中项里存在**未绑文件**的便签（已绑文件的卡片本身就是笔记替身，无需转换）
+  const convertibleCount = useEngineSnapshot(
+    engine,
+    (e) => {
+      let n = 0
+      for (const id of e.getSelectedShapeIds()) {
+        const s = e.getShape(id)
+        if (s && s.type === 'note-card' && !s.props.fileId) n++
+      }
+      return n
+    },
+    'session',
+  ) ?? 0
 
   // 点击外部关闭
   useEffect(() => {
@@ -66,6 +85,7 @@ export function CanvasContextMenu({ x, y, engine, onClose, exiting }: CanvasCont
       }
       case 'delete': engine.deleteShapes(engine.getSelectedShapeIds()); break
       case 'duplicate': engine.duplicateShapes(engine.getSelectedShapeIds()); break
+      case 'to-note': onConvertToNote?.(); break
       case 'lock': {
         const ids = engine.getSelectedShapeIds()
         for (const id of ids) {
@@ -93,8 +113,13 @@ export function CanvasContextMenu({ x, y, engine, onClose, exiting }: CanvasCont
             key={it.id}
             type="button"
             className="aurora-canvas-ctxmenu__item"
-            onClick={() => act(it.id)}
-            disabled={it.id !== 'new-note' && it.id !== 'new-rect' && it.id !== 'new-group' && selectedCount === 0}
+          onClick={() => act(it.id)}
+          disabled={
+            it.id === 'to-note'
+              ? convertibleCount === 0
+              : it.id !== 'new-note' && it.id !== 'new-rect' && it.id !== 'new-group' && selectedCount === 0
+          }
+          title={it.id === 'to-note' ? '把便签全文保存为根目录下的笔记文件，并绑定到这张卡片' : undefined}
           >
             {IconComp ? <IconComp size={14} /> : null}
             <span>{it.label}</span>
