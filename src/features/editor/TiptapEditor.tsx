@@ -89,6 +89,11 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
   const { searchMode, searchTerm, replaceTerm, openSearch, closeSearch, setSearchTerm, setReplaceTerm } = useTiptapSearch()
   const { lintIssues, showLintPopover, lintAnchorRef, lintCloseTimerRef, setShowLintPopover, scheduleLintCheck, cleanupLintTimer } = useTiptapLint({ lintMarkdown, t })
   const { showSaveAsModal, fileInputRef, handleOpenFile, handleSaveAs, handleFileChange, setShowSaveAsModal } = useTiptapFileOps({ onOpenFile, onSaveAs, fileId, undoRedo, onChange })
+  // WYSIWYG 端原先缺失 front-matter / 优化图片两个模态的可见性状态（源码模式这些状态在
+  // useSourceFileOps / useCM6State），导致面板永远打不开。面板渲染与内容读写由 EditorSlots
+  // 统一走 ctx.value / ctx.onChange（两模式都是 markdown 源），故此处只需补可见性状态即可。
+  const [showFrontMatter, setShowFrontMatter] = useState(false)
+  const [showOptimizeModal, setShowOptimizeModal] = useState(false)
 
   const [wordCountMode, setWordCountMode] = useState<WordCountMode>('text')
   const [ctxMenu, setCtxMenu] = useState<{ visible: boolean; x: number; y: number }>({ visible: false, x: 0, y: 0 })
@@ -583,8 +588,9 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
   const modalsValue = useMemo(() => ({
     onSearchReplace: () => openSearch('replace'),
     onSaveAs: handleSaveAs,
-    onOptimizeImages: () => {},
-    onOpenFrontMatter: () => {},
+    onOptimizeImages: () => setShowOptimizeModal(true),
+    onOpenFrontMatter: () => setShowFrontMatter(true),
+    // WYSIWYG 图片插入走 WysiwygToolbar 自己的 ImageModal（showImageModal），不消费此 CM6 文件选择器
     onUploadImage: () => {},
     onOpenFile: handleOpenFile,
     onUseTemplate: onUseTemplate ?? (() => {}),
@@ -598,10 +604,10 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
     onCloseSearch: () => closeSearch(),
     showSaveAsModal,
     onCloseSaveAsModal: () => setShowSaveAsModal(false),
-    showOptimizeModal: false,
-    onCloseOptimizeModal: () => {},
-    showFrontMatter: false,
-    onCloseFrontMatter: () => {},
+    showOptimizeModal: showOptimizeModal,
+    onCloseOptimizeModal: () => setShowOptimizeModal(false),
+    showFrontMatter: showFrontMatter,
+    onCloseFrontMatter: () => setShowFrontMatter(false),
     lintIssues,
     showLintPopover,
     onCloseLintPopover: () => setShowLintPopover(false),
@@ -618,7 +624,7 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
     onDismissLargeImageConfirm: () => {},
     error: null,
     success: null,
-  }), [searchMode, lintIssues, showSaveAsModal, showLintPopover, handleOpenFile, handleSaveAs, handleJumpToIssue, openSearch, closeSearch, lintAnchorRef, lintCloseTimerRef, fileId, undoRedo, onChange, setShowLintPopover])
+  }), [searchMode, lintIssues, showSaveAsModal, showLintPopover, handleOpenFile, handleSaveAs, handleJumpToIssue, openSearch, closeSearch, lintAnchorRef, lintCloseTimerRef, fileId, undoRedo, onChange, setShowLintPopover, showFrontMatter, setShowFrontMatter, showOptimizeModal, setShowOptimizeModal])
 
   const insertValue = useMemo(() => ({
     onInsertFootnote: () => {},
