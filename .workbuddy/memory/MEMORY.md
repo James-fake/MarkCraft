@@ -47,6 +47,7 @@ PATH：`PortableGit/1.2.0/{cmd,usr/bin,mingw64/bin}`+`node/22.22.2-3`+`System32`
 - 🚨 内联 `node -e`/`bash -c` 禁反引号（`${}`/`$()` 同理）→ 长脚本写 `.cjs` 用完删。
 - 🚨 `credential.helper=helper-selector` 弹窗挂死 ⇒ 裸 `git push` 被 SIGTERM 静默杀、远端没更新；正解 `.git/config` 手写 `helper=`（空值）+`helper=wincred`；无头保险 `scripts/push-gitee.cjs`。
 - ⚠️ 暂存/提交显式 pathspec 禁 `git add -A`；单条 bash 禁 `git stash`。
+- ⚠️ **Gitee 支持 `.github/PULL_REQUEST_TEMPLATE/*.md`**：已联网核实 nacos/vue/chunjun 等 Gitee 仓均用此路径自动渲染 PR 模板，**无需另写 `.gitee/`**（本仓此前误以为 Gitee 只读 `.gitee/`，证伪）。UI 闸门模板落 `.github/PULL_REQUEST_TEMPLATE/ui.md`（对应 §18 §12/§14，commit `5533f88`）。
 - 🚨 **浮层皮肤回归锁的扫描面必须含「浮层 import 的子模块」**：上轮修好 `MindmapPopover` 却漏掉
   `mindmapTemplates.tsx`（宿主干净、子模块仍用 `--editor-*` + 老蓝）⇒ 只断言宿主文件 = 假绿。
 - 🚨 **z-index 魔数是独立于颜色的第二条缺陷轴**：4 个颜色已合规的下拉用内联 `9999` 顶掉了
