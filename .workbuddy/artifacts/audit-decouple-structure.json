@@ -1,0 +1,764 @@
+{
+  "violations": [
+    {
+      "rule": "V6 aurora/components 通用不依赖业务",
+      "from": "aurora/components/command-palette/CommandPalette.tsx",
+      "to": "features/commandPalette",
+      "spec": "@features/commandPalette"
+    },
+    {
+      "rule": "V6 aurora/components 通用不依赖业务",
+      "from": "aurora/components/shell/MenuBar.tsx",
+      "to": "features/commandPalette",
+      "spec": "../../../features/commandPalette/commandRegistry"
+    },
+    {
+      "rule": "V6 aurora/components 通用不依赖业务",
+      "from": "aurora/components/shell/MenuBar.tsx",
+      "to": "features/commandPalette",
+      "spec": "../../../features/commandPalette/shortcutFormat"
+    },
+    {
+      "rule": "V6 aurora/components 通用不依赖业务",
+      "from": "aurora/components/shell/PageFrame.tsx",
+      "to": "features/commandPalette",
+      "spec": "../../../features/commandPalette/commandRegistry"
+    },
+    {
+      "rule": "V8 禁引旧壳 app",
+      "from": "aurora/panels/editor/EditorPanel.tsx",
+      "to": "app",
+      "spec": "@app/useAppLogic"
+    }
+  ],
+  "giant": [
+    {
+      "file": "features/blog/themes/newThemes.ts",
+      "loc": 22752,
+      "mod": "features/blog"
+    },
+    {
+      "file": "core/data/defaultDocs/en.ts",
+      "loc": 2764,
+      "mod": "core"
+    },
+    {
+      "file": "aurora/panels/kb/GraphPanel.tsx",
+      "loc": 2203,
+      "mod": "aurora/panels"
+    },
+    {
+      "file": "core/data/defaultDocs/zh.ts",
+      "loc": 2111,
+      "mod": "core"
+    },
+    {
+      "file": "features/canvas-v2/engine/CanvasEngine.ts",
+      "loc": 1453,
+      "mod": "features/canvas-v2"
+    },
+    {
+      "file": "aurora/panels/blog/BlogPanel.tsx",
+      "loc": 1346,
+      "mod": "aurora/panels"
+    },
+    {
+      "file": "features/blog/utils/singleFile/newThemeTemplate.ts",
+      "loc": 1299,
+      "mod": "features/blog"
+    },
+    {
+      "file": "core/data/defaultDocs/usageDocs/en.ts",
+      "loc": 1077,
+      "mod": "core"
+    },
+    {
+      "file": "aurora/panels/editor/EditorPanel.tsx",
+      "loc": 1027,
+      "mod": "aurora/panels"
+    },
+    {
+      "file": "features/editor/EditorLayout.tsx",
+      "loc": 964,
+      "mod": "features/editor"
+    },
+    {
+      "file": "aurora/panels/canvas/CanvasInspectorPanel.tsx",
+      "loc": 961,
+      "mod": "aurora/panels"
+    },
+    {
+      "file": "locales/zh/index.ts",
+      "loc": 952,
+      "mod": "locales"
+    },
+    {
+      "file": "aurora/panels/kb/KbPanel.tsx",
+      "loc": 914,
+      "mod": "aurora/panels"
+    },
+    {
+      "file": "locales/en.ts",
+      "loc": 875,
+      "mod": "locales"
+    },
+    {
+      "file": "core/data/defaultDocs/usageDocs/zh.ts",
+      "loc": 871,
+      "mod": "core"
+    },
+    {
+      "file": "aurora/panels/canvas/CanvasSidebarPanel.tsx",
+      "loc": 854,
+      "mod": "aurora/panels"
+    },
+    {
+      "file": "aurora/panels/canvas/CanvasPanel.tsx",
+      "loc": 848,
+      "mod": "aurora/panels"
+    },
+    {
+      "file": "features/search/GlobalSearch.tsx",
+      "loc": 819,
+      "mod": "features/search"
+    },
+    {
+      "file": "features/editor/toolbar/WysiwygToolbar.tsx",
+      "loc": 817,
+      "mod": "features/editor"
+    },
+    {
+      "file": "features/blog/components/panels/VisualCssEditor.tsx",
+      "loc": 810,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/export/SaveAsModal.tsx",
+      "loc": 787,
+      "mod": "features/export"
+    },
+    {
+      "file": "features/blog/themes/narrative.ts",
+      "loc": 786,
+      "mod": "features/blog"
+    },
+    {
+      "file": "stores/FileStore.tsx",
+      "loc": 775,
+      "mod": "stores"
+    },
+    {
+      "file": "features/editor/EditorContextMenu.tsx",
+      "loc": 753,
+      "mod": "features/editor"
+    },
+    {
+      "file": "features/editor/markdownConvert.ts",
+      "loc": 727,
+      "mod": "features/editor"
+    },
+    {
+      "file": "features/editor/TiptapEditor.tsx",
+      "loc": 717,
+      "mod": "features/editor"
+    },
+    {
+      "file": "features/blog/themes/cyberpunk.ts",
+      "loc": 716,
+      "mod": "features/blog"
+    },
+    {
+      "file": "components/ui/Icon.tsx",
+      "loc": 710,
+      "mod": "components/ui"
+    },
+    {
+      "file": "stores/LinkIndexStore.tsx",
+      "loc": 706,
+      "mod": "stores"
+    },
+    {
+      "file": "features/blog/themes/aurora.ts",
+      "loc": 687,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/academia.ts",
+      "loc": 671,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/midnight.ts",
+      "loc": 666,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/search/SearchReplace.tsx",
+      "loc": 658,
+      "mod": "features/search"
+    },
+    {
+      "file": "features/knowledgeBase/components/FileDependencyPanel.tsx",
+      "loc": 654,
+      "mod": "features/knowledgeBase"
+    },
+    {
+      "file": "features/blog/themes/garden.ts",
+      "loc": 646,
+      "mod": "features/blog"
+    },
+    {
+      "file": "aurora/panels/editor/FileTree.tsx",
+      "loc": 634,
+      "mod": "aurora/panels"
+    },
+    {
+      "file": "features/blog/themes/terminal.ts",
+      "loc": 634,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/editor/extensions/WikiLinkAutocomplete.tsx",
+      "loc": 634,
+      "mod": "features/editor"
+    },
+    {
+      "file": "features/blog/themes/inkWash.ts",
+      "loc": 627,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/templates/styleBuilder/componentStyles.ts",
+      "loc": 626,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/retro.ts",
+      "loc": 619,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/components/panels/CssEditor.tsx",
+      "loc": 612,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/templates/TemplateInsertModal.tsx",
+      "loc": 608,
+      "mod": "features/templates"
+    },
+    {
+      "file": "features/export/utils/exportCss.ts",
+      "loc": 605,
+      "mod": "features/export"
+    },
+    {
+      "file": "features/themes/CodeThemeManager.ts",
+      "loc": 605,
+      "mod": "features/themes"
+    },
+    {
+      "file": "features/knowledgeBase/components/KbSearchPanel.tsx",
+      "loc": 602,
+      "mod": "features/knowledgeBase"
+    },
+    {
+      "file": "features/outline/Outline.tsx",
+      "loc": 599,
+      "mod": "features/outline"
+    },
+    {
+      "file": "features/blog/themes/newspaper.ts",
+      "loc": 592,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/BlogStudio.tsx",
+      "loc": 583,
+      "mod": "features/blog"
+    },
+    {
+      "file": "aurora/hooks/useSwipeTabs.ts",
+      "loc": 574,
+      "mod": "aurora/hooks"
+    },
+    {
+      "file": "features/blog/components/panels/CssPanel.tsx",
+      "loc": 574,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/hooks/useBlogGenerator.ts",
+      "loc": 568,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/utils/singleFile/classicThemeCssWidgets.ts",
+      "loc": 565,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/themes/bento.ts",
+      "loc": 563,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/editor/cm6/useCM6State.ts",
+      "loc": 559,
+      "mod": "features/editor"
+    },
+    {
+      "file": "features/blog/utils/singleFile/htmlTemplate.ts",
+      "loc": 554,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/utils/singleFile/jsInteractions.ts",
+      "loc": 548,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/components/panels/FeaturesPanel.tsx",
+      "loc": 540,
+      "mod": "features/blog"
+    },
+    {
+      "file": "stores/kbStore.ts",
+      "loc": 540,
+      "mod": "stores"
+    },
+    {
+      "file": "features/blog/themes/glassmorphism.ts",
+      "loc": 531,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/editor/extensions/ImageView.tsx",
+      "loc": 517,
+      "mod": "features/editor"
+    },
+    {
+      "file": "features/search/useGlobalSearch.ts",
+      "loc": 505,
+      "mod": "features/search"
+    },
+    {
+      "file": "aurora/app/AuroraShell.tsx",
+      "loc": 503,
+      "mod": "aurora/app"
+    },
+    {
+      "file": "features/knowledgeBase/components/CrossKbSearch.tsx",
+      "loc": 500,
+      "mod": "features/knowledgeBase"
+    },
+    {
+      "file": "features/editor/extensions/mindmap/MindmapCanvas.tsx",
+      "loc": 493,
+      "mod": "features/editor"
+    },
+    {
+      "file": "aurora/panels/canvas/CanvasDock.tsx",
+      "loc": 491,
+      "mod": "aurora/panels"
+    },
+    {
+      "file": "features/canvas-v2/engine/OverlayCards.tsx",
+      "loc": 480,
+      "mod": "features/canvas-v2"
+    },
+    {
+      "file": "features/canvas-v2/engine/ExcalidrawCanvas.tsx",
+      "loc": 475,
+      "mod": "features/canvas-v2"
+    },
+    {
+      "file": "aurora/panels/editor/AuroraOutline.tsx",
+      "loc": 473,
+      "mod": "aurora/panels"
+    },
+    {
+      "file": "features/blog/components/panels/ThemePanel.tsx",
+      "loc": 473,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/editor/CodeMirrorEditor.tsx",
+      "loc": 464,
+      "mod": "features/editor"
+    },
+    {
+      "file": "aurora/hooks/swipeTabsCore.ts",
+      "loc": 458,
+      "mod": "aurora/hooks"
+    },
+    {
+      "file": "features/search/QuickOpen.tsx",
+      "loc": 458,
+      "mod": "features/search"
+    },
+    {
+      "file": "features/knowledgeBase/components/AdvancedFilter.tsx",
+      "loc": 449,
+      "mod": "features/knowledgeBase"
+    },
+    {
+      "file": "features/blog/utils/singleFile/classicThemeCssCards.ts",
+      "loc": 443,
+      "mod": "features/blog"
+    },
+    {
+      "file": "aurora/panels/diary/DiaryPanel.tsx",
+      "loc": 437,
+      "mod": "aurora/panels"
+    },
+    {
+      "file": "features/blog/BlogModal.tsx",
+      "loc": 428,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/canvas-v2/components/views/TimelineView.tsx",
+      "loc": 426,
+      "mod": "features/canvas-v2"
+    },
+    {
+      "file": "features/editor/extensions/MermaidBlockView.tsx",
+      "loc": 426,
+      "mod": "features/editor"
+    },
+    {
+      "file": "features/blog/components/RightPanel.tsx",
+      "loc": 413,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/blog/components/ColorPicker.tsx",
+      "loc": 407,
+      "mod": "features/blog"
+    },
+    {
+      "file": "features/canvas-v2/canvasStore.ts",
+      "loc": 406,
+      "mod": "features/canvas-v2"
+    },
+    {
+      "file": "utils/mathRenderer.ts",
+      "loc": 405,
+      "mod": "utils"
+    }
+  ],
+  "blogTree": {
+    "(根)": {
+      "n": 4,
+      "loc": 1056
+    },
+    "components": {
+      "n": 12,
+      "loc": 2561
+    },
+    "components/panels": {
+      "n": 16,
+      "loc": 4887
+    },
+    "hooks": {
+      "n": 1,
+      "loc": 568
+    },
+    "services": {
+      "n": 12,
+      "loc": 1333
+    },
+    "templates": {
+      "n": 26,
+      "loc": 1823
+    },
+    "templates/styleBuilder": {
+      "n": 4,
+      "loc": 918
+    },
+    "themes": {
+      "n": 16,
+      "loc": 30873
+    },
+    "utils": {
+      "n": 9,
+      "loc": 1030
+    },
+    "utils/singleFile": {
+      "n": 11,
+      "loc": 4592
+    }
+  },
+  "panelBiz": [
+    {
+      "file": "aurora/panels/editor/EditorPanel.tsx",
+      "features": [
+        "features/editor",
+        "features/fileManager",
+        "features/import",
+        "features/lint",
+        "features/pwa",
+        "features/templates",
+        "features/themes"
+      ],
+      "n": 7
+    },
+    {
+      "file": "aurora/panels/diary/DiaryPanel.tsx",
+      "features": [
+        "features/diary",
+        "features/editor",
+        "features/fileManager"
+      ],
+      "n": 3
+    },
+    {
+      "file": "aurora/panels/blog/BlogPanel.tsx",
+      "features": [
+        "features/blog",
+        "features/editor"
+      ],
+      "n": 2
+    },
+    {
+      "file": "aurora/panels/canvas/CanvasPanel.tsx",
+      "features": [
+        "features/canvas-v2",
+        "features/themes"
+      ],
+      "n": 2
+    },
+    {
+      "file": "aurora/panels/canvas/CanvasSidebarPanel.tsx",
+      "features": [
+        "features/canvas-v2",
+        "features/editor"
+      ],
+      "n": 2
+    },
+    {
+      "file": "aurora/panels/editor/UsageDocBrief.tsx",
+      "features": [
+        "features/preview",
+        "features/themes"
+      ],
+      "n": 2
+    },
+    {
+      "file": "aurora/panels/kb/GraphPanel.tsx",
+      "features": [
+        "features/dashboard",
+        "features/editor"
+      ],
+      "n": 2
+    },
+    {
+      "file": "aurora/panels/kb/KbPanel.tsx",
+      "features": [
+        "features/canvas-v2",
+        "features/knowledgeBase"
+      ],
+      "n": 2
+    },
+    {
+      "file": "aurora/panels/settings/sections/ShortcutsSection.tsx",
+      "features": [
+        "features/editor",
+        "features/settings"
+      ],
+      "n": 2
+    },
+    {
+      "file": "aurora/panels/canvas/CanvasContextMenu.tsx",
+      "features": [
+        "features/canvas-v2"
+      ],
+      "n": 1
+    },
+    {
+      "file": "aurora/panels/canvas/CanvasDock.tsx",
+      "features": [
+        "features/canvas-v2"
+      ],
+      "n": 1
+    },
+    {
+      "file": "aurora/panels/canvas/canvasHooks.ts",
+      "features": [
+        "features/canvas-v2"
+      ],
+      "n": 1
+    },
+    {
+      "file": "aurora/panels/canvas/CanvasInspectorPanel.tsx",
+      "features": [
+        "features/canvas-v2"
+      ],
+      "n": 1
+    },
+    {
+      "file": "aurora/panels/canvas/CanvasListMenu.tsx",
+      "features": [
+        "features/canvas-v2"
+      ],
+      "n": 1
+    },
+    {
+      "file": "aurora/panels/canvas/CanvasZoomControls.tsx",
+      "features": [
+        "features/canvas-v2"
+      ],
+      "n": 1
+    },
+    {
+      "file": "aurora/panels/canvas/RealCanvasView.tsx",
+      "features": [
+        "features/canvas-v2"
+      ],
+      "n": 1
+    },
+    {
+      "file": "aurora/panels/diary/diaryData.ts",
+      "features": [
+        "features/diary"
+      ],
+      "n": 1
+    },
+    {
+      "file": "aurora/panels/diary/DiaryMiniCalendar.tsx",
+      "features": [
+        "features/diary"
+      ],
+      "n": 1
+    },
+    {
+      "file": "aurora/panels/editor/AuroraBacklinks.tsx",
+      "features": [
+        "features/editor"
+      ],
+      "n": 1
+    },
+    {
+      "file": "aurora/panels/editor/AuroraFootnotes.tsx",
+      "features": [
+        "features/editor"
+      ],
+      "n": 1
+    },
+    {
+      "file": "aurora/panels/kb/kbData.ts",
+      "features": [
+        "features/knowledgeBase"
+      ],
+      "n": 1
+    },
+    {
+      "file": "aurora/panels/settings/sections/AppearanceSection.tsx",
+      "features": [
+        "features/themes"
+      ],
+      "n": 1
+    },
+    {
+      "file": "aurora/panels/settings/sections/DataSection.tsx",
+      "features": [
+        "features/export"
+      ],
+      "n": 1
+    },
+    {
+      "file": "aurora/panels/settings/sections/ExportSection.tsx",
+      "features": [
+        "features/export"
+      ],
+      "n": 1
+    }
+  ],
+  "zeroFanIn": [
+    "features/blog/themes/newThemes.ts",
+    "setupTests.ts"
+  ],
+  "crossFeature": [
+    {
+      "from": "features/blog/BlogStudio.tsx",
+      "to": "features/themes"
+    },
+    {
+      "from": "features/editor/cm6/useCM6State.ts",
+      "to": "features/themes"
+    },
+    {
+      "from": "features/editor/cm6/useCM6State.ts",
+      "to": "features/themes"
+    },
+    {
+      "from": "features/editor/CodeMirrorEditor.tsx",
+      "to": "features/themes"
+    },
+    {
+      "from": "features/editor/CodeMirrorEditor.tsx",
+      "to": "features/lint"
+    },
+    {
+      "from": "features/editor/EditorLayout.tsx",
+      "to": "features/preview"
+    },
+    {
+      "from": "features/editor/EditorLayout.tsx",
+      "to": "features/themes"
+    },
+    {
+      "from": "features/editor/EditorLayout.tsx",
+      "to": "features/outline"
+    },
+    {
+      "from": "features/editor/EditorSlots.tsx",
+      "to": "features/lint"
+    },
+    {
+      "from": "features/editor/EditorSlots.tsx",
+      "to": "features/search"
+    },
+    {
+      "from": "features/editor/EditorSlots.tsx",
+      "to": "features/export"
+    },
+    {
+      "from": "features/editor/extensions/ImageView.tsx",
+      "to": "features/imageUpload"
+    },
+    {
+      "from": "features/editor/extensions/ImageView.tsx",
+      "to": "features/imageUpload"
+    },
+    {
+      "from": "features/editor/extensions/MermaidBlockView.tsx",
+      "to": "features/themes"
+    },
+    {
+      "from": "features/editor/extensions/WikiLinkAutocomplete.tsx",
+      "to": "features/fileManager"
+    },
+    {
+      "from": "features/editor/TiptapEditor.tsx",
+      "to": "features/lint"
+    },
+    {
+      "from": "features/editor/TiptapEditor.tsx",
+      "to": "features/export"
+    },
+    {
+      "from": "features/fileManager/DailyNoteService.ts",
+      "to": "features/templates"
+    },
+    {
+      "from": "features/migrate/MigrateWizard.tsx",
+      "to": "features/knowledgeBase"
+    },
+    {
+      "from": "features/preview/Preview.tsx",
+      "to": "features/themes"
+    }
+  ]
+}

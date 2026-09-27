@@ -1,0 +1,378 @@
+SRC_FILES_SCANNED 568 (excluded .test/.d.ts)
+----------------------------------------------------------------------
+== EDGES (from -> to : 引用该模块的文件数) ==
+  aurora/panels -> aurora/icons : 29
+  features/editor -> stores : 27
+  features/editor -> types : 27
+  aurora/panels -> stores : 26
+  aurora/panels -> components/ui : 22
+  features/editor -> utils : 22
+  features/editor -> core : 17
+  aurora/panels -> types : 12
+  features/knowledgeBase -> stores : 12
+  features/editor -> components/ui : 11
+  features/knowledgeBase -> types : 11
+  aurora/panels -> aurora/components : 10
+  aurora/panels -> features/canvas-v2 : 10
+  features/blog -> hooks : 9
+  features/editor -> services : 9
+  aurora/panels -> core : 8
+  aurora/panels -> features/editor : 8
+  aurora/panels -> aurora/styles : 8
+  features/blog -> stores : 8
+  stores -> core : 8
+  features/blog -> components/ui : 6
+  features/lint -> types : 6
+  stores -> types : 6
+  aurora/components -> aurora/icons : 5
+  aurora/panels -> aurora/hooks : 5
+  aurora/panels -> hooks : 5
+  features/blog -> utils : 5
+  features/export -> core : 5
+  stores -> services : 5
+  aurora/panels -> features/themes : 4
+  aurora/panels -> aurora/themes : 4
+  features/blog -> types : 4
+  features/editor -> features/themes : 4
+  aurora/components -> aurora/types : 3
+  aurora/components -> features/commandPalette : 3
+  aurora/panels -> aurora/types : 3
+  aurora/panels -> features/diary : 3
+  aurora/panels -> utils : 3
+  aurora/panels -> aurora/navigation : 3
+  features/editor -> features/lint : 3
+  features/search -> stores : 3
+  features/search -> types : 3
+  aurora/app -> stores : 2
+  aurora/app -> aurora/panels : 2
+  aurora/app -> aurora/components : 2
+  aurora/app -> features/commandPalette : 2
+  aurora/components -> stores : 2
+  aurora/components -> components/ui : 2
+  aurora/panels -> features/fileManager : 2
+  aurora/panels -> features/knowledgeBase : 2
+  aurora/panels -> features/export : 2
+  components/ui -> utils : 2
+  core -> types : 2
+  core -> utils : 2
+  features/blog -> core : 2
+  features/canvas-v2 -> core : 2
+  features/canvas-v2 -> components/ui : 2
+  features/editor -> features/export : 2
+  features/fileManager -> types : 2
+  features/fileManager -> stores : 2
+  features/knowledgeBase -> services : 2
+  features/pwa -> types : 2
+  features/pwa -> stores : 2
+  features/pwa -> components/ui : 2
+  features/templates -> stores : 2
+  features/templates -> components/ui : 2
+  hooks -> utils : 2
+  hooks -> stores : 2
+  services -> types : 2
+  services -> core : 2
+  app -> stores : 1
+  app -> services : 1
+  app -> features/fileManager : 1
+  app -> hooks : 1
+  app -> types : 1
+  aurora/app -> features/fileManager : 1
+  aurora/app -> core : 1
+  aurora/app -> components/ui : 1
+  aurora/app -> aurora/providers : 1
+  aurora/app -> features/themes : 1
+  aurora/app -> features/pwa : 1
+  aurora/app -> features/migrate : 1
+  aurora/app -> features/editor : 1
+  aurora/app -> features/search : 1
+  aurora/app -> features/knowledgeBase : 1
+  aurora/app -> types : 1
+  aurora/app -> hooks : 1
+  aurora/app -> services : 1
+  aurora/app -> aurora/types : 1
+  aurora/app -> features/navigation : 1
+  aurora/aurora-main.tsx -> aurora/app : 1
+  aurora/aurora-main.tsx -> aurora/styles : 1
+  aurora/aurora-main.tsx -> stores : 1
+  aurora/aurora-main.tsx -> styles : 1
+  aurora/icons.tsx -> components/ui : 1
+  aurora/panels -> features/blog : 1
+  aurora/panels -> features/lint : 1
+  aurora/panels -> features/import : 1
+  aurora/panels -> features/templates : 1
+  aurora/panels -> features/pwa : 1
+  aurora/panels -> services : 1
+  aurora/panels -> app : 1
+  aurora/panels -> features/preview : 1
+  aurora/panels -> features/dashboard : 1
+  aurora/panels -> features/settings : 1
+  aurora/providers -> stores : 1
+  aurora/providers -> components/ui : 1
+  aurora/providers -> services : 1
+  aurora/themes -> types : 1
+  aurora/themes -> aurora/icons : 1
+  aurora/types.ts -> aurora/icons : 1
+  features/blog -> features/themes : 1
+  features/canvas-v2 -> services : 1
+  features/canvas-v2 -> utils : 1
+  features/canvas-v2 -> stores : 1
+  features/dashboard -> stores : 1
+  features/dashboard -> types : 1
+  features/dashboard -> core : 1
+  features/editor -> features/preview : 1
+  features/editor -> features/outline : 1
+  features/editor -> features/search : 1
+  features/editor -> features/imageUpload : 1
+  features/editor -> features/fileManager : 1
+  features/export -> types : 1
+  features/export -> components/ui : 1
+  features/export -> stores : 1
+  features/export -> utils : 1
+  features/fileManager -> features/templates : 1
+  features/import -> components/ui : 1
+  features/knowledgeBase -> components/ui : 1
+  features/lint -> stores : 1
+  features/lint -> utils : 1
+  features/migrate -> components/ui : 1
+  features/migrate -> stores : 1
+  features/migrate -> features/knowledgeBase : 1
+  features/outline -> utils : 1
+  features/outline -> stores : 1
+  features/preview -> features/themes : 1
+  features/preview -> stores : 1
+  features/preview -> components/ui : 1
+  features/preview -> services : 1
+  features/pwa -> core : 1
+  features/pwa -> services : 1
+  features/search -> components/ui : 1
+  features/themes -> utils : 1
+  features/themes -> stores : 1
+  hooks -> services : 1
+  hooks -> core : 1
+  services -> utils : 1
+  stores -> locales : 1
+  types -> locales : 1
+----------------------------------------------------------------------
+== OUT-DEGREE (该模块依赖多少外部模块引用点) ==
+  aurora/panels : 179
+  features/editor : 127
+  features/blog : 35
+  features/knowledgeBase : 26
+  aurora/app : 23
+  stores : 20
+  aurora/components : 15
+  features/export : 9
+  features/lint : 8
+  features/pwa : 8
+  features/canvas-v2 : 7
+  features/search : 7
+  hooks : 6
+  app : 5
+  features/fileManager : 5
+  services : 5
+  aurora/aurora-main.tsx : 4
+  core : 4
+  features/preview : 4
+  features/templates : 4
+  aurora/providers : 3
+  features/dashboard : 3
+  features/migrate : 3
+  aurora/themes : 2
+  components/ui : 2
+  features/outline : 2
+  features/themes : 2
+  aurora/icons.tsx : 1
+  aurora/types.ts : 1
+  features/import : 1
+  types : 1
+----------------------------------------------------------------------
+== IN-DEGREE (被依赖程度 = 基础性) ==
+  stores : 99
+  types : 82
+  components/ui : 56
+  core : 48
+  utils : 42
+  aurora/icons : 36
+  services : 24
+  hooks : 16
+  aurora/components : 12
+  features/themes : 11
+  features/canvas-v2 : 10
+  features/editor : 9
+  aurora/styles : 9
+  aurora/types : 7
+  features/fileManager : 5
+  features/commandPalette : 5
+  aurora/hooks : 5
+  features/knowledgeBase : 4
+  aurora/themes : 4
+  features/lint : 4
+  features/export : 4
+  features/diary : 3
+  aurora/navigation : 3
+  aurora/panels : 2
+  features/pwa : 2
+  features/search : 2
+  features/templates : 2
+  features/preview : 2
+  locales : 2
+  aurora/providers : 1
+  features/migrate : 1
+  features/navigation : 1
+  aurora/app : 1
+  styles : 1
+  features/blog : 1
+  features/import : 1
+  app : 1
+  features/dashboard : 1
+  features/settings : 1
+  features/outline : 1
+  features/imageUpload : 1
+----------------------------------------------------------------------
+== BIDIRECTIONAL PAIRS (A<->B 双向依赖) ==
+  (none)
+----------------------------------------------------------------------
+== MODULE-LEVEL CYCLES ==
+  (none)
+----------------------------------------------------------------------
+== FEATURE <-> FEATURE EDGES (横向耦合) ==
+  features/editor -> features/themes : 4    e.g. features/editor/cm6/useCM6State.ts , features/editor/CodeMirrorEditor.tsx
+  features/editor -> features/lint : 3    e.g. features/editor/CodeMirrorEditor.tsx , features/editor/EditorSlots.tsx
+  features/editor -> features/export : 2    e.g. features/editor/EditorSlots.tsx , features/editor/TiptapEditor.tsx
+  features/blog -> features/themes : 1    e.g. features/blog/BlogStudio.tsx
+  features/editor -> features/preview : 1    e.g. features/editor/EditorLayout.tsx
+  features/editor -> features/outline : 1    e.g. features/editor/EditorLayout.tsx
+  features/editor -> features/search : 1    e.g. features/editor/EditorSlots.tsx
+  features/editor -> features/imageUpload : 1    e.g. features/editor/extensions/ImageView.tsx
+  features/editor -> features/fileManager : 1    e.g. features/editor/extensions/WikiLinkAutocomplete.tsx
+  features/fileManager -> features/templates : 1    e.g. features/fileManager/DailyNoteService.ts
+  features/migrate -> features/knowledgeBase : 1    e.g. features/migrate/MigrateWizard.tsx
+  features/preview -> features/themes : 1    e.g. features/preview/Preview.tsx
+----------------------------------------------------------------------
+== FEATURES -> (non-features) ==
+  features/editor -> stores : 27
+  features/editor -> types : 27
+  features/editor -> utils : 22
+  features/editor -> core : 17
+  features/knowledgeBase -> stores : 12
+  features/editor -> components/ui : 11
+  features/knowledgeBase -> types : 11
+  features/blog -> hooks : 9
+  features/editor -> services : 9
+  features/blog -> stores : 8
+  features/blog -> components/ui : 6
+  features/lint -> types : 6
+  features/blog -> utils : 5
+  features/export -> core : 5
+  features/blog -> types : 4
+  features/search -> stores : 3
+  features/search -> types : 3
+  features/blog -> core : 2
+  features/canvas-v2 -> core : 2
+  features/canvas-v2 -> components/ui : 2
+  features/fileManager -> types : 2
+  features/fileManager -> stores : 2
+  features/knowledgeBase -> services : 2
+  features/pwa -> types : 2
+  features/pwa -> stores : 2
+  features/pwa -> components/ui : 2
+  features/templates -> stores : 2
+  features/templates -> components/ui : 2
+  features/canvas-v2 -> services : 1
+  features/canvas-v2 -> utils : 1
+  features/canvas-v2 -> stores : 1
+  features/dashboard -> stores : 1
+  features/dashboard -> types : 1
+  features/dashboard -> core : 1
+  features/export -> types : 1
+  features/export -> components/ui : 1
+  features/export -> stores : 1
+  features/export -> utils : 1
+  features/import -> components/ui : 1
+  features/knowledgeBase -> components/ui : 1
+  features/lint -> stores : 1
+  features/lint -> utils : 1
+  features/migrate -> components/ui : 1
+  features/migrate -> stores : 1
+  features/outline -> utils : 1
+  features/outline -> stores : 1
+  features/preview -> stores : 1
+  features/preview -> components/ui : 1
+  features/preview -> services : 1
+  features/pwa -> core : 1
+  features/pwa -> services : 1
+  features/search -> components/ui : 1
+  features/themes -> utils : 1
+  features/themes -> stores : 1
+----------------------------------------------------------------------
+== AURORA -> (others) ==
+  aurora/panels -> aurora/icons : 29
+  aurora/panels -> stores : 26
+  aurora/panels -> components/ui : 22
+  aurora/panels -> types : 12
+  aurora/panels -> aurora/components : 10
+  aurora/panels -> features/canvas-v2 : 10
+  aurora/panels -> core : 8
+  aurora/panels -> features/editor : 8
+  aurora/panels -> aurora/styles : 8
+  aurora/components -> aurora/icons : 5
+  aurora/panels -> aurora/hooks : 5
+  aurora/panels -> hooks : 5
+  aurora/panels -> features/themes : 4
+  aurora/panels -> aurora/themes : 4
+  aurora/components -> aurora/types : 3
+  aurora/components -> features/commandPalette : 3
+  aurora/panels -> aurora/types : 3
+  aurora/panels -> features/diary : 3
+  aurora/panels -> utils : 3
+  aurora/panels -> aurora/navigation : 3
+  aurora/app -> stores : 2
+  aurora/app -> aurora/panels : 2
+  aurora/app -> aurora/components : 2
+  aurora/app -> features/commandPalette : 2
+  aurora/components -> stores : 2
+  aurora/components -> components/ui : 2
+  aurora/panels -> features/fileManager : 2
+  aurora/panels -> features/knowledgeBase : 2
+  aurora/panels -> features/export : 2
+  aurora/app -> features/fileManager : 1
+  aurora/app -> core : 1
+  aurora/app -> components/ui : 1
+  aurora/app -> aurora/providers : 1
+  aurora/app -> features/themes : 1
+  aurora/app -> features/pwa : 1
+  aurora/app -> features/migrate : 1
+  aurora/app -> features/editor : 1
+  aurora/app -> features/search : 1
+  aurora/app -> features/knowledgeBase : 1
+  aurora/app -> types : 1
+  aurora/app -> hooks : 1
+  aurora/app -> services : 1
+  aurora/app -> aurora/types : 1
+  aurora/app -> features/navigation : 1
+  aurora/aurora-main.tsx -> aurora/app : 1
+  aurora/aurora-main.tsx -> aurora/styles : 1
+  aurora/aurora-main.tsx -> stores : 1
+  aurora/aurora-main.tsx -> styles : 1
+  aurora/icons.tsx -> components/ui : 1
+  aurora/panels -> features/blog : 1
+  aurora/panels -> features/lint : 1
+  aurora/panels -> features/import : 1
+  aurora/panels -> features/templates : 1
+  aurora/panels -> features/pwa : 1
+  aurora/panels -> services : 1
+  aurora/panels -> app : 1
+  aurora/panels -> features/preview : 1
+  aurora/panels -> features/dashboard : 1
+  aurora/panels -> features/settings : 1
+  aurora/providers -> stores : 1
+  aurora/providers -> components/ui : 1
+  aurora/providers -> services : 1
+  aurora/themes -> types : 1
+  aurora/themes -> aurora/icons : 1
+  aurora/types.ts -> aurora/icons : 1
+----------------------------------------------------------------------
+== UNRESOLVED @-specs (别名未映射) ==
+@excalidraw/excalidraw, @tiptap/react, @codemirror/view, @codemirror/state, @codemirror/lang-css, @codemirror/language, @codemirror/autocomplete, @codemirror/search, @codemirror/commands, @lezer/highlight, @codemirror/lint, @codemirror/lang-markdown, @codemirror/language-data, @tiptap/core, @tiptap/pm/state, @tiptap/extension-code-block-lowlight, @tiptap/pm/model, @tiptap/pm/view, @tiptap/extension-highlight, @tiptap/extension-subscript, @tiptap/extension-superscript, @tiptap/extension-underline, @tiptap/starter-kit, @tiptap/extension-link, @tiptap/extension-placeholder, @tiptap/extension-task-list, @tiptap/extension-task-item, @tiptap/extension-typography, @tiptap/extension-table, @testing-library/jest-dom/vitest
+
+本项目别名登记完整：未解析项全部为 node_modules 第三方包 ✅
