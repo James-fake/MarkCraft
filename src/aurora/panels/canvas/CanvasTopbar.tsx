@@ -14,6 +14,14 @@ export interface CanvasTopbarProps {
   onExport?: () => void
   /** 首启锁定态：禁用思维导图/看板/时间轴切换（仅保留白板视图） */
   locked?: boolean
+  /**
+   * 所属知识库（由 CanvasPanel 反向查询 canvasIds 得到）。
+   * 以**面包屑**形态落在白板名左侧（`知识库名 › 白板名`），点击回跳知识库——
+   * 旧版是一条独占整行的「所属知识库」芯片条，既占高度又与顶栏割裂，已按用户反馈改为面包屑。
+   */
+  owningKb?: { id: string; name: string } | null
+  /** 点击面包屑回跳知识库（由 CanvasPanel 注入 nav，顶栏不自行拼路由） */
+  onOpenOwningKb?: () => void
 }
 
 const VIEWS: { id: CanvasViewId; label: string; icon: string }[] = [
@@ -23,7 +31,16 @@ const VIEWS: { id: CanvasViewId; label: string; icon: string }[] = [
   { id: 'timeline', label: '时间轴', icon: 'timeline' },
 ]
 
-export function CanvasTopbar({ view, onView, canvasName, onOpenList, onExport, locked }: CanvasTopbarProps) {
+export function CanvasTopbar({
+  view,
+  onView,
+  canvasName,
+  onOpenList,
+  onExport,
+  locked,
+  owningKb,
+  onOpenOwningKb,
+}: CanvasTopbarProps) {
   /**
    * 顶栏视图切换 = Apple 分段控件式滑块（需求 N 第七轮）。
    *
@@ -49,6 +66,21 @@ export function CanvasTopbar({ view, onView, canvasName, onOpenList, onExport, l
   return (
     <div className="aurora-ctop">
       <div className="aurora-ctop__left">
+        {/* 所属知识库面包屑：只在白板确有关联库时出现，无关联时顶栏保持原样 */}
+        {owningKb && (
+          <>
+            <button
+              type="button"
+              className="aurora-ctop__crumb"
+              onClick={onOpenOwningKb}
+              title={`打开知识库：${owningKb.name}`}
+            >
+              <Icon.book size={13} />
+              <span>{owningKb.name}</span>
+            </button>
+            <span className="aurora-ctop__crumb-sep" aria-hidden="true">›</span>
+          </>
+        )}
         <button type="button" className="aurora-ctop__name" onClick={onOpenList} title="白板列表">
           <Icon.file size={14} />
           <span>{canvasName || '未命名白板'}</span>

@@ -604,7 +604,7 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
       sidebarGroups={AURORA_SIDEBAR_GROUPS}
       sidebarActiveId="白板"
       onSidebarSelect={(id) => nav?.(resolveAuroraNav(id))}
-      breadcrumbs={['白板', doc?.name ?? '白板']}
+      breadcrumbs={owningKb ? ['白板', owningKb.name, doc?.name ?? '白板'] : ['白板', doc?.name ?? '白板']}
     >
       <CanvasEngineContext.Provider value={engine}>
         <div className="aurora-canvas">
@@ -615,22 +615,9 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
             onOpenList={() => setListOpen(true)}
             onExport={handleExport}
             locked={locked}
+            owningKb={owningKb}
+            onOpenOwningKb={() => owningKb && nav?.('kb', owningKb.id)}
           />
-
-          {/* 所属知识库（反向关联 canvasIds）：可一键回跳，打通 白板 ↔ 知识库 */}
-          {owningKb && (
-            <div className="aurora-canvas__owning">
-              <span className="aurora-canvas__owning-label">所属知识库</span>
-              <button
-                type="button"
-                className="aurora-canvas__owning-chip"
-                onClick={() => nav?.('kb', owningKb.id)}
-                title={`打开知识库：${owningKb.name}`}
-              >
-                <Icon.book size={14} /> {owningKb.name}
-              </button>
-            </div>
-          )}
 
           <div className="aurora-canvas__row">
             {/* 左栏（大纲/历史）：可折叠，独立于书脊；引擎就绪后渲染 */}

@@ -1251,34 +1251,32 @@
   margin-top: 2px;
 }
 
-/* ── 所属知识库芯片（P1 白板 ↔ 知识库 反向关联）── */
-.aurora-canvas__owning {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-bottom: 1px solid var(--mc-border-subtle);
-  background: var(--mc-bg-content);
-}
-.aurora-canvas__owning-label {
-  font-size: var(--mc-font-sm);
-  color: var(--mc-text-tertiary);
-}
-.aurora-canvas__owning-chip {
+/* ── 所属知识库面包屑（顶栏左侧，与白板名同排：`知识库名 › 白板名`）──
+   旧版是独占一行的「所属知识库」芯片条（占高度 + 与顶栏割裂），2026-09-27 按用户反馈改为面包屑。 */
+.aurora-ctop__crumb {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  max-width: 200px;
+  padding: 2px 6px;
   font-size: var(--mc-font-sm);
-  padding: 3px 12px;
-  border: 1px solid var(--mc-border-subtle);
+  color: var(--mc-text-secondary);
+  background: transparent;
+  border: 1px solid transparent;
   border-radius: var(--mc-radius-sm);
-  background: var(--mc-bg-elevated, var(--mc-bg-content));
-  color: var(--mc-text-primary);
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.aurora-canvas__owning-chip:hover {
-  border-color: var(--mc-accent);
+.aurora-ctop__crumb:hover {
   color: var(--mc-accent);
+  background: var(--mc-bg-hover);
+}
+.aurora-ctop__crumb-sep {
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-tertiary);
+  user-select: none;
 }
 
 /* ── 插入笔记弹层（P1 白板串联：选库内/全部笔记 → 带 fileId 卡片）── */
