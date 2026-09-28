@@ -1,6 +1,7 @@
 import { findDailyNote, findOrCreateDailyFolder } from './DailyNoteManager'
 import { FileNode } from '../../types/fileManager'
-import { getAllTemplates, applyTemplate } from '../templates/templateManager'
+import { resolveDailyJournalTemplate } from '@services/templates/templateData'
+import { applyTemplate } from '@services/templates/templateApply'
 
 /**
  * Format date to YYYY-MM-DD
@@ -57,8 +58,7 @@ export function openDailyNote(
   const folderId = findOrCreateDailyFolder(rootFolder, createFolder)
 
   // Apply daily template if available, otherwise use default
-  const templates = getAllTemplates()
-  const dailyTemplate = templates.find(t => t.id === 'daily-journal')
+  const dailyTemplate = resolveDailyJournalTemplate()
   const content = dailyTemplate ? applyTemplate(dailyTemplate) : generateDailyNoteTemplate(date)
 
   // Create the daily note
