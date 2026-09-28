@@ -199,7 +199,7 @@ src/
 | **P1-3** | newThemes.ts 拆分 | 一主题一文件 + 桶兼容 | 1–2 天（可脚本化） | 桶 API 不变 + 博客主题目检 |
 | **P2-1** | panel→panel 解耦 | setBlogEntryFileId 走 services 中转 | 0.5 天 | 审计脚本 panel→panel=0 | ✅ **已实施**（2026-09-28，`1d838c6`） |
 | **P2-2** | EditorPanel 瘦身 | 抽 editorIntegration 聚合接线 | 1 天 | 引 features 数 7→1 | ✅ **已实施**（2026-09-28，见 §13） |
-| **P2-3** | GraphPanel/BlogPanel 拆子组件 | 按区块拆内部组件文件 | 1–2 天 | 行数 <800/文件，行为不变 |
+| **P2-3** | GraphPanel/BlogPanel 拆子组件 | 按区块拆内部组件文件 | 1–2 天 | 行数 <800/文件，行为不变 | ✅ **已实施**（2026-09-28，见 §14） |
 | **P2-4（可选）** | 两条方向可疑 feature 边 | templates 匹配下沉 services | 0.5 天 | 审计脚本只剩合法扇出 |
 
 执行顺序建议：**P0 → P1-2 → P1-1 → P1-3 → P2 逐项串行**（沿用「单条迭代、每轮截图/链路验证」节奏）。
@@ -310,4 +310,29 @@ node .workbuddy/artifacts/audit-decouple-structure.cjs
 
 **验证**：tsc 干净 · 全量 vitest **1777 通过 / 0 失败**（136 文件）· ESLint 0 error（两文件 CLEAN）· 依赖图无环无双向 · vite build 通过（3589 模块）。
 
-**路线图状态**：P0 / P1-1 / P1-2 / P1-3 / P2-1 / P2-2 全部完成；剩 P2-3（GraphPanel/BlogPanel 拆子组件）与 P2-4（可选：两条可疑 feature 边）。
+**路线图状态**：P0 / P1-1 / P1-2 / P1-3 / P2-1 / P2-2 / **P2-3** 全部完成；仅剩 P2-4（可选：两条可疑 feature 边）。
+
+## 14. 实施记录 · P2-3（2026-09-28 完成）
+
+**GraphPanel.tsx 2203 → 617 行**，全部产出文件 <800 行验收线（BlogPanel 主文件 541 行）：
+
+| 文件 | 行数 | 职责 |
+|---|---|---|
+| `kb/GraphPanel.tsx` | 617 | 状态编排 + 组合（PageFrame/侧栏/画布/浮层三件套装配） |
+| `kb/graph/graphModel.ts` | 350 | 模型/物理常量/simulateStep/工具（P2-3 首批） |
+| `kb/graph/graphScope.ts` | 106 | 三档范围/现场隔离/裁剪谓词（P2-3 首批） |
+| `kb/graph/useGraphScopeData.ts` | 136 | 范围状态族/kbDocs/裁剪集合/realData 映射 |
+| `kb/graph/useGraphDerived.ts` | 186 | 邻接/模式作用域/可见性/分组聚合/搜索命中/dim 判定 |
+| `kb/graph/useGraphEngine.ts` | 408 | 视口/力模拟 rAF 循环/指针手势/场景恢复与写回 |
+| `kb/graph/GraphSidebar.tsx` | 360 | 左缘 hoverzone 导航浮层（范围/视图/筛选/分组/链接健康） |
+| `kb/graph/GraphCanvasArea.tsx` | 220 | 顶部筛选条 + SVG 节点/边渲染 |
+| `kb/graph/GraphOverlays.tsx` | 283 | 视图控制/导出菜单/信息卡/右键菜单/状态栏/空态 |
+| `kb/graph/graphExport.ts` | 93 | PNG/SVG/JSON 导出（纯函数） |
+| `blog/BlogPanel.tsx` | 541 | 状态编排 + 组合 |
+| `blog/blogStudioModel.ts` 等 4 文件 | 233/78/324/254 | 注册表/原子控件/设置面板组/CSS+导出面板 |
+
+**行为不变性证据**：纯机械搬家 + props 接线，无逻辑改写。jsdom 全量挂载的 `GraphPanel.smoke/scope` 与物理回归锁 `graphForce`（MAX_STEP 不变式）全绿；契约测试扫描面随拆分同步扩为「宿主+子模块拼接」（`themeMarketTypography` / `motionExit` 消费者断言——两处都是「断言实现语义而非文件位置」的判据，判据本身未动）。
+
+**验证**：tsc 干净 · 全量 vitest **1777 通过 / 0 失败**（136 文件）· ESLint 0 error · 依赖图无环无双向 · vite build 通过（3602 模块）。
+
+**路线图状态**：解耦六项全部完成，仅剩 P2-4（可选）。

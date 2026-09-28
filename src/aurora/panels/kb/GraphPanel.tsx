@@ -1,8 +1,6 @@
-import { useState, useRef, useMemo, useEffect, useReducer, useCallback } from 'react'
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import { PageFrame } from '../../components/shell/PageFrame'
 import { useCommandPalette } from '../../components/command-palette/CommandPaletteContext'
-import { Icon } from '../../icons'
-import { AuroraSelect } from '@components/ui/AuroraSelect'
 import { usePresence, usePresenceValue, POPOVER_EXIT_MS, OVERLAY_EXIT_MS } from '@components/ui/usePresence'
 import { GROUP_COLORS } from '../../themes/categoricalColors'
 import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
@@ -10,17 +8,23 @@ import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useTagIndex } from '@stores/TagIndexStore'
 import { useFileManager } from '@stores/FileStore'
 import { useKbStore } from '@stores/useKbStore'
-import { loadKb, getKbFiles } from '@stores/kbStore'
-import type { KnowledgeBase } from '@stores/kbTypes'
 import { useDashboardData } from '@features/dashboard'
-import { findNode } from '@core/files/fileTree'
-import type { FileNode } from '@src/types/fileManager'
-import type { GraphData } from '@stores/LinkIndexStore'
 import '../../styles/panels/graph.css'
-// —— 字数统计：复用真实 features/editor/stats 单一数据源（D4，不维护平行实现）——
-import { countWords } from '@features/editor/stats'
 import { setEditorReturn } from '../../navigation/navReturn'
-import { readGraphSession, saveGraphSession, type GraphNodePos, type GraphSession } from './graphSession'
+// —— P2-3 拆分（2026-09-28）：数据模型/力模拟在 ./graph/graphModel，范围与现场隔离在 ./graph/graphScope；
+//    范围数据/派生集合/引擎各自成 hook，左缘侧栏/画布区/浮层组/导出各自成文件；本文件只剩状态编排与组合。 ——
+import {
+  RADIUS, CURRENT_R, relTime, computeDegrees, loadGroups, GROUPS_KEY, clamp,
+  type Layout, type GraphMode, type GNode, type GEdge, type GraphGroup,
+} from './graph/graphModel'
+import { DEFAULT_GRAPH_SCOPE, readScopedSession } from './graph/graphScope'
+import { GraphSidebar } from './graph/GraphSidebar'
+import { GraphCanvasArea } from './graph/GraphCanvasArea'
+import { GraphOverlays } from './graph/GraphOverlays'
+import { exportPNG, exportSVG, exportJSON } from './graph/graphExport'
+import { useGraphScopeData } from './graph/useGraphScopeData'
+import { useGraphDerived } from './graph/useGraphDerived'
+import { useGraphEngine } from './graph/useGraphEngine'
 
 /**
  * Aurora 知识图谱面板（双链图谱）· 按设计规范 28 重设计 + 补齐缺失模块
@@ -48,404 +52,15 @@ import { readGraphSession, saveGraphSession, type GraphNodePos, type GraphSessio
  *  - 视口裁剪、空态、导出 PNG/SVG/JSON
  *
  * 零 src/features/* 依赖；数据/物理/渲染全部自包含。
+ *
+ * 🧩 P2-3（2026-09-28）：纯逻辑已拆至 graph/graphModel.ts（模型/物理/工具）与
+ *    graph/graphScope.ts（三档范围/现场隔离/裁剪谓词）；本文件只剩组件本体（行为不变）。
  */
 
-type NodeType = 'file' | 'tag' | 'folder'
-type EdgeKind = 'wiki' | 'embed' | 'tag' | 'folder'
-// 布局/模式由 graphSession 复用（图谱现场跨挂载复原），故对外导出
-export type Layout = 'force' | 'concentric' | 'tree' | 'grid'
-export type GraphMode = 'global' | 'local' | 'backlinks' | 'forwardlinks' | 'tag'
+// —— 对外 API：graphScope.test / graphForce.test 已改指 graph/graphModel、graph/graphScope，
+//    graphSession.ts 的 Layout/GraphMode 亦同 —— 本文件现在只导出 GraphPanel 组件本体。
 
-// 图谱节点/边模型：scopeGraphToKb（知识库范围裁剪）需要以类型形式对外暴露，故导出
-export interface GNode {
-  id: string
-  label: string
-  type: NodeType
-  tags: string[]
-  x: number
-  y: number
-  vx: number
-  vy: number
-  tx: number // 目标位置（非力导向布局用）
-  ty: number
-  inLinks: number
-  outLinks: number
-  deg: number
-  wordCount?: number
-  filePath?: string
-  modifiedAt?: number
-  isCurrent?: boolean
-  hidden: boolean
-}
-
-export interface GEdge {
-  source: string
-  target: string
-  kind: EdgeKind
-}
-
-const RADIUS: Record<NodeType, number> = { file: 13, tag: 9, folder: 11 }
-// 节点拖拽阈值（px）：位移小于此值仍判为单击——对齐桌面端习惯，避免手抖被判成拖拽而点不开笔记
-const NODE_CLICK_SLOP = 4
-const CURRENT_R = 19
-const H = 3600_000 // 毫秒/小时
-
-/* —— 力导向参数（2026-09-23 拖拽体验调优）——
- * 原实现有两个会让节点「飞出去」的缺陷，这里用三个下限/上限兜住：
- *  ① `MIN_SEP`：两节点重合时旧代码把 d² 夹到 1 后仍用原始 dx/dy 归一化，
- *     等效冲量可达万级 → 被撞节点炸飞。改为「距离下限」：方向用真实位移取单位向量，
- *     幅值按 max(d, MIN_SEP) 计算，重合时再给一个确定方向拆开。
- *  ② `MAX_STEP`：单帧位移上限。任何极端力都不可能让节点一帧瞬移，兜底防甩飞。
- *  ③ 拖拽中的节点「钉住」（速度恒 0，见 step）：旧代码只跳过它的位移积分，
- *     速度却仍在累积且不受阻尼 → 快速滑动松手时把累计速度一次性释放，正是报障现象。 */
-const REP = 24000 // 斥力强度
-const LINK_DIST = 140 // 弹簧自然长度
-const LINK_K = 0.035 // 弹簧刚度
-const GRAVITY = 0.012 // 向心力系数
-const MIN_SEP = 36 // 最小分离距离（px）：消除 d→0 的斥力奇点
-const VEL_DECAY = 0.86 // 速度阻尼（每帧）
-export const MAX_STEP = 16 // 单帧最大位移（px）：禁止任何节点瞬移（对外导出供回归测试断言该不变式）
-const DRAG_ALPHA = 0.2 // 拖拽期间 alpha 下限：邻居持续让位，但不再每次 pointermove 打满
-
-// ---- 真实数据接入（Phase 2 第六批·GraphPanel 换芯）----
-// 直接复用真实 LinkIndex 的 getGraphData(tagIndex)：其返回结构
-//   nodes: { id, label, links }[]  +  edges: { source, target, type:'wikilink'|'embed'|'tag' }[]
-// 与 Aurora 图谱模型一一对应（file 节点 + tag 节点 + wiki/embed/tag 边），无需自造 mock。
-
-function buildGraphData(
-  graph: GraphData,
-  rootFolder: FileNode,
-  activeFileId: string | null,
-  getFilePath: (id: string) => string,
-  tagIndex: Map<string, Set<string>>,
-): { nodes: GNode[]; edges: GEdge[] } {
-  // 文件 → 标签（用于信息卡与标签筛选）
-  const fileTags = new Map<string, string[]>()
-  for (const [tagPath, fileIds] of tagIndex) {
-    const tagName = tagPath.includes('/') ? tagPath.split('/').pop()! : tagPath
-    for (const fid of fileIds) {
-      if (!fileTags.has(fid)) fileTags.set(fid, [])
-      fileTags.get(fid)!.push(tagName)
-    }
-  }
-
-  const nodes: GNode[] = graph.nodes.map((n) => {
-    if (n.id.startsWith('tag:')) {
-      return {
-        id: n.id, label: n.label, type: 'tag', tags: [],
-        x: 0, y: 0, vx: 0, vy: 0, tx: 0, ty: 0,
-        inLinks: 0, outLinks: 0, deg: 0, hidden: false,
-      }
-    }
-    const file = findNode(rootFolder, n.id)
-    return {
-      id: n.id, label: n.label, type: 'file',
-      tags: fileTags.get(n.id) ?? [],
-      x: 0, y: 0, vx: 0, vy: 0, tx: 0, ty: 0,
-      inLinks: 0, outLinks: 0, deg: 0,
-      wordCount: file?.content ? countWords(file.content) : undefined,
-      filePath: getFilePath(n.id) || undefined,
-      modifiedAt: file?.updatedAt,
-      isCurrent: n.id === activeFileId,
-      hidden: false,
-    }
-  })
-
-  const edges: GEdge[] = graph.edges.map((e) => ({
-    source: e.source,
-    target: e.target,
-    kind: e.type === 'wikilink' ? 'wiki' : e.type,
-  }))
-
-  return { nodes, edges }
-}
-
-function computeDegrees(nodes: GNode[], edges: GEdge[]) {
-  const byId = new Map(nodes.map((n) => [n.id, n]))
-  nodes.forEach((n) => {
-    n.inLinks = 0
-    n.outLinks = 0
-    n.deg = 0
-  })
-  edges.forEach((e) => {
-    const s = byId.get(e.source)
-    const t = byId.get(e.target)
-    if (s && t) {
-      if (e.kind !== 'tag' && e.kind !== 'folder') {
-        s.outLinks++
-        t.inLinks++
-      }
-      s.deg++
-      t.deg++
-    }
-  })
-}
-
-/**
- * 图谱裁剪的**共享核心**：按「文件谓词」保留节点与边（两步法，单源）。
- *
- * 判据：
- *  ① file 节点：仅保留 keepFile(id) 为真的；
- *  ② 标签：先取「有一端是保留文件」的边，其 tag 端点即「这批文件用到的标签」——
- *     只被被剔除文件使用的标签不会进入候选（不残留成孤岛）；
- *  ③ 边：两端都在（保留文件 ∪ 上述标签）集合内才保留（一端出界即整条丢弃 ——
- *     不允许「线还在、对面是鬼」，也不允许「被剔除的笔记挂在保留标签上」）；
- *  ④ folder 节点：数据层当前不生成（见 buildGraphData 注），故无需分支。
- *
- * ⚠️ ②③ 必须分两步：不能直接用「文件 id 集合」过滤边 ——
- * 那样「文件 → 标签」的边会因 tag 端点不在集合内而被整条误删，
- * 标签节点随之全部消失（graphScope.test.ts 的用例锁这一层）。
- *
- * 纯函数：无 React、无 store 依赖，可直接单测。deg/inLinks/outLinks 由调用方
- * computeDegrees 在裁剪后的边上重算，故此处不维护派生字段。
- */
-function keepFilesByPredicate(
-  data: { nodes: GNode[]; edges: GEdge[] },
-  keepFile: (id: string) => boolean,
-): { nodes: GNode[]; edges: GEdge[] } {
-  const files = data.nodes.filter((n) => n.type === 'file' && keepFile(n.id))
-  const fileKeep = new Set(files.map((n) => n.id))
-  // 第 1 步：一端落在保留文件上的边 → 其 tag 端点就是「这批文件用到的标签」
-  const touched = data.edges.filter((e) => fileKeep.has(e.source) || fileKeep.has(e.target))
-  const tagKeep = new Set<string>()
-  for (const e of touched) {
-    if (e.kind !== 'tag') continue
-    tagKeep.add(e.source)
-    tagKeep.add(e.target)
-  }
-  // 第 2 步：真值集合 = 保留文件 ∪ 这批文件用到的标签，边两端都必须在其中
-  const keep = new Set<string>([...fileKeep, ...tagKeep])
-  const edges = data.edges.filter((e) => keep.has(e.source) && keep.has(e.target))
-  const tags = data.nodes.filter((n) => n.type === 'tag' && tagKeep.has(n.id))
-  return { nodes: [...files, ...tags], edges }
-}
-
-/**
- * 把全局图谱裁到「某个知识库」的范围（2026-09-23 用户需求）。
- *
- * 场景：知识库概览 →「查看完整图谱」进入双链图谱，此前看到的是**全库文件**的全局图，
- * 文件管理器里跟这个知识库无关的笔记也混在里面。要求：只留该知识库的文件节点。
- * 判据与知识库详情页 KPI / 博客清单同源 —— 都是 `getKbFiles` 的结果。
- */
-export function scopeGraphToKb(
-  data: { nodes: GNode[]; edges: GEdge[] },
-  kbFileIds: ReadonlySet<string>,
-): { nodes: GNode[]; edges: GEdge[] } {
-  return keepFilesByPredicate(data, (id) => kbFileIds.has(id))
-}
-
-/**
- * 排除「若干知识库」的全部文件（2026-09-23 用户需求：默认「文件列表」范围）。
- *
- * 场景：图谱默认形态不再显示任何知识库里的文件 —— 用户的原话是
- * 「默认不显示知识库中文件节点，只显示文件列表中的文件节点」。
- * 口径 B（用户拍板）：**所有**知识库（含内置《MarkCraft 使用文档》）的文件都排除，
- * 只留不属于任何知识库的散装笔记；要看某个库就显式选它。
- *
- * 与 scopeGraphToKb 是同一个核心的两种谓词（保留 vs 排除），
- * 所以「标签两步法」的坑在此自动继承、无需重复实现。
- */
-export function excludeGraphFiles(
-  data: { nodes: GNode[]; edges: GEdge[] },
-  excludedFileIds: ReadonlySet<string>,
-): { nodes: GNode[]; edges: GEdge[] } {
-  return keepFilesByPredicate(data, (id) => !excludedFileIds.has(id))
-}
-
-/**
- * 读取「与本范围匹配」的图谱现场。
- *
- * graphSession 是模块级单例，若不按范围隔离，会出现两类串台：
- *  - 某知识库图谱 → 侧栏进默认范围：沿用范围图的坐标/中心 ⇒ 图少了一半、位置却还是那半张；
- *  - 默认范围 → 某知识库：中心节点指向库外笔记（sceneRef 的 centerId 不在本图里）。
- * 故把「范围键」也记进现场，范围不符即视为无现场（重新布点，符合直觉）。
- */
-function readScopedSession(scope: string): GraphSession | null {
-  const s = readGraphSession()
-  return s && s.scope === scope ? s : null
-}
-
-// ---- 数据范围（2026-09-23 用户需求：三档范围 + 选择器）----
-/**
- * 数据范围三档：
- *  - 'files'：**默认**。只画「文件列表」里的文件 —— 口径 B（用户拍板）= 排除**所有**知识库
- *    （含内置《MarkCraft 使用文档》）的文件，只留不属于任何知识库的散装笔记；
- *  - 'all'  ：整个 MarkCraft 的文件全部画出来；
- *  - 'kb'   ：只画所选知识库的文件（知识库「查看完整图谱」入口也归这一档）。
- *
- * 三档是**同一份全量图**的三种过滤谓词（见 keepFilesByPredicate），
- * 不改变数据来源，也不动索引层。
- */
-export type GraphScopeKind = 'files' | 'kb' | 'all'
-
-export const DEFAULT_GRAPH_SCOPE = 'files'
-
-/**
- * 范围键：'files' | 'all' | 'kb:<库 id>'。
- * 单一表示 —— 组件状态、graphSession 现场键、localStorage 持久化都用它，
- * 避免出现「同一件事三种编码」的漂移。
- */
-export function scopeKeyOf(kind: GraphScopeKind, kbId?: string): string {
-  return kind === 'kb' ? `kb:${kbId ?? ''}` : kind
-}
-
-/** 解析范围键。非法/脏数据一律回落到默认档 —— 绝不因为一条脏值把图谱画成空白 */
-export function parseScopeKey(key: string): { kind: GraphScopeKind; kbId: string } {
-  if (key === 'all') return { kind: 'all', kbId: '' }
-  if (key.startsWith('kb:') && key.length > 3) return { kind: 'kb', kbId: key.slice(3) }
-  return { kind: 'files', kbId: '' }
-}
-
-// 范围选择的持久化（用户拍板：记住最后一次；与颜色分组 GROUPS_KEY 同款 localStorage 模式）
-const SCOPE_STORE_KEY = 'markcraft-graph-scope'
-function readStoredScope(): string {
-  try {
-    const { kind, kbId } = parseScopeKey(localStorage.getItem(SCOPE_STORE_KEY) ?? '')
-    return scopeKeyOf(kind, kbId)
-  } catch {
-    return DEFAULT_GRAPH_SCOPE // 隐私模式等取不到 localStorage：按默认档走
-  }
-}
-function writeStoredScope(key: string): void {
-  try {
-    localStorage.setItem(SCOPE_STORE_KEY, key)
-  } catch {
-    /* 存不了就不记，不影响本次浏览 */
-  }
-}
-
-/** 拖拽载荷（纯函数入参）：被拖拽节点的 id 与「指针到节点中心的偏移」 */
-export interface SimDrag {
-  id: string
-  dx: number
-  dy: number
-}
-
-export interface SimStepParams {
-  nodes: GNode[]
-  edges: GEdge[]
-  nodeById: Map<string, GNode>
-  layout: Layout
-  size: { w: number; h: number }
-  alpha: number
-  drag: SimDrag | null
-  /** 被拖拽指针的**世界坐标**（调用方按视口 + 缓存的 rect 换算好） */
-  dragWorld: { x: number; y: number } | null
-}
-
-/**
- * 一次力模拟步进（纯计算：原地修改 nodes 的 x/y/vx/vy，无 React / 无 store 依赖，可直接单测）。
- *
- * 2026-09-23 拖拽体验调优抽成纯函数，以便用单测锁定两个缺陷：
- *  ① 斥力奇点：旧版把 d² 夹到 1 却仍用原始 dx/dy 归一化 ⇒ 两节点重合瞬间冲量上万倍，
- *     被撞到的节点直接「飞出去」。现改为距离取 max(d, MIN_SEP)，幅值有界。
- *  ② 拖拽速度残留：被拖拽节点全程「钉住」（位置由指针决定、速度恒 0），
- *     松手瞬间不再释放拖拽期累积的速度 —— 这正是「快速滑动松手后节点飞很远」的根因。
- * 另加单帧位移上限 MAX_STEP，任何极端力都不可能让节点一帧瞬移。
- *
- * 返回 maxTargetDelta：非力导向布局下「离各自目标位的最大曼哈顿距离」，供调用方判断是否已收敛。
- */
-export function simulateStep(p: SimStepParams): { maxTargetDelta: number } {
-  const { nodes, edges, nodeById, layout, size, alpha, drag, dragWorld } = p
-
-  // ① 钉住被拖拽节点到最新指针位置（每帧一次；速度同时清零，是 ⑤ 闭环的前提）
-  if (drag && dragWorld) {
-    const dn = nodeById.get(drag.id)
-    if (dn) {
-      dn.x = dragWorld.x - drag.dx
-      dn.y = dragWorld.y - drag.dy
-      dn.vx = 0
-      dn.vy = 0
-    }
-  }
-
-  if (layout !== 'force') {
-    let maxd = 0
-    for (const n of nodes) {
-      if (drag && drag.id === n.id) continue // 拖拽中不吸附回目标位，松手后再缓动归位
-      const dx = n.tx - n.x
-      const dy = n.ty - n.y
-      n.x += dx * 0.14
-      n.y += dy * 0.14
-      maxd = Math.max(maxd, Math.abs(dx) + Math.abs(dy))
-    }
-    return { maxTargetDelta: maxd }
-  }
-
-  const cx = size.w / 2
-  const cy = size.h / 2
-  // ② 向心力
-  for (let i = 0; i < nodes.length; i++) {
-    const n = nodes[i]
-    n.vx += (cx - n.x) * GRAVITY * 0.02
-    n.vy += (cy - n.y) * GRAVITY * 0.02
-  }
-  // ③ 两两斥力：距离取 max(d, MIN_SEP) 消除 d→0 奇点（见函数头注 ①）
-  for (let i = 0; i < nodes.length; i++) {
-    const n = nodes[i]
-    for (let j = i + 1; j < nodes.length; j++) {
-      const m = nodes[j]
-      let dx = n.x - m.x
-      let dy = n.y - m.y
-      let d = Math.sqrt(dx * dx + dy * dy)
-      if (d < 1e-3) { dx = 0.6; dy = -0.6; d = Math.sqrt(dx * dx + dy * dy) } // 完全重合：给确定方向拆开
-      const eff = d < MIN_SEP ? MIN_SEP : d
-      const f = (REP / (eff * eff)) * alpha
-      const fx = (dx / d) * f
-      const fy = (dy / d) * f
-      n.vx += fx
-      n.vy += fy
-      m.vx -= fx
-      m.vy -= fy
-    }
-  }
-  // ④ 弹簧（wiki / embed 边）
-  for (const e of edges) {
-    if (e.kind === 'tag' || e.kind === 'folder') continue
-    const s = nodeById.get(e.source)
-    const t = nodeById.get(e.target)
-    if (!s || !t) continue
-    const dx = t.x - s.x
-    const dy = t.y - s.y
-    const d = Math.sqrt(dx * dx + dy * dy) || 1
-    const f = (d - LINK_DIST) * LINK_K * alpha
-    const fx = (dx / d) * f
-    const fy = (dy / d) * f
-    s.vx += fx
-    s.vy += fy
-    t.vx -= fx
-    t.vy -= fy
-  }
-  // ⑤ 阻尼 + 单帧位移上限 + 积分。被拖拽节点速度归零、不累积（见函数头注 ②）
-  for (const n of nodes) {
-    if (drag && drag.id === n.id) { n.vx = 0; n.vy = 0; continue }
-    n.vx *= VEL_DECAY
-    n.vy *= VEL_DECAY
-    if (n.vx > MAX_STEP) n.vx = MAX_STEP
-    else if (n.vx < -MAX_STEP) n.vx = -MAX_STEP
-    if (n.vy > MAX_STEP) n.vy = MAX_STEP
-    else if (n.vy < -MAX_STEP) n.vy = -MAX_STEP
-    n.x += n.vx
-    n.y += n.vy
-  }
-  return { maxTargetDelta: 0 }
-}
-
-const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
-
-function relTime(ts?: number): string {
-  if (!ts) return '—'
-  const diff = Date.now() - ts
-  const h = Math.floor(diff / H)
-  if (h < 1) return '刚刚'
-  if (h < 24) return `${h} 小时前`
-  const d = Math.floor(h / 24)
-  if (d < 30) return `${d} 天前`
-  const m = Math.floor(d / 30)
-  return `${m} 个月前`
-}
-
-interface GraphPanelProps {
+export interface GraphPanelProps {
   nav?: (id: string, param?: string) => void
   toast?: (msg: string) => void
   /**
@@ -457,37 +72,6 @@ interface GraphPanelProps {
   kbId?: string
 }
 
-// P2-3 颜色分组：标签或名称关键词匹配 → 节点着色（localStorage 持久化）
-interface GraphGroup {
-  id: string
-  name: string
-  color: string
-  match: 'tag' | 'name'
-  keyword: string
-}
-const GROUPS_KEY = 'markcraft-graph-groups'
-function loadGroups(): GraphGroup[] {
-  try {
-    const raw = localStorage.getItem(GROUPS_KEY)
-    const arr = raw ? JSON.parse(raw) : []
-    return Array.isArray(arr)
-      ? arr.filter((g) => g && typeof g === 'object' && g.id && g.name && g.color && (g.match === 'tag' || g.match === 'name') && g.keyword)
-      : []
-  } catch {
-    return []
-  }
-}
-
-// 六边形顶点（尖顶朝右上，用于标签节点）
-function hexPoints(cx: number, cy: number, r: number): string {
-  const pts: string[] = []
-  for (let i = 0; i < 6; i++) {
-    const a = -Math.PI / 2 + (i * Math.PI) / 3
-    pts.push(`${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`)
-  }
-  return pts.join(' ')
-}
-
 export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
   // —— 真实数据接入：LinkIndex 图谱 + TagIndex + FileStore（D8 续·Phase 2 第六批）——
   const { getGraphData, getFilePath } = useLinkIndex()
@@ -497,105 +81,20 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
   const kbStore = useKbStore()
   const activeFileId = getActiveFileId()
 
-  // —— 数据范围（2026-09-23 用户需求：默认「文件列表」+ 面板内可选库/全部）——
-  // 范围状态 = 范围键（'files' | 'all' | 'kb:<id>'）。初始值优先取「路由指令」
-  //（从知识库「查看完整图谱」进入时带 kbId），否则取上次记住的值（用户拍板：记住最后一次）。
-  const [scope, setScope] = useState<string>(() => (kbId ? scopeKeyOf('kb', kbId) : readStoredScope()))
-  const { kind: scopeKind, kbId: scopeKbId } = useMemo(() => parseScopeKey(scope), [scope])
-
-  // 路由参数是「入口指令」：每次变化都覆盖当前范围（知识库 → 查看完整图谱 即为该库）
-  useEffect(() => {
-    if (kbId) setScope(scopeKeyOf('kb', kbId))
-  }, [kbId])
-
-  // 变更即持久化 —— 「记住最后一次」的唯一写点（路由带入的那次也算）
-  useEffect(() => {
-    writeStoredScope(scope)
-  }, [scope])
-
-  // 全部知识库文档：**一份数据供三处使用** —— ① 默认档的排除集合 ② 范围库本身 ③ 范围选择器选项。
-  // 清单走 useKbStore().kbList（React 响应式，建/删库会自动刷新），再逐个 loadKb 取完整文档
-  //（排除需要 folderId/fileIds/rules，列表项里没有）。
-  // 刻意不用 useKbStore.activeKb：那是「知识库面板当前打开的库」，图谱既不该驱动它、也不该被它影响。
-  const kbList = kbStore.kbList
-  // 「清单是否已加载过」：useKbStore 的 version 在每次 refreshList 后自增，首帧为 0。
-  // 🚨 必须区分「一个知识库都没有」与「清单还没加载」—— 二者都表现为 kbList = []，
-  // 混淆会让默认档在首帧露出全量图，更糟的是把范围内的库误判成「已删除」而回落成默认档。
-  const kbListed = kbStore.version > 0
-  const kbListKey = useMemo(() => kbList.map((k) => k.id).join('|'), [kbList])
-  const [kbDocs, setKbDocs] = useState<KnowledgeBase[] | null>(null) // null = 尚未加载完
-  useEffect(() => {
-    if (!kbListed) return // 清单还没到：保持 null（= 未就绪），不产出「空的排除集合」
-    let alive = true
-    void Promise.all(kbList.map((k) => loadKb(k.id))).then((docs) => {
-      if (!alive) return
-      setKbDocs(docs.filter((d): d is KnowledgeBase => !!d))
-    })
-    return () => { alive = false }
-  }, [kbListed, kbListKey])
-
-  /** 所有知识库的文件 id 全集 —— 默认档要排除的就是它。口径与知识库详情页 / 博客清单同源：getKbFiles */
-  const allKbFileIds = useMemo(() => {
-    const s = new Set<string>()
-    for (const kb of kbDocs ?? []) for (const id of getKbFiles(rootFolder, kb)) s.add(id)
-    return s
-  }, [kbDocs, rootFolder])
-
-  /** 当前范围选中的知识库文档（供裁剪用） */
-  const scopeKb = useMemo(
-    () => (scopeKind === 'kb' ? (kbDocs ?? []).find((k) => k.id === scopeKbId) ?? null : null),
-    [scopeKind, scopeKbId, kbDocs],
-  )
-  /** 范围显示名（面包屑 / 状态栏 / 空态 / 选择器共用）：文档到位用文档，否则先拿列表项兜底 */
-  const scopeKbName =
-    scopeKb?.name ?? (scopeKind === 'kb' ? kbList.find((k) => k.id === scopeKbId)?.name : undefined) ?? ''
-
-  const scopeKbFileIds = useMemo(
-    () => (scopeKb ? new Set(getKbFiles(rootFolder, scopeKb)) : null),
-    [scopeKb, rootFolder],
-  )
-
-  // 范围数据是否就绪：知识库文档没到位就先不裁剪（也不布点），否则会先画一版「全量」
-  // 再收缩成子集 —— 看起来像图被刷新了一次，且违反「默认不含知识库文件」的语义。
-  const scopeReady = scopeKind === 'all' || (kbListed && kbDocs !== null && (scopeKind !== 'kb' || !!scopeKbFileIds))
-
-  /** 当前范围显示名（面包屑 / 状态栏 / 画布角标 / 空态共用）；默认档返回空串 = 「无需标注」 */
-  const scopeLabel = scopeKind === 'kb' ? scopeKbName || '知识库' : scopeKind === 'all' ? '全部文件' : ''
-
-  /** 范围选择器选项：默认档在最前，然后「全部文件」，最后每个知识库一档 */
-  const scopeOptions = useMemo(
-    () => [
-      { value: DEFAULT_GRAPH_SCOPE, label: '文件列表（不含知识库）' },
-      { value: 'all', label: '全部文件' },
-      ...kbList.map((k) => ({ value: scopeKeyOf('kb', k.id), label: `知识库 · ${k.name}` })),
-    ],
-    [kbList],
-  )
-
-  // 记着（或在路由里带着）的知识库已被删除 ⇒ 静默回落默认档。
-  // 不回落的话会永远停在一张空图上 —— 空态也说不出「这库已经没了」。
-  // ⚠️ 判据必须等清单真的加载过（kbListed）：否则首帧 kbList=[] 会把范围误判成「库已删除」。
-  useEffect(() => {
-    if (!kbListed || kbDocs === null) return
-    if (scopeKind !== 'kb') return
-    if (kbDocs.some((k) => k.id === scopeKbId)) return
-    setScope(DEFAULT_GRAPH_SCOPE)
-  }, [kbListed, scopeKind, scopeKbId, kbDocs])
-
-  const graph = useMemo(() => getGraphData(tagIndex), [getGraphData, tagIndex])
-  const realData = useMemo(() => {
-    const empty = { nodes: [] as GNode[], edges: [] as GEdge[] }
-    if (!scopeReady) return empty
-    const base = buildGraphData(graph, rootFolder, activeFileId, getFilePath, tagIndex)
-    if (scopeKind === 'kb') return scopeKbFileIds ? scopeGraphToKb(base, scopeKbFileIds) : empty
-    if (scopeKind === 'files') return excludeGraphFiles(base, allKbFileIds)
-    return base
-  }, [scopeReady, scopeKind, scopeKbFileIds, allKbFileIds, graph, rootFolder, activeFileId, getFilePath, tagIndex])
-  const allTags = useMemo(
-    () => Array.from(tagIndex.keys()).map((p) => (p.includes('/') ? p.split('/').pop()! : p)),
-    [tagIndex],
-  )
-
+  // —— 数据范围与图数据（P2-3：状态族/裁剪映射下沉 useGraphScopeData）——
+  const {
+    scope, setScope, scopeKind, scopeKb, scopeLabel,
+    scopeReady, scopeOptions, realData, allTags,
+  } = useGraphScopeData({
+    kbId,
+    rootFolder,
+    activeFileId,
+    getFilePath,
+    tagIndex,
+    getGraphData,
+    kbList: kbStore.kbList,
+    kbListed: kbStore.version > 0,
+  })
   const nodesRef = useRef<GNode[]>([])
   const edgesRef = useRef<GEdge[]>([])
   const [graphRev, setGraphRev] = useState(0)
@@ -634,17 +133,6 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
     // 中心节点默认指向当前文件（否则第一项）
     setCenterId((cur) => (ns.find((x) => x.id === cur) ? cur : ns.find((x) => x.isCurrent)?.id ?? ns[0]?.id ?? ''))
   }, [realData, scope, scopeReady])
-
-  const wrapRef = useRef<HTMLDivElement>(null)
-  const svgRef = useRef<SVGSVGElement>(null)
-  const [size, setSize] = useState({ w: 1200, h: 800 })
-
-  const [view, setView] = useState({ scale: 1, tx: 0, ty: 0 })
-  const viewRef = useRef(view)
-  viewRef.current = view
-
-  // 仅用于驱动「每帧重渲染」：位置数据在 ref 上原地可变，故不需要读计数本身
-  const [, bump] = useReducer((x: number) => (x + 1) % 1_000_000, 0)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [hoverId, setHoverId] = useState<string | null>(null)
@@ -734,6 +222,8 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
     if (n.deg === 0) return 'var(--mc-graph-orphan)'
     return 'var(--mc-graph-file)'
   }
+  // 画布节点 inline 分组色（P2-3 分组着色）：无分组返回 undefined（不覆盖类型色）
+  const groupColorFor = (n: GNode): string | undefined => groupFor(n)?.color
 
   // 方案 C · 着色分组导航：按当前着色维度聚合（聚合逻辑见 visibleIds 之后，因其依赖可见性集合）
   const groupMeta: Record<string, { name: string; color: string }> = {
@@ -780,60 +270,6 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
   const [typeOpen, setTypeOpen] = useState(false) // 顶部「节点类型」popover
   const [grpOpen, setGrpOpen] = useState(false) // 左栏分组着色区默认折叠（使用优化⑤；grp-body 仅 CSS 隐藏、始终在 DOM，测试兼容）
 
-  const alphaRef = useRef(1)
-  const rafRef = useRef<number | null>(null)
-  const runningRef = useRef(false)
-  // rect 在按下时缓存一次：拖拽中不再逐次 getBoundingClientRect（那是强制同步重排，是「不丝滑」的一大来源）
-  const dragRef = useRef<{ id: string; dx: number; dy: number; startX: number; startY: number; moved: boolean; rect: DOMRect | null } | null>(null)
-  // 最新指针位置：pointermove 只登记坐标，真正落点由 rAF 步进每帧取一次（把高频 pointermove 合并到每帧一次，
-  // 指针报告率高于刷新率时不再做重复计算与多余渲染）
-  const dragPtrRef = useRef<{ x: number; y: number } | null>(null)
-  const panRef = useRef<{ x: number; y: number; tx: number; ty: number } | null>(null)
-  // 本次手势是否始于节点：setPointerCapture 会把节点的 click 也重定向到 <svg>，
-  // 画布的「点空白处清空选中」必须据此区分，否则点完节点立刻被自己清掉
-  const nodeGestureRef = useRef(false)
-
-  // —— 按范围恢复现场：范围变化（含首次挂载、面板内切换）时，把**该范围**的现场取回来 ——
-  // 三档范围的节点集合不同，坐标/视口/选中/中心互不相通；不但要读对范围，还要在范围变化时
-  // 立刻重新应用（此前是 useState 惰性初值，只在挂载时读一次 —— 面板内切范围会串台）。
-  const applyLayoutRef = useRef<((l: Layout) => void) | null>(null)
-  const scopeAppliedRef = useRef(false)
-  useEffect(() => {
-    // 挂载那一次与「后面切范围」的处理必须分开：
-    //  • 挂载：只恢复**状态**（视口/选中/模式/布局），不重放布局 —— 与旧版惰性初值等价，
-    //    也避免在布点之前就把力模拟循环启动起来（行为上等于「不自动启动力模拟」的既有约定）；
-    //  • 切范围：必须重放布局（重算目标点位 + 唤醒模拟），否则控件显示同心圆/树形、画布还是旧点位。
-    const first = !scopeAppliedRef.current
-    scopeAppliedRef.current = true
-    const s = readScopedSession(scope)
-    setView(s?.view ?? { scale: 1, tx: 0, ty: 0 })
-    setSelectedId(s?.selectedId ?? null)
-    setMode(s?.mode ?? 'global')
-    if (!s) {
-      // 该范围没有现场 ⇒ 回到干净的默认图（布局也回默认，不留上一范围的观感）
-      setLayout('force')
-      return
-    }
-    if (s.centerId) setCenterId(s.centerId)
-    if (first) setLayout(s.layout)
-    else applyLayoutRef.current?.(s.layout)
-  }, [scope])
-
-  // —— 图谱现场写回：每次渲染刷新快照（6 个字段，开销可忽略），卸载时连同节点坐标存入 graphSession ——
-  // 卸载清理对「任何离开方式」都成立（侧栏切换 / ⌘K 跳编辑器 / 节点跳转），
-  // 因此不必在每个出口手动登记；返回图谱时由上面的 restore 读取。
-  // 快照含「数据范围」—— 范围不同的现场互不复原，见 readScopedSession。
-  const sceneRef = useRef({ view, layout, mode, centerId, selectedId, scope })
-  sceneRef.current = { view, layout, mode, centerId, selectedId, scope }
-  useEffect(
-    () => () => {
-      const positions: Record<string, GraphNodePos> = {}
-      for (const n of nodesRef.current) positions[n.id] = { x: n.x, y: n.y, vx: n.vx, vy: n.vy, tx: n.tx, ty: n.ty }
-      saveGraphSession({ ...sceneRef.current, positions })
-    },
-    [],
-  )
-
   const handleNav = (id: string) => {
     const target = resolveAuroraNav(id)
     // 范围内：侧栏「知识库」回到**本库详情**（与进入路径对称，形成 知识库 ⇄ 图谱 往返闭环）；
@@ -845,408 +281,6 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
     nav?.(target)
   }
 
-  // ---- 尺寸 ----
-  useEffect(() => {
-    const el = wrapRef.current
-    if (!el) return
-    const ro = new ResizeObserver((entries) => {
-      const cr = entries[0].contentRect
-      setSize({ w: cr.width, h: cr.height })
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
-
-  // ---- 邻接 ----
-  const adjacency = useMemo(() => {
-    const m = new Map<string, Set<string>>()
-    const add = (a: string, b: string) => {
-      if (!m.has(a)) m.set(a, new Set())
-      m.get(a)!.add(b)
-    }
-    edgesRef.current.forEach((e) => {
-      if (e.kind === 'tag' || e.kind === 'folder') return
-      add(e.source, e.target)
-      add(e.target, e.source)
-    })
-    return m
-  }, [graphRev])
-
-  const neighborsOf = useCallback(
-    (id: string) => {
-      const s = new Set<string>([id])
-      ;(adjacency.get(id) || []).forEach((n) => s.add(n))
-      return s
-    },
-    [adjacency],
-  )
-
-  // ---- 图谱模式作用域（modeScope：由 mode/centerId/depth 派生的可见集合）----
-  // ⚠️ 名字刻意不叫 scope —— 那是「数据范围」（画哪些文件），两者是不同维度：
-  // 数据范围决定节点集合，本作用域再在集合内按模式收窄（全局/局部/反向/正向/标签）。
-  const modeScope = useMemo(() => {
-    if (mode === 'global') return null
-    const set = new Set<string>([centerId])
-    if (mode === 'local') {
-      let frontier = [centerId]
-      for (let d = 0; d < depth; d++) {
-        const next: string[] = []
-        frontier.forEach((id) =>
-          (adjacency.get(id) || []).forEach((n) => {
-            if (!set.has(n)) {
-              set.add(n)
-              next.push(n)
-            }
-          }),
-        )
-        frontier = next
-      }
-    } else if (mode === 'backlinks') {
-      edgesRef.current.forEach((e) => {
-        if (e.kind !== 'tag' && e.kind !== 'folder' && e.target === centerId) set.add(e.source)
-      })
-    } else if (mode === 'forwardlinks') {
-      edgesRef.current.forEach((e) => {
-        if (e.kind !== 'tag' && e.kind !== 'folder' && e.source === centerId) set.add(e.target)
-      })
-    } else if (mode === 'tag') {
-      // 以标签节点为中心，纳入与其相连的笔记
-      edgesRef.current.forEach((e) => {
-        if (e.kind === 'tag') {
-          if (e.target === centerId) set.add(e.source)
-          if (e.source === centerId) set.add(e.target)
-        }
-      })
-    }
-    return set
-  }, [mode, centerId, depth, adjacency, graphRev])
-
-  // ---- 可见性（组合所有筛选）----
-  const visibleIds = useMemo(() => {
-    const set = new Set<string>()
-    nodesRef.current.forEach((n) => {
-      if (hidden.has(n.id)) return
-      if (n.type === 'file' && !showNote) return
-      if (n.type === 'tag' && !showTag) return
-      if (n.type === 'folder' && !showFolder) return
-      if (n.type === 'file' && n.deg === 0 && !showOrphan) return
-      if (n.deg < minConn) return
-      if (selectedTags.length > 0) {
-        const ok =
-          (n.type === 'file' && n.tags.some((t) => selectedTags.includes(t))) ||
-          (n.type === 'tag' && selectedTags.includes(n.label)) ||
-          n.type === 'folder'
-        if (!ok) return
-      }
-      if (modeScope && !modeScope.has(n.id) && !extraNeighbors.has(n.id)) return
-      set.add(n.id)
-    })
-    return set
-  }, [hidden, showNote, showTag, showFolder, showOrphan, minConn, selectedTags, modeScope, graphRev, extraNeighbors])
-
-  // 方案 C · 着色分组导航聚合：依赖 visibleIds，置于其声明之后
-  const groupAgg = useMemo(() => {
-    const map = new Map<string, { key: string; name: string; color: string; count: number }>()
-    nodesRef.current.forEach((n) => {
-      if (!visibleIds.has(n.id)) return
-      const key = groupKeyFor(n)
-      let meta: { name: string; color: string }
-      if (key.startsWith('grp:')) {
-        const g = groups.find((x) => `grp:${x.id}` === key)
-        meta = g ? { name: g.name, color: g.color } : groupMeta.note
-      } else {
-        meta = groupMeta[key]
-      }
-      if (!map.has(key)) map.set(key, { key, name: meta.name, color: meta.color, count: 0 })
-      map.get(key)!.count++
-    })
-    return Array.from(map.values()).sort((a, b) => b.count - a.count)
-  }, [visibleIds, groupKeyFor, groups, graphRev])
-
-  // 搜索匹配
-  const matchedIds = useMemo(() => {
-    if (!search.trim()) return null
-    const q = search.trim().toLowerCase()
-    const s = new Set<string>()
-    nodesRef.current.forEach((n) => {
-      if (n.label.toLowerCase().includes(q)) s.add(n.id)
-    })
-    return s
-  }, [search, graphRev])
-
-  const highlightId = hoverId ?? selectedId
-  const highlightSet = highlightId ? neighborsOf(highlightId) : null
-
-  const isDim = (id: string): boolean => {
-    if (matchedIds) return !matchedIds.has(id)
-    if (focusGroup) {
-      const n = nodesRef.current.find((x) => x.id === id)
-      return n ? groupKeyFor(n) !== focusGroup : false
-    }
-    if (highlightSet) return !highlightSet.has(id)
-    if (modeScope) return !modeScope.has(id)
-    return false
-  }
-  const isEdgeDim = (s: string, t: string): boolean => {
-    if (matchedIds) return !(matchedIds.has(s) || matchedIds.has(t))
-    if (focusGroup) {
-      const ns = nodesRef.current.find((x) => x.id === s)
-      const nt = nodesRef.current.find((x) => x.id === t)
-      const ks = ns ? groupKeyFor(ns) : ''
-      const kt = nt ? groupKeyFor(nt) : ''
-      return ks !== focusGroup && kt !== focusGroup
-    }
-    if (highlightSet) return !(highlightSet.has(s) || highlightSet.has(t))
-    if (modeScope) return !(modeScope.has(s) || modeScope.has(t))
-    return false
-  }
-
-  // ---- 布局目标计算 ----
-  const computeTargets = useCallback(
-    (lay: Layout) => {
-      const nodes = nodesRef.current
-      const W = size.w || 1200
-      const Hh = size.h || 800
-      const cx = W / 2
-      const cy = Hh / 2
-      const byId = new Map(nodes.map((n) => [n.id, n]))
-      const visIds = nodes.filter((n) => visibleIds.has(n.id))
-      if (lay === 'force') {
-        nodes.forEach((n) => {
-          n.tx = n.x
-          n.ty = n.y
-        })
-        return
-      }
-      if (lay === 'grid') {
-        const cols = Math.max(1, Math.ceil(Math.sqrt(visIds.length)))
-        const rows = Math.ceil(visIds.length / cols)
-        const gx = W / (cols + 1)
-        const gy = Hh / (rows + 1)
-        visIds.forEach((n, i) => {
-          const c = i % cols
-          const r = Math.floor(i / cols)
-          n.tx = gx * (c + 1)
-          n.ty = gy * (r + 1)
-        })
-        return
-      }
-      // concentric / tree 都以 centerId 为根做 BFS 分层
-      const root = byId.get(centerId) || visIds[0]
-      const depthMap = new Map<string, number>([[root.id, 0]])
-      let frontier = [root.id]
-      for (let d = 0; d < 8; d++) {
-        const next: string[] = []
-        frontier.forEach((id) =>
-          (adjacency.get(id) || []).forEach((nid) => {
-            if (!depthMap.has(nid) && visibleIds.has(nid)) {
-              depthMap.set(nid, d + 1)
-              next.push(nid)
-            }
-          }),
-        )
-        frontier = next
-      }
-      visIds.forEach((n) => {
-        if (!depthMap.has(n.id)) depthMap.set(n.id, 1)
-      })
-      const maxD = Math.max(1, ...Array.from(depthMap.values()))
-      const perLayer: Record<number, number> = {}
-      visIds.forEach((n) => {
-        const d = depthMap.get(n.id)!
-        perLayer[d] = (perLayer[d] || 0) + 1
-      })
-      const counters: Record<number, number> = {}
-      const ringR = Math.min(W, Hh) * 0.34
-      visIds.forEach((n) => {
-        const d = depthMap.get(n.id)!
-        const count = perLayer[d]
-        const idx = counters[d] || 0
-        counters[d] = idx + 1
-        if (lay === 'concentric') {
-          const a = (idx / count) * Math.PI * 2 - Math.PI / 2
-          const rr = d === 0 ? 0 : ringR * (d / maxD)
-          n.tx = cx + Math.cos(a) * rr
-          n.ty = cy + Math.sin(a) * rr
-        } else {
-          const y = 70 + d * ((Hh - 140) / Math.max(1, maxD))
-          const x = ((idx + 1) / (count + 1)) * W
-          n.tx = x
-          n.ty = y
-        }
-      })
-    },
-    [size, visibleIds, centerId, adjacency],
-  )
-
-  // 布局切换 → 计算目标并轻微 reheat
-  const applyLayout = (lay: Layout) => {
-    setLayout(lay)
-    computeTargets(lay)
-    alphaRef.current = Math.max(alphaRef.current, lay === 'force' ? 0.4 : 0.4)
-    if (!runningRef.current) loop()
-  }
-  // 供「按范围恢复现场」调用（那条 effect 声明在 applyLayout 之前，故通过 ref 取最新实现）
-  applyLayoutRef.current = applyLayout
-
-  // ---- 力模拟 ----
-  const step = useCallback(() => {
-    const drag = dragRef.current
-    // 拖拽期维持一个温和的 alpha 下限：旧版每次 pointermove 都 reheat(0.35) 把力持续打满，
-    // 是「抖、不丝滑」的主因之一；这里改为「按下时唤醒一次 + 拖拽期温和维持」。
-    const a = drag ? Math.max(alphaRef.current, DRAG_ALPHA) : alphaRef.current
-    // 把最新指针换算成世界坐标。rect 用按下时缓存的那份（拖拽中不再 getBoundingClientRect ⇒ 不再强制重排）
-    let dragWorld: { x: number; y: number } | null = null
-    if (drag && dragPtrRef.current) {
-      const rect = drag.rect ?? svgRef.current?.getBoundingClientRect()
-      if (rect) {
-        const v = viewRef.current
-        dragWorld = {
-          x: (dragPtrRef.current.x - rect.left - v.tx) / v.scale,
-          y: (dragPtrRef.current.y - rect.top - v.ty) / v.scale,
-        }
-      }
-    }
-    const { maxTargetDelta } = simulateStep({
-      nodes: nodesRef.current,
-      edges: edgesRef.current,
-      nodeById,
-      layout,
-      size,
-      alpha: a,
-      drag: drag ? { id: drag.id, dx: drag.dx, dy: drag.dy } : null,
-      dragWorld,
-    })
-    if (layout !== 'force' && maxTargetDelta < 0.6 && !drag) alphaRef.current = 0
-    alphaRef.current *= 0.94
-    if (alphaRef.current < 0.025 && !drag) alphaRef.current = 0
-  }, [layout, size, nodeById])
-
-  const loop = useCallback(() => {
-    runningRef.current = true
-    step()
-    bump()
-    if (alphaRef.current > 0.01 || dragRef.current) {
-      rafRef.current = requestAnimationFrame(loop)
-    } else {
-      runningRef.current = false
-    }
-  }, [step])
-
-  const reheat = useCallback(
-    (a = 0.6) => {
-      alphaRef.current = Math.max(alphaRef.current, a)
-      if (!runningRef.current) loop()
-    },
-    [loop],
-  )
-
-  useEffect(() => {
-    // 不自动启动力模拟；保留初始环形布局。用户交互（拖拽/切布局）时再 reheat
-    return () => {
-      if (rafRef.current) cancelAnimationFrame(rafRef.current)
-      runningRef.current = false
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // 可见性/模式/布局相关变化 → 重新计算目标并 reheat（非力导向时平滑过渡）
-  useEffect(() => {
-    if (layout !== 'force') {
-      computeTargets(layout)
-      reheat(0.5)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visibleIds, mode, centerId, depth, layout])
-
-  // ---- 平移 ----
-  const onBgPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0) return
-    nodeGestureRef.current = false // 画布手势：随后的 click 属于「点空白处」，应清空选中
-    setMenu(null)
-    setInfoCard(null)
-    panRef.current = { x: e.clientX, y: e.clientY, tx: view.tx, ty: view.ty }
-    ;(e.currentTarget as Element).setPointerCapture?.(e.pointerId)
-  }
-  const onPointerMove = (e: React.PointerEvent) => {
-    const drag = dragRef.current
-    if (drag) {
-      // 拖拽阈值：小于 4px 的抖动仍算单击（否则手一抖就被判成拖拽、节点被挪动且点不开）
-      if (!drag.moved && Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) <= NODE_CLICK_SLOP) return
-      drag.moved = true
-      // 只登记最新指针坐标，实际落点由 rAF 步进每帧取一次：
-      //  • 指针报告率可高于刷新率，合并后每帧只算一次（不再做重复计算与多余渲染）
-      //  • 不在事件里调 getBoundingClientRect（强制同步重排），rect 已在按下时缓存
-      dragPtrRef.current = { x: e.clientX, y: e.clientY }
-      if (!runningRef.current) loop()
-      return
-    }
-    if (panRef.current) {
-      const start = panRef.current
-      const dx = e.clientX - start.x
-      const dy = e.clientY - start.y
-      // 捕获 start（非 null），避免 setState 延迟执行时 panRef 已被 onPointerUp 置空
-      setView((v) => ({ ...v, tx: start.tx + dx, ty: start.ty + dy }))
-    }
-  }
-  // 节点「单击」必须在 pointerup 上兑现，不能挂在 click 上：
-  // onNodePointerDown 会把指针捕获到 <svg>（拖拽时指针移出画布仍收得到事件），
-  // 而捕获会把随后的 click 重定向到捕获元素（svg）→ 节点的 onClick 在真实浏览器里永不触发
-  // （jsdom 不实现捕获重定向，于是单测全绿、真机点击无反应；2026-09-13 CDP 实测确认）。
-  const onPointerUp = () => {
-    const drag = dragRef.current
-    panRef.current = null
-    dragRef.current = null
-    dragPtrRef.current = null
-    if (drag && !drag.moved) {
-      activateNode(drag.id)
-    } else if (drag) {
-      // 松手即锁死被拖拽节点的速度：否则它会带着拖拽期残留的速度继续滑行（报障的「飞出去」）。
-      const n = nodeById.get(drag.id)
-      if (n) { n.vx = 0; n.vy = 0 }
-      bump() // 立即重渲染一次，清掉 SVG 上的 is-dragging（拖拽期已关闭脉冲/过渡）
-    }
-  }
-  const onPointerCancel = () => {
-    panRef.current = null
-    dragRef.current = null
-    dragPtrRef.current = null
-    bump()
-  }
-
-  // ---- 滚轮缩放（光标居中）----
-  const onWheel = (e: React.WheelEvent) => {
-    e.preventDefault()
-    const rect = svgRef.current!.getBoundingClientRect()
-    const sx = e.clientX - rect.left
-    const sy = e.clientY - rect.top
-    const v = viewRef.current
-    const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12
-    const ns = clamp(v.scale * factor, 0.2, 3)
-    const wx = (sx - v.tx) / v.scale
-    const wy = (sy - v.ty) / v.scale
-    setView({ scale: ns, tx: sx - wx * ns, ty: sy - wy * ns })
-  }
-
-  // ---- 节点指针 ----
-  const onNodePointerDown = (e: React.PointerEvent, id: string) => {
-    // 仅主键拖拽：右键要留给 contextmenu（抢了指针捕获会把 contextmenu 也重定向到 svg）
-    if (e.button !== 0) return
-    e.stopPropagation()
-    // rect 在按下时缓存一次，整段拖拽复用（拖拽中不再逐次 getBoundingClientRect ⇒ 不再强制重排）
-    const rect = svgRef.current?.getBoundingClientRect() ?? null
-    const n = nodeById.get(id)
-    if (!n || !rect) return
-    nodeGestureRef.current = true
-    const v = viewRef.current
-    const wx = (e.clientX - rect.left - v.tx) / v.scale
-    const wy = (e.clientY - rect.top - v.ty) / v.scale
-    dragRef.current = { id, dx: wx - n.x, dy: wy - n.y, startX: e.clientX, startY: e.clientY, moved: false, rect }
-    dragPtrRef.current = { x: e.clientX, y: e.clientY }
-    // 按下时唤醒一次力模拟；整个拖拽期由 step 的 alpha 下限持续维持（旧版每次 pointermove 打满 alpha）
-    reheat(0.4)
-    ;(svgRef.current as Element).setPointerCapture?.(e.pointerId)
-  }
   // 图谱 → 编辑器：打开节点对应笔记，并登记「返回来源」上下文
   // （编辑器据此渲染「← 返回 双链图谱」芯片；现场由 graphSession 保留，返回即原图原位）
   const openNoteInEditor = (id: string) => {
@@ -1307,101 +341,34 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
     else toast?.('该笔记尚未加入任何知识库')
   }, [kbStore, nav, toast])
 
-  // ---- 导出 ----
-  const download = (url: string, name: string) => {
-    const a = document.createElement('a')
-    a.href = url
-    a.download = name
-    document.body.appendChild(a)
-    a.click()
-    a.remove()
+  // —— 导出（P2-3：实现下沉 graph/graphExport.ts，这里只注入 svg 引用与可见集合）——
+  const doExportSvg = () => { if (svgRef.current) exportSVG(svgRef.current, toast) }
+  const doExportJson = () => {
+    if (svgRef.current) exportJSON(nodesRef.current, edgesRef.current, visibleIds, toast)
   }
-  const serializeGraph = () => {
-    const svg = svgRef.current!
-    const clone = svg.cloneNode(true) as SVGSVGElement
-    const style = document.createElementNS('http://www.w3.org/2000/svg', 'style')
-    // 解析为具体值：导出为独立 SVG 文件后脱离文档 :root，var() 无法解析
-    const rootStyle = getComputedStyle(document.documentElement)
-    const resolve = (name: string): string => {
-      let val = rootStyle.getPropertyValue(name).trim()
-      let guard = 0
-      while (val.includes('var(') && guard++ < 5) {
-        const inner = val.slice(val.indexOf('(') + 1, val.indexOf(')')).trim()
-        val = rootStyle.getPropertyValue(inner).trim()
-      }
-      return val
-    }
-    style.textContent = `
-      .aurora-graph__edge{stroke:${resolve('--mc-graph-edge')};stroke-width:1.3}
-      .aurora-graph__edge--tag{stroke:${resolve('--mc-graph-edge-tag')};stroke-dasharray:3 3;opacity:.4}
-      .aurora-graph__edge--folder{stroke:${resolve('--mc-graph-edge-folder')};stroke-dasharray:2 3;opacity:.3}
-      .aurora-graph__dot--file{fill:${resolve('--mc-graph-file')};stroke:${resolve('--mc-graph-file-stroke')}}
-      .aurora-graph__dot--tag{fill:${resolve('--mc-graph-tag')};stroke:${resolve('--mc-graph-tag-stroke')}}
-      .aurora-graph__dot--folder{fill:${resolve('--mc-graph-folder')};stroke:${resolve('--mc-graph-folder-stroke')}}
-      .aurora-graph__dot--orphan{fill:${resolve('--mc-graph-orphan')};stroke:${resolve('--mc-graph-orphan-stroke')}}
-      .aurora-graph__dot--current{fill:${resolve('--mc-accent')};stroke:${resolve('--mc-graph-current-stroke')}}
-      .aurora-graph__label{fill:${resolve('--mc-text-secondary')};font-size:11px;text-anchor:middle}`
-    clone.insertBefore(style, clone.firstChild)
-    return new XMLSerializer().serializeToString(clone)
-  }
-  const exportSVG = () => {
-    const data = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(serializeGraph())
-    download(data, 'knowledge-graph.svg')
-    toast?.('已导出 SVG')
-  }
-  const exportJSON = () => {
-    const data = {
-      nodes: nodesRef.current
-        .filter((n) => visibleIds.has(n.id))
-        .map((n) => ({ id: n.id, label: n.label, type: n.type, tags: n.tags })),
-      edges: edgesRef.current.filter((e) => visibleIds.has(e.source) && visibleIds.has(e.target)),
-    }
-    download(
-      URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })),
-      'knowledge-graph.json',
-    )
-    toast?.('已导出 JSON')
-  }
-  const exportPNG = () => {
-    try {
-      const svg = svgRef.current!
-      const xml = serializeGraph()
-      const img = new Image()
-      img.onload = () => {
-        const c = document.createElement('canvas')
-        c.width = svg.clientWidth || 1200
-        c.height = svg.clientHeight || 800
-        const ctx = c.getContext('2d')!
-        // P2-1 背景主题化：读内容区背景变量（亮/暗主题自适应），替代原硬编码 #0A0B0F
-        const rootStyle = getComputedStyle(document.documentElement)
-        const bg = rootStyle.getPropertyValue('--mc-bg-content').trim() || '#101218'
-        ctx.fillStyle = bg
-        ctx.fillRect(0, 0, c.width, c.height)
-        ctx.drawImage(img, 0, 0, c.width, c.height)
-        c.toBlob((b) => {
-          if (b) download(URL.createObjectURL(b), 'knowledge-graph.png')
-        })
-      }
-      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml)
-      toast?.('已导出 PNG')
-    } catch {
-      toast?.('导出失败')
-    }
-  }
+  const doExportPng = () => { if (svgRef.current) exportPNG(svgRef.current, toast) }
 
-  const toggleFullscreen = () => {
-    const el = wrapRef.current
-    if (!document.fullscreenElement) el?.requestFullscreen?.().catch(() => {})
-    else document.exitFullscreen?.().catch(() => {})
-  }
+  // —— P2-3 拆分：派生集合（邻接/模式作用域/可见性/聚合/dim）与引擎（视口/物理/手势/现场）——
+  const { adjacency, visibleIds, groupAgg, matchedIds, isDim, isEdgeDim } = useGraphDerived({
+    nodesRef, edgesRef, graphRev,
+    mode, centerId, depth,
+    hidden, showNote, showTag, showFolder, showOrphan, minConn, selectedTags, extraNeighbors, search,
+    focusGroup, groups, groupKeyFor, groupMeta,
+    highlightId: hoverId ?? selectedId,
+  })
 
-  const focusCenter = () => {
-    const n = nodesRef.current.find((x) => x.id === centerId)
-    if (!n) return
-    const v = viewRef.current
-    setView({ scale: clamp(Math.max(v.scale, 1.2), 0.2, 3), tx: size.w / 2 - n.x * v.scale, ty: size.h / 2 - n.y * v.scale })
-    reheat(0.4)
-  }
+  const {
+    wrapRef, svgRef, size, view, setView, reheat, applyLayout, sceneRef,
+    panActive, dragActive,
+    onBgPointerDown, onPointerMove, onPointerUp, onPointerCancel,
+    onWheel, onCanvasClick, onNodePointerDown,
+    focusCenter, toggleFullscreen, cull,
+  } = useGraphEngine({
+    scope, layout, setLayout, mode, setMode, centerId, setCenterId, depth,
+    visibleIds, adjacency, nodeById, nodesRef, edgesRef,
+    setSelectedId, selectedId,
+    setMenu, setInfoCard, activateNode,
+  })
 
   const resetView = () => {
     setSearch('')
@@ -1425,14 +392,7 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
   // 节点定位统一走 nodeById（见文件上方声明）：位置原地可变 ⇒ 无需按帧重建映射
   const edges = edgesRef.current
 
-  const cull = (x: number, y: number) => {
-    const v = view
-    const sx = v.tx + v.scale * x
-    const sy = v.ty + v.scale * y
-    return sx < -60 || sx > size.w + 60 || sy < -60 || sy > size.h + 60
-  }
-
-  const infoNode = infoCard ? nodeById.get(infoCard.id) : null
+  const infoNode = (infoCard ? nodeById.get(infoCard.id) : null) ?? null
   const CARD_W = 280
   const CARD_H = 240
   const infoPos = infoNode
@@ -1514,687 +474,141 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
       ]}
     >
       <div className="aurora-graph">
-        {/* 使用优化⑦ · 左缘 hoverzone（对齐编辑器 v7 范式）：7px 隐形感应条，hover 召唤导航浮层（不挤压画布重排）；图钉可钉成常驻栏。 */}
-        <div
-          className={`aurora-graph__hoverzone ${navPinned ? 'is-pinned' : ''}`}
-          onMouseEnter={openNavIntent}
-          onMouseLeave={closeNavIntent}
-        >
-          <div className="aurora-graph__edge" aria-hidden />
-          {navOverlay.mounted && (
-            <div
-              className="aurora-graph__overlay"
-              data-exiting={navOverlay.exiting || undefined}
-              onMouseEnter={cancelNavClose}
-              onMouseLeave={scheduleNavClose}
-            >
-              <div className="aurora-graph__overlay-head">
-                <span className="aurora-graph__overlay-title">图谱导航</span>
-                <div className="aurora-graph__overlay-actions">
-                  <button
-                    type="button"
-                    className={`aurora-graph__pin ${navPinned ? 'is-on' : ''}`}
-                    onClick={() => setNavPinned((p) => !p)}
-                    aria-label={navPinned ? '取消钉住图谱导航' : '钉住图谱导航'}
-                    title={navPinned ? '取消钉住' : '钉住常驻'}
-                  >
-                    <svg width="13" height="13" viewBox="0 0 13 13"><path d="M8 2l3 3-5 5-1-1 1-3-3-3 2-2z" fill="none" stroke="currentColor" strokeWidth="1.1" /></svg>
-                  </button>
-                  <button
-                    type="button"
-                    className="aurora-graph__overlay-close"
-                    onClick={closeNav}
-                    aria-label="收起图谱导航"
-                    title="收起"
-                  >
-                    <Icon.chevronLeft size={14} />
-                  </button>
-                </div>
-              </div>
-              <div className="aurora-graph__overlay-body">
-              {/* 数据范围（2026-09-23 用户需求）：最上游的一档 —— 决定「画哪些文件」，
-                  故置于视图控制之前。选项 = 文件列表（默认）/ 全部文件 / 每个知识库一档。 */}
-              <div className="aurora-graph__group">
-                <div className="aurora-graph__group-title">数据范围</div>
-                <AuroraSelect
-                  ariaLabel="数据范围"
-                  className="aurora-graph__scopesel"
-                  value={scope}
-                  onChange={setScope}
-                  options={scopeOptions}
-                />
-                <div className="aurora-graph__grp-hint">
-                  {scopeKind === 'files'
-                    ? '只显示「文件列表」里的笔记 —— 不含任何知识库的文件。'
-                    : scopeKind === 'all'
-                      ? '显示 MarkCraft 的全部文件（含各知识库）。'
-                      : `只显示「${scopeLabel}」知识库内的笔记。`}
-                </div>
-              </div>
-
-              <div className="aurora-graph__divider" />
-
-              {/* 使用优化⑤ · 重排：视图控制（模式/布局）置顶——高频操作优先 */}
-              <div className="aurora-graph__group">
-                <div className="aurora-graph__group-title">图谱模式</div>
-                <div className="aurora-graph__seg">
-                  {([
-                    ['global', '全局'],
-                    ['local', '局部'],
-                    ['backlinks', '反向'],
-                    ['forwardlinks', '正向'],
-                    ['tag', '标签'],
-                  ] as const).map(([m, label]) => (
-                    <button key={m} className={mode === m ? 'is-active' : ''} onClick={() => onModeChange(m)}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                {mode === 'local' && (
-                  <div className="aurora-graph__depth">
-                    深度
-                    <input type="range" min={1} max={3} value={depth} onChange={(e) => setDepth(Number(e.target.value))} />
-                    <span>{depth}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="aurora-graph__group">
-                <div className="aurora-graph__group-title">布局方式</div>
-                <div className="aurora-graph__seg">
-                  {([
-                    ['force', '力导向'],
-                    ['concentric', '同心圆'],
-                    ['tree', '树形'],
-                    ['grid', '网格'],
-                  ] as const).map(([l, label]) => (
-                    <button key={l} className={layout === l ? 'is-active' : ''} onClick={() => applyLayout(l)}>
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="aurora-graph__divider" />
-
-              <div className="aurora-graph__group">
-                <div className="aurora-graph__group-title">标签筛选（多选）</div>
-                <div className="aurora-graph__chips">
-                  {allTags.map((t) => (
-                    <button
-                      key={t}
-                      className={`aurora-graph__chip${selectedTags.includes(t) ? ' is-active' : ''}`}
-                      onClick={() => toggleTag(t)}
-                    >
-                      {t}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="aurora-graph__group">
-                <div className="aurora-graph__group-title">
-                  连接强度 <span className="val">最小 {minConn}</span>
-                </div>
-                <input
-                  className="aurora-graph__slider"
-                  type="range"
-                  min={0}
-                  max={10}
-                  value={minConn}
-                  onChange={(e) => setMinConn(Number(e.target.value))}
-                />
-              </div>
-
-              <div className="aurora-graph__group">
-                <div className="aurora-graph__group-title">显示</div>
-                <label className="aurora-graph__check">
-                  <input type="checkbox" checked={showOrphan} onChange={(e) => setShowOrphan(e.target.checked)} />
-                  显示孤立节点
-                </label>
-                <label className="aurora-graph__check">
-                  <input type="checkbox" checked={showFolderLinks} onChange={(e) => setShowFolderLinks(e.target.checked)} />
-                  显示文件夹关联
-                </label>
-                <label className="aurora-graph__check">
-                  <input type="checkbox" checked={showArrows} onChange={(e) => setShowArrows(e.target.checked)} />
-                  显示箭头
-                </label>
-              </div>
-
-              <div className="aurora-graph__divider" />
-
-              {/* 方案 C · 着色分组导航：点分组聚焦该色节点（dim 其余），既是导航也是图例（使用优化⑤：随分组着色一并后置） */}
-              <div className="aurora-graph__nav">
-                <div className="aurora-graph__group-title">
-                  着色分组 <span className="val">{focusGroup ? '聚焦中' : `${groupAgg.length} 组`}</span>
-                </div>
-                {groupAgg.map((g) => (
-                  <button
-                    key={g.key}
-                    type="button"
-                    className={`aurora-graph__nav-row${focusGroup === g.key ? ' is-active' : ''}`}
-                    onClick={() => setFocusGroup((cur) => (cur === g.key ? null : g.key))}
-                    title={`聚焦 ${g.name} 分组`}
-                  >
-                    <i className="aurora-graph__nav-dot" style={{ background: g.color }} />
-                    <span className="aurora-graph__nav-name">{g.name}</span>
-                    <span className="aurora-graph__nav-count">{g.count}</span>
-                  </button>
-                ))}
-                {focusGroup && (
-                  <button type="button" className="aurora-graph__nav-clear" onClick={() => setFocusGroup(null)}>
-                    清除聚焦
-                  </button>
-                )}
-              </div>
-
-              {/* P2-3 分组着色（对标 Obsidian Groups）· 方案 C：可折叠，默认收起（grp-form 始终在 DOM，测试兼容） */}
-              <div className={`aurora-graph__group aurora-graph__grp${grpOpen ? '' : ' is-fold'}`}>
-                <div className="aurora-graph__group-title aurora-graph__grp-head" onClick={() => setGrpOpen((o) => !o)}>
-                  分组着色 <span className="val">{grpOpen ? '收起' : '展开'}</span>
-                </div>
-                <div className="aurora-graph__grp-body">
-                  {groups.length > 0 && (
-                    <div className="aurora-graph__grp-list">
-                      {groups.map((g) => (
-                        <div key={g.id} className="aurora-graph__grp-row">
-                          <i className="aurora-graph__grp-dot" style={{ background: g.color }} />
-                          <span className="aurora-graph__grp-name">{g.name}</span>
-                          <span className="aurora-graph__grp-rule">{g.match === 'tag' ? `#${g.keyword}` : g.keyword}</span>
-                          <button
-                            type="button"
-                            className="aurora-graph__grp-del"
-                            title="删除分组"
-                            onClick={() => setGroups((prev) => prev.filter((x) => x.id !== g.id))}
-                          >
-                            <Icon.close size={11} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  <div className="aurora-graph__grp-form">
-                    <input
-                      className="aurora-graph__grp-input"
-                      value={grpName}
-                      onChange={(e) => setGrpName(e.target.value)}
-                      placeholder="分组名"
-                      aria-label="分组名"
-                    />
-                    <div className="aurora-graph__grp-row">
-                      <AuroraSelect
-                        ariaLabel="匹配方式"
-                        value={grpMatch}
-                        onChange={(v) => setGrpMatch(v as 'tag' | 'name')}
-                        options={[
-                          { value: 'tag', label: '标签' },
-                          { value: 'name', label: '名称' },
-                        ]}
-                      />
-                      <input
-                        className="aurora-graph__grp-input"
-                        value={grpKeyword}
-                        onChange={(e) => setGrpKeyword(e.target.value)}
-                        placeholder={grpMatch === 'tag' ? '标签名' : '关键词'}
-                        aria-label="匹配关键词"
-                      />
-                    </div>
-                    <div className="aurora-graph__grp-colors">
-                      {GROUP_COLORS.map((c, i) => (
-                        <button
-                          key={c}
-                          type="button"
-                          className={`aurora-graph__grp-swatch${grpColor === c ? ' is-on' : ''}`}
-                          style={{ background: c }}
-                          title={`分组色 ${i + 1}`}
-                          onClick={() => setGrpColor(c)}
-                        />
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      className="aurora-graph__grp-add"
-                      onClick={addGroup}
-                      disabled={!grpName.trim() || !grpKeyword.trim()}
-                    >
-                      添加分组
-                    </button>
-                  </div>
-                  <div className="aurora-graph__grp-hint">匹配的笔记节点将按分组着色（标签或名称匹配；当前笔记与类型色优先）</div>
-                </div>
-              </div>
-
-              <div className="aurora-graph__divider" />
-
-              {/* G4/I3 链接健康（复用 useDashboardData 单一数据源） */}
-              <div className="aurora-graph__group aurora-graph__health">
-                <div className="aurora-graph__group-title">
-                  链接健康 <span className={`val band band--${band}`}>{healthScore} 分</span>
-                </div>
-                <div className="aurora-graph__health-row">
-                  <span className="aurora-graph__health-item">
-                    断链 <b className={linkHealth.brokenList.length ? 'bad' : 'ok'}>{linkHealth.brokenList.length}</b>
-                  </span>
-                  <span className="aurora-graph__health-item">
-                    孤立 <b className={linkHealth.orphan.length ? 'bad' : 'ok'}>{linkHealth.orphan.length}</b>
-                  </span>
-                </div>
-                {linkHealth.brokenList.length > 0 && (
-                  <ul className="aurora-graph__health-list">
-                    {linkHealth.brokenList.slice(0, 3).map((b) => (
-                      <li key={b.target} title={`被 ${b.count} 处引用`}>
-                        <span className="tgt">{b.target.length > 16 ? b.target.slice(0, 15) + '…' : b.target}</span>
-                        <em>×{b.count}</em>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              <button className="aurora-graph__reset" onClick={resetView}>
-                重置视图
-              </button>
-              </div>
-            </div>
-          )}
-        </div>
-
+        <GraphSidebar
+          navOverlay={navOverlay}
+          navPinned={navPinned}
+          setNavPinned={setNavPinned}
+          openNavIntent={openNavIntent}
+          closeNavIntent={closeNavIntent}
+          cancelNavClose={cancelNavClose}
+          scheduleNavClose={scheduleNavClose}
+          closeNav={closeNav}
+          scope={scope}
+          setScope={setScope}
+          scopeOptions={scopeOptions}
+          scopeKind={scopeKind}
+          scopeLabel={scopeLabel}
+          mode={mode}
+          onModeChange={onModeChange}
+          depth={depth}
+          setDepth={setDepth}
+          layout={layout}
+          applyLayout={applyLayout}
+          allTags={allTags}
+          selectedTags={selectedTags}
+          toggleTag={toggleTag}
+          minConn={minConn}
+          setMinConn={setMinConn}
+          showOrphan={showOrphan}
+          setShowOrphan={setShowOrphan}
+          showFolderLinks={showFolderLinks}
+          setShowFolderLinks={setShowFolderLinks}
+          showArrows={showArrows}
+          setShowArrows={setShowArrows}
+          focusGroup={focusGroup}
+          setFocusGroup={setFocusGroup}
+          groupAgg={groupAgg}
+          grpOpen={grpOpen}
+          setGrpOpen={setGrpOpen}
+          groups={groups}
+          setGroups={setGroups}
+          grpName={grpName}
+          setGrpName={setGrpName}
+          grpMatch={grpMatch}
+          setGrpMatch={setGrpMatch}
+          grpKeyword={grpKeyword}
+          setGrpKeyword={setGrpKeyword}
+          grpColor={grpColor}
+          setGrpColor={setGrpColor}
+          addGroup={addGroup}
+          band={band}
+          healthScore={healthScore}
+          linkHealth={linkHealth}
+          resetView={resetView}
+        />
         <div className="aurora-graph__canvas" ref={wrapRef}>
-          {/* 方案 C · 顶部筛选条：搜索 + 节点类型 + 着色（高频操作提升，告别左栏长列表混排） */}
-          <div className="aurora-graph__topbar">
-            {/* 范围芯片（非默认档出现）：一眼看清「现在看的只是这一批」，并给出一键退出口 */}
-            {scopeKind !== 'files' && (
-              <>
-                <span className="aurora-graph__scope" title={`仅显示「${scopeLabel}」范围内的笔记节点`}>
-                  {scopeKind === 'kb' ? <Icon.book size={13} /> : <Icon.layers size={13} />}
-                  <span className="aurora-graph__scope-name">{scopeLabel}</span>
-                </span>
-                <button
-                  type="button"
-                  className="aurora-graph__scope-exit"
-                  onClick={() => setScope(DEFAULT_GRAPH_SCOPE)}
-                  title="退出当前范围，回到「文件列表」（不含知识库）"
-                >
-                  回到文件列表
-                </button>
-                <span className="aurora-graph__topbar-sep" />
-              </>
-            )}
-            <div className="aurora-graph__search">
-              <Icon.search size={14} />
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="搜索节点…" />
-              {matchedIds && <span className="count">{matchedIds.size} 个</span>}
-            </div>
-            <span className="aurora-graph__topbar-sep" />
-            <div className="aurora-graph__topbar-type">
-              <button
-                type="button"
-                className={`aurora-graph__topbar-btn${typeOpen ? ' is-open' : ''}`}
-                onClick={() => setTypeOpen((o) => !o)}
-              >
-                <Icon.filter size={14} /> 节点类型
-                <Icon.chevronDown size={12} />
-              </button>
-              {typeOpen && (
-                <div className="aurora-graph__pop" onPointerLeave={() => setTypeOpen(false)}>
-                  <label className="aurora-graph__check">
-                    <input type="checkbox" checked={showNote} onChange={(e) => setShowNote(e.target.checked)} />
-                    笔记
-                  </label>
-                  <label className="aurora-graph__check">
-                    <input type="checkbox" checked={showTag} onChange={(e) => setShowTag(e.target.checked)} />
-                    标签
-                  </label>
-                  <label className="aurora-graph__check">
-                    <input type="checkbox" checked={showFolder} onChange={(e) => setShowFolder(e.target.checked)} />
-                    文件夹
-                  </label>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <svg
-            ref={svgRef}
-            className={`aurora-graph__svg${panRef.current ? ' is-panning' : ''}${dragRef.current ? ' is-dragging' : ''}`}
-            width={size.w}
-            height={size.h}
-            onPointerDown={onBgPointerDown}
+          <GraphCanvasArea
+            scopeKind={scopeKind}
+            scopeLabel={scopeLabel}
+            setScope={setScope}
+            defaultScope={DEFAULT_GRAPH_SCOPE}
+            search={search}
+            setSearch={setSearch}
+            matchedIds={matchedIds}
+            typeOpen={typeOpen}
+            setTypeOpen={setTypeOpen}
+            showNote={showNote}
+            setShowNote={setShowNote}
+            showTag={showTag}
+            setShowTag={setShowTag}
+            showFolder={showFolder}
+            setShowFolder={setShowFolder}
+            size={size}
+            svgRef={svgRef}
+            panActive={panActive}
+            dragActive={dragActive}
+            view={view}
+            nodes={nodes}
+            edges={edges}
+            nodeById={nodeById}
+            visibleIds={visibleIds}
+            showFolderLinks={showFolderLinks}
+            showArrows={showArrows}
+            activeId={activeId}
+            hoverId={hoverId}
+            setHoverId={setHoverId}
+            isDim={isDim}
+            isEdgeDim={isEdgeDim}
+            cull={cull}
+            groupColorOf={groupColorFor}
+            onBgPointerDown={onBgPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
             onPointerCancel={onPointerCancel}
-            onClick={(e) => {
-              // 节点手势的 click 会被 setPointerCapture 重定向到这里（target 也是 svg），
-              // 若只看 target 会把「点节点」误判成「点空白」→ 刚选中的节点/信息卡被立刻清空，
-              // 故以手势来源（nodeGestureRef）为准
-              if (nodeGestureRef.current) {
-                nodeGestureRef.current = false
-                return
-              }
-              if (e.target === svgRef.current) {
-                setSelectedId(null)
-                setInfoCard(null)
-                setMenu(null)
-              }
-            }}
+            onCanvasClick={onCanvasClick}
             onWheel={onWheel}
-          >
-            <g transform={`translate(${view.tx}, ${view.ty}) scale(${view.scale})`}>
-              <defs>
-                <marker
-                  id="graph-arrow"
-                  viewBox="0 0 10 10"
-                  refX="9"
-                  refY="5"
-                  markerWidth="6"
-                  markerHeight="6"
-                  orient="auto-start-reverse"
-                >
-                  <path d="M 0 1 L 9 5 L 0 9 z" className="aurora-graph__arrow" />
-                </marker>
-              </defs>
-              {edges.map((e, i) => {
-                const s = nodeById.get(e.source)
-                const t = nodeById.get(e.target)
-                if (!s || !t) return null
-                if (!visibleIds.has(s.id) || !visibleIds.has(t.id)) return null
-                if (e.kind === 'folder' && !showFolderLinks) return null
-                if (cull(s.x, s.y) && cull(t.x, t.y)) return null
-                const dim = isEdgeDim(s.id, t.id)
-                const act = activeId && (s.id === activeId || t.id === activeId)
-                const arrow = showArrows && (e.kind === 'wiki' || e.kind === 'embed')
-                return (
-                  <line
-                    key={i}
-                    x1={s.x}
-                    y1={s.y}
-                    x2={t.x}
-                    y2={t.y}
-                    markerEnd={arrow ? 'url(#graph-arrow)' : undefined}
-                    className={`aurora-graph__edge aurora-graph__edge--${e.kind}${act ? ' is-active' : ''}${dim ? ' is-dim' : ''}`}
-                  />
-                )
-              })}
-              {nodes.map((n) => {
-                if (!visibleIds.has(n.id)) return null
-                if (cull(n.x, n.y)) return null
-                // P2-4 度数权重：file 节点半径随连接数增大（核心笔记一眼可见）；当前笔记放大强调保留
-                const r = n.isCurrent
-                  ? CURRENT_R
-                  : n.type === 'file'
-                    ? RADIUS.file + Math.min(n.deg, 8) * 0.8
-                    : RADIUS[n.type]
-                const dim = isDim(n.id)
-                const act = activeId === n.id
-                const hov = hoverId === n.id
-                const hot = n.type === 'file' && n.deg >= 4
-                const isOrphan = n.type === 'file' && n.deg === 0
-                const cls = n.isCurrent ? 'current' : n.type === 'folder' ? 'folder' : isOrphan ? 'orphan' : n.type
-                const gColor = groupFor(n)?.color // P2-3 分组着色（inline 覆盖类型色）
-                const showLabel =
-                  n.isCurrent || n.type === 'folder' || isOrphan || hot || hov || act || (matchedIds?.has(n.id) ?? false)
-                return (
-                  <g
-                    key={n.id}
-                    // 节点身份锚点（对齐 BlogPanel 的 data-file-id 惯例）：label 只在
-                    // 孤立/热点/悬停/命中节点上渲染，靠文字认节点会漏判，
-                    // 故把 id/type 挂到 DOM 上供测试与真机探针精确定位（无视觉影响）。
-                    data-node-id={n.id}
-                    data-node-type={n.type}
-                    className={`aurora-graph__node${act ? ' is-active' : ''}${hov ? ' is-hover' : ''}${dim ? ' is-dim' : ''}`}
-                    onPointerDown={(e) => onNodePointerDown(e, n.id)}
-                    onDoubleClick={(e) => {
-                      e.stopPropagation()
-                      onNodeDouble(n.id)
-                    }}
-                    onContextMenu={(e) => onNodeContext(e, n.id)}
-                    onPointerEnter={() => setHoverId(n.id)}
-                    onPointerLeave={() => setHoverId((h) => (h === n.id ? null : h))}
-                  >
-                    {n.type === 'tag' ? (
-                      <polygon points={hexPoints(n.x, n.y, r)} className={`aurora-graph__dot aurora-graph__dot--${cls}${hot ? ' is-hot' : ''}`} style={gColor ? { fill: gColor } : undefined} />
-                    ) : n.type === 'folder' ? (
-                      <rect x={n.x - r * 0.85} y={n.y - r * 0.85} width={r * 1.7} height={r * 1.7} rx={4} className={`aurora-graph__dot aurora-graph__dot--${cls}${hot ? ' is-hot' : ''}`} style={gColor ? { fill: gColor } : undefined} />
-                    ) : (
-                      <circle cx={n.x} cy={n.y} r={r} className={`aurora-graph__dot aurora-graph__dot--${cls}${hot ? ' is-hot' : ''}`} style={gColor ? { fill: gColor } : undefined} />
-                    )}
-                    {showLabel && (
-                      <text x={n.x} y={n.y + r + 13} className="aurora-graph__label">
-                        {n.label}
-                      </text>
-                    )}
-                  </g>
-                )
-              })}
-            </g>
-          </svg>
+            onNodePointerDown={onNodePointerDown}
+            onNodeDouble={onNodeDouble}
+            onNodeContext={onNodeContext}
+          />
 
 
-          {/* 视图控制（右上）*/}
-          <div className="aurora-graph__float aurora-graph__controls">
-            <button onClick={() => setView((v) => ({ ...v, scale: clamp(v.scale / 1.2, 0.2, 3) }))} title="缩小">
-              <Icon.minus size={15} />
-            </button>
-            <button
-              className="aurora-graph__zoom"
-              onClick={() => {
-                setView({ scale: 1, tx: 0, ty: 0 })
-                reheat(0.5)
-              }}
-              title="点击重置为 100%"
-            >
-              {Math.round(view.scale * 100)}%
-            </button>
-            <button onClick={() => setView((v) => ({ ...v, scale: clamp(v.scale * 1.2, 0.2, 3) }))} title="放大">
-              <Icon.plus size={15} />
-            </button>
-            <span className="divider" />
-            <button
-              onClick={() => {
-                setView({ scale: 1, tx: 0, ty: 0 })
-                reheat(0.6)
-              }}
-              title="适应视图"
-            >
-              <Icon.frame size={15} />
-            </button>
-            <button onClick={focusCenter} title="聚焦当前笔记">
-              <Icon.target size={15} />
-            </button>
-            <button onClick={toggleFullscreen} title="全屏">
-              <Icon.maximize size={15} />
-            </button>
-            <span className="divider" />
-            <button onClick={() => setExportOpen((o) => !o)} title="导出">
-              <Icon.download size={15} />
-            </button>
-          </div>
-
-          {exportPresence.mounted && (
-            <div
-              className="aurora-graph__float aurora-graph__menu"
-              data-exiting={exportPresence.exiting || undefined}
-            >
-              <button onClick={() => { exportPNG(); setExportOpen(false) }}>
-                <Icon.download size={14} /> 导出 PNG
-              </button>
-              <button onClick={() => { exportSVG(); setExportOpen(false) }}>
-                <Icon.download size={14} /> 导出 SVG
-              </button>
-              <button onClick={() => { exportJSON(); setExportOpen(false) }}>
-                <Icon.copy size={14} /> 导出 JSON
-              </button>
-            </div>
-          )}
-
-          {/* 节点信息卡 */}
-          {infoNode && infoPos && (
-            <div className="aurora-graph__float aurora-graph__infocard" style={{ left: infoPos.left, top: infoPos.top }}>
-              <div className="aurora-graph__ic-head">
-                <div className="aurora-graph__ic-title">
-                  <span className="aurora-graph__ic-dot" style={{ background: nodeFill(infoNode) }} />
-                  {infoNode.label}
-                </div>
-                <button className="aurora-graph__ic-close" onClick={() => setInfoCard(null)}>
-                  <Icon.close size={14} />
-                </button>
-              </div>
-              <span className="aurora-graph__ic-type">
-                {infoNode.isCurrent ? '当前笔记' : infoNode.type === 'tag' ? '标签' : infoNode.type === 'folder' ? '文件夹' : infoNode.deg === 0 ? '孤立笔记' : '笔记'}
-              </span>
-              {infoNode.filePath && <div className="aurora-graph__ic-path">{infoNode.filePath}</div>}
-              {infoNode.tags.length > 0 && (
-                <div className="aurora-graph__ic-tags">
-                  {infoNode.tags.map((t) => (
-                    <em key={t}>{t}</em>
-                  ))}
-                </div>
-              )}
-              <div className="aurora-graph__ic-stats">
-                <div className="aurora-graph__ic-stat"><div className="v">{infoNode.inLinks}</div><div className="k">入链</div></div>
-                <div className="aurora-graph__ic-stat"><div className="v">{infoNode.outLinks}</div><div className="k">出链</div></div>
-                <div className="aurora-graph__ic-stat"><div className="v">{infoNode.wordCount ?? '—'}</div><div className="k">字数</div></div>
-                <div className="aurora-graph__ic-stat"><div className="v sm">{relTime(infoNode.modifiedAt)}</div><div className="k">修改</div></div>
-              </div>
-              <div className="aurora-graph__ic-actions">
-                {infoNode.type === 'file' && (
-                  <button
-                    className="primary"
-                    onClick={() => {
-                      openNoteInEditor(infoNode.id)
-                      setInfoCard(null)
-                    }}
-                  >
-                    <Icon.arrowR size={13} /> 打开笔记
-                  </button>
-                )}
-                <button onClick={() => { setMode('local'); setCenterId(infoNode.id); setInfoCard(null); reheat(0.4) }}>
-                  <Icon.target size={13} /> 在图谱中聚焦
-                </button>
-                <button onClick={() => { setMode('backlinks'); setCenterId(infoNode.id); setInfoCard(null); reheat(0.4) }}>
-                  <Icon.link size={13} /> 查看反向链接
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* 右键菜单 */}
-          {menuPresence.mounted && menuPresence.value && (() => {
-            // 退场窗口内沿用最后一份非空载荷（usePresenceValue 已保证），坐标不丢
-            const menu = menuPresence.value!
-            const m = nodeById.get(menu.id)
-            if (!m) return null
-            return (
-              <div
-                className="aurora-graph__float aurora-graph__ctx"
-                data-exiting={menuPresence.exiting || undefined}
-                style={{ left: menu.x, top: menu.y }}
-                onPointerLeave={() => setMenu(null)}
-              >
-                <button onClick={() => { onNodeDouble(m.id); setMenu(null) }}>
-                  <Icon.arrowR size={14} /> 打开笔记
-                </button>
-                {m.type === 'file' && (
-                  <button onClick={() => { void openOwningKb(m.id); setMenu(null) }}>
-                    <Icon.book size={14} /> 打开所属知识库
-                  </button>
-                )}
-                <button onClick={() => { setMode('local'); setCenterId(m.id); setMenu(null); reheat(0.4) }}>
-                  <Icon.frame size={14} /> 局部视图
-                </button>
-                <button onClick={() => { setMode('backlinks'); setCenterId(m.id); setMenu(null) }}>
-                  <Icon.link size={14} /> 查看反向链接
-                </button>
-                <button onClick={() => { setMode('forwardlinks'); setCenterId(m.id); setMenu(null) }}>
-                  <Icon.share size={14} /> 查看正向链接
-                </button>
-                <button onClick={() => { setCenterId(m.id); setMenu(null); reheat(0.4) }}>
-                  <Icon.refresh size={14} /> 设为中心
-                </button>
-                <div className="sep" />
-                <button
-                  onClick={() => {
-                    setHidden((h) => new Set(h).add(m.id))
-                    setMenu(null)
-                    setInfoCard(null)
-                  }}
-                >
-                  <Icon.eyeOff size={14} /> 隐藏节点
-                </button>
-                <button
-                  onClick={() => {
-                    // 展开邻居：把该节点一跳邻居并入显示（真实实现，替换原 toast 桩）
-                    setExtraNeighbors((prev) => {
-                      const next = new Set(prev)
-                      ;(adjacency.get(m.id) || []).forEach((nid) => next.add(nid))
-                      return next
-                    })
-                    setMenu(null)
-                    setInfoCard(null)
-                    reheat(0.4)
-                  }}
-                >
-                  <Icon.share size={14} /> 展开邻居
-                </button>
-                <button onClick={() => { setSelectedId(m.id); setInfoCard({ id: m.id }); setMenu(null) }}>
-                  <Icon.info size={14} /> 查看详情
-                </button>
-              </div>
-            )
-          })()}
-
-          {/* 底部状态栏（居中）*/}
-          <div className="aurora-graph__statusbar">
-            <div className="aurora-graph__sb-stats">
-              <span className="lg-current">{stats.note}</span>
-              <span className="lg-tag">{stats.tag}</span>
-              <span className="lg-folder">{stats.folder}</span>
-              <span><i className="lg-wiki" />{stats.edge}</span>
-            </div>
-            <span className="aurora-graph__sb-sep" />
-            <div className="aurora-graph__sb-legend">
-              <span className="lg-current">当前</span>
-              <span className="lg-file">笔记</span>
-              <span className="lg-folder">文件夹</span>
-              <span className="lg-tag">标签</span>
-              <span><i className="lg-wiki" />引用</span>
-              <span><i className="lg-taglink" />标签关联</span>
-            </div>
-            <span className="aurora-graph__sb-sep" />
-            {/* 布局切换已在左侧栏「视图·布局方式」提供，状态栏去重，避免与左栏重复 */}
-          </div>
-
-          {/* 空态 */}
-          {visibleIds.size === 0 && (
-            <div className="aurora-graph__empty">
-              <Icon.graph size={32} />
-              {/* 范围内的空态必须说明「是范围所致」，否则用户会以为是筛选条件把图筛没了 */}
-              <div className="title">
-                {scopeKind === 'kb'
-                  ? '本知识库暂无可显示的节点'
-                  : scopeKind === 'files'
-                    ? '文件列表里没有可显示的节点'
-                    : '没有匹配的节点'}
-              </div>
-              <div className="sub">
-                {scopeKind === 'kb'
-                  ? `「${scopeLabel}」内还没有笔记，或这些笔记之间尚未建立引用关系。`
-                  : scopeKind === 'files'
-                    ? '默认范围不含知识库里的文件 —— 如果笔记都在知识库里，切到「全部文件」或直接选一个知识库即可看到。'
-                    : '调整筛选条件、标签选择或图谱模式，图谱将重新显现。'}
-              </div>
-              {scopeKind === 'files' ? (
-                <button type="button" className="aurora-graph__empty-exit" onClick={() => setScope('all')}>
-                  查看全部文件
-                </button>
-              ) : scopeKind === 'kb' ? (
-                <button type="button" className="aurora-graph__empty-exit" onClick={() => setScope(DEFAULT_GRAPH_SCOPE)}>
-                  回到文件列表
-                </button>
-              ) : null}
-            </div>
-          )}
+          <GraphOverlays
+            view={view}
+            setView={setView}
+            reheat={reheat}
+            focusCenter={focusCenter}
+            toggleFullscreen={toggleFullscreen}
+            exportOpen={exportOpen}
+            setExportOpen={setExportOpen}
+            exportPresence={exportPresence}
+            exportPng={doExportPng}
+            exportSvg={doExportSvg}
+            exportJson={doExportJson}
+            infoNode={infoNode}
+            infoFill={infoNode ? nodeFill(infoNode) : ''}
+            infoModified={infoNode ? relTime(infoNode.modifiedAt) : ''}
+            infoPos={infoPos}
+            setInfoCard={setInfoCard}
+            openNoteInEditor={openNoteInEditor}
+            setMode={setMode}
+            setCenterId={setCenterId}
+            menuPresence={menuPresence}
+            setMenu={setMenu}
+            nodeById={nodeById}
+            adjacency={adjacency}
+            onNodeDouble={onNodeDouble}
+            openOwningKb={openOwningKb}
+            setHidden={setHidden}
+            setExtraNeighbors={setExtraNeighbors}
+            setSelectedId={setSelectedId}
+            stats={stats}
+            visibleCount={visibleIds.size}
+            scopeKind={scopeKind}
+            scopeLabel={scopeLabel}
+            setScope={setScope}
+            defaultScope={DEFAULT_GRAPH_SCOPE}
+          />
         </div>
       </div>
     </PageFrame>

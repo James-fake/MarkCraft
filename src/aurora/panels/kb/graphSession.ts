@@ -12,7 +12,7 @@
  * 采用模块级单例（与 navigation/navReturn.ts、BlogPanel.setBlogEntryFileId 同源模式），
  * 避免为传递返回上下文而改动 nav() 签名；刷新页面即清空（与 #view= 不带参数的既有约定一致）。
  */
-import type { GraphMode, Layout } from './GraphPanel'
+import type { GraphMode, Layout } from './graph/graphModel'
 
 export interface GraphNodePos {
   x: number

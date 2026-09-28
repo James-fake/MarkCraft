@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { simulateStep, MAX_STEP, type GNode } from './GraphPanel'
+import { simulateStep, MAX_STEP, type GNode } from './graph/graphModel'
 
 /**
  * 双链图谱「节点拖拽」回归锁（2026-09-23 用户报障）

@@ -22,6 +22,8 @@ class ResizeObserverStub {
   unobserve() {}
   disconnect() {}
 }
+// 行首分号防 ASI 粘连 class 声明；eslint-disable 压制 no-extra-semi（同 scope.test 的既有写法）
+// eslint-disable-next-line no-extra-semi
 ;(globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = ResizeObserverStub
 
 function renderGraph(nav = vi.fn()) {

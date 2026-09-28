@@ -22,7 +22,12 @@ import { resolve } from 'path'
 import { describe, it, expect } from 'vitest'
 
 const css = readFileSync(resolve(__dirname, '../../styles/panels/blog.css'), 'utf-8')
-const tsx = readFileSync(resolve(__dirname, 'BlogPanel.tsx'), 'utf-8')
+// 🧩 P2-3（2026-09-28）BlogPanel 拆分后，主题市场的渲染体在 settingPanels.tsx、
+//    常量/数据源在 blogStudioModel.ts、宿主编排在 BlogPanel.tsx ——
+//    本契约断言的是「实现语义」而非「文件位置」，故扫描面 = 拆分后全部子模块拼接。
+const tsx = ['BlogPanel.tsx', 'settingPanels.tsx', 'blogStudioModel.ts', 'studioAtoms.tsx', 'deployPanels.tsx']
+  .map((f) => readFileSync(resolve(__dirname, f), 'utf-8'))
+  .join('\n')
 const gen = readFileSync(resolve(__dirname, '../../../features/blog/hooks/useBlogGenerator.ts'), 'utf-8')
 
 const rule = (selector: string) => {

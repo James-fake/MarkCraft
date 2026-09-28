@@ -33,7 +33,7 @@ class ResizeObserverStub {
   unobserve() {}
   disconnect() {}
 }
-;(globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = ResizeObserverStub
+;(globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = ResizeObserverStub // eslint-disable-line no-extra-semi -- 行首 `;` 防止 ASI 与上一行 class 声明粘连
 
 // 范围由本测试注入：getKbFiles 每次调用读最新值（闭包），故可逐用例改写
 const hoisted = vi.hoisted(() => ({ scopeFileIds: [] as string[] }))

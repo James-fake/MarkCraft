@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { scopeGraphToKb, excludeGraphFiles, type GNode, type GEdge } from './GraphPanel'
+import { scopeGraphToKb, excludeGraphFiles } from './graph/graphScope'
+import type { GNode, GEdge } from './graph/graphModel'
 
 /**
  * 双链图谱「知识库范围」裁剪回归锁（2026-09-23 用户报障）
