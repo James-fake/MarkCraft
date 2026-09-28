@@ -197,8 +197,8 @@ src/
 | **P1-1** | V8 清零 | 随 P0 迁移自动归零 | — | eslint guard / 审计脚本 V8=0 |
 | **P1-2** | V6 清零 | commandRegistry/shortcutFormat 下沉 services/command，改 4 处 import | 0.5 天 | V6=0 + CommandPalette/菜单行为回归 |
 | **P1-3** | newThemes.ts 拆分 | 一主题一文件 + 桶兼容 | 1–2 天（可脚本化） | 桶 API 不变 + 博客主题目检 |
-| **P2-1** | panel→panel 解耦 | setBlogEntryFileId 走 services 中转 | 0.5 天 | 审计脚本 panel→panel=0 |
-| **P2-2** | EditorPanel 瘦身 | 抽 editorIntegration 聚合接线 | 1 天 | 引 features 数 7→1 |
+| **P2-1** | panel→panel 解耦 | setBlogEntryFileId 走 services 中转 | 0.5 天 | 审计脚本 panel→panel=0 | ✅ **已实施**（2026-09-28，`1d838c6`） |
+| **P2-2** | EditorPanel 瘦身 | 抽 editorIntegration 聚合接线 | 1 天 | 引 features 数 7→1 | ✅ **已实施**（2026-09-28，见 §13） |
 | **P2-3** | GraphPanel/BlogPanel 拆子组件 | 按区块拆内部组件文件 | 1–2 天 | 行数 <800/文件，行为不变 |
 | **P2-4（可选）** | 两条方向可疑 feature 边 | templates 匹配下沉 services | 0.5 天 | 审计脚本只剩合法扇出 |
 
@@ -278,3 +278,36 @@ node .workbuddy/artifacts/audit-decouple-structure.cjs
 **回归锁**：`src/features/blog/themes/newThemes.barrel.test.ts` —— ① 桶仍导出全部 48 个生成器（API 不缩水）；② 每个生成器明暗两模式均返回含 `:root` 的合法 CSS；③ 明暗产物确有差异（`getCinematicCss`/`getNeonCss` 签名 `_isDark` 不使用该参数，已作对照组排除）。
 
 **验证**：tsc 干净 · 全量 vitest **1770 通过 / 0 失败** · ESLint 0 error · 审计 §2 TOP30 已无该文件 · vite build 通过。
+
+---
+
+## 13. 实施记录 · P2-1 / P2-2（2026-09-28 完成）
+
+### P2-1 panel→panel 解耦（`1d838c6`）
+
+- **根因**：「发布为博客」要把目标文件 id 带给尚未挂载的博客面板，该标记原是 `BlogPanel.tsx` 的**模块级变量** ⇒ `EditorPanel → BlogPanel` 面板横向 import（审计中唯一的业务性 panel→panel 边）。
+- **解法**：通道下沉 `services/blogEntry.ts`（零依赖、无 React、无 store）——生产者 `setBlogEntryFileId(id)`，消费者 `peekBlogEntryFileId()` / `clearBlogEntryFileId()`（读后即清）。**刻意不用 store**：这是一次性、消费即清除的导航意图，不是需要订阅/持久化的状态。
+- **回归锁**：`services/__tests__/blogEntry.test.ts` + `panelCrossImport.test.ts`（结构性守卫）+ CDP 真机探针（跨面板组件树重建后意图仍送达、消费后不残留）。
+
+### P2-2 EditorPanel 瘦身（features 域引用 8 → 1）
+
+- **拆分判据（唯一）**：这段东西是「功能接线」还是「布局」？接线（自动保存/版本快照 S1–S4/S6a、lint、六个 feature 弹层、模板插入、快速捕捉、导入、主题）→ `features/editor/editorIntegration.tsx`（`useEditorIntegration` 聚合 hook，353 行）；布局（窗格/浮栏显示态、hover-intent、面包屑、工具栏与右栏摆位）→ 留在 EditorPanel（1027 → 819 行）。
+- **边界（刻意保留在面板）**：`AuroraLintList` 是 aurora 本地组件，features 反向依赖 aurora 会触发换界面守卫 ⇒ integration 只产出 lint 状态与回调，面板负责渲染；`auroraModal` 的 `AuroraModalId` 联合类型同理——integration 声明为 string，面板侧做窄化适配（`id as AuroraModalId`）。
+- **类型保真**：integration 接口的 `theme` 保留 `useTheme` 的 `ThemeType` 派生类型，不在边界退化为 string（否则下游要再断言回来）。
+- **顺带修复**：① `versionHistory.open` 进入命令桥 effect 依赖数组（消除 exhaustive-deps warning）；② cmdBridge cleanup 改用捕获的同一份 ref 对象（消除 react-hooks 警告，语义不变）。
+- **验收**：EditorPanel 的 features 域引用 editor/fileManager/import/lint/pwa/templates/themes/appRuntime **8 → 1**（只剩 `@features/editor/*`）。
+
+**真机 CDP 双轮探针（合并覆盖全部关键判据，`p22-editor-wiring.png`）**：
+
+| 判据 | 结果 |
+|---|---|
+| lint 接线：状态栏入口 → 点击 → `.aurora-lint-panel` 打开且有计数 | ✅（第 1 轮，计数「1 错误」） |
+| dirty → 自动保存 → Ctrl+S 手动保存（S1/S6a 接线） | ✅（第 2 轮，未保存→已保存、字数增长、无异常） |
+| ⌘K → 命令桥 openVersionHistory → **integration.modals 渲染的弹层打开** | ✅（第 2 轮，命中「版本历史」命令 1 节点，`.vh-count` 出现） |
+| Escape 关闭无残留 / 全程零页面错误 | ✅（两轮均 0 条） |
+
+**探针踩坑记录（复用价值）**：① Vite 默认绑 localhost 解析为 IPv6 回环，探针 fetch 127.0.0.1 会「进程已起但连不上」⇒ 必须 `--host 127.0.0.1`；② Edge spawn 路径在 bash 里反斜杠被吞 ⇒ 用正斜杠 + `--remote-debugging-address=127.0.0.1`；③ FileStore 两阶段初始化会用 IDB 覆盖 localStorage，新 profile 下数据种子不可靠 ⇒ 探针改走真实 UI（新建笔记按钮）造数据；④ 所见即所得（TipTap）会规范化「未闭合代码块」⇒ lint 取证必须在修改内容之前，且用 `# 一级标题`/`### 三级标题` 的层级跳跃制造 warning；⑤ 「未保存」态窗口只有防抖 500ms，键入后须立即抓取。
+
+**验证**：tsc 干净 · 全量 vitest **1777 通过 / 0 失败**（136 文件）· ESLint 0 error（两文件 CLEAN）· 依赖图无环无双向 · vite build 通过（3589 模块）。
+
+**路线图状态**：P0 / P1-1 / P1-2 / P1-3 / P2-1 / P2-2 全部完成；剩 P2-3（GraphPanel/BlogPanel 拆子组件）与 P2-4（可选：两条可疑 feature 边）。

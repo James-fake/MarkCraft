@@ -9,21 +9,13 @@ import { EditorToolbar } from './EditorToolbar'
 import { EditorReturnButton } from './EditorReturnButton'
 import { Icon } from '../../icons'
 import '../../styles/panels/editor.css'
-// —— 语法检查：Aurora 层集成（复用真实 lintMarkdown + fixIssue 引擎；D4 单一数据源）
-import { lintMarkdown, fixIssue } from '@features/lint/markdownLinter'
-import type { LintIssue } from '@utils/lintTypes'
+// —— 语法检查列表：Aurora 层本地组件（lint 状态/回调由 editorIntegration 产出）——
 import { AuroraLintList } from './AuroraLintList'
-// —— 字数统计：复用真实 features/editor/stats 单一数据源（D4，不维护平行实现）——
-import { countWords } from '@features/editor/stats'
 // —— 真实编辑器与渲染链路（D8：内部 body 由 mock 改为真实 EditorLayout）——
 import { EditorLayout, type EditorLayoutHandle } from '@features/editor/EditorLayout'
-import VersionHistoryPanel from '@features/editor/VersionHistoryPanel'
-import ImportDialog from '@features/import/ImportDialog'
-import LinkRedirectDialog from '@features/fileManager/LinkRedirectDialog'
-import BlockBacklinksPanel from '@features/editor/BlockBacklinksPanel'
-import TemplateInsertModal from '@features/templates/TemplateInsertModal'
-import TemplateDiscoveryModal from '@features/templates/TemplateDiscoveryModal'
-import QuickCaptureModal from '@features/pwa/QuickCaptureModal'
+// —— P2-2：功能接线聚合（lint/弹层/模板/快速捕捉/导入/主题/自动保存）统一在此 ——
+// EditorPanel 因此只 import `@features/editor/*` 一个域，回归「布局 + 组合」角色。
+import { useEditorIntegration } from '@features/editor/editorIntegration'
 // 编辑器内部左侧文件树：Aurora 外壳 + 真实数据（详见 FileTree.tsx）
 import { FileTree } from './FileTree'
 import { EmptyFileBrowser } from './EmptyFileBrowser'
@@ -33,20 +25,17 @@ import { UsageDocBrief } from './UsageDocBrief'
 import { RightSidebar, type InspectorTab } from './RightSidebar'
 import { useFileManager } from '@stores/FileStore'
 import { useSettings } from '@stores/SettingsStore'
-import { useTheme } from '@features/themes/useTheme'
 import { useLanguage } from '@stores/LanguageStore'
 import { findNode } from '@core/files/fileTree'
 import type { FileNode } from '@src/types/fileManager'
 import { findParentId } from '@services/fileService'
-import { findInboxId } from '@features/pwa'
 // 注：「粘贴为脚注」（features/editor/footnoteAuto）随辅助 Tab 旧分区一并退役，本层不再直连；
 // 脚注插入仍由编辑器内核与默认快捷键承担。
 import { useMarkdownRenderer } from '@hooks/useMarkdownRenderer'
 import { useAppLayout } from '@hooks/useAppLayout'
 import { useUsageDocsScope } from '@hooks/useUsageDocsScope'
 import { usePresence, OVERLAY_EXIT_MS } from '@components/ui/usePresence'
-import { useAppLogic } from '@features/appRuntime/useAppLogic'
-import { textFromStorage, textToStorage } from '@core/storage/imageStore'
+import { textToStorage } from '@core/storage/imageStore'
 
 /** Aurora 弹层开关（由 AuroraShell 以单一数据源持有，命令与编辑器 UI 共用；方案 B 就近归属渲染） */
 export interface AuroraModalControls {
@@ -137,7 +126,6 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   // 它自己从 FileStore 取脏标记（视图无关）。
   const { rootFolder, getActiveFileId, getActiveFileContent, updateFileContent, createFile, openFile, activeTabId, tabs, markTabDirty, closeTransientTabs } = useFileManager()
   const { settings, updateSetting } = useSettings()
-  const { theme, toggleTheme } = useTheme()
   const { language, toggleLanguage } = useLanguage()
   // 知识库列表（辅助 Tab · 就地展开）的展开态与目标文件：受控持有，使 ⌘K 命令
   // 与标签右键菜单都能远程召唤同一个列表（数据与归集动作在 AuroraPublish 内闭环）。
@@ -224,7 +212,6 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
     if (leftCloseTimer.current) window.clearTimeout(leftCloseTimer.current)
     if (rightCloseTimer.current) window.clearTimeout(rightCloseTimer.current)
   }, [])
-  const [showVersionHistory, setShowVersionHistory] = useState(false)
 
   const activeFileId = getActiveFileId()
   const activeNode = activeFileId ? findNode(rootFolder, activeFileId) : null
@@ -289,50 +276,30 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFileId])
 
-  // —— 编辑器视图级副作用（S1 自动保存 / S2 版本快照 / S3 块索引 / S4 块解析器 / S6a tab dirty）——
-  // P0 解耦（2026-09-27）：应用级的 S5 MOC 自动更新 / S7 备份调度 / S6b beforeunload 已上提到
-  // useAppGlobalEffects，由 AuroraShell 常驻挂载——它们只依赖 store，与当前视图无关；
-  // 此前挂在 EditorPanel 上，切到白板/图谱等视图时 EditorPanel 卸载 ⇒ MOC 不更新、备份停摆。
-  const { scheduleSave, createVersion } = useAppLogic({
+  // —— P2-2：功能接线一次性接入（自动保存 / 版本快照 / lint / 六个弹层 / 模板 / 快速捕捉 / 导入 / 主题）——
+  // 原先散在本文件的 8 个 feature 域引用全部收敛到 useEditorIntegration；
+  // 本文件只保留「布局 + 组合」：窗格与浮栏显示态、hover-intent、面包屑、工具栏与右栏摆位。
+  const integration = useEditorIntegration({
     activeFileId,
     activeFileName: activeNode?.name,
     localContent,
+    setLocalContent,
     activeTabId,
     updateFileContent,
     openFile,
     markTabDirty,
-  })
-
-  const handleChange = useCallback(
-    (value: string) => {
-      // 对齐 App.tsx 的 useContentHandler.handleChange：
-      // 经 textFromStorage 入草稿、textToStorage 入存储，由 scheduleSave 统一负责
-      // 崩溃备份 + 500ms 防抖持久化(updateFileContent) + isDirty 标记(S6)。不直写 store。
-      const convertedValue = textFromStorage(value)
-      setLocalContent(convertedValue)
-      scheduleSave(textToStorage(convertedValue))
+    rootFolder,
+    createFile,
+    // 窄化适配：features 层不得依赖 aurora 的 AuroraModalId 联合类型（反向依赖守卫），
+    // 接线为此声明为 string；此处在 aurora 侧做一层转换，面板内部仍是强类型模态 id。
+    auroraModal: auroraModal && {
+      open: (id: string) => auroraModal.open(id as AuroraModalId),
+      close: (id: string) => auroraModal.close(id as AuroraModalId),
+      isOpen: (id: string) => auroraModal.isOpen(id as AuroraModalId),
     },
-    [scheduleSave, setLocalContent, textFromStorage, textToStorage],
-  )
-
-  // —— S15 全局保存（对齐 App.tsx handleSave：Ctrl/Cmd+S → scheduleSave + manual 版本）——
-  // 阻止浏览器默认「保存网页」行为；无活跃文件时静默跳过（与 App.tsx 一致）。
-  const handleManualSave = useCallback(() => {
-    if (!activeFileId) return
-    scheduleSave(textToStorage(localContent))
-    createVersion(activeFileId, localContent, 'manual')
-  }, [activeFileId, localContent, scheduleSave, createVersion, textToStorage])
-
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's' && !e.shiftKey && !e.altKey) {
-        e.preventDefault()
-        handleManualSave()
-      }
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [handleManualSave])
+    language,
+  })
+  const { theme, toggleTheme, handleChange, handleManualSave, wordCount, lint, versionHistory, modals } = integration
 
   const { renderedHtml } = useMarkdownRenderer(localContent, textToStorage)
 
@@ -425,123 +392,42 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   const editorLayoutRef = useRef<EditorLayoutHandle>(null)
   useEffect(() => {
     if (!cmdBridge) return
-    cmdBridge.current.save = handleManualSave
-    cmdBridge.current.togglePreview = togglePreview
-    cmdBridge.current.toggleEditorMode = toggleWysiwyg
-    cmdBridge.current.toggleSidebar = () => { if (isUsageDoc) return; setLeftPinned((p) => !p) }
-    cmdBridge.current.openVersionHistory = () => setShowVersionHistory(true)
-    cmdBridge.current.goToLine = () => editorLayoutRef.current?.openGoToLine()
-    cmdBridge.current.restoreCrash = handleChange
+    // cleanup 必须用「捕获时的同一份 ref 对象」：直接写 cmdBridge.current 会读到卸载后的最新值
+    const bridge = cmdBridge.current
+    bridge.save = handleManualSave
+    bridge.togglePreview = togglePreview
+    bridge.toggleEditorMode = toggleWysiwyg
+    bridge.toggleSidebar = () => { if (isUsageDoc) return; setLeftPinned((p) => !p) }
+    bridge.openVersionHistory = versionHistory.open
+    bridge.goToLine = () => editorLayoutRef.current?.openGoToLine()
+    bridge.restoreCrash = handleChange
     // —— 极简顶栏整治：发布/知识库移出顶栏，经命令桥供 ⌘K 命令面板触达 ——
-    cmdBridge.current.publish = handlePublish
-    cmdBridge.current.openKbMenu = openKbMenu
+    bridge.publish = handlePublish
+    bridge.openKbMenu = openKbMenu
     // —— 批次① P0-A：编辑菜单经命令桥触达编辑器内部动作（撤销/重做/查找/删除选区）——
-    cmdBridge.current.undo = () => editorLayoutRef.current?.undo()
-    cmdBridge.current.redo = () => editorLayoutRef.current?.redo()
-    cmdBridge.current.find = () => editorLayoutRef.current?.find()
-    cmdBridge.current.deleteSelection = () => editorLayoutRef.current?.deleteSelection()
+    bridge.undo = () => editorLayoutRef.current?.undo()
+    bridge.redo = () => editorLayoutRef.current?.redo()
+    bridge.find = () => editorLayoutRef.current?.find()
+    bridge.deleteSelection = () => editorLayoutRef.current?.deleteSelection()
     return () => {
-      cmdBridge.current.save = undefined
-      cmdBridge.current.togglePreview = undefined
-      cmdBridge.current.toggleEditorMode = undefined
-      cmdBridge.current.toggleSidebar = undefined
-      cmdBridge.current.openVersionHistory = undefined
-      cmdBridge.current.goToLine = undefined
-      cmdBridge.current.restoreCrash = undefined
-      cmdBridge.current.publish = undefined
-      cmdBridge.current.openKbMenu = undefined
-      cmdBridge.current.undo = undefined
-      cmdBridge.current.redo = undefined
-      cmdBridge.current.find = undefined
-      cmdBridge.current.deleteSelection = undefined
+      bridge.save = undefined
+      bridge.togglePreview = undefined
+      bridge.toggleEditorMode = undefined
+      bridge.toggleSidebar = undefined
+      bridge.openVersionHistory = undefined
+      bridge.goToLine = undefined
+      bridge.restoreCrash = undefined
+      bridge.publish = undefined
+      bridge.openKbMenu = undefined
+      bridge.undo = undefined
+      bridge.redo = undefined
+      bridge.find = undefined
+      bridge.deleteSelection = undefined
     }
-  }, [cmdBridge, handleManualSave, togglePreview, toggleWysiwyg, handleChange, handlePublish, openKbMenu, isUsageDoc])
+  }, [cmdBridge, handleManualSave, togglePreview, toggleWysiwyg, handleChange, handlePublish, openKbMenu, isUsageDoc, versionHistory.open])
 
-  const wordCount = useMemo(() => countWords(localContent), [localContent])
+  // 日记文件判定（EditorLayout 的 isDiary）：命名 YYYY-MM-DD.md —— 属布局派生，留在本层
   const isDiary = !!activeNode?.name && /^(\d{4}-\d{2}-\d{2})\.md$/.test(activeNode.name)
-
-  // —— 语法检查（Aurora 层入口 · 复用真实 lintMarkdown + fixIssue；检测 500ms 防抖）——
-  // 真实 lint 引擎已在 CodeMirror/TipTap 内核内运行（波浪线由 CM6 linter + TipTap LintExtension 渲染），
-  // 此处仅在 Aurora 层暴露「编辑信息栏入口 + 常驻问题列表面板 + 跳转/修复」交互，
-  // 与原界面 EditorStatusBar（真实）+ LintPopover（hover）形成双通道，用户可在 Aurora 状态栏直观发现。
-  const [lintIssues, setLintIssues] = useState<LintIssue[]>([])
-  const [lintPanelOpen, setLintPanelOpen] = useState(false)
-  const lintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    if (lintTimerRef.current) clearTimeout(lintTimerRef.current)
-    lintTimerRef.current = setTimeout(() => {
-      setLintIssues(lintMarkdown(localContent))
-    }, 500)
-    return () => {
-      if (lintTimerRef.current) clearTimeout(lintTimerRef.current)
-    }
-  }, [localContent])
-
-  // 点击跳转：DOM 文本定位 + scrollIntoView + 选区（不依赖内核 view ref，Aurora 层独立完成）
-  // 源码模式：在 .cm-content 内 TreeWalker 找首个包含该行 trim 前 30 字符的 .cm-line
-  // 所见即所得：在 .ProseMirror / .tiptap-editor-content 内 TreeWalker 找首个包含的文本节点
-  // 长文档不可视行（CM6 虚拟渲染）：不可见时退化为按行号估算 scrollDOM 滚动百分比
-  const handleJumpToAuroraLint = useCallback((issue: LintIssue) => {
-    const lines = localContent.split('\n')
-    const targetLine = lines[issue.line]
-    if (targetLine === undefined) return
-    const searchText = targetLine.trim().substring(0, 30)
-    if (!searchText) return
-
-    // 模式 1：所选即所得（ProseMirror DOM）
-    const tiptapDom = document.querySelector('.aurora-editor__main .tiptap-editor-content, .aurora-editor__main .ProseMirror') as HTMLElement | null
-    // 模式 2：CodeMirror（虚拟化渲染，超大文档仅可视行有 .cm-line DOM）
-    const cmDom = document.querySelector('.aurora-editor__main .cm-content') as HTMLElement | null
-    const root = tiptapDom ?? cmDom
-    if (!root) return
-
-    // 优先 DOM 文本定位（精确、对齐原 Tiptap 跳转实现）
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null)
-    let node: Node | null
-    while ((node = walker.nextNode())) {
-      const t = node.textContent || ''
-      if (t.includes(searchText)) {
-        const el = (node.parentElement as HTMLElement) ?? undefined
-        if (el && typeof el.scrollIntoView === 'function') {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-          // 尝试设选区（仅在 CM6 / ProseMirror 内有效）
-          const range = document.createRange()
-          try {
-            const idx = t.indexOf(searchText)
-            range.setStart(node, idx)
-            range.setEnd(node, idx + searchText.length)
-            const sel = window.getSelection()
-            sel?.removeAllRanges()
-            sel?.addRange(range)
-          } catch {
-            // 选区失败不影响滚动
-          }
-          return
-        }
-      }
-    }
-
-    // 兜底：CM6 不可视行时按行号估算滚动
-    if (cmDom && cmDom.parentElement) {
-      const scroller = cmDom.closest('.cm-scroller') as HTMLElement | null
-      const totalLines = lines.length || 1
-      const ratio = Math.min(1, Math.max(0, issue.line / Math.max(1, totalLines - 1)))
-      if (scroller) {
-        scroller.scrollTo({ top: ratio * (scroller.scrollHeight - scroller.clientHeight), behavior: 'smooth' })
-      }
-    }
-  }, [localContent])
-
-  // 一键修复：走真实 fixIssue → 写回 handleChange → 触发下次 lint（500ms 防抖）
-  const handleFixAuroraLint = useCallback((issue: LintIssue) => {
-    const next = fixIssue(localContent, issue)
-    if (next !== null) handleChange(next)
-  }, [localContent, handleChange])
-
-  const lintErrorCount = useMemo(() => lintIssues.filter((i) => i.severity === 'error').length, [lintIssues])
-  const lintWarnCount = useMemo(() => lintIssues.filter((i) => i.severity === 'warning').length, [lintIssues])
-  const lintHasIssues = lintIssues.length > 0
 
   const statusModeLabel = useMemo(() => {
     // 只读简介页不呈现编辑内核状态（此时编辑模式选择框已不存在，状态栏也不该声称「所见即所得」）
@@ -600,43 +486,10 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
     setReturnCtx(null)
   }, [returnCtx, nav])
 
+  // 弹层开关：只依赖壳层传入的 modal 控制器，与 feature 无关，故留在本层（布局/交互）
   const openImport = useCallback(() => auroraModal?.open('import'), [auroraModal])
   const openLinkRedirect = useCallback(() => auroraModal?.open('linkRedirect'), [auroraModal])
-
-  // —— 真实弹层回调（与 App.tsx 行为守恒，复用真实 FileStore API）——
-  const handleImportFile = useCallback(
-    (fileName: string, content: string) => {
-      createFile(rootFolder.id, fileName, content)
-      auroraModal?.close('import')
-    },
-    [auroraModal, createFile, rootFolder.id],
-  )
-
-  const handleTemplateInsert = useCallback(
-    (content: string) => {
-      if (!activeFileId) {
-        // 无活跃文件：用模板新建一篇并打开（对齐真实 handleTemplateInsert 无文件分支）
-        const name = `未命名-${Date.now()}.md`
-        const id = createFile(rootFolder.id, name, content)
-        if (id) openFile(id)
-      } else {
-        const next = localContent ? localContent + '\n\n' + content : content
-        setLocalContent(next)
-        scheduleSave(textToStorage(next))
-      }
-      auroraModal?.close('templateInsert')
-    },
-    [activeFileId, auroraModal, createFile, localContent, openFile, rootFolder.id, scheduleSave],
-  )
-
-  const handleQuickCapture = useCallback(
-    (name: string, content: string) => {
-      const inboxId = findInboxId(rootFolder)
-      createFile(inboxId ?? rootFolder.id, name, content, true)
-      auroraModal?.close('quickCapture')
-    },
-    [auroraModal, createFile, rootFolder],
-  )
+  // 弹层**回调**（导入 / 模板插入 / 快速捕捉）已随弹层一并迁入 useEditorIntegration。
 
   const realEditor = (
     <EditorLayout
@@ -671,8 +524,8 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
       activeFileId={activeFileId ?? undefined}
       gridColumns={gridColumns}
       showModeToolbar={false}
-      onOpenVersionHistory={() => setShowVersionHistory(true)}
-      isVersionHistoryOpen={showVersionHistory}
+      onOpenVersionHistory={versionHistory.open}
+      isVersionHistoryOpen={versionHistory.isOpen}
       isDiary={isDiary}
       onPrint={() => window.print()}
       onOpenImportDialog={openImport}
@@ -710,10 +563,10 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
               { content: `${wordCount} 字` },
               { content: 'UTF-8' },
               // 语法检查入口（与真实 EditorStatusBar 状态栏互补 · 点击展开 AuroraLintList 常驻面板）
-              ...(lintHasIssues
+              ...(lint.hasIssues
                 ? [{
                     clickable: true,
-                    onClick: () => setLintPanelOpen((v) => !v),
+                    onClick: () => lint.setPanelOpen(!lint.panelOpen),
                     content: (
                       <span
                         className="aurora-lint-entry"
@@ -721,19 +574,19 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
                         aria-label="打开语法检查列表"
                         role="button"
                         tabIndex={0}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLintPanelOpen((v) => !v) } }}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); lint.setPanelOpen(!lint.panelOpen) } }}
                       >
-                        {lintErrorCount > 0 && (
+                        {lint.errorCount > 0 && (
                           <span className="aurora-lint-entry__dot aurora-lint-entry__dot--error" />
                         )}
-                        {lintErrorCount > 0 && (
-                          <span className="aurora-lint-entry__num aurora-lint-entry__num--error">{lintErrorCount}</span>
+                        {lint.errorCount > 0 && (
+                          <span className="aurora-lint-entry__num aurora-lint-entry__num--error">{lint.errorCount}</span>
                         )}
-                        {lintWarnCount > 0 && (
+                        {lint.warnCount > 0 && (
                           <span className="aurora-lint-entry__dot aurora-lint-entry__dot--warn" />
                         )}
-                        {lintWarnCount > 0 && (
-                          <span className="aurora-lint-entry__num aurora-lint-entry__num--warn">{lintWarnCount}</span>
+                        {lint.warnCount > 0 && (
+                          <span className="aurora-lint-entry__num aurora-lint-entry__num--warn">{lint.warnCount}</span>
                         )}
                         <span className="aurora-lint-entry__label">语法</span>
                       </span>
@@ -947,79 +800,18 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
         </div>
       </PageFrame>
 
-      {showVersionHistory && (
-        <VersionHistoryPanel
-          fileId={activeFileId ?? undefined}
-          currentContent={localContent}
-          onClose={() => setShowVersionHistory(false)}
-          onRestore={(content) => {
-            setLocalContent(content)
-            handleChange(content)
-            setShowVersionHistory(false)
-          }}
-          language={language}
-        />
-      )}
+      {/* —— P2-2：编辑器功能弹层（版本历史 / 导入 / 链接重定向 / 块反向链接 / 模板×2 / 快速捕捉）——
+          原先这七个弹层的接线与 JSX 散在本文件；现由 useEditorIntegration 统一产出，
+          本文件只在根部挂载一次，不再各自渲染。 */}
+      {modals}
 
-      {/* —— Phase 3d：编辑器相关真实弹层（方案 B 就近归属，由 AuroraShell 共享开关驱动）——
-          全部 portal 到 document.body，层级天然在 Aurora 之上。 */}
-      {auroraModal?.isOpen('import') && (
-        <ImportDialog
-          isOpen={auroraModal.isOpen('import')}
-          onClose={() => auroraModal.close('import')}
-          onImport={handleImportFile}
-        />
-      )}
-
-      {auroraModal?.isOpen('linkRedirect') && (
-        <LinkRedirectDialog
-          visible={auroraModal.isOpen('linkRedirect')}
-          onClose={() => auroraModal.close('linkRedirect')}
-        />
-      )}
-
-      {auroraModal?.isOpen('blockBacklinks') && (
-        <BlockBacklinksPanel
-          fileId={activeFileId ?? undefined}
-          onOpenFile={(id) => {
-            openFile(id)
-            auroraModal?.close('blockBacklinks')
-          }}
-        />
-      )}
-
-      {auroraModal?.isOpen('templateInsert') && (
-        <TemplateInsertModal
-          isOpen={auroraModal.isOpen('templateInsert')}
-          onClose={() => auroraModal.close('templateInsert')}
-          onInsert={handleTemplateInsert}
-          onOpenDiscovery={() => auroraModal?.open('templateDiscovery')}
-        />
-      )}
-
-      {auroraModal?.isOpen('templateDiscovery') && (
-        <TemplateDiscoveryModal
-          isOpen={auroraModal.isOpen('templateDiscovery')}
-          onClose={() => auroraModal.close('templateDiscovery')}
-          onAcquire={handleTemplateInsert}
-        />
-      )}
-
-      {auroraModal?.isOpen('quickCapture') && (
-        <QuickCaptureModal
-          isOpen={auroraModal.isOpen('quickCapture')}
-          onClose={() => auroraModal.close('quickCapture')}
-          onCreate={handleQuickCapture}
-        />
-      )}
-
-      {/* —— 语法检查列表面板（Aurora 层常驻入口 · 复用真实 lintMarkdown 引擎）—— */}
+      {/* —— 语法检查列表面板（Aurora 层常驻入口 · 引擎与回调由 integration 产出，组件是 aurora 本地 UI）—— */}
       <AuroraLintList
-        issues={lintIssues}
-        open={lintPanelOpen && !!activeFileId}
-        onClose={() => setLintPanelOpen(false)}
-        onJump={(issue) => { handleJumpToAuroraLint(issue); setLintPanelOpen(false) }}
-        onFix={handleFixAuroraLint}
+        issues={lint.issues}
+        open={lint.panelOpen && !!activeFileId}
+        onClose={() => lint.setPanelOpen(false)}
+        onJump={(issue) => { lint.jump(issue); lint.setPanelOpen(false) }}
+        onFix={lint.fix}
       />
     </div>
   )
