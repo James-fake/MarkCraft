@@ -3,7 +3,7 @@ import { Modal, Button } from '../../components/ui'
 import { useToast } from '../../components/ui/ToastProvider'
 import { useFileManager } from '../../stores/FileStore'
 import { useLanguage } from '../../stores/LanguageStore'
-import { importObsidianVault, importNotionExport } from '../knowledgeBase/import/externalImporter'
+import { importObsidianVault, importNotionExport } from '@services/import/externalImporter'
 
 type Source = 'obsidian' | 'notion' | null
 
