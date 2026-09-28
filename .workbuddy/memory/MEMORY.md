@@ -45,6 +45,10 @@ Vite5+React18+TS、CodeMirror6+TipTap3、Excalidraw、Dexie/IDB。dev **5174**�
 ## git/沙箱
 PATH：`PortableGit/1.2.0/{cmd,usr/bin,mingw64/bin}`+`node/22.22.2-3`+`System32`。远端 `gitee.com/James-fake/markcraft.git`。
 - 🚨 内联 `node -e`/`bash -c` 禁反引号（`${}`/`$()` 同理）→ 长脚本写 `.cjs` 用完删。
+- 🚨 **本环境 `src/` 会间歇被非 git 进程从磁盘整体删除**（git index/HEAD 仍跟踪，仅工作树丢）⇒ 表现：`git status` 满屏 ` D src/...`、tsc 报「找不到所有 features 模块」、探针连得上但每 eval 超时。正解：**`git checkout HEAD -- src` 即时恢复**（含已提交改动），不要误当成代码错误；恢复后先 `git status` 证磁盘再复跑验证。临时诊断脚本写 `_*.cjs` 落盘读，绕过破损 shell。
+- 🚨 **不可靠工作树下提交用 `hash-object`+`update-index` 原子建树**：`git add` 在磁盘被清空时会把「已删」当删除暂存、漏掉新建文件（曾产出把 `MigrateWizard.tsx` 删掉、漏加 `services/import/externalImporter.ts` 的坏提交 `96ab6b0`，已 `reset` 回 `c75aa8a`）。正解：从字符串 blob 建索引，绝不读不可靠工作树。
+- ⚠️ **`git add` 在本环境无 `--` 分隔符会 pathspec 解析失败**（报「did not match」），新建文件必须 `git add -- -- <path>`。
+- ⚠️ `.husky/pre-commit` 原 `npx lint-staged` 在无 `.bin` 软链/无网时回退网络拉取**挂死 8 分钟** ⇒ 改 `node node_modules/lint-staged/bin/lint-staged.js`（本地二进制）；eslint 同理用 `node node_modules/eslint/bin/eslint.js`（`.bin/*.sh` 不能直接 `node` 跑）。
 - 🚨 `credential.helper=helper-selector` 弹窗挂死 ⇒ 裸 `git push` 被 SIGTERM 静默杀、远端没更新；正解 `.git/config` 手写 `helper=`（空值）+`helper=wincred`；无头保险 `scripts/push-gitee.cjs`。
 - ⚠️ 暂存/提交显式 pathspec 禁 `git add -A`；单条 bash 禁 `git stash`。
 - ⚠️ **Gitee 支持 `.github/PULL_REQUEST_TEMPLATE/*.md`**：已联网核实 nacos/vue/chunjun 等 Gitee 仓均用此路径自动渲染 PR 模板，**无需另写 `.gitee/`**（本仓此前误以为 Gitee 只读 `.gitee/`，证伪）。UI 闸门模板落 `.github/PULL_REQUEST_TEMPLATE/ui.md`（对应 §18 §12/§14，commit `5533f88`）。
