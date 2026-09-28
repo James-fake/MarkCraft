@@ -336,3 +336,46 @@ node .workbuddy/artifacts/audit-decouple-structure.cjs
 **验证**：tsc 干净 · 全量 vitest **1777 通过 / 0 失败**（136 文件）· ESLint 0 error · 依赖图无环无双向 · vite build 通过（3602 模块）。
 
 **路线图状态**：解耦六项全部完成，仅剩 P2-4（可选）。
+
+---
+
+## 15. 实施记录 · P2-4（2026-09-28 完成）
+
+**目标**：消灭两条「方向可疑」的 feature→feature 反向借用边（审计 §2 行 166-167）：
+- `features/fileManager/DailyNoteService → features/templates`（日记模板匹配）
+- `features/migrate/MigrateWizard → features/knowledgeBase`（外部导入 Obsidian / Notion / WebClipper）
+
+**解法 = 纯逻辑下沉 `services`**（与 P0/P1 同构：把「被 peer/低层 feature 反向借用」的纯数据/纯函数搬到下层服务，截断横向反向依赖）。
+
+### 边 1：templates 匹配下沉 services（commit `c75aa8a`）
+- 新建 `services/templates/templateData.ts`：承载 `BUILTIN_TEMPLATES`（13 个，含 `daily-journal`）、`BUILTIN_EXAMPLES`、`ExampleDoc`、`getExamples()` / `getExampleById()`、`Template` 接口；新增 `resolveDailyJournalTemplate()`（按固定 id `daily-journal` 匹配）。
+- 新建 `services/templates/templateApply.ts`：`applyTemplate(t, vars?)` 纯函数，替换 `{{date}}/{{time}}/{{title}}`，无 React / DOM 依赖。
+- `features/templates/templateManager.ts` 重写为**薄壳**：re-export 上述 services 符号 + 保留 UI / 存储专用逻辑（`SharedTemplateFile`、`genTemplateId`、`sanitizeFileName`、`import/exportSharedTemplate`、`getUserTemplates/save/delete`（localStorage `markcraft-user-templates`）、`getAllTemplates()`）。`templateDiscovery.ts` 经薄壳 re-export 继续可用，零改动消费者。
+- `features/fileManager/DailyNoteService.ts`：`openDailyNote` 改为 `resolveDailyJournalTemplate()` + `applyTemplate()`；import 由 `../templates/templateManager` 改为 `@services/templates/templateData` + `@services/templates/templateApply`。`formatDate` 导出不变。
+
+**行为不变性证据**：日报模板按固定 id `daily-journal` 匹配；用户自定义模板由 `genTemplateId` 生成随机 id，永不取到 `daily-journal` ⇒「内置优先匹配」与「全量匹配」等价。无逻辑改写，仅搬家 + 接线。`getAllTemplates()`（= `[...BUILTIN, ...user]`）语义不变。
+
+### 边 2：外部导入下沉 services（commit `a025b96`）
+- `features/knowledgeBase/import/externalImporter.ts` → `services/import/externalImporter.ts`（git 语义搬家；import 改为 `@services/clipMaterial`）。导出 `importObsidianVault` / `importNotionExport` / `importWebClipper`（jszip + `@services/clipMaterial` 纯函数）。
+- `features/migrate/MigrateWizard.tsx`：import 由 `'../knowledgeBase/import/externalImporter'` 改为 `'@services/import/externalImporter'`（第 6 行）；其余逻辑（注释、调用点）不变。
+
+**验收（审计脚本只剩合法扇出）**：
+
+| 维度 | 改前 | 改后 |
+|---|---|---|
+| `features/fileManager → features/templates` | 1（方向可疑） | **0**（改走 `@services/templates`） |
+| `features/migrate → features/knowledgeBase` | 1（方向可疑） | **0**（改走 `@services/import`） |
+| `features/editor → features/templates` | 1（合法聚合） | 1（合法聚合，不变） |
+
+审计脚本 `FEATURE<->FEATURE` 段现已无两条方向可疑边；其余边均为既定合法扇出（`editor→{themes,lint,preview,outline,search,export,imageUpload,fileManager}`、`preview→themes`、`blog→themes`、`appRuntime→fileManager` 等），符合审计 §2 行 166「19 条合法扇出」判定。
+
+**验证（七链路）**：
+- ① `tsc --noEmit -p tsconfig.json`：✅ 干净（exit 0）。
+- ② ESLint 守卫（`.eslintrc.guard.cjs`）：✅ P2-4 五个改动文件（`MigrateWizard.tsx`、`templateManager.ts`、`services/import/externalImporter.ts`、`services/templates/templateData.ts`、`services/templates/templateApply.ts`）过 `local/no-aurora-ui-import` + services 层 `no-service-to-feature` / `no-service-to-store`，0 error。（注：项目级 `npm run lint --max-warnings 0` 仍有 ~640 条历史 warning，属存量债，不在 P2-4 范围，守卫只拦架构违规。）
+- ③ 依赖图（审计脚本 `scripts/_depgraph.cjs`）：✅ 无环、无双向；`FEATURE<->FEATURE` 仅剩合法扇出（两条可疑边已消除）。
+- ④ `vite build`：✅ 通过（status 0，1m24s）；仅有 pre-existing 警告（circular chunk / css syntax / dynamic import / chunk size），非错误。
+- ⑤ 全量 vitest：**1776 通过 / 1 flake（与 P2-4 无关）**。flake 为 `usageDocsFilter.test.tsx` 在全量并行下偶发 `IndexedDB API missing`（Dexie 异步加载竞态）；隔离重跑该文件 **6/6 通过**。`usageDocsFilter` 不依赖任何 P2-4 改动文件，判定为环境 flake，非回归。
+- ⑥ 真机 CDP：本次为纯逻辑下沉（无 UI 行为变化），按路线省略；行为不变性由薄壳 re-export + 隔离单测覆盖。
+- ⑦ git：已提交 `c75aa8a`（templates 下沉）+ `a025b96`（import 下沉）；清理临时诊断脚本后工作区干净。
+
+**路线图状态**：解耦六项（P0 / P1-1 / P1-2 / P1-3 / P2-1 / P2-2 / P2-3 / P2-4）**全部完成 ✅**。
