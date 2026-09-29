@@ -158,7 +158,7 @@ export function CommandPalette({ open, onClose, commands, fileItems, onOpenFile 
     }
 
     return result
-  }, [query, commands, fileItems, onOpenFile])
+  }, [query, commands, fileItems, onOpenFile, onClose])
 
   // 扁平化所有结果，用于键盘导航
   const flatItems = useMemo(

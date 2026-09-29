@@ -167,7 +167,7 @@ export default function SaveAsModal({
     } finally {
       setIsSelectingLocation(false)
     }
-  }, [fsAccessSupported, fullFileName, format])
+  }, [fsAccessSupported, fullFileName, format, t])
 
   const handleSelectDirectory = useCallback(async () => {
     if (!fsAccessSupported) return
@@ -184,7 +184,7 @@ export default function SaveAsModal({
     } finally {
       setIsSelectingLocation(false)
     }
-  }, [fsAccessSupported])
+  }, [fsAccessSupported, t])
 
   const getCustomCss = useCallback((): string | undefined => {
     if (exportStyleId === 'default') return undefined
@@ -274,7 +274,7 @@ export default function SaveAsModal({
     } finally {
       setIsSaving(false)
     }
-  }, [fileName, format, content, saveLocation, onSuccess, onError, onClose, generateBlob, getCustomCss, getPdfOptions])
+  }, [fileName, format, content, saveLocation, onSuccess, onError, onClose, generateBlob, getCustomCss, getPdfOptions, t])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -305,7 +305,7 @@ export default function SaveAsModal({
         setExportStyleId('default')
       }
     }
-  }, [exportStyleId])
+  }, [exportStyleId, confirm, t])
 
   const handleSaveStyle = useCallback((style: ExportStylePreset) => {
     saveCustomStyle(style)

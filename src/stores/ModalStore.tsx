@@ -87,7 +87,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children, createFi
       defaultValue: '',
       defaultFolderId: config.defaultFolderId,
     });
-  }, []);
+  }, [createFileTitle]);
 
   const handleInputConfirm = useCallback((value: string) => {
     onInputConfirmRef.current(value);

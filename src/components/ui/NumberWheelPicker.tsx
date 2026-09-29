@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 /**
  * 苹果风格数字滚轮鼓（参考 iOS / macOS 日期·时间选择器）
@@ -50,12 +50,13 @@ export function NumberWheelPicker({
     finiteMin != null && finiteMax != null ? Math.floor((finiteMax - finiteMin) / step) + 1 : Infinity
   const windowed = count === Infinity || count > 400
 
-  const clampV = (v: number) => {
+  // useCallback 稳定化：clampV 是下游 useMemo 的 dep（否则该 memo 每渲染失效）
+  const clampV = useCallback((v: number) => {
     let r = v
     if (finiteMin != null) r = Math.max(finiteMin, r)
     if (finiteMax != null) r = Math.min(finiteMax, r)
     return r
-  }
+  }, [finiteMin, finiteMax])
   const roundStep = (v: number) => Math.round(v / step) * step
 
   const initialValue =
@@ -82,7 +83,7 @@ export function NumberWheelPicker({
       arr.push({ value: eff, disabled: raw !== eff })
     }
     return arr
-  }, [windowed, anchor, count, finiteMin, finiteMax, step])
+  }, [windowed, anchor, count, finiteMin, step, clampV])
 
   const centerSlotIndex = windowed
     ? BUFFER

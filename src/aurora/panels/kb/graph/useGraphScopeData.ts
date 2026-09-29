@@ -112,7 +112,9 @@ export function useGraphScopeData(p: GraphScopeDataOpts) {
     setScope(DEFAULT_GRAPH_SCOPE)
   }, [p.kbListed, scopeKind, scopeKbId, kbDocs])
 
-  const graph = useMemo(() => p.getGraphData(p.tagIndex), [p.getGraphData, p.tagIndex])
+  // 解构稳定成员供 memo dep 使用（p 为每渲染新对象，成员路径 deps 不被规则接受且语义等价）
+  const { getGraphData, tagIndex } = p
+  const graph = useMemo(() => getGraphData(tagIndex), [getGraphData, tagIndex])
   const realData = useMemo(() => {
     const empty = { nodes: [] as GNode[], edges: [] as GEdge[] }
     if (!scopeReady) return empty

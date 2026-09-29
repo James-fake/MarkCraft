@@ -80,10 +80,11 @@ export function useCM6UndoRedo({
   }, [fileId, undoRedo])
 
   // 初始化历史 - 仅在fileId变化时初始化，不在value变化时重新初始化
+  //（undoRedo 为 store 稳定引用，补入 deps 不改变触发时机）
   useEffect(() => {
     if (!fileId) return
     undoRedo.initHistory(fileId, valueRef.current)
-  }, [fileId])
+  }, [fileId, undoRedo])
 
   // Push undo
   const pushUndo = useCallback((newValue: string, groupKey?: string) => {
@@ -92,7 +93,7 @@ export function useCM6UndoRedo({
     const cursorStart = view ? view.state.selection.main.from : 0
     const cursorEnd = view ? view.state.selection.main.to : 0
     undoRedo.pushHistory(fileIdRef.current, newValue, cursorStart, cursorEnd, groupKey)
-  }, [undoRedo])
+  }, [undoRedo, isUndoRedoRef, viewRef])
 
   // Undo - 直接更新CM6视图内容
   const handleUndo = useCallback(() => {
@@ -114,7 +115,7 @@ export function useCM6UndoRedo({
     setTimeout(() => {
       isUndoRedoRef.current = false
     }, 0)
-  }, [undoRedo])
+  }, [undoRedo, isUndoRedoRef, viewRef])
 
   // Redo - 直接更新CM6视图内容
   const handleRedo = useCallback(() => {
@@ -135,7 +136,7 @@ export function useCM6UndoRedo({
     setTimeout(() => {
       isUndoRedoRef.current = false
     }, 0)
-  }, [undoRedo])
+  }, [undoRedo, isUndoRedoRef, viewRef])
 
   // 将 handleUndo/handleRedo 桥接到 CM6 keymap 的回调 ref
   useEffect(() => {

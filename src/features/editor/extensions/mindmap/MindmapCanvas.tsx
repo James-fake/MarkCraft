@@ -86,7 +86,7 @@ const MindmapCanvas: React.FC<MindmapCanvasProps> = ({
       setLayouts(nodes)
       setSvgSize({ width, height })
     }
-  }, [parseResult.root])
+  }, [parseResult.root, direction])
 
   // Initialize editing from initialEditNodeId
   useEffect(() => {

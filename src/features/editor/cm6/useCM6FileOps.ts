@@ -31,7 +31,7 @@ export function useCM6FileOps({
       })
       isInternalUpdate.current = false
     }
-  }, [value])
+  }, [value, isInternalUpdate, viewRef])
 
   // 专注模式/打字机模式切换
   useEffect(() => {
@@ -43,7 +43,7 @@ export function useCM6FileOps({
         toggleTypewriterMode.of(typewriterMode),
       ],
     })
-  }, [focusMode, typewriterMode])
+  }, [focusMode, typewriterMode, viewRef])
 
   // 全局快捷键
   useEffect(() => {
@@ -67,7 +67,7 @@ export function useCM6FileOps({
 
   const handleFormatApplied = useCallback(() => {
     viewRef.current?.focus()
-  }, [])
+  }, [viewRef])
 
   return {
     searchMode,

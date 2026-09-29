@@ -15,6 +15,7 @@ const LinkBreadcrumb: React.FC<LinkBreadcrumbProps> = ({ activeFileId, onOpenFil
   const backlinks = useMemo(() => {
     if (!activeFileId) return []
     return getBacklinks(activeFileId).slice(0, 5)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- nonce: indexVersion 为链接种子（:13 void indexVersion 显式登记），反链索引更新时强制重算
   }, [activeFileId, getBacklinks, indexVersion])
 
   if (!activeFileId || backlinks.length === 0) return null

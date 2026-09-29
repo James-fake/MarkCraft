@@ -63,7 +63,7 @@ export function useSourceLint({
     return () => {
       if (lintTimerRef.current) clearTimeout(lintTimerRef.current)
     }
-  }, [value])
+  }, [value, lintMarkdown, t])
 
   return {
     lintIssues,

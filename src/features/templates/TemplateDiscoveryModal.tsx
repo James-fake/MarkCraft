@@ -36,6 +36,7 @@ const TemplateDiscoveryModal: React.FC<TemplateDiscoveryModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null)
   const searchRef = useRef<HTMLInputElement>(null)
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- nonce: isOpen/version 为 getDiscoveryEntries() 读取型调用的失效闸（打开弹窗与获取模板后刷新列表）
   const entries = useMemo(() => getDiscoveryEntries(), [isOpen, version])
 
   const list = useMemo<DiscoveryEntry[]>(() => {

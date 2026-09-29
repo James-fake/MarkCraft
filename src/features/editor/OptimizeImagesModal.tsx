@@ -121,7 +121,7 @@ export default function OptimizeImagesModal({
         )
       }
     },
-    [images]
+    [images, t]
   )
 
   const handleSaveAll = useCallback(async () => {
@@ -153,7 +153,7 @@ export default function OptimizeImagesModal({
     onContentChange(newContent)
     onSuccess(t.optimizeImages.replacedCount.replace('{count}', String(savedImages.length)))
     onClose()
-  }, [content, images, onContentChange, onSuccess, onError, onClose])
+  }, [content, images, onContentChange, onSuccess, onError, onClose, t])
 
   if (!isOpen) return null
 

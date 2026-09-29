@@ -99,6 +99,9 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
 
   const [wordCountMode, setWordCountMode] = useState<WordCountMode>('text')
   const [ctxMenu, setCtxMenu] = useState<{ visible: boolean; x: number; y: number }>({ visible: false, x: 0, y: 0 })
+  // stats 以 lastEmittedMd.current 的字符串值为失效依据（值在渲染期更新）；
+  // 规则不认可 .current 作 dep，但该 memo 无响应式数据源可用，禁用保持语义
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- nonce: lastEmittedMd.current 字符串值为读取型 memo 的失效依据
   const stats = useMemo(() => calculateStats(lastEmittedMd.current || ''), [lastEmittedMd.current])
   const currentWordCount = wordCountMode === 'text' ? stats.wordCountTextMode : stats.wordCountStandardMode
   const toggleWordCountMode = useCallback(() => {
@@ -627,7 +630,7 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
     onDismissLargeImageConfirm: () => {},
     error: null,
     success: null,
-  }), [searchMode, lintIssues, showSaveAsModal, showLintPopover, handleOpenFile, handleSaveAs, handleJumpToIssue, openSearch, closeSearch, lintAnchorRef, lintCloseTimerRef, fileId, undoRedo, onChange, setShowLintPopover, showFrontMatter, setShowFrontMatter, showOptimizeModal, setShowOptimizeModal])
+  }), [searchMode, lintIssues, showSaveAsModal, showLintPopover, handleOpenFile, handleSaveAs, handleJumpToIssue, openSearch, closeSearch, lintAnchorRef, lintCloseTimerRef, fileId, undoRedo, onChange, setShowLintPopover, showFrontMatter, setShowFrontMatter, showOptimizeModal, setShowOptimizeModal, editor, onUseTemplate, setShowSaveAsModal])
 
   const insertValue = useMemo(() => ({
     onInsertFootnote: () => {},

@@ -235,86 +235,6 @@ export default function EditorContextMenu({
   const [activeSubmenuIndex, setActiveSubmenuIndex] = useState<number | null>(null)
   const [submenuPos, setSubmenuPos] = useState<{ x: number; y: number } | null>(null)
 
-  /* ---- Close on click outside or Escape ---- */
-  useEffect(() => {
-    if (!visible) return
-
-    const handleClick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement
-      if (
-        menuRef.current?.contains(target) ||
-        submenuRef.current?.contains(target)
-      ) {
-        return
-      }
-      onClose()
-    }
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (activeSubmenuIndex !== null) {
-          setActiveSubmenuIndex(null)
-          setSubmenuPos(null)
-        } else {
-          onClose()
-        }
-        return
-      }
-
-      // Arrow key navigation
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        e.preventDefault()
-        const indices = menuEntries
-          .map((_, i) => i)
-          .filter((i) => !isSeparator(menuEntries[i]))
-
-        setFocusedIndex((prev) => {
-          const currentPos = indices.indexOf(prev)
-          let nextPos: number
-          if (e.key === 'ArrowDown') {
-            nextPos = currentPos < indices.length - 1 ? currentPos + 1 : 0
-          } else {
-            nextPos = currentPos > 0 ? currentPos - 1 : indices.length - 1
-          }
-          return indices[nextPos]
-        })
-      }
-
-      if (e.key === 'ArrowRight') {
-        const entry = menuEntries[focusedIndex]
-        if (entry && !isSeparator(entry) && entry.submenu) {
-          setActiveSubmenuIndex(focusedIndex)
-        }
-      }
-
-      if (e.key === 'ArrowLeft') {
-        if (activeSubmenuIndex !== null) {
-          setActiveSubmenuIndex(null)
-          setSubmenuPos(null)
-        }
-      }
-
-      if (e.key === 'Enter') {
-        const entry = menuEntries[focusedIndex]
-        if (entry && !isSeparator(entry) && !entry.disabled) {
-          if (entry.submenu) {
-            setActiveSubmenuIndex(focusedIndex)
-          } else if (entry.action) {
-            entry.action()
-            onClose()
-          }
-        }
-      }
-    }
-
-    document.addEventListener('mousedown', handleClick)
-    document.addEventListener('keydown', handleKeyDown)
-    return () => {
-      document.removeEventListener('mousedown', handleClick)
-      document.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [visible, activeSubmenuIndex, focusedIndex, onClose])
-
   /* ---- Reset state when visibility changes ---- */
   useEffect(() => {
     if (visible) {
@@ -545,6 +465,87 @@ export default function EditorContextMenu({
     editor,
     mode,
   ])()
+
+  /* ---- Close on click outside or Escape ---- */
+  // 注意：本 effect 依赖 menuEntries（上方立即调用产出的数组），故必须声明在其之后
+  useEffect(() => {
+    if (!visible) return
+
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (
+        menuRef.current?.contains(target) ||
+        submenuRef.current?.contains(target)
+      ) {
+        return
+      }
+      onClose()
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (activeSubmenuIndex !== null) {
+          setActiveSubmenuIndex(null)
+          setSubmenuPos(null)
+        } else {
+          onClose()
+        }
+        return
+      }
+
+      // Arrow key navigation
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        e.preventDefault()
+        const indices = menuEntries
+          .map((_, i) => i)
+          .filter((i) => !isSeparator(menuEntries[i]))
+
+        setFocusedIndex((prev) => {
+          const currentPos = indices.indexOf(prev)
+          let nextPos: number
+          if (e.key === 'ArrowDown') {
+            nextPos = currentPos < indices.length - 1 ? currentPos + 1 : 0
+          } else {
+            nextPos = currentPos > 0 ? currentPos - 1 : indices.length - 1
+          }
+          return indices[nextPos]
+        })
+      }
+
+      if (e.key === 'ArrowRight') {
+        const entry = menuEntries[focusedIndex]
+        if (entry && !isSeparator(entry) && entry.submenu) {
+          setActiveSubmenuIndex(focusedIndex)
+        }
+      }
+
+      if (e.key === 'ArrowLeft') {
+        if (activeSubmenuIndex !== null) {
+          setActiveSubmenuIndex(null)
+          setSubmenuPos(null)
+        }
+      }
+
+      if (e.key === 'Enter') {
+        const entry = menuEntries[focusedIndex]
+        if (entry && !isSeparator(entry) && !entry.disabled) {
+          if (entry.submenu) {
+            setActiveSubmenuIndex(focusedIndex)
+          } else if (entry.action) {
+            entry.action()
+            onClose()
+          }
+        }
+      }
+    }
+
+    document.addEventListener('mousedown', handleClick)
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClick)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [visible, activeSubmenuIndex, focusedIndex, onClose, menuEntries])
 
   /* ---- Calculate position to avoid off-screen ---- */
   const getPosition = useCallback((): { left: number; top: number } => {

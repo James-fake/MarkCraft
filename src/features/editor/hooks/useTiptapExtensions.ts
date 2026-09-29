@@ -152,5 +152,5 @@ export function useTiptapExtensions({ t, livePreview, undoFnRef, redoFnRef }: Us
       LivePreviewExtension.configure({ enabled: !!livePreview }),
       TransitionExtension,
     ]
-  }, [t, appSettings.codeBlockDefaultLang, appSettings.tabSize])
+  }, [t, appSettings.codeBlockDefaultLang, appSettings.tabSize, livePreview])
 }

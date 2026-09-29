@@ -128,7 +128,7 @@ const MigrateWizard: React.FC<MigrateWizardProps> = ({ isOpen, onClose }) => {
         setImporting(false)
       }
     },
-    [source, createFile, createFolder, t, toast, w],
+    [source, createFile, createFolder, toast, w],
   )
 
   return (

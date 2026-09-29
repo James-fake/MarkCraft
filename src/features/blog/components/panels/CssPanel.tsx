@@ -92,7 +92,7 @@ export function CssPanel({ designConfig, handleDesignChange, onHoverCss, iframeR
       }))
     }
     isUndoRedoRef.current = false
-  }, [currentCss])
+  }, [currentCss, history.present])
 
   // Reset history when switching mode (each mode has its own history session)
   useEffect(() => {

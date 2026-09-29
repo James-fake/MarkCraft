@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, type MouseEvent as ReactMouseEvent } from 'react'
+import { useState, useEffect, useRef, useCallback, type MouseEvent as ReactMouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { usePresenceValue, POPOVER_EXIT_MS } from '@components/ui/usePresence'
 import { Icon } from '../../icons'
@@ -235,14 +235,8 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
     setMenu(null)
   }
 
-  const confirmDelete = () => {
-    if (!confirming) return
-    deleteNode(confirming.id) // 文件夹会递归删除其内全部内容
-    dismissConfirm()
-  }
-
   /** 关删除确认：先退场再卸载（退场时长 = components.css 的 --mc-dur-fast 180ms） */
-  const dismissConfirm = () => {
+  const dismissConfirm = useCallback(() => {
     if (confirmExitTimer.current !== null) return
     setConfirmExiting(true)
     confirmExitTimer.current = window.setTimeout(() => {
@@ -250,9 +244,15 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
       setConfirming(null)
       setConfirmExiting(false)
     }, CONFIRM_EXIT_MS)
-  }
+  }, [])
 
-  const cancelDelete = () => dismissConfirm()
+  const confirmDelete = useCallback(() => {
+    if (!confirming) return
+    deleteNode(confirming.id) // 文件夹会递归删除其内全部内容
+    dismissConfirm()
+  }, [confirming, deleteNode, dismissConfirm])
+
+  const cancelDelete = useCallback(() => dismissConfirm(), [dismissConfirm])
 
   // 卸载时清退场计时器，避免定时器泄漏
   useEffect(() => () => {
@@ -287,7 +287,7 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [confirming])
+  }, [confirming, cancelDelete, confirmDelete])
 
   const handleNewFile = () => {
     // openAfterCreate=false：命名期间不自动打开/收起侧栏，避免打断输入

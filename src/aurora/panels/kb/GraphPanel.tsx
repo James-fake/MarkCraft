@@ -101,6 +101,8 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
   // id → 节点对象（对象引用，位置原地可变 ⇒ 该映射只在节点集合变化时需要重建，不必每帧重算）。
   // 物理步进与渲染定位都走它：把原先每帧每边一次的 `nodes.find()` 线性查找降为 O(1)，
   // 同时省掉原先按 tick 每帧重建一个 Map 的分配。
+  // graphRev 是故意的失效闸：memo 体读 nodesRef.current（规则不可见），节点集合变化时 bump 触发重建
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- nonce: graphRev 为 ref 读取型 memo 的失效闸，非冗余依赖
   const nodeById = useMemo(() => new Map(nodesRef.current.map((n) => [n.id, n])), [graphRev])
 
   useEffect(() => {

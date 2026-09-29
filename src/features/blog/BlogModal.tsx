@@ -56,6 +56,11 @@ export default function BlogModal({ isOpen, onClose, files, onSuccess, onError }
   const fileInfos = mdFiles.map(extractFileInfo)
   const publishedCount = fileInfos.filter(f => !f.draft).length
 
+  // 经 ref 读取当前预览 URL：effect 只在打开瞬间撤销上一张预览；
+  // 若直接补 previewUrl 到 deps，会在生成新 URL 后立即将其撤销（行为破坏）
+  const previewUrlRef = useRef(previewUrl)
+  previewUrlRef.current = previewUrl
+
   useEffect(() => {
     if (isOpen) {
       setConfig({ ...DEFAULT_BLOG_CONFIG })
@@ -63,8 +68,8 @@ export default function BlogModal({ isOpen, onClose, files, onSuccess, onError }
       setIsGenerating(false)
       setIsDownloading(false)
       setError(null)
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl)
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current)
       }
       setPreviewUrl(null)
     }
@@ -112,7 +117,7 @@ export default function BlogModal({ isOpen, onClose, files, onSuccess, onError }
     } finally {
       setIsGenerating(false)
     }
-  }, [mdFiles, config, previewUrl, onSuccess, onError])
+  }, [mdFiles, config, previewUrl, onSuccess, onError, t])
 
   const handleDownloadFolder = useCallback(async () => {
     if (!result) return
@@ -132,7 +137,7 @@ export default function BlogModal({ isOpen, onClose, files, onSuccess, onError }
     } finally {
       setIsDownloading(false)
     }
-  }, [result, onSuccess, onError])
+  }, [result, onSuccess, onError, t])
 
   const handleDownloadSingleFile = useCallback(() => {
     if (!result) return
@@ -173,7 +178,7 @@ export default function BlogModal({ isOpen, onClose, files, onSuccess, onError }
     } finally {
       setIsDownloading(false)
     }
-  }, [result, onSuccess, onError])
+  }, [result, onSuccess, onError, t])
 
   const handlePreview = useCallback(() => {
     if (!result) return

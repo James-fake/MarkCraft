@@ -69,6 +69,10 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     onSelectionChange,
   })
 
+  // state 对象本身每渲染新建（useCM6State 返回新字面量），不能整体作 dep；
+  // 此处解构出稳定引用（原生 useState setter + undo/redo 回调）供回调用作 dep。
+  const { setError, setSuccess, setLargeImageConfirm, setIsDragging, pushUndo } = state
+
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const [ctxMenu, setCtxMenu] = useState<{ visible: boolean; x: number; y: number }>({ visible: false, x: 0, y: 0 })
@@ -121,12 +125,12 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     }
 
     cm6InsertImage(view, displayUrl, altText)
-  }, [useRelativeImagePath])
+  }, [useRelativeImagePath, state.viewRef])
 
   const processImageFile = useCallback((file: File) => {
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      state.setError(t.editor.unsupportedImageFormat)
-      setTimeout(() => state.setError(null), 5000)
+      setError(t.editor.unsupportedImageFormat)
+      setTimeout(() => setError(null), 5000)
       return
     }
 
@@ -139,41 +143,41 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
         if (base64Data) {
           const altText = file.name.replace(/\.[^/.]+$/, '') || 'image'
           insertImageAtCursor(base64Data, altText)
-          state.setSuccess(t.editor.imageInsertSuccess)
-          setTimeout(() => state.setSuccess(null), 3000)
+          setSuccess(t.editor.imageInsertSuccess)
+          setTimeout(() => setSuccess(null), 3000)
         }
       }
       reader.onerror = () => {
-        state.setError(`${t.editor.imageReadError}`)
-        setTimeout(() => state.setError(null), 5000)
+        setError(`${t.editor.imageReadError}`)
+        setTimeout(() => setError(null), 5000)
       }
       reader.readAsDataURL(file)
     }
 
     if (isLargeFile) {
-      state.setLargeImageConfirm({ file, onConfirm: doInsert })
+      setLargeImageConfirm({ file, onConfirm: doInsert })
       return
     }
 
     doInsert()
-  }, [insertImageAtCursor, t, state.setError, state.setSuccess, state.setLargeImageConfirm])
+  }, [insertImageAtCursor, t, setError, setSuccess, setLargeImageConfirm])
 
   const handleDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault()
     event.stopPropagation()
-    state.setIsDragging(true)
-  }, [state.setIsDragging])
+    setIsDragging(true)
+  }, [setIsDragging])
 
   const handleDragLeave = useCallback((event: React.DragEvent) => {
     event.preventDefault()
     event.stopPropagation()
-    state.setIsDragging(false)
-  }, [state.setIsDragging])
+    setIsDragging(false)
+  }, [setIsDragging])
 
   const handleDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault()
     event.stopPropagation()
-    state.setIsDragging(false)
+    setIsDragging(false)
 
     const files = event.dataTransfer.files
     for (let i = 0; i < files.length; i++) {
@@ -183,7 +187,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
         break
       }
     }
-  }, [processImageFile, state.setIsDragging])
+  }, [processImageFile, setIsDragging])
 
   useEffect(() => {
     const view = state.viewRef.current
@@ -222,7 +226,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
 
     view.dom.addEventListener('paste', handlePaste)
     return () => view.dom.removeEventListener('paste', handlePaste)
-  }, [processImageFile, state.viewRef.current])
+  }, [processImageFile, state.viewRef])
 
   const handleOpenFile = useCallback(() => {
     fileInputRef.current?.click()
@@ -241,8 +245,8 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     const isValidExtension = validExtensions.some(ext => fileName.endsWith(ext))
 
     if (!isValidExtension) {
-      state.setError(t.editor.unsupportedFileFormat)
-      setTimeout(() => state.setError(null), 5000)
+      setError(t.editor.unsupportedFileFormat)
+      setTimeout(() => setError(null), 5000)
       event.target.value = ''
       return
     }
@@ -250,16 +254,16 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     const reader = new FileReader()
     reader.onload = (e) => {
       const content = e.target?.result as string
-      state.pushUndo(content, 'open-file')
+      pushUndo(content, 'open-file')
       onChange(content)
     }
     reader.onerror = () => {
-      state.setError(`${t.editor.fileReadError}`)
-      setTimeout(() => state.setError(null), 5000)
+      setError(`${t.editor.fileReadError}`)
+      setTimeout(() => setError(null), 5000)
     }
     reader.readAsText(file, 'UTF-8')
     event.target.value = ''
-  }, [onChange, state.pushUndo, state.setError, t])
+  }, [onChange, pushUndo, setError, t])
 
   const handleImageFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -270,27 +274,27 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
   const handleInsertFootnote = useCallback(() => {
     const view = state.viewRef.current
     if (view) cm6InsertFootnote(view)
-  }, [])
+  }, [state.viewRef])
 
   const handleInsertInlineMath = useCallback(() => {
     const view = state.viewRef.current
     if (view) cm6FormatInlineMath(view)
-  }, [])
+  }, [state.viewRef])
 
   const handleInsertBlockMath = useCallback(() => {
     const view = state.viewRef.current
     if (view) cm6FormatBlockMath(view)
-  }, [])
+  }, [state.viewRef])
 
   const handleInsertMathTemplate = useCallback((latex: string, mode: 'inline' | 'block', _isTemplate: boolean) => {
     const view = state.viewRef.current
     if (view) cm6InsertMathTemplate(view, latex, mode)
-  }, [])
+  }, [state.viewRef])
 
   const handleInsertMermaid = useCallback((code: string) => {
     const view = state.viewRef.current
     if (view) cm6InsertMermaidBlock(view, code)
-  }, [])
+  }, [state.viewRef])
 
   const editorUIValue = useMemo(() => ({
     editorViewRef: state.viewRef,
@@ -353,6 +357,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     lintMarkdown,
     fixIssue,
     imageStore,
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- interop: state 为 useCM6State 每渲染新对象，补根对象将使本 UI 上下文每渲染换新引用拖垮编辑器子树；下方成员路径已枚举全部响应式输入
   }), [
     state.viewRef, value, onChange, state.pushUndo,
     state.canUndo, state.canRedo, state.handleUndo, state.handleRedo,
@@ -367,7 +372,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     handleOpenImageFile, handleOpenFile,
     handleInsertFootnote, handleInsertInlineMath, handleInsertBlockMath, handleInsertMathTemplate, handleInsertMermaid,
     state.error, state.success, state.largeImageConfirm,
-    onPrint, onUseTemplate,
+    onPrint, onUseTemplate, onOpenImportDialog,
   ])
 
   return (

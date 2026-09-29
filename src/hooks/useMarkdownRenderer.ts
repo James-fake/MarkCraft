@@ -100,7 +100,7 @@ export function useMarkdownRenderer(localContent: string, textToStorage: (markdo
       logger.error('Markdown render error:', error)
       return '<p>Render error</p>'
     }
-  }, [localContent, t])
+  }, [localContent, t, textToStorage])
 
   // KaTeX async rendering (only when math formulas are present)
   const mathHtml = useMathRender(baseHtml)

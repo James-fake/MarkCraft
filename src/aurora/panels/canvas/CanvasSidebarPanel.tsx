@@ -147,10 +147,12 @@ const [shapes, setShapes] = useState<ParsedShape[]>([])
   const selectedNote = shapes.find((s) => selectedIds.includes(s.id) && s.type === 'note-card')
   const backlinks = useMemo(
     () => (selectedNote?.fileId ? getBacklinks(selectedNote.fileId) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- nonce: shapes 变化时强制重算反链（历史修复：画布卡片内容变更后保持面板同步）
     [selectedNote?.fileId, getBacklinks, shapes],
   )
   const outgoing = useMemo(
     () => (selectedNote?.fileId ? getOutgoingLinks(selectedNote.fileId) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- nonce: 同上，outgoing 与 backlinks 保持同一失效语义
     [selectedNote?.fileId, getOutgoingLinks, shapes],
   )
 
@@ -158,6 +160,7 @@ const [shapes, setShapes] = useState<ParsedShape[]>([])
   const allTags = useMemo(() => {
     const real = getAllTags()
     return Array.from(new Set([...real, ...TAG_SUGGESTIONS]))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- nonce: shapes 变化时强制重算标签合集（getAllTags 为读取型函数）
   }, [getAllTags, shapes])
 
   // 历史：加载本白板 note-card 关联文件的版本

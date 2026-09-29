@@ -146,6 +146,7 @@ const WheelPicker: React.FC<WheelPickerProps> = ({
         node.style.zIndex = isCenter ? '3' : String(2 - Math.floor(dist))
       }
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- nonce: visible 翻转时以新回调身份触发重排刷新节点样式（体不读 visible 实为故意触发器）
     [itemHeight, center, accent, loop, len, visible, POOL, maxIndex, clampIndex],
   )
 

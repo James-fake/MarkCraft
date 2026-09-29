@@ -324,18 +324,21 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
           break
       }
     },
-    [popupState.visible, itemCount, headingMode, headingResults, results, selectedIndex, insertWikiLink, insertHeadingLink]
+    [popupState.visible, itemCount, headingMode, headingResults, results, selectedIndex, insertWikiLink, insertHeadingLink, dateSuggestions, insertDateLink]
   )
 
   // Intercept key events from the editor using a stable override pattern
   const originalHandlerRef = useRef<((view: EditorView, event: KeyboardEvent) => boolean | void) | undefined>(undefined)
   const isOverriddenRef = useRef(false)
 
+  // 提取复杂表达式为变量，供 effect deps 静态检查（语义与 visible && itemCount>0 完全一致）
+  const popupActive = popupState.visible && itemCount > 0
+
   useEffect(() => {
     if (!editor) return
 
     // When popup is visible and has results, install the keydown override
-    if (popupState.visible && itemCount > 0) {
+    if (popupActive) {
       if (!isOverriddenRef.current) {
         originalHandlerRef.current = editor.view.props.handleKeyDown
         isOverriddenRef.current = true
@@ -400,7 +403,7 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
       isOverriddenRef.current = false
       originalHandlerRef.current = undefined
     }
-  }, [editor, popupState.visible, itemCount > 0])
+  }, [editor, popupActive])
 
   // Cleanup on unmount
   useEffect(() => {

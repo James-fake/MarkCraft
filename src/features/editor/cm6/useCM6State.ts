@@ -256,7 +256,7 @@ export function useCM6State({
     return () => {
       if (lintTimerRef.current) clearTimeout(lintTimerRef.current)
     }
-  }, [value, t])
+  }, [value, t, lintMarkdown])
 
   // Lint 跳转到问题位置
   const handleJumpToIssue = useCallback((issue: LintIssue) => {
@@ -429,7 +429,7 @@ export function useCM6State({
           : theme === 'dark' ? [cm6DarkTheme] : []),
       ],
     })
-  }, [focusMode, pushUndo, t, theme, appSettings.fontSize, appSettings.codeFontFamily, appSettings.codeBlockDefaultLang, appSettings.codeTheme, appSettings.autoPairBrackets, appSettings.autoPairQuotes, appSettings.autoPairMarkdown, appSettings.spellCheck])
+  }, [focusMode, pushUndo, t, theme, appSettings.fontSize, appSettings.codeFontFamily, appSettings.codeBlockDefaultLang, appSettings.codeTheme, appSettings.autoPairBrackets, appSettings.autoPairQuotes, appSettings.autoPairMarkdown, appSettings.spellCheck, fixIssue, imageStore, lintMarkdown])
 
   // 初始化 EditorView
   useEffect(() => {
@@ -503,6 +503,7 @@ export function useCM6State({
         </div>`
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mount-only: EditorView 仅初始化一次（createState 随设置每渲染重建，补入会导致任何设置变更都整编辑器重建；设置热更新走独立 reconfigure 通道）
   }, []) // 仅初始化一次
 
   return {

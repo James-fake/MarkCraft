@@ -246,7 +246,11 @@ export function CanvasInspectorPanel({ engine }: CanvasInspectorPanelProps) {
     (e) => e.getSelectedShapeIds().join('|'),
     'session',
   ) ?? ''
-  const selectedIds = selectedIdsSig ? selectedIdsSig.split('|').filter(Boolean) : []
+  // 按 sig 记忆化：空/非空分支都保持引用稳定，避免下游 useMemo 每渲染失效
+  const selectedIds = useMemo(
+    () => (selectedIdsSig ? selectedIdsSig.split('|').filter(Boolean) : []),
+    [selectedIdsSig],
+  )
 
   const selected = shapes.find((s) => selectedIds.includes(s.id) && s.type !== 'arrow')
 
@@ -271,6 +275,7 @@ export function CanvasInspectorPanel({ engine }: CanvasInspectorPanelProps) {
   const { getOutgoingLinks } = useLinkIndex()
   const { rootFolder } = useFileManager()
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- nonce: shapes 变化时强制重算标签合集（getAllTags 为读取型函数，规则看不见其内部数据源）
   const allTags = useMemo(() => Array.from(new Set([...getAllTags(), ...TAG_SUGGESTIONS])), [getAllTags, shapes])
 
   const update = (id: string, partial: Record<string, unknown>) => {

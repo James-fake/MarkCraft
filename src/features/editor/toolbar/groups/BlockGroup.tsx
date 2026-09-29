@@ -5,6 +5,8 @@ import { useSettings } from '@stores/SettingsStore'
 
 export default function BlockGroup({ t, editorViewRef, onChange, onPushUndo }: GroupProps & { t: Translations }) {
   const { settings: appSettings } = useSettings()
+  // 解构原始值供 dep 使用（appSettings 对象每渲染可能换新引用，成员路径 deps 不可靠）
+  const codeBlockDefaultLang = appSettings.codeBlockDefaultLang
 
   const applyFormat = useCallback((
     formatter: (text: string, selectionStart: number, selectionEnd: number) => {
@@ -57,7 +59,7 @@ export default function BlockGroup({ t, editorViewRef, onChange, onPushUndo }: G
       const before = text.substring(0, selectionStart)
       const after = text.substring(selectionStart)
       const selected = text.substring(selectionStart, _selectionEnd)
-      const lang = appSettings.codeBlockDefaultLang || ''
+      const lang = codeBlockDefaultLang || ''
       const newText = before + '\n```' + lang + '\n' + selected + '\n```\n' + after
       return {
         newText,
@@ -65,7 +67,7 @@ export default function BlockGroup({ t, editorViewRef, onChange, onPushUndo }: G
         newCursorEnd: selectionStart + 4 + lang.length + selected.length
       }
     })
-  }, [applyFormat])
+  }, [applyFormat, codeBlockDefaultLang])
 
   const insertHr = useCallback(() => {
     applyFormat((text, selectionStart, _selectionEnd) => {

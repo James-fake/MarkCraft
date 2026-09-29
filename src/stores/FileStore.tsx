@@ -239,7 +239,9 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
     setState(prev => ({ ...prev, rootFolder: addGuide(prev.rootFolder) }));
     localStorage.setItem(MIGRATION_KEY, '1');
-  }, []); // 只运行一次
+    // 只运行一次：MIGRATION_KEY 幂等守卫使重复运行零写入，补 deps 顺带修复
+    // 「语言在首帧后才就绪时建错语言指南」与「两阶段初始化覆盖 rootFolder 后的过期读取」
+  }, [language, state.rootFolder]);
 
   // --- Tab methods (merged from TabStore) ---
 

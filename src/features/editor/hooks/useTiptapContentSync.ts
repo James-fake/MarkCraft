@@ -84,5 +84,5 @@ export function useTiptapContentSync({
     setTimeout(() => {
       isInternalUpdate.current = false
     }, 0)
-  }, [value, editor, fileId])
+  }, [value, editor, fileId, debounceTimerRef, isInternalUpdate, lastEmittedMd, undoRedo])
 }

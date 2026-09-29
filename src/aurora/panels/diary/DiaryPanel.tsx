@@ -105,6 +105,7 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
     }
   }, [])
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- nonce: refreshNonce 为可见性/聚焦时强制重扫日记目录的失效闸（collectDiaryEntries 为读取型函数）
   const entries = useMemo(() => collectDiaryEntries(rootFolder), [rootFolder, refreshNonce])
   const entryMap = useMemo(() => new Map(entries.map((e) => [e.date, e])), [entries])
 

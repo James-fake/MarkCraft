@@ -174,11 +174,11 @@ export function MenuBar() {
   const activeFileId = getActiveFileId()
 
   // 条目级 disabled：无活动文件 或 命令未注册（理论上均有，防御注册时序）
-  const isDisabled = (e: AuroraMenuEntry) => {
+  const isDisabled = useCallback((e: AuroraMenuEntry) => {
     if (e.needsFile && !activeFileId) return true
     if (!commandRegistry.getById(e.id)?.action) return true
     return false
-  }
+  }, [activeFileId])
 
   // 勾选态
   const isChecked = (e: AuroraMenuEntry) => {
@@ -199,7 +199,7 @@ export function MenuBar() {
       close()
       cmd.action()
     }
-  }, [activeFileId, close])
+  }, [close, isDisabled])
 
   // 外部点击 / Esc 关闭
   useEffect(() => {

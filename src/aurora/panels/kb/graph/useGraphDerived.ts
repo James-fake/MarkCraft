@@ -121,6 +121,7 @@ export function useGraphDerived(p: GraphDerivedOpts) {
       set.add(n.id)
     })
     return set
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- nonce: p.graphRev 为 nodesRef.current 读取的失效闸（体读 ref，规则视为不必要实为故意）
   }, [p.hidden, p.showNote, p.showTag, p.showFolder, p.showOrphan, p.minConn, p.selectedTags, modeScope, p.graphRev, p.extraNeighbors, p.nodesRef])
 
   // 方案 C · 着色分组导航聚合：依赖 visibleIds，置于其声明之后

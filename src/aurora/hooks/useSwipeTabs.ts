@@ -503,7 +503,7 @@ export function useSwipeTabs(options: UseSwipeTabsOptions): UseSwipeTabsResult {
       document.removeEventListener('pointerup', onUp)
       document.removeEventListener('pointercancel', onCancel)
     }
-  }, [enabled, applyOffset, endGesture])
+  }, [enabled, applyOffset, endGesture, applyTarget])
 
   /* ---------------------------------------------------------------- *
    * 触控板 wheel 路径

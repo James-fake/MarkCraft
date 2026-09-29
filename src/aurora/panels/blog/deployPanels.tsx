@@ -31,7 +31,8 @@ interface CssPanelProps {
 }
 
 function CssPanel({ cfg, setCfg, toast, iframeRef, previewDevice }: CssPanelProps) {
-  const setF = (p: Partial<BlogConfig>) => setCfg(p)
+  // useCallback 稳定化：否则 pushHistory/undo/redo（deps 含 setF）每渲染失效
+  const setF = useCallback((p: Partial<BlogConfig>) => setCfg(p), [setCfg])
   // 使用优化③：亮/暗 CSS 模式跟随预览主题模式（预览暗色时默认展示"暗色 CSS"，不再固定亮色）；
   // 用户仍可手动切换 Segment 查看/编辑另一份 CSS。
   const [cssMode, setCssMode] = useState<'light' | 'dark'>(cfg.theme === 'dark' ? 'dark' : 'light')

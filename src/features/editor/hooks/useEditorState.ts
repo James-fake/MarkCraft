@@ -95,11 +95,13 @@ export function useEditorState({
     return unsub
   }, [fileId, undoRedo])
 
-  // Init history
+  // Init history —— 仅在 fileId 变化时初始化；value 经 ref 读取（补 value 会导致每次击键重初始化历史）
+  const initValueRef = useRef(value)
+  initValueRef.current = value
   useEffect(() => {
     if (!fileId) return
-    undoRedo.initHistory(fileId, value)
-  }, [fileId])
+    undoRedo.initHistory(fileId, initValueRef.current)
+  }, [fileId, undoRedo])
 
   const updateCurrentLine = useCallback(() => {
     const textarea = textareaRef.current
@@ -312,7 +314,7 @@ export function useEditorState({
     }
 
     return html
-  }, [value, sourceLint.lintIssues, focusMode, typewriterMode, currentLineNumber])
+  }, [value, sourceLint.lintIssues, focusMode, typewriterMode, currentLineNumber, imageStore])
 
   const currentWordCount = wordCountMode === 'text' ? stats.wordCountTextMode : stats.wordCountStandardMode
 
