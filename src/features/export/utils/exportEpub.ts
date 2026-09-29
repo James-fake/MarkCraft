@@ -228,7 +228,7 @@ async function compressDeflate(data: Uint8Array): Promise<Uint8Array> {
 
     const chunks: Uint8Array[] = []
     let totalLen = 0
-    while (true) {
+    for (;;) {
       const { value, done } = await reader.read()
       if (done) break
       chunks.push(value)

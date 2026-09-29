@@ -13,6 +13,7 @@
  */
 import type { FileNode } from '../types/fileManager'
 import { findNode } from '../services/fileService'
+import { logger } from '../utils/logger'
 import { collectAllFiles } from '@core/files/fileTree'
 import { getKbList, createKbInFolder, rebindKbFolder } from './kbStore'
 import {
@@ -105,7 +106,7 @@ let inFlight: Promise<string | null> | null = null
  */
 export async function ensureUsageDocsKb(deps: UsageDocsSeedDeps): Promise<string | null> {
   if (inFlight) {
-    console.info('[kbSeed] 播种已在飞行中，复用同一次调用')
+    logger.info('[kbSeed] 播种已在飞行中，复用同一次调用')
     return inFlight
   }
   inFlight = run(deps).finally(() => { inFlight = null })
@@ -121,7 +122,7 @@ async function run(deps: UsageDocsSeedDeps): Promise<string | null> {
   if (existing) {
     // 1a. 健康：folderId 能在树上解析到 → 直接复用（幂等路径）
     if (findNode(deps.rootFolder, existing.folderId)) {
-      console.info('[kbSeed] 已存在健康的内置知识库，直接复用：', existing.id)
+      logger.info('[kbSeed] 已存在健康的内置知识库，直接复用：', existing.id)
       return existing.id
     }
 
@@ -131,10 +132,10 @@ async function run(deps: UsageDocsSeedDeps): Promise<string | null> {
     //     症状正是「知识库能进，但库里 0 篇」。
     //     此处选择**自愈**而非重建知识库：重新建出文件夹、补齐笔记、把 folderId 挂回去。
     //     kb.id 与 rules / tasks / 导出记录等用户积累全部保留。
-    console.info('[kbSeed] 检测到悬空 folderId，开始自愈：', { kbId: existing.id, staleFolderId: existing.folderId })
+    logger.info('[kbSeed] 检测到悬空 folderId，开始自愈：', { kbId: existing.id, staleFolderId: existing.folderId })
     const rebindFolderId = materialize(deps, cfg)
     await rebindKbFolder(existing.id, rebindFolderId)
-    console.info('[kbSeed] 自愈完成：', { kbId: existing.id, folderId: rebindFolderId })
+    logger.info('[kbSeed] 自愈完成：', { kbId: existing.id, folderId: rebindFolderId })
     return existing.id
   }
 
@@ -146,15 +147,15 @@ async function run(deps: UsageDocsSeedDeps): Promise<string | null> {
     /* 隐私模式等：按未播种处理 */
   }
   if (seeded) {
-    console.info('[kbSeed] 已播种过且用户已删除该库 → 不复活，跳过')
+    logger.info('[kbSeed] 已播种过且用户已删除该库 → 不复活，跳过')
     return null
   }
 
   // ③ 建文件夹 + 补齐笔记，再把知识库挂上去
-  console.info('[kbSeed] 首次播种内置使用文档：', { folder: cfg.folder, pages: cfg.pages.length })
+  logger.info('[kbSeed] 首次播种内置使用文档：', { folder: cfg.folder, pages: cfg.pages.length })
   const folderId = materialize(deps, cfg)
   const kb = await createKbInFolder(cfg.folder, cfg.description, folderId)
-  console.info('[kbSeed] 播种完成：', { kbId: kb.id, folderId })
+  logger.info('[kbSeed] 播种完成：', { kbId: kb.id, folderId })
 
   // ④ 落标记
   try {

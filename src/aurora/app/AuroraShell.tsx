@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { ToastProvider, useToast } from '../../components/ui/ToastProvider'
+import { logger } from '../../utils/logger'
 import { useAuroraShell } from './useAuroraShell'
 import { RealProviders } from '../providers/RealProviders'
 import { CommandPalette, type CommandItem, type FileSearchItem } from '../components/command-palette/CommandPalette'
@@ -152,7 +153,7 @@ function ShellInner() {
   useEffect(() => {
     if (!hydrated) return
     if (usageDocsSeededRef.current) return
-    console.info('[kbSeed] 播种 effect 触发（hydrated 已就位）')
+    logger.info('[kbSeed] 播种 effect 触发（hydrated 已就位）')
     void ensureUsageDocsKb({ rootFolder, lang: language, createFolder, createFile, moveNode })
       .then(() => { usageDocsSeededRef.current = true })   // 有 id 或 null（不复活）都算终态
       .catch((err) => { console.warn('[KB] 内置使用文档播种失败，将在下次树变更时重试：', err) })

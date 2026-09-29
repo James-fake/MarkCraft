@@ -3,6 +3,7 @@ import { loadLargeData, saveLargeData } from '@core/storage/migrate'
 import { db, NoteVersionRecord } from '@core/storage/db'
 import { collectAllFiles } from '@core/files/fileTree'
 import { safeJsonParse, safeJsonParseOrNull } from '@utils/safeJson'
+import { logger } from '@utils/logger'
 import { isFileManagerState, isRecord } from '@utils/schemaGuards'
 
 export interface BackupData {
@@ -355,7 +356,7 @@ export function startAutoBackupScheduler(): ReturnType<typeof setInterval> {
         const files = await getCurrentFiles()
         if (files) {
           await createAutoBackup(files)
-          console.log('[backup] auto backup created by scheduler')
+          logger.info('[backup] auto backup created by scheduler')
         }
       }
     } catch (e) {

@@ -7,6 +7,7 @@ import { addRecentFile, getRecentFiles, removeRecentFile } from '@core/files/rec
 import { resolveUsageDocsScope } from '@core/files/usageDocs';
 import { knowledgeLinkGuideContent as knowledgeLinkGuideContentZh } from '@core/data/defaultDocs/zh';
 import { knowledgeLinkGuideContent as knowledgeLinkGuideContentEn } from '@core/data/defaultDocs/en';
+import { logger } from '@utils/logger';
 
 /**
  * 落盘前的标签净化：**瞬态（预览）标签永不持久化**。
@@ -156,7 +157,7 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       }
       // 无论读没读到，都算「水合完成」：读不到时 T0 本身就是应然状态（新用户首启 / 版本升级重建）
       setHydrated(true)
-      console.info('[FileStore] hydrated=true；来源 =', asyncState ? 'IndexedDB 权威树' : '无（新用户首启或已清空，沿用同步树）')
+      logger.info('[FileStore] hydrated=true；来源 =', asyncState ? 'IndexedDB 权威树' : '无（新用户首启或已清空，沿用同步树）')
     })
     return () => { cancelled = true }
   }, [language])

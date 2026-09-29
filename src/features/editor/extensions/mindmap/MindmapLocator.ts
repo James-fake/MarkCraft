@@ -1,4 +1,5 @@
 import type { MindmapNode } from './MindmapParser'
+import { logger } from '../../../../utils/logger'
 
 export interface NodePosition {
   nodeId: string
@@ -83,7 +84,7 @@ export function locateMindmapNodes(
     }
   }
 
-  console.log('[MindmapLocator] textEntries found:', textEntries.length,
+  logger.info('[MindmapLocator] textEntries found:', textEntries.length,
     'texts:', textEntries.map(e => e.text.slice(0, 30)),
     'parsed nodes:', flatNodes.map(n => n.text))
 
@@ -129,7 +130,7 @@ export function locateMindmapNodes(
 
   // Order-based fallback
   if (positions.length === 0 && textEntries.length > 0) {
-    console.log('[MindmapLocator] Text matching failed, using order-based matching')
+    logger.info('[MindmapLocator] Text matching failed, using order-based matching')
     const count = Math.min(textEntries.length, flatNodes.length)
     for (let i = 0; i < count; i++) {
       const pos = getPositionFromElement(textEntries[i].element, containerRect)
@@ -139,7 +140,7 @@ export function locateMindmapNodes(
     }
   }
 
-  console.log('[MindmapLocator] positions found:', positions.length)
+  logger.info('[MindmapLocator] positions found:', positions.length)
   return positions
 }
 

@@ -18,9 +18,13 @@ module.exports = {
     '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
     '@typescript-eslint/no-explicit-any': 'warn',
     '@typescript-eslint/no-empty-interface': 'off',
-    '@typescript-eslint/no-empty-function': 'warn',
-    'no-empty': 'warn',
-    'no-console': 'warn',
+    // 箭头函数空实现是 React 占位回调的惯用法（() => {}），不构成问题；
+    // 保留对具名函数/方法空实现的检查（那些往往是「忘写实现」的真信号）
+    '@typescript-eslint/no-empty-function': ['warn', { allow: ['arrowFunctions'] }],
+    // 空 catch 多为「有意忽略」的惯用法（catch { /* noop */ }），保留对真空块的检查
+    'no-empty': ['warn', { allowEmptyCatch: true }],
+    // warn/error 是桌面应用的合法诊断输出；log 才是调试残留
+    'no-console': ['warn', { allow: ['warn', 'error'] }],
     'no-constant-condition': 'warn',
   },
 
@@ -39,6 +43,21 @@ module.exports = {
       ],
       rules: {
         'local/no-aurora-ui-import': 'error',
+      },
+    },
+    {
+      // stores/*.tsx：useXxxStore hook 与 Context Provider 同文件是该层的固有形态
+      //（hook 与 Provider 互为表里），拆文件只服务 dev HMR 粒度，桌面应用价值低 → 豁免。
+      files: ['src/stores/**/*.tsx'],
+      rules: {
+        'react-refresh/only-export-components': 'off',
+      },
+    },
+    {
+      // 测试文件的诊断输出（console.log 打印排查明细）合法
+      files: ['src/**/__tests__/**/*.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
+      rules: {
+        'no-console': 'off',
       },
     },
   ],
