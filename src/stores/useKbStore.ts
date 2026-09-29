@@ -62,8 +62,15 @@ export function useKbStore() {
 
   /** 刷新列表 */
   const refreshList = useCallback(async () => {
-    const list = await getKbList()
-    setKbList(list)
+    try {
+      const list = await getKbList()
+      setKbList(list)
+    } catch (err) {
+      // IDB 不可用/损坏（隐私模式、配额、测试环境无 IndexedDB）：降级为「空清单」，
+      // 不能永远停在未加载态——否则消费者（如图谱 scopeReady 门控）永久等待、图谱空白
+      console.warn('[kbStore] 清单加载失败，降级为空清单', err)
+      setKbList([])
+    }
     setVersion(v => v + 1)
   }, [])
 
