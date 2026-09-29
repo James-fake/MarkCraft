@@ -3,38 +3,9 @@ import { PanelProps, useLabels } from './shared'
 import { SectionLabel, StudioInput, StudioChip, useStudioTheme } from '../StudioControls'
 import { useToast } from '@components/ui/ToastProvider'
 import { useDensity, scaleGap } from '@hooks/useDensity'
+import type { RewardConfig, FriendLink, AboutConfig, SeriesConfig } from '../../templates'
 
 interface FeaturesPanelProps extends PanelProps {
-}
-
-interface RewardConfig {
-  enable: boolean
-  wechatQrcode?: string
-  alipayQrcode?: string
-  title?: string
-}
-
-interface FriendLink {
-  name: string
-  url: string
-  avatar?: string
-  description?: string
-}
-
-interface AboutConfig {
-  enable: boolean
-  avatar?: string
-  bio?: string
-  skills?: string[]
-  contact?: Array<{ label: string; url: string }>
-}
-
-// 系列文章配置
-interface SeriesConfig {
-  name: string
-  slug: string
-  description?: string
-  coverImage?: string
 }
 
 export function FeaturesPanel({ designConfig, handleDesignChange }: FeaturesPanelProps) {
@@ -55,29 +26,29 @@ export function FeaturesPanel({ designConfig, handleDesignChange }: FeaturesPane
   const toggleReward = () => {
     const reward = designConfig.reward as RewardConfig | undefined
     const current = reward?.enable || false
-    handleDesignChange('reward', { enable: !current, wechatQrcode: reward?.wechatQrcode, alipayQrcode: reward?.alipayQrcode, title: reward?.title } as any)
+    handleDesignChange('reward', { enable: !current, wechatQrcode: reward?.wechatQrcode, alipayQrcode: reward?.alipayQrcode, title: reward?.title })
   }
 
   const updateRewardField = (key: keyof RewardConfig, value: unknown) => {
     const reward = designConfig.reward as RewardConfig | undefined
-    handleDesignChange('reward', { ...reward!, [key]: value } as any)
+    handleDesignChange('reward', { ...reward!, [key]: value } as RewardConfig)
   }
 
   const toggleAbout = () => {
     const about = designConfig.aboutConfig as AboutConfig | undefined
     const current = about?.enable || false
-    handleDesignChange('aboutConfig', { enable: !current, avatar: about?.avatar, bio: about?.bio, skills: about?.skills, contact: about?.contact } as any)
+    handleDesignChange('aboutConfig', { enable: !current, avatar: about?.avatar, bio: about?.bio, skills: about?.skills, contact: about?.contact })
   }
 
   const updateAboutField = (key: keyof AboutConfig, value: unknown) => {
     const about = designConfig.aboutConfig as AboutConfig | undefined
-    handleDesignChange('aboutConfig', { ...about!, [key]: value } as any)
+    handleDesignChange('aboutConfig', { ...about!, [key]: value } as AboutConfig)
   }
 
   const addFriendLink = () => {
     if (!newFriend.name || !newFriend.url) return
     const currentLinks = (designConfig.friendLinks || []) as FriendLink[]
-    handleDesignChange('friendLinks', [...currentLinks, { ...newFriend }] as any)
+    handleDesignChange('friendLinks', [...currentLinks, { ...newFriend }])
     setNewFriend({ name: '', url: '' })
     setAddingFriend(false)
   }
@@ -85,7 +56,7 @@ export function FeaturesPanel({ designConfig, handleDesignChange }: FeaturesPane
   const removeFriendLink = (index: number) => {
     const currentLinks = (designConfig.friendLinks || []) as FriendLink[]
     const newLinks = currentLinks.filter((_, i) => i !== index)
-    handleDesignChange('friendLinks', newLinks as any)
+    handleDesignChange('friendLinks', newLinks)
   }
 
   // 系列文章管理函数
@@ -93,7 +64,7 @@ export function FeaturesPanel({ designConfig, handleDesignChange }: FeaturesPane
     if (!newSeries.name) return
     const slug = newSeries.slug || newSeries.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
     const currentSeries = (designConfig.seriesConfig || []) as SeriesConfig[]
-    handleDesignChange('seriesConfig', [...currentSeries, { ...newSeries, slug }] as any)
+    handleDesignChange('seriesConfig', [...currentSeries, { ...newSeries, slug }])
     setNewSeries({ name: '', slug: '' })
     setAddingSeries(false)
   }
@@ -101,7 +72,7 @@ export function FeaturesPanel({ designConfig, handleDesignChange }: FeaturesPane
   const removeSeries = (index: number) => {
     const currentSeries = (designConfig.seriesConfig || []) as SeriesConfig[]
     const newSeriesList = currentSeries.filter((_, i) => i !== index)
-    handleDesignChange('seriesConfig', newSeriesList as any)
+    handleDesignChange('seriesConfig', newSeriesList)
   }
 
   const cardBorder = d ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.08)'
@@ -488,28 +459,28 @@ export function FeaturesPanel({ designConfig, handleDesignChange }: FeaturesPane
                     const { config } = data
                     
                     // 更新各个配置字段
-                    handleDesignChange('siteTitle' as any, config.siteTitle)
-                    handleDesignChange('siteDescription' as any, config.siteDescription)
-                    handleDesignChange('author' as any, config.author)
-                    handleDesignChange('language' as any, config.language)
-                    handleDesignChange('layout' as any, config.layout)
-                    handleDesignChange('colorScheme' as any, config.colorScheme)
-                    handleDesignChange('colorLightness' as any, config.colorLightness)
-                    handleDesignChange('colorSaturation' as any, config.colorSaturation)
-                    handleDesignChange('colorSharpness' as any, config.colorSharpness)
-                    handleDesignChange('customColor' as any, config.customColor)
-                    handleDesignChange('theme' as any, config.theme)
-                    handleDesignChange('font' as any, config.font)
-                    handleDesignChange('themeStyle' as any, config.themeStyle)
-                    handleDesignChange('customCss' as any, config.customCss || '')
-                    handleDesignChange('customCssDark' as any, config.customCssDark || '')
-                    handleDesignChange('enableBusuanzi' as any, config.enableBusuanzi)
-                    handleDesignChange('enableApplause' as any, config.enableApplause)
-                    handleDesignChange('reward' as any, config.reward)
-                    handleDesignChange('friendLinks' as any, config.friendLinks)
-                    handleDesignChange('aboutConfig' as any, config.aboutConfig)
-                    handleDesignChange('seriesConfig' as any, config.seriesConfig)
-                    handleDesignChange('enablePwa' as any, config.enablePwa)
+                    handleDesignChange('siteTitle', config.siteTitle)
+                    handleDesignChange('siteDescription', config.siteDescription)
+                    handleDesignChange('author', config.author)
+                    handleDesignChange('language', config.language)
+                    handleDesignChange('layout', config.layout)
+                    handleDesignChange('colorScheme', config.colorScheme)
+                    handleDesignChange('colorLightness', config.colorLightness)
+                    handleDesignChange('colorSaturation', config.colorSaturation)
+                    handleDesignChange('colorSharpness', config.colorSharpness)
+                    handleDesignChange('customColor', config.customColor)
+                    handleDesignChange('theme', config.theme)
+                    handleDesignChange('font', config.font)
+                    handleDesignChange('themeStyle', config.themeStyle)
+                    handleDesignChange('customCss', config.customCss || '')
+                    handleDesignChange('customCssDark', config.customCssDark || '')
+                    handleDesignChange('enableBusuanzi', config.enableBusuanzi)
+                    handleDesignChange('enableApplause', config.enableApplause)
+                    handleDesignChange('reward', config.reward)
+                    handleDesignChange('friendLinks', config.friendLinks)
+                    handleDesignChange('aboutConfig', config.aboutConfig)
+                    handleDesignChange('seriesConfig', config.seriesConfig)
+                    handleDesignChange('enablePwa', config.enablePwa)
                     
                     toast.show(t.blogStudio.importSuccess || '配置导入成功！', 'success')
                   } else {
