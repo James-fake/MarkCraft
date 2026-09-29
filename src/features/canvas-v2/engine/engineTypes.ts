@@ -38,7 +38,9 @@ export interface ShapeLike {
   rotation: number
   isLocked: boolean
   opacity?: number
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- interop: 形状 props 为无 schema 的上游元素属性袋（鸭子类型桥接 tldraw/Excalidraw 元素模型）
   props: Record<string, any>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- interop: 同 props，元信息袋
   meta?: Record<string, any>
 }
 
@@ -57,6 +59,7 @@ export interface CameraState {
 }
 
 // ─── Excalidraw 命令式 API 子集（避免硬依赖包类型） ───
+/* eslint-disable @typescript-eslint/no-explicit-any -- interop: 对上游命令式 API 的有意鸭子类型桥接；包类型声明被 .DELETE 破坏不可用（见 src/excalidraw.d.ts），元素/场景数据形状按 any 放行 */
 export interface ExcalidrawAPILike {
   updateScene: (scene: { elements?: any[]; appState?: any; files?: any }) => void
   // 注意：真实 Excalidraw 命令式 API 并无 updateElement，单元素修改请走 updateScene 全量回写。
@@ -72,6 +75,7 @@ export interface ExcalidrawAPILike {
   addFiles?: (files: any) => void
   onSceneUpdated?: (cb: () => void) => void
 }
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // 引擎对外暴露的「编辑器」接口（鸭子类型兼容 tldraw Editor 用于传给现有面板）
 // 实际类型在 CanvasEngine.ts 中定义；此处由消费方直接 import { CanvasEngine }。
@@ -82,12 +86,14 @@ export interface ExcalidrawAPILike {
 // 与既有架构一致——CanvasEngine 本就是 tldraw Editor 的鸭子类型伪装。
 import type { CanvasEngine } from './CanvasEngine'
 /** Editor 兼容类型：CanvasEngine + 鸭子类型放行 */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- interop: tldraw Editor 鸭子类型伪装，索引签名放行引擎外方法（off/markHistoryStoppingPoint 等）
 export type Editor = CanvasEngine & { [key: string]: any }
 /** shape id（tldraw 为 branded string + 可选泛型，此处 string + brand 兼容） */
 export type TLShapeId<T = unknown> = string & { __shapeBrand?: T }
 /** 形状记录（tldraw TLShape 兼容） */
 export type TLShape = ShapeLike
 /** 形状基类（tldraw TLBaseShape<T, P> 兼容） */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- interop: tldraw TLBaseShape 泛型默认值按属性袋放行
 export type TLBaseShape<T = string, P = Record<string, any>> = ShapeLike & { type: T; props: P }
 /** 箭头形状（tldraw TLArrowShape 兼容） */
 export type TLArrowShape = ShapeLike
@@ -97,4 +103,5 @@ export type TLArrowBinding = BindingLike
 /** 相机状态 */
 export type TLCamera = CameraState
 /** 事件信息（鸭子类型放行，面板仅透传/读取 type 等） */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- interop: 上游事件负载形状不定，索引签名放行
 export type TLEventInfo = { type: string; [key: string]: any }

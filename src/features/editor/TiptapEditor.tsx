@@ -1,4 +1,6 @@
 import { useEditor, EditorContent } from '@tiptap/react'
+import { EditorView } from '@tiptap/pm/view'
+import { Slice } from '@tiptap/pm/model'
 import { djb2Hash } from '../../utils/hash'
 import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback, useState, useMemo } from 'react'
 import { htmlToMarkdown } from './markdownConvert'
@@ -144,7 +146,7 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
   const { handleDrop: imageHandleDrop, handlePaste: imageHandlePaste } = useTiptapImageHandler({ editorRef, t, useRelativeImagePath: appSettings.useRelativeImagePath })
 
   // Enhanced handleDrop: check for file drag from sidebar first, then fall through to image handler
-  const handleDrop = useCallback((view: any, event: DragEvent, slice: any, moved: boolean) => {
+  const handleDrop = useCallback((view: EditorView, event: DragEvent, slice: Slice, moved: boolean) => {
     // Check for file drag from sidebar (WikiLink creation)
     const fileData = event.dataTransfer?.getData('application/markcraft-file')
     if (fileData) {
@@ -170,10 +172,11 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
     return imageHandleDrop(view, event, slice, moved)
   }, [imageHandleDrop])
 
-  const handlePaste = useCallback((view: any, event: ClipboardEvent, slice: any) => {
-    if ((event as any).shiftKey) {
-      (event as any).preventDefault()
-      const text = (event as any).clipboardData?.getData('text/plain') || ''
+  const handlePaste = useCallback((view: EditorView, event: ClipboardEvent, slice: Slice) => {
+    const shiftKey = (event as unknown as { shiftKey?: boolean }).shiftKey
+    if (shiftKey) {
+      event.preventDefault()
+      const text = event.clipboardData?.getData('text/plain') || ''
       view.dispatch(view.state.tr.insertText(text))
       return true
     }

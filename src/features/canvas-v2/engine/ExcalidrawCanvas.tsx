@@ -13,6 +13,7 @@ import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { Excalidraw } from '@excalidraw/excalidraw'
 import { useValue } from './useValue'
 import { CanvasEngine } from './CanvasEngine'
+import type { ExcalidrawAPILike } from './engineTypes'
 import { CanvasEngineContext } from './useCanvasEngine'
 import { CardOverlay } from './CardOverlay'
 // 隐藏 Excalidraw 自带 UI（工具栏/菜单/缩放/右键菜单等），操作入口全部由自定义组件接管
@@ -20,6 +21,7 @@ import './excalidraw-hide-ui.css'
 
 export interface ExcalidrawCanvasProps {
   onReady: (engine: CanvasEngine) => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- interop: 上游 @excalidraw/excalidraw 类型声明被 .DELETE 破坏（见 src/excalidraw.d.ts），初始场景数据形状不可解析，沿用 any 桥接
   initialDocument?: any
   isReadonly?: boolean
   theme?: 'light' | 'dark'
@@ -304,13 +306,13 @@ export function ExcalidrawCanvas({ onReady, initialDocument, isReadonly, theme =
   const initialDocRef = useRef(initialDocument)
   initialDocRef.current = initialDocument
 
-  const handleAPI = useCallback((api: any) => {
+  const handleAPI = useCallback((api: ExcalidrawAPILike) => {
     if (!containerRef.current) return
     engine.attach(api, containerRef.current)
     // 仅在开发构建暴露引擎/Excalidraw API 供自动化验证使用（生产构建不暴露）
-    if ((import.meta as any).env?.DEV) {
-      (window as any).__canvasEngine = engine
-      ;(window as any).__exapi = api
+    if (import.meta.env?.DEV) {
+      window.__canvasEngine = engine
+      window.__exapi = api
     }
     // 延迟到下一帧再写入初始文档并通知就绪：excalidrawAPI 在 Excalidraw 初始化期间被
     // 同步调用，此时其内部 App 类组件尚未挂载完成；若此处立即 api.updateScene()
@@ -346,7 +348,7 @@ export function ExcalidrawCanvas({ onReady, initialDocument, isReadonly, theme =
             }
           }
         }
-        if ((import.meta as any).env?.DEV) (window as any).__plan03_filled = canvases?.length ?? 0
+        if (import.meta.env?.DEV) window.__plan03_filled = canvases?.length ?? 0
         api.updateScene({ appState: { viewBackgroundColor: '#0D0F15' } })
       } catch { /* noop */ }
       if (!readyRef.current && aliveRef.current) {
@@ -457,7 +459,7 @@ export function ExcalidrawCanvas({ onReady, initialDocument, isReadonly, theme =
         UIOptions={EXCALIDRAW_UI_OPTIONS}
         // 把 CanvasPanel 注入的 viewBackgroundColor（unifiedInitialData）作为 Excalidraw 的
         // initialData 传入；并配合 handleAPI 中的 gridSize 抖落强制重绘（见下方注释）。
-        initialData={initialDocument as any}
+        initialData={initialDocument}
       />
       <div
         data-card-overlay

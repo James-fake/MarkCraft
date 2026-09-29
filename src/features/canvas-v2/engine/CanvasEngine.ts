@@ -32,14 +32,14 @@ const HISTORY_LIMIT = 60
  * false → 无限 informMutation → “Maximum call stack size exceeded”。
  * 故所有写入 appState.zoom 的地方都必须走此归一化。
  */
-function asZoom(z: any): { value: number } {
+function asZoom(z: number | { value: number } | null | undefined): { value: number } {
   if (z && typeof z === 'object' && typeof z.value === 'number') return z
   const n = typeof z === 'number' && isFinite(z) && z > 0 ? z : 1
   return { value: n }
 }
 
 /** 从 Excalidraw appState.zoom（可能为 {value} 或裸数字）安全读取数值 */
-function zoomValue(z: any): number {
+function zoomValue(z: number | { value?: number } | null | undefined): number {
   if (z && typeof z === 'object' && typeof z.value === 'number') return z.value
   if (typeof z === 'number' && isFinite(z)) return z
   return 1
@@ -752,7 +752,7 @@ export class CanvasEngine {
 
   // — 变更 —
   createShape(partial: Partial<ShapeLike> & { type: string; x?: number; y?: number; props?: any }): string {
-    const id = (partial as any).id ?? genId('shape')
+    const id = partial.id ?? genId('shape')
     const type = partial.type
     const x = partial.x ?? 0
     const y = partial.y ?? 0

@@ -100,7 +100,7 @@ const [shapes, setShapes] = useState<ParsedShape[]>([])
     const recompute = () => {
       const list = engine.getCurrentPageShapes()
       const next = list.map((s) => {
-        const p = (s.props as any) ?? {}
+        const p = s.props ?? {}
         const w = p.w ?? p.width ?? 0
         const h = p.h ?? p.height ?? 0
         return {

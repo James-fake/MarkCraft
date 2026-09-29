@@ -4,6 +4,7 @@ import { Icon } from '../../icons'
 import { ScrollNumberInput } from '@components/ui/ScrollNumberInput'
 import { usePresence, POPOVER_EXIT_MS } from '@components/ui/usePresence'
 import type { CanvasEngine } from '@features/canvas-v2/engine/CanvasEngine'
+import type { ShapeLike } from '@features/canvas-v2/engine/engineTypes'
 import { LABEL_BG_PRESETS, autoTextColor } from '@features/canvas-v2/engine/OverlayCards'
 import { CARD_COLORS_LEGACY } from '@features/canvas-v2/theme/canvasTheme'
 import { useEngineSnapshot } from './canvasHooks'
@@ -202,7 +203,7 @@ export function CanvasInspectorPanel({ engine }: CanvasInspectorPanelProps) {
       const next = list
         .filter((s) => s.type !== 'arrow')
         .map((s) => {
-          const p = (s.props as any) ?? {}
+          const p = s.props ?? {}
           return {
             id: s.id,
             type: s.type,
@@ -273,7 +274,8 @@ export function CanvasInspectorPanel({ engine }: CanvasInspectorPanelProps) {
   const allTags = useMemo(() => Array.from(new Set([...getAllTags(), ...TAG_SUGGESTIONS])), [getAllTags, shapes])
 
   const update = (id: string, partial: Record<string, unknown>) => {
-    engine?.updateShape({ id, ...(partial as any) })
+    // 面板侧以宽松 Record 收集控件值，此处一次定向收窄到引擎签名（Partial<ShapeLike> & { id }）
+    engine?.updateShape({ id, ...partial } as Partial<ShapeLike> & { id: string })
   }
 
   const filePathById = useMemo(() => {
