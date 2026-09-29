@@ -636,10 +636,12 @@ const ICONS: Record<string, IconDef> = {
 
 const ICON_KEYS = Object.keys(ICONS)
 
+// eslint-disable-next-line react-refresh/only-export-components -- 图标注册表常量与 Icon 组件同文件聚合，非跨组件共享
 export const iconNames: readonly string[] = ICON_KEYS
 
 export type IconName = string
 
+// eslint-disable-next-line react-refresh/only-export-components -- 类型守卫与 Icon 组件同文件聚合，非跨组件共享
 export function isIconName(v: string): v is IconName {
   return Object.prototype.hasOwnProperty.call(ICONS, v)
 }

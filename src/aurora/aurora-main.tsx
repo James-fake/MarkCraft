@@ -78,6 +78,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
  * 用双 rAF 而非单次，确保「已提交」之外还「已合成一帧」，避免淡出时露出未绘制的空白。
  * 开屏层缺失（非首次启动）时静默无操作。
  */
+// eslint-disable-next-line react-refresh/only-export-components -- 应用入口文件无导出属有意形态（bootstrap 挂载式），HMR 不适用
 function SplashHandoff() {
   useEffect(() => {
     let r1 = 0

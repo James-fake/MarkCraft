@@ -7,6 +7,7 @@ import { AuroraSelect } from '@components/ui/AuroraSelect'
 const ThemeContext = React.createContext<{ isDark: boolean }>({ isDark: true })
 export const StudioThemeProvider = ThemeContext.Provider
 
+// eslint-disable-next-line react-refresh/only-export-components -- hook 与唯一消费组件同文件聚合，非跨组件共享
 export function useStudioTheme() {
   return React.useContext(ThemeContext)
 }

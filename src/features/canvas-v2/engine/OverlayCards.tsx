@@ -275,11 +275,13 @@ export function OverlayNoteCard({ shape, engine, zoom }: { shape: ShapeLike; eng
 // 箭头可绑定、随相机缩放平移、持久化与撤销由引擎统一承担）。
 
 /** 标签背景色预设（浅色底 + 深色文字 / 深色底 + 浅色文字 自动判断） */
+// eslint-disable-next-line react-refresh/only-export-components -- 预设常量与唯一消费组件同文件聚合，非跨组件共享
 export const LABEL_BG_PRESETS = [
   '#FDE68A', '#FCA5A5', '#A7F3D0', '#93C5FD', '#DDD6FE', '#F9A8D4', '#334155',
 ]
 
 /** 根据背景色亮度自动给出可读的默认文字色 */
+// eslint-disable-next-line react-refresh/only-export-components -- 纯函数与唯一消费组件同文件聚合，非跨组件共享
 export function autoTextColor(bg: string): string {
   const m = /^#?([0-9a-f]{6})$/i.exec(bg || '')
   if (!m) return '#1F2937'

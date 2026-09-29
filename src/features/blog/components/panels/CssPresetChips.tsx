@@ -15,6 +15,7 @@ export interface CssPreset {
   scope: CssScopeTarget
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- 预设常量表与唯一消费组件同文件聚合，非跨组件共享
 export const CSS_CATEGORIES: Array<{ key: CssCategory; label: string; icon: string }> = [
   { key: 'theme', label: '主题', icon: '🎨' },
   { key: 'typography', label: '排版', icon: 'Aa' },
@@ -26,12 +27,14 @@ export const CSS_CATEGORIES: Array<{ key: CssCategory; label: string; icon: stri
 ]
 
 // 作用范围标记配置
+// eslint-disable-next-line react-refresh/only-export-components -- 预设常量表与唯一消费组件同文件聚合，非跨组件共享
 export const SCOPE_LABELS: Array<{ key: CssScopeTarget; label: string; color: string }> = [
   { key: 'both', label: '首页+文章', color: '#34d399' },
   { key: 'home', label: '仅首页', color: '#38bdf8' },
   { key: 'post', label: '仅文章', color: '#fbbf24' },
 ]
 
+// eslint-disable-next-line react-refresh/only-export-components -- 预设常量表与唯一消费组件同文件聚合，非跨组件共享
 export const CSS_PRESETS: CssPreset[] = [
   // ─── 完整主题 ────────────────────────
   { id: 'theme-elegant', label: '优雅学术', category: 'theme', scope: 'post',

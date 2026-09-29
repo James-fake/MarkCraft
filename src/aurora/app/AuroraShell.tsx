@@ -53,6 +53,7 @@ import { buildAuroraActions } from './auroraActions'
 
 // buildAuroraActions / AuroraActionDeps 已抽离到 ./auroraActions（纯逻辑模块，
 // 不再随 AuroraShell 的整棵 UI 树连坐加载 Excalidraw，避免测试环境收集阶段崩溃）。
+// eslint-disable-next-line react-refresh/only-export-components -- 壳入口的动作聚合 re-export，与 AuroraShell 同文件为入口形态
 export { buildAuroraActions, type AuroraActionDeps } from './auroraActions'
 
 function ShellInner() {

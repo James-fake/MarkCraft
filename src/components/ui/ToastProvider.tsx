@@ -185,6 +185,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
  * 全局 Toast hook。未处于 Provider 内时返回空实现（开发/测试期容错）。
  * 返回的 show 引用稳定，可安全放入 useCallback 依赖数组。
  */
+// eslint-disable-next-line react-refresh/only-export-components -- Provider 与配套 hook 强耦合，同文件为 React 惯用形态
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext)
   if (!ctx) return { show: () => {} }

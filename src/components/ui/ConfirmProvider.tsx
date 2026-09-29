@@ -78,6 +78,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
 /**
  * 命令式确认 hook。未处于 Provider 内时返回安全空实现（开发/测试期容错）。
  */
+// eslint-disable-next-line react-refresh/only-export-components -- Provider 与配套 hook 强耦合，同文件为 React 惯用形态
 export function useConfirm(): ConfirmContextValue {
   const ctx = useContext(ConfirmContext)
   if (!ctx) return { confirm: () => Promise.resolve(false) }

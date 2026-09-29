@@ -1,5 +1,6 @@
 import React from 'react'
 
+/* eslint-disable react-refresh/only-export-components -- 思维导图模板数据表与 8 个内部 SVG 缩略图组件同文件为设计意图：组件仅渲染 preview 字段、不对外复用，拆文件只增加 import 面无任何收益 */
 export type LayoutType = 'radial' | 'right' | 'down'
 export type ColorTheme = 'default' | 'ocean' | 'forest' | 'sunset' | 'lavender'
 

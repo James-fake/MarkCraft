@@ -65,6 +65,7 @@ export interface GroupProps {
  * 通用格式化应用函数
  * 将 MarkdownToolbar 的操作映射到 CM6 EditorView
  */
+// eslint-disable-next-line react-refresh/only-export-components -- 纯函数与工具栏按钮组件同文件聚合，非跨组件共享
 export function applyFormatToCM6(
   view: EditorView,
   formatter: (text: string, selectionStart: number, selectionEnd: number) => {

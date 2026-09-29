@@ -43,6 +43,7 @@ const PLATFORMS: Array<{ key: PublishPlatform; label: string; hint: string }> = 
 ]
 
 /** 由文章或源文件构造候选项（导出后供测试复用） */
+// eslint-disable-next-line react-refresh/only-export-components -- 纯函数与唯一消费组件同文件聚合，非跨组件共享
 export function buildCandidates(
   posts: BlogPost[] | undefined,
   selectedMdFiles: Array<{ name: string; content: string }>,
@@ -87,6 +88,7 @@ export function buildCandidates(
 }
 
 /** 计算导出结果；无候选项时返回 null */
+// eslint-disable-next-line react-refresh/only-export-components -- 纯函数与唯一消费组件同文件聚合，非跨组件共享
 export function computeExport(
   candidate: Candidate | undefined,
   platform: PublishPlatform,
