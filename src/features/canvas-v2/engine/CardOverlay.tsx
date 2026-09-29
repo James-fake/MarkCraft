@@ -101,7 +101,7 @@ function CardSelectionFrame({ shape, engine, zoom }: { shape: ShapeLike; engine:
     if (!dragRef.current) return
     dragRef.current = null
     try {
-      ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
     } catch {
       /* noop */
     }

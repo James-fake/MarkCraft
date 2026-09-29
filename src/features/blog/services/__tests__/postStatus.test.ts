@@ -76,7 +76,7 @@ describe('isPublished', () => {
 
 describe('canTransition / nextStatuses', () => {
   it('每个状态都有三条迁移（含自身）', () => {
-    ;(['draft', 'pending', 'published'] as PostStatus[]).forEach(from => {
+    (['draft', 'pending', 'published'] as PostStatus[]).forEach(from => {
       expect(canTransition(from, from)).toBe(true)
       expect(STATUS_TRANSITIONS_ALL(from).length).toBe(3)
     })

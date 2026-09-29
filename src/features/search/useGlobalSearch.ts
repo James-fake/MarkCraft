@@ -212,7 +212,7 @@ export function useGlobalSearch() {
           const content = node.content
           const fileTags = new Set<string>()
           // 简单提取 #tag 语法（与 tagExtractor 保持一致，首字符需为字母或中文）
-          const tagRegex = /(?:^|\s)#([a-zA-Z\u4e00-\u9fa5][a-zA-Z0-9_\u4e00-\u9fa5\/-]*)/g
+          const tagRegex = /(?:^|\s)#([a-zA-Z\u4e00-\u9fa5][a-zA-Z0-9_\u4e00-\u9fa5/-]*)/g
           let m: RegExpExecArray | null
           while ((m = tagRegex.exec(content)) !== null) {
             fileTags.add(m[1])

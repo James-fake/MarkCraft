@@ -309,7 +309,7 @@ export function ExcalidrawCanvas({ onReady, initialDocument, isReadonly, theme =
     engine.attach(api, containerRef.current)
     // 仅在开发构建暴露引擎/Excalidraw API 供自动化验证使用（生产构建不暴露）
     if ((import.meta as any).env?.DEV) {
-      ;(window as any).__canvasEngine = engine
+      (window as any).__canvasEngine = engine
       ;(window as any).__exapi = api
     }
     // 延迟到下一帧再写入初始文档并通知就绪：excalidrawAPI 在 Excalidraw 初始化期间被

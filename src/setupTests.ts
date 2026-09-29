@@ -45,5 +45,5 @@ if (typeof document !== 'undefined' && !document.elementFromPoint) {
   document.elementFromPoint = () => null
 }
 if (typeof Element !== 'undefined' && !(Element.prototype as unknown as { elementFromPoint?: unknown }).elementFromPoint) {
-  ;(Element.prototype as unknown as { elementFromPoint?: () => null }).elementFromPoint = () => null
+  (Element.prototype as unknown as { elementFromPoint?: () => null }).elementFromPoint = () => null
 }

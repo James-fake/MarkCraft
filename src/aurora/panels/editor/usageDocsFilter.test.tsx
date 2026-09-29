@@ -68,7 +68,7 @@ async function renameDocsFolder() {
 
 describe('编辑器文件列表：内置「使用文档」过滤', () => {
   beforeAll(() => {
-    ;(window as any).indexedDB = (window as any).indexedDB || {}
+    (window as any).indexedDB = (window as any).indexedDB || {}
   })
 
   it('1) FileTree：文档文件夹与其 16 篇均不出现；普通笔记与普通文件夹仍在（扫描面非空）', async () => {

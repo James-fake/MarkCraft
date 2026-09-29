@@ -337,7 +337,7 @@ export function useBlogGenerator(
 
   const totalWordCount = useMemo(() => {
     return selectedMdFiles.reduce((sum, f) => {
-      const text = f.content.replace(/[#*_`~\[\]()>|+-]/g, '').trim()
+      const text = f.content.replace(/[#*_`~[\]()>|+-]/g, '').trim()
       return sum + text.length
     }, 0)
   }, [selectedMdFiles])

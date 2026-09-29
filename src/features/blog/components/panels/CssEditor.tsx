@@ -136,7 +136,7 @@ function validateCss(css: string): CssIssue[] {
     if (!trimmed || trimmed.startsWith('//')) continue
 
     // 4. Empty rule block
-    if (/^[.#\[\w:*][^{]*\{\s*\}$/.test(trimmed)) {
+    if (/^[.#[\w:*][^{]*\{\s*\}$/.test(trimmed)) {
       issues.push({ line: i + 1, message: '空规则块', severity: 'warning' })
     }
 

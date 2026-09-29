@@ -70,7 +70,7 @@ export function hasMermaid(post: BlogPost): boolean {
 }
 
 export function hasMath(post: BlogPost): boolean {
-  return /\$\$[\s\S]*?\$\$/.test(post.rawContent) || /\$[^\$]+\$/.test(post.rawContent) || /\\\[/.test(post.rawContent) || /\\\(/.test(post.rawContent)
+  return /\$\$[\s\S]*?\$\$/.test(post.rawContent) || /\$[^$]+\$/.test(post.rawContent) || /\\\[/.test(post.rawContent) || /\\\(/.test(post.rawContent)
 }
 
 export function getMermaidScript(isDark?: boolean): string {

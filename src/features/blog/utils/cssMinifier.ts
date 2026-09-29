@@ -15,7 +15,7 @@ export function minifyCss(css: string): string {
   let result = css
 
   // 1. 移除注释（保留 /*! ... */ 重要注释，如版权声明）
-  result = result.replace(/\/\*(?!\!)[\s\S]*?\*\//g, '')
+  result = result.replace(/\/\*(?!!)[\s\S]*?\*\//g, '')
 
   // 2. 移除首尾空白
   result = result.trim()

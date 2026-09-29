@@ -86,7 +86,8 @@ export function getMermaidScript(isDark: boolean): string {
       mermaid.render(id, code).then(function(result) {
         // Replace all font-size declarations in the SVG string before inserting
         // mermaid mindmap uses large inline font-size for root nodes
-        var svg = result.svg.replace(/font-size\s*:\s*\d+(\.\d+)?px/gi, 'font-size:14px');
+        // 将 mermaid 导出的内联 font-size 统一收敛为 14px（匹配 空白:空白+数字[.数字]px）
+        var svg = result.svg.replace(/font-size[ \t\r\n\f]*:[ \t\r\n\f]*[0-9]+(?:[.][0-9]+)?px/gi, 'font-size:14px');
         diagram.innerHTML = svg;
         diagram.setAttribute('data-rendered', 'true');
         renderNext();

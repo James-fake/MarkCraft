@@ -42,7 +42,8 @@ describe('Aurora StatusBar · P1-4 语义', () => {
     const left = document.querySelector('.aurora-statusbar__left')
     expect(left?.textContent).toMatch(/已保存/)
     // 顺序：已保存 先于 字数
-    expect(left?.textContent?.indexOf('已保存')).toBeLessThan(left?.textContent?.indexOf('120 字')!)
+    const text = left?.textContent ?? ''
+    expect(text.indexOf('已保存')).toBeLessThan(text.indexOf('120 字'))
   })
 
   it('right 空时不渲染右容器', () => {

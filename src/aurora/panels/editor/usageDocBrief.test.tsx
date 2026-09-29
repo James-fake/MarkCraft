@@ -86,7 +86,7 @@ function statusBarModeItems(container: HTMLElement): string[] {
 
 describe('EditorPanel：使用文档 → 只读简介页', () => {
   beforeAll(() => {
-    ;(window as any).indexedDB = (window as any).indexedDB || {}
+    (window as any).indexedDB = (window as any).indexedDB || {}
   })
   beforeEach(() => { clearEditorReturn() })
 

@@ -70,7 +70,7 @@ function Harness({ nav }: { nav?: (id: string, param?: string) => void } = {}) {
 describe('Aurora EditorPanel 换芯（D8）烟雾测试', () => {
   beforeAll(() => {
     // jsdom 无 IndexedDB，Dexie 会 warn；不影响 store 返回内存态
-    ;(window as any).indexedDB = (window as any).indexedDB || {}
+    (window as any).indexedDB = (window as any).indexedDB || {}
   })
 
   it('1) 挂载无崩溃；无 mock 残留（Aurora 设计系统 / 1,234 词）', () => {

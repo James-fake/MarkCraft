@@ -255,7 +255,7 @@ const WheelPicker: React.FC<WheelPickerProps> = ({
       vel: 0,
     }
     try {
-      ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
     } catch {
       /* ignore */
     }
@@ -282,7 +282,7 @@ const WheelPicker: React.FC<WheelPickerProps> = ({
     if (!dragRef.current.active) return
     dragRef.current.active = false
     try {
-      ;(e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId)
     } catch {
       /* ignore */
     }

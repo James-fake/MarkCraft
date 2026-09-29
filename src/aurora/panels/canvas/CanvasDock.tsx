@@ -199,7 +199,7 @@ export function CanvasDock({
     setPenMenu(null)
   }
   const clearStrokes = () => {
-    ;(engine as unknown as { clearBrushStrokes?: () => void })?.clearBrushStrokes?.()
+    (engine as unknown as { clearBrushStrokes?: () => void })?.clearBrushStrokes?.()
     engine?.setCurrentTool('draw')
     setEraserClear(null)
     toast?.('已清空全部画笔笔迹')

@@ -50,7 +50,7 @@ export default function PdfEmbedView({ node }: NodeViewProps) {
       setStatus('ready')
     }
 
-    ;(async () => {
+    (async () => {
       try {
         const pdfjs = await import('pdfjs-dist')
         const workerMod = await import('pdfjs-dist/build/pdf.worker.min.mjs?url')

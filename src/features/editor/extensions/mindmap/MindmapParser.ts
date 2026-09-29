@@ -108,7 +108,7 @@ export function parseMindmapCode(code: string): MindmapParseResult {
     if (content.toLowerCase().startsWith('root')) {
       const afterRoot = content.slice(4)
       // Only strip "root" if followed by a shape character (not a space + regular text)
-      if (/^[(\[{)]/.test(afterRoot)) {
+      if (/^[[(){]/.test(afterRoot)) {
         content = afterRoot
       }
     }

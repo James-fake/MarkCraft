@@ -231,7 +231,7 @@ export default function SaveAsModal({
     setError(null)
 
     // M8: Sanitize file name to prevent path traversal
-    const cleanFileName = fileName.replace(/[\/\\:*?"<>|]/g, '_').replace(/\.\./g, '').replace(/\.(md|html|pdf|docx|tex|epub|rst|wiki|opml|txt|png|jpg|jpeg)$/i, '')
+    const cleanFileName = fileName.replace(/[/\\:*?"<>|]/g, '_').replace(/\.\./g, '').replace(/\.(md|html|pdf|docx|tex|epub|rst|wiki|opml|txt|png|jpg|jpeg)$/i, '')
     const fullOutputName = `${cleanFileName}${FORMAT_EXTENSIONS[format]}`
     const customCss = getCustomCss()
     const pdfOptions = format === 'pdf' ? getPdfOptions() : undefined
