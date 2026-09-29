@@ -11,6 +11,44 @@ import { safeJsonParse } from '@utils/safeJson'
 import { type CanvasListItem, type CanvasTrashItem, type CanvasDocument, type CardTemplate, type CardTemplateV2, genId } from './types'
 
 export { type CanvasListItem, type CanvasTrashItem, type CanvasDocument }
+import { isRecord } from '@utils/schemaGuards'
+
+// ─── schema 守卫（M-2 收口）───
+function isCanvasListItem(x: unknown): x is CanvasListItem {
+  if (!isRecord(x)) return false
+  const r = x as Record<string, unknown>
+  return typeof r.id === 'string' && typeof r.name === 'string' && typeof r.updatedAt === 'number'
+}
+
+function isCanvasTrashItem(x: unknown): x is CanvasTrashItem {
+  if (!isRecord(x)) return false
+  const r = x as Record<string, unknown>
+  return typeof r.id === 'string' && typeof r.deletedAt === 'number'
+}
+
+function isCanvasDocument(x: unknown): x is CanvasDocument {
+  if (!isRecord(x)) return false
+  const r = x as Record<string, unknown>
+  return (
+    typeof r.id === 'string' &&
+    typeof r.name === 'string' &&
+    typeof r.createdAt === 'number' &&
+    typeof r.updatedAt === 'number' &&
+    isRecord(r.data)
+  )
+}
+
+function isCardTemplate(x: unknown): x is CardTemplate {
+  if (!isRecord(x)) return false
+  const r = x as Record<string, unknown>
+  return typeof r.id === 'string' && typeof r.name === 'string'
+}
+
+function isCardTemplateV2(x: unknown): x is CardTemplateV2 {
+  if (!isRecord(x)) return false
+  const r = x as Record<string, unknown>
+  return typeof r.id === 'string' && typeof r.name === 'string'
+}
 
 const CANVAS_LIST_KEY = 'canvas-v2-list'
 const CANVAS_TRASH_KEY = 'canvas-v2-trash'
@@ -83,7 +121,7 @@ async function idbDelete(key: string): Promise<void> {
 export async function getCanvasList(): Promise<CanvasListItem[]> {
   const raw = await idbGet(CANVAS_LIST_KEY)
   if (!raw) return []
-  const list = safeJsonParse(raw, [] as CanvasListItem[])
+  const list = safeJsonParse(raw, [] as CanvasListItem[]).filter(isCanvasListItem)
   return list.sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
@@ -125,7 +163,8 @@ export async function upsertCanvasThumbnail(id: string, thumbnail: string): Prom
 export async function loadCanvas(id: string): Promise<CanvasDocument | null> {
   const raw = await idbGet(`canvas-v2-doc-${id}`)
   if (!raw) return null
-  return safeJsonParse(raw, null)
+  const parsed = safeJsonParse<CanvasDocument | null>(raw, null)
+  return isCanvasDocument(parsed) ? parsed : null
 }
 
 /** 保存画布文档（防抖由调用方控制） */
@@ -209,7 +248,7 @@ export async function getTrash(): Promise<CanvasTrashItem[]> {
   try {
     const raw = await idbGet(CANVAS_TRASH_KEY)
     if (!raw) return []
-    const list = safeJsonParse(raw, [] as CanvasTrashItem[])
+    const list = safeJsonParse(raw, [] as CanvasTrashItem[]).filter(isCanvasTrashItem)
     const now = Date.now()
     const valid = list.filter(t => now - t.deletedAt < TRASH_RETENTION_MS)
     // 清理过期条目（含完整文档）
@@ -330,7 +369,7 @@ const CANVAS_TEMPLATE_KEY = 'canvas-v2-templates'
 export async function getCardTemplates(): Promise<CardTemplate[]> {
   const raw = await idbGet(CANVAS_TEMPLATE_KEY)
   if (!raw) return []
-  return safeJsonParse(raw, [] as CardTemplate[])
+  return safeJsonParse(raw, [] as CardTemplate[]).filter(isCardTemplate)
 }
 
 /** 保存卡片模板（新增） */
@@ -365,7 +404,7 @@ export async function renameCardTemplate(id: string, name: string): Promise<void
 export async function getCardTemplatesV2(): Promise<CardTemplateV2[]> {
   const raw = await idbGet(CANVAS_TEMPLATE_KEY)
   if (!raw) return []
-  return safeJsonParse(raw, [] as CardTemplateV2[])
+  return safeJsonParse(raw, [] as CardTemplateV2[]).filter(isCardTemplateV2)
 }
 
 /** P4：保存卡片模板 v2（新增，支持多卡片+连线） */

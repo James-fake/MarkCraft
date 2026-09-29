@@ -16,6 +16,29 @@ import {
   genRuleId,
 } from './kbTypes'
 import { collectAllFiles } from '@core/files/fileTree'
+import { isRecord } from '@utils/schemaGuards'
+
+// ─── schema 守卫（M-2 收口：结构化记录损坏时回退默认而非静默装错）───
+function isKnowledgeBaseListItem(x: unknown): x is KnowledgeBaseListItem {
+  if (!isRecord(x)) return false
+  const r = x as Record<string, unknown>
+  return (
+    typeof r.id === 'string' &&
+    typeof r.name === 'string' &&
+    typeof r.updatedAt === 'number'
+  )
+}
+
+function isKnowledgeBase(x: unknown): x is KnowledgeBase {
+  if (!isRecord(x)) return false
+  const r = x as Record<string, unknown>
+  return (
+    typeof r.id === 'string' &&
+    typeof r.name === 'string' &&
+    Array.isArray(r.fileIds) &&
+    Array.isArray(r.canvasIds)
+  )
+}
 
 const KB_LIST_KEY = 'kb-list'
 const KB_DOC_PREFIX = 'kb-doc-'
@@ -98,7 +121,7 @@ function matchRule(file: FileNode, fullPath: string, rule: KnowledgeBaseRule): b
 export async function getKbList(): Promise<KnowledgeBaseListItem[]> {
   const raw = await idbGet(KB_LIST_KEY)
   if (!raw) return []
-  const list = safeJsonParse(raw, [] as KnowledgeBaseListItem[])
+  const list = safeJsonParse(raw, [] as KnowledgeBaseListItem[]).filter(isKnowledgeBaseListItem)
   return list.sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
@@ -127,7 +150,8 @@ async function removeListItem(id: string): Promise<void> {
 export async function loadKb(id: string): Promise<KnowledgeBase | null> {
   const raw = await idbGet(`${KB_DOC_PREFIX}${id}`)
   if (!raw) return null
-  return safeJsonParse(raw, null)
+  const parsed = safeJsonParse<KnowledgeBase | null>(raw, null)
+  return isKnowledgeBase(parsed) ? parsed : null
 }
 
 /** 保存知识库文档（同时更新列表） */

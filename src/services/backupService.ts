@@ -3,7 +3,7 @@ import { loadLargeData, saveLargeData } from '@core/storage/migrate'
 import { db, NoteVersionRecord } from '@core/storage/db'
 import { collectAllFiles } from '@core/files/fileTree'
 import { safeJsonParse, safeJsonParseOrNull } from '@utils/safeJson'
-import { isRecord } from '@utils/schemaGuards'
+import { isFileManagerState, isRecord } from '@utils/schemaGuards'
 
 export interface BackupData {
   version: string
@@ -86,7 +86,9 @@ function addFileToRoot(root: FileNode, file: FileNode): FileNode {
 /** 从 IndexedDB 读取当前 FileManagerState */
 async function getCurrentFiles(): Promise<FileManagerState | null> {
   const data = await loadLargeData(FILE_MANAGER_KEY)
-  return data ? safeJsonParse(data, null) : null
+  if (!data) return null
+  const parsed = safeJsonParse<FileManagerState | null>(data, null)
+  return isFileManagerState(parsed) ? parsed : null
 }
 
 /** 导出完整 vault 备份 */
