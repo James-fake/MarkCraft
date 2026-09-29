@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 
-interface KeyboardShortcutHandlers {
+export interface KeyboardShortcutHandlers {
   onQuickOpen: () => void
   onGlobalSearch: () => void
   onToggleTypewriter: () => void

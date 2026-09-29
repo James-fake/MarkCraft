@@ -1,11 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import { render, cleanup, fireEvent } from '@testing-library/react'
-import { useKeyboardShortcuts } from './useKeyboardShortcuts'
+import { useKeyboardShortcuts, KeyboardShortcutHandlers } from './useKeyboardShortcuts'
 
 afterEach(() => cleanup())
 
-function Harness({ handlers }: { handlers: Record<string, () => void> }) {
-  useKeyboardShortcuts(handlers as any)
+function Harness({ handlers }: { handlers: Partial<KeyboardShortcutHandlers> }) {
+  useKeyboardShortcuts(handlers as unknown as KeyboardShortcutHandlers)
   return <div />
 }
 

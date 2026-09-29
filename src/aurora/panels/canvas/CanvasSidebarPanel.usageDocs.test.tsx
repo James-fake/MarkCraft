@@ -64,7 +64,7 @@ async function renameDocsFolder() {
 
 describe('白板文件列表：内置「使用文档」过滤（与编辑器同步）', () => {
   beforeAll(() => {
-    (window as any).indexedDB = (window as any).indexedDB || {}
+    (window as unknown as Record<string, unknown>).indexedDB = (window as unknown as Record<string, unknown>).indexedDB || {}
   })
 
   it('1) 文档文件夹与其 16 篇均不出现；普通笔记与普通文件夹仍在（扫描面非空）', async () => {

@@ -6,22 +6,23 @@ import { RealProviders } from '../../providers/RealProviders'
 import { useFileManager } from '@stores/FileStore'
 import { useUsageDocsScope } from '@hooks/useUsageDocsScope'
 import { setEditorReturn, getEditorReturn } from '../../navigation/navReturn'
+import type { FileNode } from '../../../types/fileManager'
 
 // 真实 EditorLayout / VersionHistoryPanel 依赖 CodeMirror / TipTap，jsdom 无法挂载；
 // mock 它们以验证 Aurora 这一层（props 接线 / 模式状态机 / 空态 / mock 残留消除）。
 vi.mock('../../../features/editor/EditorLayout', () => ({
-  EditorLayout: (props: any) => (
+  EditorLayout: (props: Record<string, unknown>) => (
     <div
       data-testid="real-editorlayout"
-      data-active={props.activeFileId ?? 'null'}
-      data-editor-mode={props.editorMode}
+      data-active={String(props.activeFileId ?? 'null')}
+      data-editor-mode={String(props.editorMode)}
       data-source={String(props.showSource)}
       data-preview={String(props.showPreview)}
       data-show-mode-toolbar={String(props.showModeToolbar)}
       data-outline={String(props.effectiveShowOutline)}
     >
       REAL_EDITOR_LAYOUT
-      <span data-testid="el-active">{props.activeFileId ?? 'null'}</span>
+      <span data-testid="el-active">{String(props.activeFileId ?? 'null')}</span>
     </div>
   ),
 }))
@@ -47,8 +48,8 @@ function Harness({ nav }: { nav?: (id: string, param?: string) => void } = {}) {
     if (openedRef.current) return
     openedRef.current = true
     // 候选文件夹：排除虚拟根与内置使用文档子树 → 默认树里即「我的笔记」
-    const folders: any[] = []
-    const walkFolders = (n: any) => {
+    const folders: FileNode[] = []
+    const walkFolders = (n: FileNode) => {
       if (n.type === 'folder') {
         folders.push(n)
         n.children?.forEach(walkFolders)
@@ -70,7 +71,7 @@ function Harness({ nav }: { nav?: (id: string, param?: string) => void } = {}) {
 describe('Aurora EditorPanel 换芯（D8）烟雾测试', () => {
   beforeAll(() => {
     // jsdom 无 IndexedDB，Dexie 会 warn；不影响 store 返回内存态
-    (window as any).indexedDB = (window as any).indexedDB || {}
+    (window as unknown as Record<string, unknown>).indexedDB = (window as unknown as Record<string, unknown>).indexedDB || {}
   })
 
   it('1) 挂载无崩溃；无 mock 残留（Aurora 设计系统 / 1,234 词）', () => {

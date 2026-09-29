@@ -73,7 +73,7 @@ describe('KbManagePanel 接真实知识库列表（getKbList / createKb）', () 
     fireEvent.change(input, { target: { value: '机器学习笔记' } })
     fireEvent.click(screen.getByText('创建知识库'))
     await waitFor(() => expect(createKb).toHaveBeenCalled())
-    expect((createKb as any).mock.calls[0][0]).toBe('机器学习笔记')
+    expect(vi.mocked(createKb).mock.calls[0][0]).toBe('机器学习笔记')
   })
 
   it('空态引导：右上角主创建按钮隐藏，空态居中引导 + 其下按钮可见且可打开弹窗', async () => {

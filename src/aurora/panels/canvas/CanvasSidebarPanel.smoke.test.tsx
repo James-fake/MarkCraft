@@ -51,14 +51,22 @@ describe('CanvasSidebarPanel · 文件 Tab（拖拽生成卡片）', () => {
     const items = document.querySelectorAll('.aurora-csp__fileitem')
     // 仅当存在真实文件时才校验拖拽契约；空库跳过（由上一用例覆盖）
     if (items.length === 0) return
-    const dt: any = {
-      _d: {} as Record<string, string>,
-      setData(k: string, v: string) { this._d[k] = v },
-      getData(k: string) { return this._d[k] ?? '' },
-      types: [] as string[],
+    interface MockDataTransfer {
+      _d: Record<string, string>
+      setData: (k: string, v: string) => void
+      getData: (k: string) => string
+      types: string[]
+      effectAllowed: string
+    }
+    const dtStore: Record<string, string> = {}
+    const dt: MockDataTransfer = {
+      _d: dtStore,
+      setData: (k, v) => { dtStore[k] = v },
+      getData: (k) => dtStore[k] ?? '',
+      types: [],
       effectAllowed: '',
     }
-    fireEvent.dragStart(items[0], { dataTransfer: dt })
+    fireEvent.dragStart(items[0], { dataTransfer: dt as unknown as DataTransfer })
     expect(dt._d[CANVAS_FILE_DRAG_MIME]).toBeTruthy()
     expect(dt._d[CANVAS_FILE_DRAG_NAME_MIME]).toBeTruthy()
   })

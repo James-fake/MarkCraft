@@ -73,13 +73,13 @@ describe('Outline 组件', () => {
 
   describe('基本渲染', () => {
     it('应该正确渲染无标题状态', () => {
-      (parseMarkdownHeadings as any).mockReturnValue([])
+      vi.mocked(parseMarkdownHeadings).mockReturnValue([])
       render(<Outline content="" />)
       expect(screen.getByText('无标题')).toBeInTheDocument()
     })
 
     it('应该正确渲染标题列表', () => {
-      (parseMarkdownHeadings as any).mockReturnValue(mockHeadings)
+      vi.mocked(parseMarkdownHeadings).mockReturnValue(mockHeadings)
       render(<Outline content="" />)
       
       expect(screen.getByText('第一章')).toBeInTheDocument()
@@ -89,7 +89,7 @@ describe('Outline 组件', () => {
 
   describe('折叠功能', () => {
     it('应该显示可折叠标题的箭头图标', () => {
-      (parseMarkdownHeadings as any).mockReturnValue(mockHeadings)
+      vi.mocked(parseMarkdownHeadings).mockReturnValue(mockHeadings)
       render(<Outline content="" />)
       
       const collapseButtons = screen.getAllByRole('button', { name: /折叠/ })
@@ -97,7 +97,7 @@ describe('Outline 组件', () => {
     })
 
     it('点击折叠图标应该切换折叠状态', () => {
-      (parseMarkdownHeadings as any).mockReturnValue(mockHeadings)
+      vi.mocked(parseMarkdownHeadings).mockReturnValue(mockHeadings)
       render(<Outline content="" />)
 
       const collapseButtons = screen.getAllByRole('button', { name: '折叠' })
@@ -112,7 +112,7 @@ describe('Outline 组件', () => {
     })
 
     it('没有子节点的标题不应该显示折叠图标', () => {
-      (parseMarkdownHeadings as any).mockReturnValue(simpleHeadings)
+      vi.mocked(parseMarkdownHeadings).mockReturnValue(simpleHeadings)
       render(<Outline content="" />)
       
       const buttons = screen.queryAllByRole('button', { name: /折叠|展开/ })
@@ -122,7 +122,7 @@ describe('Outline 组件', () => {
 
   describe('全部展开/折叠', () => {
     it.skip('应该显示全部展开和全部折叠按钮', () => {
-      (parseMarkdownHeadings as any).mockReturnValue(mockHeadings)
+      vi.mocked(parseMarkdownHeadings).mockReturnValue(mockHeadings)
       render(<Outline content="" />)
 
       expect(screen.getByTitle('全部展开')).toBeInTheDocument()
@@ -130,7 +130,7 @@ describe('Outline 组件', () => {
     })
 
     it('点击全部折叠应该折叠所有标题', () => {
-      (parseMarkdownHeadings as any).mockReturnValue(mockHeadings)
+      vi.mocked(parseMarkdownHeadings).mockReturnValue(mockHeadings)
       render(<Outline content="" />)
 
       const collapseAllButton = screen.queryByTitle('全部折叠')
@@ -140,7 +140,7 @@ describe('Outline 组件', () => {
     })
 
     it.skip('点击全部展开应该展开所有标题', () => {
-      (parseMarkdownHeadings as any).mockReturnValue(mockHeadings)
+      vi.mocked(parseMarkdownHeadings).mockReturnValue(mockHeadings)
       render(<Outline content="" />)
 
       const expandAllButton = screen.getByTitle('全部展开')
@@ -148,7 +148,7 @@ describe('Outline 组件', () => {
     })
 
     it('没有可折叠项时不应该显示全部展开/折叠按钮', () => {
-      (parseMarkdownHeadings as any).mockReturnValue(simpleHeadings)
+      vi.mocked(parseMarkdownHeadings).mockReturnValue(simpleHeadings)
       render(<Outline content="" />)
       
       expect(screen.queryByTitle('全部展开')).not.toBeInTheDocument()
@@ -158,7 +158,7 @@ describe('Outline 组件', () => {
 
   describe('标题跳转功能', () => {
     it('点击标题文本不应该触发折叠', () => {
-      (parseMarkdownHeadings as any).mockReturnValue(mockHeadings)
+      vi.mocked(parseMarkdownHeadings).mockReturnValue(mockHeadings)
       render(<Outline content="" />)
 
       const headingButton = screen.getByText('第一章').closest('button')
@@ -175,7 +175,7 @@ describe('Outline 组件', () => {
 
   describe('交互反馈', () => {
     it('折叠图标应该有旋转动画', () => {
-      (parseMarkdownHeadings as any).mockReturnValue(mockHeadings)
+      vi.mocked(parseMarkdownHeadings).mockReturnValue(mockHeadings)
       render(<Outline content="" />)
 
       const collapseButtons = screen.getAllByRole('button', { name: '折叠' })
@@ -185,7 +185,7 @@ describe('Outline 组件', () => {
     })
 
     it('应该保持折叠状态', () => {
-      (parseMarkdownHeadings as any).mockReturnValue(mockHeadings)
+      vi.mocked(parseMarkdownHeadings).mockReturnValue(mockHeadings)
       render(<Outline content="" />)
 
       const collapseButtons = screen.getAllByRole('button', { name: '折叠' })
@@ -205,7 +205,7 @@ describe('Outline 组件', () => {
         children: []
       }))
       
-      ;(parseMarkdownHeadings as any).mockReturnValue(manyHeadings)
+      ;vi.mocked(parseMarkdownHeadings).mockReturnValue(manyHeadings)
       
       const start = performance.now()
       render(<Outline content="" />)

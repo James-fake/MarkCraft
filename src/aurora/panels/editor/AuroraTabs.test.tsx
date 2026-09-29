@@ -67,7 +67,7 @@ async function openPlainNote() {
 
 describe('AuroraTabs：瞬态标签对标签栏不可见', () => {
   beforeAll(() => {
-    (window as any).indexedDB = (window as any).indexedDB || {}
+    (window as unknown as Record<string, unknown>).indexedDB = (window as unknown as Record<string, unknown>).indexedDB || {}
   })
 
   it('① store 里有 2 个标签（其一瞬态），标签栏只渲染那篇普通笔记', async () => {
