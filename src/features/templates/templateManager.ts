@@ -13,6 +13,7 @@ import {
   type ExampleDoc,
 } from '@services/templates/templateData'
 import { applyTemplate } from '@services/templates/templateApply'
+import { safeJsonParseOrNull } from '@utils/safeJson'
 
 export { BUILTIN_TEMPLATES, BUILTIN_EXAMPLES, getExamples, getExampleById, applyTemplate }
 export type { Template, ExampleDoc }
@@ -49,11 +50,17 @@ export async function importSharedTemplate(file: File): Promise<Template> {
   let content = ''
 
   if (file.name.toLowerCase().endsWith('.json')) {
-    const data = JSON.parse(text) as Partial<SharedTemplateFile> & Partial<Template>
-    const tpl = (data as SharedTemplateFile).template ?? (data as Template)
-    content = tpl.content ?? ''
-    name = tpl.name ?? name
-    icon = tpl.icon ?? icon
+    // M-2：导入文件是外部/不受信任源，解析失败（非合法 JSON）必须降级而非抛异常中断导入流程。
+    const data = safeJsonParseOrNull<Partial<SharedTemplateFile> & Partial<Template>>(text)
+    if (data) {
+      const tpl = (data as SharedTemplateFile).template ?? (data as Template)
+      content = tpl.content ?? ''
+      name = tpl.name ?? name
+      icon = tpl.icon ?? icon
+    } else {
+      // 非合法 JSON：退化为把原文当作 .md 正文导入。
+      content = text
+    }
   } else {
     content = text
     const m = text.match(/^#\s+(.+)$/m)

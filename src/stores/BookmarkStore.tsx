@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import { safeJsonParse } from '@utils/safeJson'
 
 export interface Bookmark {
   id: string;
@@ -38,19 +39,14 @@ function generateId(): string {
 }
 
 function loadState(): PersistedState {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      const bookmarks: Bookmark[] = Array.isArray(parsed?.bookmarks) ? parsed.bookmarks : []
-      const groups: string[] =
-        Array.isArray(parsed?.groups) && parsed.groups.length > 0
-          ? parsed.groups
-          : [DEFAULT_GROUP]
-      return { bookmarks, groups }
-    }
-  } catch {}
-  return { bookmarks: [], groups: [DEFAULT_GROUP] }
+  const raw = localStorage.getItem(STORAGE_KEY)
+  const parsed = raw ? safeJsonParse(raw, {} as Record<string, unknown>) : {}
+  const bookmarks: Bookmark[] = Array.isArray(parsed?.bookmarks) ? (parsed?.bookmarks as Bookmark[]) : []
+  const groups: string[] =
+    Array.isArray(parsed?.groups) && (parsed?.groups as string[]).length > 0
+      ? (parsed?.groups as string[])
+      : [DEFAULT_GROUP]
+  return { bookmarks, groups }
 }
 
 const BookmarkContext = createContext<BookmarkContextType>({

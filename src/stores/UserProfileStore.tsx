@@ -1,4 +1,5 @@
 import { useSyncExternalStore } from 'react'
+import { safeJsonParse } from '@utils/safeJson'
 
 /**
  * 用户资料 Store（人情味功能 · 账户设置）
@@ -32,17 +33,12 @@ let state: UserProfile = loadProfile()
 const listeners = new Set<() => void>()
 
 function loadProfile(): UserProfile {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return { ...DEFAULT_PROFILE }
-    const parsed = JSON.parse(raw) as Partial<UserProfile>
-    return {
-      nickname: typeof parsed.nickname === 'string' ? parsed.nickname : '',
-      avatarUrl: typeof parsed.avatarUrl === 'string' ? parsed.avatarUrl : '',
-      birthday: typeof parsed.birthday === 'string' ? parsed.birthday : '',
-    }
-  } catch {
-    return { ...DEFAULT_PROFILE }
+  const raw = localStorage.getItem(STORAGE_KEY)
+  const parsed = raw ? safeJsonParse(raw, {} as Partial<UserProfile>) : {}
+  return {
+    nickname: typeof parsed.nickname === 'string' ? parsed.nickname : '',
+    avatarUrl: typeof parsed.avatarUrl === 'string' ? parsed.avatarUrl : '',
+    birthday: typeof parsed.birthday === 'string' ? parsed.birthday : '',
   }
 }
 

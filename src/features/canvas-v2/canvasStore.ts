@@ -7,6 +7,7 @@
  * 历史 tldraw 快照（含 .store）在载入时由 canvasPersistence.loadCanvasInto 自动迁移。
  */
 import { db } from '@core/storage/db'
+import { safeJsonParse } from '@utils/safeJson'
 import { type CanvasListItem, type CanvasTrashItem, type CanvasDocument, type CardTemplate, type CardTemplateV2, genId } from './types'
 
 export { type CanvasListItem, type CanvasTrashItem, type CanvasDocument }
@@ -80,14 +81,10 @@ async function idbDelete(key: string): Promise<void> {
 
 /** 获取所有画布列表（按 updatedAt 降序） */
 export async function getCanvasList(): Promise<CanvasListItem[]> {
-  try {
-    const raw = await idbGet(CANVAS_LIST_KEY)
-    if (!raw) return []
-    const list = JSON.parse(raw) as CanvasListItem[]
-    return list.sort((a, b) => b.updatedAt - a.updatedAt)
-  } catch {
-    return []
-  }
+  const raw = await idbGet(CANVAS_LIST_KEY)
+  if (!raw) return []
+  const list = safeJsonParse(raw, [] as CanvasListItem[])
+  return list.sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
 /** 更新/插入列表条目（保留已有 tags，除非显式传入新 tags） */
@@ -126,13 +123,9 @@ export async function upsertCanvasThumbnail(id: string, thumbnail: string): Prom
 
 /** 加载单个画布的完整数据 */
 export async function loadCanvas(id: string): Promise<CanvasDocument | null> {
-  try {
-    const raw = await idbGet(`canvas-v2-doc-${id}`)
-    if (!raw) return null
-    return JSON.parse(raw) as CanvasDocument
-  } catch {
-    return null
-  }
+  const raw = await idbGet(`canvas-v2-doc-${id}`)
+  if (!raw) return null
+  return safeJsonParse(raw, null)
 }
 
 /** 保存画布文档（防抖由调用方控制） */
@@ -216,7 +209,7 @@ export async function getTrash(): Promise<CanvasTrashItem[]> {
   try {
     const raw = await idbGet(CANVAS_TRASH_KEY)
     if (!raw) return []
-    const list = JSON.parse(raw) as CanvasTrashItem[]
+    const list = safeJsonParse(raw, [] as CanvasTrashItem[])
     const now = Date.now()
     const valid = list.filter(t => now - t.deletedAt < TRASH_RETENTION_MS)
     // 清理过期条目（含完整文档）
@@ -335,13 +328,9 @@ const CANVAS_TEMPLATE_KEY = 'canvas-v2-templates'
 
 /** 获取所有自定义卡片模板 */
 export async function getCardTemplates(): Promise<CardTemplate[]> {
-  try {
-    const raw = await idbGet(CANVAS_TEMPLATE_KEY)
-    if (!raw) return []
-    return JSON.parse(raw) as CardTemplate[]
-  } catch {
-    return []
-  }
+  const raw = await idbGet(CANVAS_TEMPLATE_KEY)
+  if (!raw) return []
+  return safeJsonParse(raw, [] as CardTemplate[])
 }
 
 /** 保存卡片模板（新增） */
@@ -374,13 +363,9 @@ export async function renameCardTemplate(id: string, name: string): Promise<void
 
 /** P4：获取所有自定义卡片模板（v2 格式，向下兼容 v1） */
 export async function getCardTemplatesV2(): Promise<CardTemplateV2[]> {
-  try {
-    const raw = await idbGet(CANVAS_TEMPLATE_KEY)
-    if (!raw) return []
-    return JSON.parse(raw) as CardTemplateV2[]
-  } catch {
-    return []
-  }
+  const raw = await idbGet(CANVAS_TEMPLATE_KEY)
+  if (!raw) return []
+  return safeJsonParse(raw, [] as CardTemplateV2[])
 }
 
 /** P4：保存卡片模板 v2（新增，支持多卡片+连线） */

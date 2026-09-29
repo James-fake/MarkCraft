@@ -2,6 +2,7 @@ import { FileManagerState, FileNode } from '../types/fileManager'
 import { loadLargeData, saveLargeData } from '@core/storage/migrate'
 import { db, NoteVersionRecord } from '@core/storage/db'
 import { collectAllFiles } from '@core/files/fileTree'
+import { safeJsonParse, safeJsonParseOrNull } from '@utils/safeJson'
 
 export interface BackupData {
   version: string
@@ -83,15 +84,8 @@ function addFileToRoot(root: FileNode, file: FileNode): FileNode {
 
 /** 从 IndexedDB 读取当前 FileManagerState */
 async function getCurrentFiles(): Promise<FileManagerState | null> {
-  try {
-    const data = await loadLargeData(FILE_MANAGER_KEY)
-    if (data) {
-      return JSON.parse(data) as FileManagerState
-    }
-  } catch (e) {
-    console.error('[backup] getCurrentFiles failed:', e)
-  }
-  return null
+  const data = await loadLargeData(FILE_MANAGER_KEY)
+  return data ? safeJsonParse(data, null) : null
 }
 
 /** 导出完整 vault 备份 */
@@ -140,8 +134,8 @@ export async function exportVault(files: FileManagerState): Promise<string> {
 /** 导入 vault 备份（仅检测冲突，不执行导入） */
 export async function importVault(jsonStr: string): Promise<ImportResult> {
   try {
-    const backup = JSON.parse(jsonStr) as BackupData
-    if (backup.type !== 'markcraft-vault-backup') {
+    const backup = safeJsonParseOrNull<BackupData>(jsonStr)
+    if (!backup || backup.type !== 'markcraft-vault-backup') {
       return { success: false, message: '无效的备份文件格式' }
     }
 
@@ -178,8 +172,8 @@ export async function importVaultWithStrategy(
   strategy: 'overwrite' | 'skip' | 'rename'
 ): Promise<ImportResult> {
   try {
-    const backup = JSON.parse(jsonStr) as BackupData
-    if (backup.type !== 'markcraft-vault-backup') {
+    const backup = safeJsonParseOrNull<BackupData>(jsonStr)
+    if (!backup || backup.type !== 'markcraft-vault-backup') {
       return { success: false, message: '无效的备份文件格式' }
     }
 

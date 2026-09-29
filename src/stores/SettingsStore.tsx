@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react'
+import { safeJsonParseOrNull } from '@utils/safeJson'
 import { DEFAULT_PLANTUML_ENDPOINT } from '@core/constants/plantuml'
 
 export interface AppSettings {
@@ -110,7 +111,7 @@ export function loadSettings(): AppSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY)
     if (raw) {
-      const rawParsed = JSON.parse(raw)
+      const rawParsed = safeJsonParseOrNull<Partial<AppSettings>>(raw) ?? {}
       const parsed = { ...DEFAULT_SETTINGS, ...rawParsed }
       // 迁移：旧的 'split' 模式已废弃，统一回退为 'source'
       if ((parsed as any).editorMode === 'split') {
@@ -140,7 +141,7 @@ export function loadSettings(): AppSettings {
           // 仅当保存的 JSON 中没有该字段时才迁移
           if (rawParsed[settingKey] === undefined) {
             try {
-              (parsed as any)[settingKey] = JSON.parse(oldVal)
+              (parsed as any)[settingKey] = safeJsonParseOrNull(oldVal)
               migrated = true
             } catch {}
           }
@@ -166,7 +167,7 @@ export function loadSettings(): AppSettings {
       const val = localStorage.getItem(oldKey)
       if (val !== null) {
         try {
-          (migrated as any)[settingKey] = JSON.parse(val)
+          (migrated as any)[settingKey] = safeJsonParseOrNull(val)
         } catch {
           (migrated as any)[settingKey] = val
         }

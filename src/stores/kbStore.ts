@@ -4,6 +4,7 @@
  * 存储模式参考 canvasStore：列表 + 单文档分离存储
  */
 import { db } from '@core/storage/db'
+import { safeJsonParse } from '@utils/safeJson'
 import { findNode } from '../services/fileService'
 import type { FileNode } from '../types/fileManager'
 import {
@@ -95,14 +96,10 @@ function matchRule(file: FileNode, fullPath: string, rule: KnowledgeBaseRule): b
 
 /** 获取所有知识库列表（按 updatedAt 降序） */
 export async function getKbList(): Promise<KnowledgeBaseListItem[]> {
-  try {
-    const raw = await idbGet(KB_LIST_KEY)
-    if (!raw) return []
-    const list = JSON.parse(raw) as KnowledgeBaseListItem[]
-    return list.sort((a, b) => b.updatedAt - a.updatedAt)
-  } catch {
-    return []
-  }
+  const raw = await idbGet(KB_LIST_KEY)
+  if (!raw) return []
+  const list = safeJsonParse(raw, [] as KnowledgeBaseListItem[])
+  return list.sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
 /** 更新/插入列表条目 */
@@ -128,13 +125,9 @@ async function removeListItem(id: string): Promise<void> {
 
 /** 加载完整知识库文档 */
 export async function loadKb(id: string): Promise<KnowledgeBase | null> {
-  try {
-    const raw = await idbGet(`${KB_DOC_PREFIX}${id}`)
-    if (!raw) return null
-    return JSON.parse(raw) as KnowledgeBase
-  } catch {
-    return null
-  }
+  const raw = await idbGet(`${KB_DOC_PREFIX}${id}`)
+  if (!raw) return null
+  return safeJsonParse(raw, null)
 }
 
 /** 保存知识库文档（同时更新列表） */

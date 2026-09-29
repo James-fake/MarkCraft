@@ -1,7 +1,7 @@
 // Markdown → EPUB via Pandoc (desktop/Electron only)
 // Falls back to a simple HTML-based EPUB if Pandoc is unavailable
 
-import { marked } from 'marked'
+import { renderMarkdown } from '@services/sanitizeHtml'
 
 interface PandocResult {
   success: boolean
@@ -34,7 +34,8 @@ async function callPandocElectron(content: string, fromFormat: string, toFormat:
 // Simple EPUB generator (fallback without Pandoc)
 // Creates a minimal valid EPUB 3.0 file
 async function generateSimpleEpub(content: string): Promise<Blob> {
-  const htmlBody = marked.parse(content, { gfm: true, breaks: true, async: false }) as string
+  // M-1：导出物也经净化闸门，避免恶意 HTML 进入 EPUB。
+  const htmlBody = renderMarkdown(content, { gfm: true, breaks: true, async: false })
 
   const uuid = 'urn:uuid:' + crypto.randomUUID()
   const timestamp = new Date().toISOString().replace(/\.\d+Z$/, 'Z')

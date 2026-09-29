@@ -3,6 +3,7 @@ import { createInitialFileTree } from '@core/files/fileTree';
 import { knowledgeLinkGuideContent as knowledgeLinkGuideContentZh } from '@core/data/defaultDocs/zh';
 import { knowledgeLinkGuideContent as knowledgeLinkGuideContentEn } from '@core/data/defaultDocs/en';
 import { logger } from '../utils/logger';
+import { safeJsonParse } from '@utils/safeJson';
 import { saveLargeData, loadLargeData, migrateToIndexedDB } from '@core/storage/migrate';
 
 const STORAGE_KEY = 'markcraft-file-manager';
@@ -23,15 +24,11 @@ export function generateId(): string {
 
 /** 读取 defaultSidebarVisible 设置（仅用于首次启动时的默认侧栏可见性） */
 function readDefaultSidebarVisible(): boolean {
-  try {
-    const raw = localStorage.getItem('markcraft_settings')
-    if (raw) {
-      const parsed = JSON.parse(raw)
-      if (typeof parsed.defaultSidebarVisible === 'boolean') {
-        return parsed.defaultSidebarVisible
-      }
-    }
-  } catch {}
+  const raw = localStorage.getItem('markcraft_settings')
+  const parsed = raw ? safeJsonParse<{ defaultSidebarVisible?: boolean }>(raw, {}) : {}
+  if (typeof parsed.defaultSidebarVisible === 'boolean') {
+    return parsed.defaultSidebarVisible
+  }
   return true
 }
 
@@ -58,8 +55,8 @@ export function loadState(lang: 'zh' | 'en' = 'zh'): FileManagerState {
     }
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
-      const parsed = JSON.parse(saved) as FileManagerState;
-      if (parsed.rootFolder && parsed.rootFolder.children && parsed.rootFolder.children.length > 0) {
+      const parsed = safeJsonParse(saved, null as unknown as FileManagerState);
+      if (parsed && parsed.rootFolder && parsed.rootFolder.children && parsed.rootFolder.children.length > 0) {
         return migrateAddLinkGuide(parsed, lang);
       }
     }
@@ -136,8 +133,8 @@ export async function loadStateAsync(lang: 'zh' | 'en' = 'zh'): Promise<FileMana
     if (savedVersion !== STORAGE_VERSION) return null;
     const saved = await loadLargeData(STORAGE_KEY);
     if (saved) {
-      const parsed = JSON.parse(saved) as FileManagerState;
-      if (parsed.rootFolder && parsed.rootFolder.children && parsed.rootFolder.children.length > 0) {
+      const parsed = safeJsonParse(saved, null as unknown as FileManagerState);
+      if (parsed && parsed.rootFolder && parsed.rootFolder.children && parsed.rootFolder.children.length > 0) {
         return migrateAddLinkGuide(parsed, lang);
       }
     }

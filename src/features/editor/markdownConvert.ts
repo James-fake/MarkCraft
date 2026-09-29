@@ -1,6 +1,6 @@
-import { marked } from 'marked'
 import TurndownService from 'turndown'
 import type { ImageStoreAPI } from '@core/storage/imageStoreTypes'
+import { renderMarkdown } from '@services/sanitizeHtml'
 
 function convertTaskListsForTiptap(html: string): string {
   return html.replace(
@@ -252,7 +252,8 @@ export function markdownToHtml(md: string, imageStore: ImageStoreAPI): string {
       return `MATHBLOCKPLACEHOLDER${idx}END`
     })
 
-    const raw = marked.parse(processed, { gfm: true, breaks: true }) as string
+    // M-1：经统一闸门 renderMarkdown（marked 解析 + DOMPurify 净化），杜绝漏消毒。
+    const raw = renderMarkdown(processed, { gfm: true, breaks: true })
 
     // 将占位符替换回 HTML
     let result = raw

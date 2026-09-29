@@ -4,7 +4,7 @@
  */
 import { marked } from '@services/markedConfig'
 import { renderMathInHtml } from '@utils/mathRenderer'
-import DOMPurify from 'dompurify'
+import { sanitizeHtml } from '@services/sanitizeHtml'
 import { CARD_COLORS_V2, formatRelativeTime } from '../theme/canvasTheme'
 
 export function getColorDef(hex: string) {
@@ -33,7 +33,7 @@ export function renderNoteCardContent(text: string): string {
         return `<div class="mermaid-diagram mermaid-loading" data-mermaid="${encodeURIComponent(decoded)}" style="min-height:24px;padding:4px;font-size:10px;opacity:0.5">📊 渲染中...</div>`
       },
     )
-    return DOMPurify.sanitize(withMermaid, { ADD_ATTR: ['data-mermaid'] })
+    return sanitizeHtml(withMermaid)
   } catch {
     return text
   }

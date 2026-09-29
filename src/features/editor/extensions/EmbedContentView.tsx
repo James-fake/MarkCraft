@@ -4,6 +4,7 @@ import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useFileManager } from '@stores/FileStore'
 import { findNode } from '@services/fileService'
 import { markdownToHtml } from '../markdownConvert'
+import { sanitizeHtml } from '@services/sanitizeHtml'
 import { imageStore } from '@core/storage/imageStore'
 
 /** Parse target like "笔记#第三章" → { fileName: '笔记', heading: '第三章' }
@@ -156,7 +157,9 @@ const EmbedContentView: React.FC<{ node: any; editor: any }> = ({ node }) => {
         ? relevantContent
         : allLines.slice(0, 5).join('\n') + (allLines.length > 5 ? '\n...' : '')
       const html = markdownToHtml(displayContent, imageStore)
-      setPreviewHtml(html)
+      // C-2：嵌入笔记内容经 markdownToHtml 产出，未净化前不得注入 DOM。
+      // 否则 `!((恶意笔记))` 块嵌入可在受害者打开正常笔记时执行跨笔记 XSS。
+      setPreviewHtml(sanitizeHtml(html))
     } catch {
       setPreviewHtml('<p style="color:#ef4444;font-size:12px;">⚠ 渲染失败</p>')
       setTotalLines(0)

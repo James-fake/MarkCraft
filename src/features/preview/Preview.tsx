@@ -1,7 +1,7 @@
 import type { ThemeType } from '@features/themes/useTheme'
 import { useLanguage } from '../../stores/LanguageStore'
 import { useRef, useCallback, useEffect, forwardRef, ForwardedRef } from 'react'
-import DOMPurify from 'dompurify'
+import { sanitizeHtml } from '@services/sanitizeHtml'
 import morphdom from 'morphdom'
 import ScrollButtons from '@components/ui/ScrollButtons'
 import { savePreviewScroll } from '../../services/scrollPositionManager'
@@ -131,12 +131,8 @@ const Preview = forwardRef(function Preview(
       // Double-check in case content changed during the frame delay
       if (content === originalHtmlRef.current) return
 
-      // Sanitize HTML before inserting into DOM to prevent XSS
-      const cleanContent = DOMPurify.sanitize(content, {
-        ADD_TAGS: ['style', 'math', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'msqrt', 'mroot', 'munder', 'mover', 'munderover', 'mtable', 'mtr', 'mtd', 'mtext', 'mspace', 'mpadded', 'mphantom', 'mfenced'],
-        ADD_ATTR: ['data-theme', 'data-code', 'data-image-index', 'data-line', 'data-source-line', 'data-block-id', 'data-embed', 'title', 'xmlns'],
-        ALLOW_DATA_ATTR: false,
-      })
+      // Sanitize HTML before inserting into DOM to prevent XSS（统一经由 sanitizeHtml 闸门）
+      const cleanContent = sanitizeHtml(content)
 
       // 使用 morphdom 增量更新 DOM，而非 innerHTML 全量替换
       const tempDiv = document.createElement('div')

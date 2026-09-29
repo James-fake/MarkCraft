@@ -5,6 +5,7 @@ import { getFlatHeadingList, generateHeadingId } from '@utils/headingIdUtils'
 import { useLanguage } from '../stores/LanguageStore'
 import { useMathRender } from './useMathRender'
 import { logger } from '../utils/logger'
+import { renderMarkdown } from '@services/sanitizeHtml'
 
 export function useMarkdownRenderer(localContent: string, textToStorage: (markdown: string) => string) {
   const { t } = useLanguage()
@@ -28,7 +29,8 @@ export function useMarkdownRenderer(localContent: string, textToStorage: (markdo
         return `<pre><code class="${cls}">${text}</code></pre>\n`
       }
 
-      let html = marked.parse(contentForPreview, { renderer }) as string
+      // M-1：经统一闸门 renderMarkdown（marked 解析 + DOMPurify 净化）。
+      let html = renderMarkdown(contentForPreview, { renderer })
 
       html = html.replace(
         /<pre><code[^>]*class="[^"]*language-(mermaid|mindmap)[^"]*"[^>]*>([\s\S]*?)<\/code><\/pre>/g,
