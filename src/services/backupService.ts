@@ -3,6 +3,7 @@ import { loadLargeData, saveLargeData } from '@core/storage/migrate'
 import { db, NoteVersionRecord } from '@core/storage/db'
 import { collectAllFiles } from '@core/files/fileTree'
 import { safeJsonParse, safeJsonParseOrNull } from '@utils/safeJson'
+import { isRecord } from '@utils/schemaGuards'
 
 export interface BackupData {
   version: string
@@ -135,7 +136,7 @@ export async function exportVault(files: FileManagerState): Promise<string> {
 export async function importVault(jsonStr: string): Promise<ImportResult> {
   try {
     const backup = safeJsonParseOrNull<BackupData>(jsonStr)
-    if (!backup || backup.type !== 'markcraft-vault-backup') {
+    if (!backup || backup.type !== 'markcraft-vault-backup' || !isRecord(backup.data)) {
       return { success: false, message: '无效的备份文件格式' }
     }
 
@@ -173,7 +174,7 @@ export async function importVaultWithStrategy(
 ): Promise<ImportResult> {
   try {
     const backup = safeJsonParseOrNull<BackupData>(jsonStr)
-    if (!backup || backup.type !== 'markcraft-vault-backup') {
+    if (!backup || backup.type !== 'markcraft-vault-backup' || !isRecord(backup.data)) {
       return { success: false, message: '无效的备份文件格式' }
     }
 

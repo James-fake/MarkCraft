@@ -1,5 +1,6 @@
 import { useSyncExternalStore } from 'react'
 import { safeJsonParse } from '@utils/safeJson'
+import { isRecord } from '@utils/schemaGuards'
 
 /**
  * 用户资料 Store（人情味功能 · 账户设置）
@@ -35,10 +36,11 @@ const listeners = new Set<() => void>()
 function loadProfile(): UserProfile {
   const raw = localStorage.getItem(STORAGE_KEY)
   const parsed = raw ? safeJsonParse(raw, {} as Partial<UserProfile>) : {}
+  const safeParsed: Partial<UserProfile> = isRecord(parsed) ? parsed : {}
   return {
-    nickname: typeof parsed.nickname === 'string' ? parsed.nickname : '',
-    avatarUrl: typeof parsed.avatarUrl === 'string' ? parsed.avatarUrl : '',
-    birthday: typeof parsed.birthday === 'string' ? parsed.birthday : '',
+    nickname: typeof safeParsed.nickname === 'string' ? safeParsed.nickname : '',
+    avatarUrl: typeof safeParsed.avatarUrl === 'string' ? safeParsed.avatarUrl : '',
+    birthday: typeof safeParsed.birthday === 'string' ? safeParsed.birthday : '',
   }
 }
 

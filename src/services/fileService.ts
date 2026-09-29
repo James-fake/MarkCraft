@@ -3,7 +3,8 @@ import { createInitialFileTree } from '@core/files/fileTree';
 import { knowledgeLinkGuideContent as knowledgeLinkGuideContentZh } from '@core/data/defaultDocs/zh';
 import { knowledgeLinkGuideContent as knowledgeLinkGuideContentEn } from '@core/data/defaultDocs/en';
 import { logger } from '../utils/logger';
-import { safeJsonParse } from '@utils/safeJson';
+import { safeJsonParse } from '@utils/safeJson'
+import { isFileManagerState } from '@utils/schemaGuards';
 import { saveLargeData, loadLargeData, migrateToIndexedDB } from '@core/storage/migrate';
 
 const STORAGE_KEY = 'markcraft-file-manager';
@@ -56,7 +57,7 @@ export function loadState(lang: 'zh' | 'en' = 'zh'): FileManagerState {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = safeJsonParse(saved, null as unknown as FileManagerState);
-      if (parsed && parsed.rootFolder && parsed.rootFolder.children && parsed.rootFolder.children.length > 0) {
+      if (isFileManagerState(parsed)) {
         return migrateAddLinkGuide(parsed, lang);
       }
     }
@@ -134,7 +135,7 @@ export async function loadStateAsync(lang: 'zh' | 'en' = 'zh'): Promise<FileMana
     const saved = await loadLargeData(STORAGE_KEY);
     if (saved) {
       const parsed = safeJsonParse(saved, null as unknown as FileManagerState);
-      if (parsed && parsed.rootFolder && parsed.rootFolder.children && parsed.rootFolder.children.length > 0) {
+      if (isFileManagerState(parsed)) {
         return migrateAddLinkGuide(parsed, lang);
       }
     }

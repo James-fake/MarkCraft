@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { safeJsonParse } from '@utils/safeJson'
+import { isRecord } from '@utils/schemaGuards'
 
 export interface Bookmark {
   id: string;
@@ -41,10 +42,11 @@ function generateId(): string {
 function loadState(): PersistedState {
   const raw = localStorage.getItem(STORAGE_KEY)
   const parsed = raw ? safeJsonParse(raw, {} as Record<string, unknown>) : {}
-  const bookmarks: Bookmark[] = Array.isArray(parsed?.bookmarks) ? (parsed?.bookmarks as Bookmark[]) : []
+  const safeParsed: Record<string, unknown> = isRecord(parsed) ? parsed : {}
+  const bookmarks: Bookmark[] = Array.isArray(safeParsed?.bookmarks) ? (safeParsed?.bookmarks as Bookmark[]) : []
   const groups: string[] =
-    Array.isArray(parsed?.groups) && (parsed?.groups as string[]).length > 0
-      ? (parsed?.groups as string[])
+    Array.isArray(safeParsed?.groups) && (safeParsed?.groups as string[]).length > 0
+      ? (safeParsed?.groups as string[])
       : [DEFAULT_GROUP]
   return { bookmarks, groups }
 }
