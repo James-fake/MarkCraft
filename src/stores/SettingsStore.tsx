@@ -116,16 +116,16 @@ export function loadSettings(): AppSettings {
       const validRaw: Partial<AppSettings> = rawParsed && isRecord(rawParsed) ? rawParsed : {}
       const parsed = { ...DEFAULT_SETTINGS, ...validRaw }
       // 迁移：旧的 'split' 模式已废弃，统一回退为 'source'
-      if ((parsed as any).editorMode === 'split') {
-        (parsed as any).editorMode = 'source'
+      if ((parsed.editorMode as string) === 'split') {
+        parsed.editorMode = 'source'
         parsed.previewVisible = true
         parsed.sourceVisible = true
         saveSettings(parsed)
       }
       // 迁移：P1-1.2 E1 范式收敛——老用户默认从 'source' 升级到 'wysiwyg'
       // （之前源码模式是默认；本升级一次性，若用户后续主动设回 source 不再覆盖）
-      if ((parsed as any).editorMode === 'source') {
-        (parsed as any).editorMode = 'wysiwyg'
+      if (parsed.editorMode === 'source') {
+        parsed.editorMode = 'wysiwyg'
         saveSettings(parsed)
       }
       // 迁移：从独立 localStorage key 迁移 view 相关设置
@@ -143,7 +143,7 @@ export function loadSettings(): AppSettings {
           // 仅当保存的 JSON 中没有该字段时才迁移
           if (validRaw[settingKey] === undefined) {
             try {
-              (parsed as any)[settingKey] = safeJsonParseOrNull(oldVal)
+              (parsed as Record<string, unknown>)[settingKey] = safeJsonParseOrNull(oldVal)
               migrated = true
             } catch {}
           }
@@ -156,7 +156,7 @@ export function loadSettings(): AppSettings {
     }
     // First run: try to migrate from old keys
     const migrated = { ...DEFAULT_SETTINGS }
-    const oldKeys: Record<string, string> = {
+    const oldKeys: Record<string, keyof AppSettings> = {
       'editor-mode': 'editorMode',
       'markcraft_spell_check': 'spellCheck',
       'markcraft_smart_punctuation_enabled': 'smartPunctuation',
@@ -169,9 +169,9 @@ export function loadSettings(): AppSettings {
       const val = localStorage.getItem(oldKey)
       if (val !== null) {
         try {
-          (migrated as any)[settingKey] = safeJsonParseOrNull(val)
+          (migrated as Record<string, unknown>)[settingKey] = safeJsonParseOrNull(val)
         } catch {
-          (migrated as any)[settingKey] = val
+          (migrated as Record<string, unknown>)[settingKey] = val
         }
       }
     }

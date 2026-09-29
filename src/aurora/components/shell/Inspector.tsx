@@ -82,7 +82,7 @@ export function Inspector({
       {/* Tab 栏 */}
       <div className="aurora-inspector__tabs" role="tablist">
         {tabs.map(tab => {
-          const IconComp = (tab.icon ? (Icon[tab.icon as keyof typeof Icon] as any) : null)
+          const IconComp: React.ComponentType<{ size?: number }> | null = tab.icon ? (Icon[tab.icon as keyof typeof Icon] as React.ComponentType<{ size?: number }>) : null
           return (
             <button
               key={tab.id}

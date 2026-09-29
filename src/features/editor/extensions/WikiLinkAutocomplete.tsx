@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import type { Editor } from '@tiptap/react'
+import type { EditorView } from '@tiptap/pm/view'
 import { useLinkIndex } from '@stores/LinkIndexStore'
 import { formatDate } from '../../fileManager/DailyNoteService'
 import type { FileNode } from '@src/types/fileManager'
@@ -327,7 +328,7 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
   )
 
   // Intercept key events from the editor using a stable override pattern
-  const originalHandlerRef = useRef<((view: any, event: KeyboardEvent) => boolean | void) | undefined>(undefined)
+  const originalHandlerRef = useRef<((view: EditorView, event: KeyboardEvent) => boolean | void) | undefined>(undefined)
   const isOverriddenRef = useRef(false)
 
   useEffect(() => {
@@ -340,7 +341,7 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
         isOverriddenRef.current = true
       }
 
-      const wrappedHandler = (view: unknown, event: KeyboardEvent) => {
+      const wrappedHandler = (view: EditorView, event: KeyboardEvent) => {
         const currentVisible = popupStateRef.current.visible
         const inHeading = headingModeRef.current !== null
         const currentHeadingResults = headingResultsRef.current
