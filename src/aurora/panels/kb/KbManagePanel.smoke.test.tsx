@@ -26,7 +26,7 @@ function renderPanel() {
 
 describe('KbManagePanel 接真实知识库列表（getKbList / createKb）', () => {
   it('挂载无崩溃、列表来自真实 getKbList、无 mock 残留', async () => {
-    const { container } = renderPanel()
+    renderPanel()
     expect(await screen.findByText('真实库A')).toBeTruthy()
     expect(screen.getByText('真实库B')).toBeTruthy()
     // 计数来自真实列表长度（2）→ 状态栏「知识库 2」

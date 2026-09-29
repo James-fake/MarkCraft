@@ -94,7 +94,7 @@ describe('canTransition / nextStatuses', () => {
   })
 })
 
-function STATUS_TRANSITIONS_ALL(from: PostStatus): PostStatus[] {
+function STATUS_TRANSITIONS_ALL(_from: PostStatus): PostStatus[] {
   // 与实现一致：允许任意态切换（含自身）
   return ['draft', 'pending', 'published']
 }

@@ -10,8 +10,6 @@ import { describe, it, expect } from 'vitest'
 import {
   DIRECTION_SLOP,
   SNAP_PERCENT,
-  FLICK_VELOCITY,
-  FLICK_MIN_DISTANCE,
   FLICK_SAMPLE_WINDOW,
   EDGE_RESISTANCE,
   OVERSCROLL_MAX,

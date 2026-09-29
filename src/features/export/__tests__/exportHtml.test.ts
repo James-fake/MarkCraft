@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import { generateHtmlBlob } from '../utils/exportHtml'
-import type { ExportHtmlTemplate } from '../utils/exportHtml'
 
 const MD = '# Hello\n\nSome content.\n\n## Sub\n\nMore.'
 

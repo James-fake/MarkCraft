@@ -346,7 +346,7 @@ describe('kbSeed · 老用户升级路径（悬空 folderId 自愈）', () => {
   it('⑬ 自愈幂等：folderId 修好后再次进入直接短路，不再建库建文件', async () => {
     const root = asRoot(folderNode('文件管理器', [folderNode('我的笔记', [])]))
     const h = harness(root)
-    const broken = await createKbInFolder(ZH_FOLDER, '内置文档', 'ghost-folder-id')
+    await createKbInFolder(ZH_FOLDER, '内置文档', 'ghost-folder-id')
     localStorage.setItem(USAGE_DOCS_SEED_KEY, '1')
 
     const first = await ensureUsageDocsKb(h.deps)

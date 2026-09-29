@@ -1,7 +1,7 @@
 /**
  * P1-3 发布留痕单元测试
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import {
   recordPublish,
   getPublishLog,

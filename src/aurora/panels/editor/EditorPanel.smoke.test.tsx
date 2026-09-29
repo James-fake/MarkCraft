@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React, { useEffect, useRef } from 'react'
-import { render, screen, fireEvent, act, within } from '@testing-library/react'
+import { render, screen, fireEvent, act } from '@testing-library/react'
 import { describe, it, expect, vi, beforeAll } from 'vitest'
 import { RealProviders } from '../../providers/RealProviders'
 import { useFileManager } from '@stores/FileStore'

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useAuroraShell } from './useAuroraShell'
 import { viewNav } from '../../features/navigation/viewState'

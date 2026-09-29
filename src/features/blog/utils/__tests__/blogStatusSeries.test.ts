@@ -1,10 +1,8 @@
 /**
  * P1-3 集成测试：generateBlog 的状态机过滤 + 系列自动发现
  */
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { generateBlog } from '../blogMultiFileGenerator'
-
-const now = () => new Date().toISOString()
 
 describe('P1-3 状态机过滤', () => {
   it('status: draft 不计入已发布列表', () => {
