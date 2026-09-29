@@ -26,13 +26,19 @@ export interface GitTreeItem {
   content?: string
 }
 
+/** GitHub/Gitee API 响应常用形状（fetch 为外部 HTTP 边界；调用点按需在泛型参数处给出具体类型） */
+export interface GitUser { login: string; name?: string }
+export interface GitBranchRef { commit: { sha: string } }
+export interface GitRefObject { object: { sha: string } }
+export interface GitSha { sha: string }
+
 export interface PlatformAdapter {
   apiBase: string
   platformName: string
   defaultBranch: string
   getPagesUrl(owner: string, repo: string): string
   getDefaultRepo(username: string): string
-  fetch(path: string, token: string, options?: RequestInit): Promise<any>
+  fetch<T = unknown>(path: string, token: string, options?: RequestInit): Promise<T>
   validateToken(token: string): Promise<{ login: string; name: string }>
   ensureRepo(owner: string, repo: string, token: string): Promise<void>
   getBranchRef(owner: string, repo: string, branch: string, token: string): Promise<string>

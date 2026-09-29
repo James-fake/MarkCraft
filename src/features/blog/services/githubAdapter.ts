@@ -1,4 +1,4 @@
-import type { PlatformAdapter, GitTreeItem } from './deployTypes'
+import type { PlatformAdapter, GitTreeItem, GitUser, GitRefObject, GitSha } from './deployTypes'
 
 const GITHUB_API = 'https://api.github.com'
 
@@ -36,7 +36,7 @@ export const githubAdapter: PlatformAdapter = {
   },
 
   async validateToken(token: string) {
-    const user = await this.fetch('/user', token)
+    const user = await this.fetch<GitUser>('/user', token)
     return { login: user.login, name: user.name || user.login }
   },
 
@@ -53,16 +53,16 @@ export const githubAdapter: PlatformAdapter = {
 
   async getBranchRef(owner: string, repo: string, branch: string, token: string) {
     try {
-      const ref = await this.fetch(`/repos/${owner}/${repo}/git/ref/heads/${branch}`, token)
+      const ref = await this.fetch<GitRefObject>(`/repos/${owner}/${repo}/git/ref/heads/${branch}`, token)
       return ref.object.sha
     } catch {
-      const mainRef = await this.fetch(`/repos/${owner}/${repo}/git/ref/heads/main`, token)
+      const mainRef = await this.fetch<GitRefObject>(`/repos/${owner}/${repo}/git/ref/heads/main`, token)
       return mainRef.object.sha
     }
   },
 
   async createBlob(owner: string, repo: string, content: string, token: string) {
-    const blob = await this.fetch(`/repos/${owner}/${repo}/git/blobs`, token, {
+    const blob = await this.fetch<GitSha>(`/repos/${owner}/${repo}/git/blobs`, token, {
       method: 'POST',
       body: JSON.stringify({ content: btoa(unescape(encodeURIComponent(content))), encoding: 'base64' }),
     })
@@ -70,7 +70,7 @@ export const githubAdapter: PlatformAdapter = {
   },
 
   async createTree(owner: string, repo: string, tree: GitTreeItem[], baseTreeSha: string, token: string) {
-    const result = await this.fetch(`/repos/${owner}/${repo}/git/trees`, token, {
+    const result = await this.fetch<GitSha>(`/repos/${owner}/${repo}/git/trees`, token, {
       method: 'POST',
       body: JSON.stringify({ base_tree: baseTreeSha, tree }),
     })
@@ -78,7 +78,7 @@ export const githubAdapter: PlatformAdapter = {
   },
 
   async createCommit(owner: string, repo: string, message: string, treeSha: string, parentSha: string, token: string) {
-    const commit = await this.fetch(`/repos/${owner}/${repo}/git/commits`, token, {
+    const commit = await this.fetch<GitSha>(`/repos/${owner}/${repo}/git/commits`, token, {
       method: 'POST',
       body: JSON.stringify({ message, tree: treeSha, parents: [parentSha] }),
     })

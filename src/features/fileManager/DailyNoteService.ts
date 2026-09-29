@@ -40,7 +40,7 @@ function generateDailyNoteTemplate(date: Date): string {
 export function openDailyNote(
   date: Date,
   rootFolder: FileNode,
-  createFile: (parentId: string, name: string, content?: string) => any,
+  createFile: (parentId: string, name: string, content?: string) => string,
   createFolder: (parentId: string, name: string) => string,
   openFile: (fileId: string) => void,
 ): string | undefined {

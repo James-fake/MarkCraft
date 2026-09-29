@@ -7,7 +7,7 @@
  * This module must be imported once at app startup (App.tsx)
  * before any marked.parse() calls.
  */
-import { marked } from 'marked'
+import { marked, type Tokens } from 'marked'
 import { markedHighlight } from 'marked-highlight'
 import markedFootnote from 'marked-footnote'
 import hljs from 'highlight.js'
@@ -16,6 +16,15 @@ import 'highlight.js/styles/github-dark.css'
 marked.use({ gfm: true, breaks: true })
 
 marked.use(markedFootnote())
+
+// 块级引用/嵌入 token：marked 的 Tokens.Generic 带 `[index: string]: any` 索引签名，
+// 故自定义字段（isEmbed/inner）在此用 BlockRefToken 显式定型，消除 tokenizer 的 `as any` 与 renderer 的 `token: any`。
+interface BlockRefToken {
+  type: string
+  raw: string
+  isEmbed: boolean
+  inner: string
+}
 
 // P1.1 块级引用渲染：((id)) / ((id|alias)) / !((id))
 marked.use({
@@ -33,16 +42,17 @@ marked.use({
             raw: match[0],
             isEmbed: match[1] === '!',
             inner: match[2],
-          } as any
+          }
         }
         return undefined
       },
-      renderer(token: any) {
-        const inner = token.inner || ''
+      renderer(token: Tokens.Generic) {
+        const t = token as unknown as BlockRefToken
+        const inner = t.inner || ''
         const parts = inner.split('|')
         const blockId = parts[0].trim()
         const alias = parts.length > 1 ? parts.slice(1).join('|').trim() : ''
-        if (token.isEmbed) {
+        if (t.isEmbed) {
           // 块嵌入：渲染为引用块占位，由前端 JS 解析替换
           return `<blockquote class="block-embed" data-block-id="${escapeHtml(blockId)}" data-embed="true"><span class="block-embed-loading">加载中: ${escapeHtml(blockId)}</span></blockquote>`
         }

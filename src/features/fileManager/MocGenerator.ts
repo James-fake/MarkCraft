@@ -84,16 +84,16 @@ function stripMdExtension(name: string): string {
 }
 
 /** P1.4: 解析 front matter（兼容 CRLF 和 LF 行结尾） */
-export function parseFrontMatter(content: string): { data: Record<string, any>; body: string } {
+export function parseFrontMatter(content: string): { data: Record<string, string | boolean>; body: string } {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n([\s\S]*)$/)
   if (!match) return { data: {}, body: content }
   const yamlBlock = match[1]
   const body = match[2]
-  const data: Record<string, any> = {}
+  const data: Record<string, string | boolean> = {}
   for (const line of yamlBlock.split(/\r?\n/)) {
     const m = line.match(/^(\w+):\s*(.*)$/)
     if (m) {
-      let value: any = m[2].trim()
+      let value: string | boolean = m[2].trim()
       if (value === 'true') value = true
       else if (value === 'false') value = false
       data[m[1]] = value
@@ -127,12 +127,15 @@ export function parseMocFrontMatter(content: string): MocFrontMatter | null {
   const { data } = parseFrontMatter(content)
   if (data.type !== 'moc') return null
   return {
-    type: data.type,
-    autoUpdate: data.autoUpdate,
-    source: data.source,
-    target: data.target,
-    template: data.template,
-    lastUpdated: data.lastUpdated,
+    type: typeof data.type === 'string' ? data.type : undefined,
+    autoUpdate:
+      data.autoUpdate === false || data.autoUpdate === 'false' ? false :
+      data.autoUpdate === true || data.autoUpdate === 'true' ? true :
+      undefined,
+    source: typeof data.source === 'string' ? (data.source as MocFrontMatter['source']) : undefined,
+    target: typeof data.target === 'string' ? data.target : undefined,
+    template: typeof data.template === 'string' ? (data.template as MocTemplate) : undefined,
+    lastUpdated: typeof data.lastUpdated === 'string' ? data.lastUpdated : undefined,
   }
 }
 

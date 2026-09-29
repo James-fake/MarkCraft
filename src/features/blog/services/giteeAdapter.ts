@@ -1,4 +1,4 @@
-import type { PlatformAdapter, GitTreeItem } from './deployTypes'
+import type { PlatformAdapter, GitTreeItem, GitUser, GitBranchRef, GitSha } from './deployTypes'
 
 const GITEE_API = 'https://gitee.com/api/v5'
 
@@ -33,7 +33,7 @@ export const giteeAdapter: PlatformAdapter = {
   },
 
   async validateToken(token: string) {
-    const user = await this.fetch('/user', token)
+    const user = await this.fetch<GitUser>('/user', token)
     return { login: user.login, name: user.name || user.login }
   },
 
@@ -50,16 +50,16 @@ export const giteeAdapter: PlatformAdapter = {
 
   async getBranchRef(owner: string, repo: string, branch: string, token: string) {
     try {
-      const branchInfo = await this.fetch(`/repos/${owner}/${repo}/branches/${branch}`, token)
+      const branchInfo = await this.fetch<GitBranchRef>(`/repos/${owner}/${repo}/branches/${branch}`, token)
       return branchInfo.commit.sha
     } catch {
-      const masterBranch = await this.fetch(`/repos/${owner}/${repo}/branches/master`, token)
+      const masterBranch = await this.fetch<GitBranchRef>(`/repos/${owner}/${repo}/branches/master`, token)
       return masterBranch.commit.sha
     }
   },
 
   async createBlob(owner: string, repo: string, content: string, token: string) {
-    const blob = await this.fetch(`/repos/${owner}/${repo}/git/blobs`, token, {
+    const blob = await this.fetch<GitSha>(`/repos/${owner}/${repo}/git/blobs`, token, {
       method: 'POST',
       body: JSON.stringify({ content: btoa(unescape(encodeURIComponent(content))), encoding: 'base64' }),
     })
@@ -67,7 +67,7 @@ export const giteeAdapter: PlatformAdapter = {
   },
 
   async createTree(owner: string, repo: string, tree: GitTreeItem[], baseTreeSha: string, token: string) {
-    const result = await this.fetch(`/repos/${owner}/${repo}/git/trees`, token, {
+    const result = await this.fetch<GitSha>(`/repos/${owner}/${repo}/git/trees`, token, {
       method: 'POST',
       body: JSON.stringify({ base_tree: baseTreeSha, tree }),
     })
@@ -75,7 +75,7 @@ export const giteeAdapter: PlatformAdapter = {
   },
 
   async createCommit(owner: string, repo: string, message: string, treeSha: string, parentSha: string, token: string) {
-    const commit = await this.fetch(`/repos/${owner}/${repo}/git/commits`, token, {
+    const commit = await this.fetch<GitSha>(`/repos/${owner}/${repo}/git/commits`, token, {
       method: 'POST',
       body: JSON.stringify({ message, tree: treeSha, parents: [parentSha] }),
     })
