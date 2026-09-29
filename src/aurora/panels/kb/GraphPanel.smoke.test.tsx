@@ -18,9 +18,9 @@ import { findNode } from '@core/files/fileTree'
 
 // jsdom 不实现 ResizeObserver，而 GraphPanel 挂载时依赖它做尺寸观测
 class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
+  observe = () => {}
+  unobserve = () => {}
+  disconnect = () => {}
 }
 // 行首分号防 ASI 粘连 class 声明；eslint-disable 压制 no-extra-semi（同 scope.test 的既有写法）
 // eslint-disable-next-line no-extra-semi

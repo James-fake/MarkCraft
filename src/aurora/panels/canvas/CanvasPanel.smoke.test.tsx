@@ -5,9 +5,9 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react'
 beforeAll(() => {
   // @ts-expect-error - jsdom 缺失，提供空实现
   global.ResizeObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
+    observe = () => {}
+    unobserve = () => {}
+    disconnect = () => {}
   }
 })
 

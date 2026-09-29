@@ -6,9 +6,9 @@ if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {
 }
 if (typeof globalThis.ResizeObserver === 'undefined') {
   globalThis.ResizeObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
+    observe = () => {}
+    unobserve = () => {}
+    disconnect = () => {}
   } as unknown as typeof ResizeObserver
 }
 
@@ -35,7 +35,7 @@ if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
 // 均经 if (globalThis.X) 守卫，不会裸访问。
 if (typeof globalThis.Path2D === 'undefined') {
   globalThis.Path2D = class Path2D {
-    addPath() {}
+    addPath = () => {}
   } as unknown as typeof Path2D
 }
 

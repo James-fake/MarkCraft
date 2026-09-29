@@ -29,9 +29,9 @@ import type { FileNode } from '@src/types/fileManager'
 
 // jsdom 不实现 ResizeObserver，而 GraphPanel 挂载时依赖它做尺寸观测
 class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
+  observe = () => {}
+  unobserve = () => {}
+  disconnect = () => {}
 }
 ;(globalThis as unknown as { ResizeObserver: unknown }).ResizeObserver = ResizeObserverStub // eslint-disable-line no-extra-semi -- 行首 `;` 防止 ASI 与上一行 class 声明粘连
 

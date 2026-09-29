@@ -18,9 +18,9 @@ vi.mock('../../../stores/kbStore', async () => {
 beforeAll(() => {
   // @ts-expect-error 注入测试桩
   global.ResizeObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
+    observe = () => {}
+    unobserve = () => {}
+    disconnect = () => {}
   }
 })
 
