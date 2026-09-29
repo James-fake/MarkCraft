@@ -23,6 +23,10 @@ export const MARKDOWN_SANITIZE_CONFIG = {
   ADD_ATTR: [
     'data-theme', 'data-code', 'data-image-index', 'data-line', 'data-source-line',
     'data-block-id', 'data-embed', 'data-mermaid', 'data-latex', 'data-type',
+    // C3 PDF 嵌入（@[pdf](url|pdfId)）必需：缺失会被闸门剥除导致嵌入退化为空 div
+    'data-src', 'data-pdf-id',
+    // 高亮/下划线 16 色与媒体嵌入（video/audio）往返必需，同属 markdown 管线产出
+    'data-highlight-color', 'data-underline-color', 'data-media-embed', 'data-media-type',
     'title', 'xmlns', 'contenteditable',
   ],
   ALLOW_DATA_ATTR: false,
