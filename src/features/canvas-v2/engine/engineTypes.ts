@@ -77,6 +77,98 @@ export interface ExcalidrawAPILike {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+// ─── Excalidraw 场景元素模型（Phase C：引擎元素面定型） ───
+// @excalidraw/excalidraw 包类型声明损坏（.DELETE 后缀，见 src/excalidraw.d.ts），
+// 原生 ExcalidrawElement 不可 import。引擎按「实际消费/写入的字段」自建最小显式
+// 模型，其余上游字段经索引签名透传（updateScene 全量回写时不丢失）。
+
+/** 绑定登记条目（Excalidraw boundElements 数组成员） */
+export interface BoundElementRef {
+  id: string
+  type: string
+}
+
+/** Excalidraw 箭头端点绑定（startBinding / endBinding） */
+export interface ExArrowEndpointBinding {
+  elementId: string
+  focus: number
+  gap: number
+  /** tldraw 鸭子兼容面：getBindingsFromShape 读取；Excalidraw 原生绑定无此字段（缺省回退 {0.5,0.5}） */
+  normalizedAnchor?: { x: number; y: number }
+}
+
+/** 卡片代理元素注入的 customData（cardType + 卡片属性袋） */
+export interface CardCustomData {
+  cardType?: string
+  [key: string]: unknown
+}
+
+/** Excalidraw 场景元素——引擎消费/写入的字段子集 + 未知字段透传 */
+export interface ExElementLike {
+  id: string
+  type: string
+  x: number
+  y: number
+  width: number
+  height: number
+  isDeleted?: boolean
+  /** freedraw / arrow 点集（元素局部坐标；Excalidraw 原生为 number[][]，迁移产物可能是 {x,y}[]） */
+  points?: number[][] | Array<{ x: number; y: number }>
+  boundElements?: BoundElementRef[] | null
+  customData?: CardCustomData | null
+  version?: number
+  startBinding?: ExArrowEndpointBinding | null
+  endBinding?: ExArrowEndpointBinding | null
+  /** 其余上游字段（strokeColor / roundness / seed …）原样透传 */
+  [key: string]: unknown
+}
+
+/** 无 schema 的形状属性袋（与 ShapeLike.props 同形态：上游卡片属性为动态键） */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- interop: 无 schema 属性袋，同 ShapeLike.props 既有形态（鸭子类型桥接）
+export type PropsBag = Record<string, any>
+
+/** createShape 的入参形状 */
+export type ShapePartial = Partial<ShapeLike> & { type: string; x?: number; y?: number; props?: PropsBag }
+
+/** createBinding / createBindings 的入参形状 */
+export type BindingPartial = { id?: string; fromId?: string; toId?: string; props?: PropsBag }
+
+/** serialize() 的视口快照 */
+export interface ViewportSnapshot {
+  scrollX: number
+  scrollY: number
+  zoom: number
+}
+
+/** serialize() / migrateTldrawToEngine() 的文档形状（type alias：保持隐式索引签名兼容 EngineDocumentLike） */
+export type EngineDocument = {
+  version: number
+  viewport: ViewportSnapshot
+  elements: ExElementLike[]
+  shapes: ShapeLike[]
+}
+
+/** loadDocument / 历史快照的文档形状（全可选：兼容旧 tldraw 快照与 Excalidraw 文档；type alias 形式以兼容外部数据赋值） */
+export type EngineDocumentLike = {
+  shapes?: ShapeLike[]
+  elements?: ExElementLike[]
+  viewport?: Partial<ViewportSnapshot>
+  appState?: { viewBackgroundColor?: string; [key: string]: unknown }
+  [key: string]: unknown
+}
+
+/** store.allRecords() 的 record（tldraw 鸭子：消费方用 predicate 自行收窄） */
+export type EngineStoreRecord =
+  | (ShapeLike & { typeName?: 'shape' })
+  | {
+      typeName?: 'binding'
+      type: 'arrow'
+      id: string
+      fromId?: string
+      toId?: string
+      props?: { terminal?: 'start' | 'end'; normalizedAnchor?: { x: number; y: number } }
+    }
+
 // 引擎对外暴露的「编辑器」接口（鸭子类型兼容 tldraw Editor 用于传给现有面板）
 // 实际类型在 CanvasEngine.ts 中定义；此处由消费方直接 import { CanvasEngine }。
 

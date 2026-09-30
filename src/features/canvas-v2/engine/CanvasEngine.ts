@@ -14,6 +14,14 @@ import {
   type BindingLike,
   type CameraState,
   type ExcalidrawAPILike,
+  type ExElementLike,
+  type PropsBag,
+  type ShapePartial,
+  type BindingPartial,
+  type EngineDocument,
+  type EngineDocumentLike,
+  type EngineStoreRecord,
+  type TLEventInfo,
 } from './engineTypes'
 
 // ─── 常量 ───
@@ -160,7 +168,7 @@ function edgePoint(
 }
 
 // ─── 默认元素骨架（Excalidraw 需要的字段） ───
-function baseElement(type: string, id: string): any {
+function baseElement(type: string, id: string): ExElementLike {
   return {
     id,
     type,
@@ -215,14 +223,14 @@ export class CanvasEngine {
   private api: ExcalidrawAPILike | null = null
   private container: HTMLDivElement | null = null
   private listeners: Array<{ cb: () => void; scope: 'document' | 'session' }> = []
-  private eventListeners: Array<{ cb: (info: any) => void }> = []
-  private fileHandlers: Array<(content: { point?: any; files: File[] }) => void | Promise<void>> = []
-  private remoteContentHandlers: ((content: any) => void)[] = []
+  private eventListeners: Array<{ cb: (info: TLEventInfo) => void }> = []
+  private fileHandlers: Array<(content: { point?: { x: number; y: number }; files: File[] }) => void | Promise<void>> = []
+  private remoteContentHandlers: ((content: unknown) => void)[] = []
 
   // ─── 历史栈（自管 undo/redo） ───
   private undoStack: string[] = []
   private redoStack: string[] = []
-  private historyTimer: any = null
+  private historyTimer: ReturnType<typeof setTimeout> | null = null
   // 场景内容指纹：用于检测「真正的图元增删改」（不依赖 dirty 标志）
   private lastSceneSig = ''
   // 手势进行中标记：拖拽/绘制/文本编辑/缩放旋转期间为 true，用于把一次手势
@@ -234,7 +242,7 @@ export class CanvasEngine {
   // 从根本上保证「画笔首笔」等任意指针手势收笔后都能可靠地提交为一条历史。
   private pointerGesture = false
   // endPointerGesture 的延迟提交句柄（等 Excalidraw 自身 pointerup 收尾 + onChange 完成后再提交）
-  private pendingCommit: any = null
+  private pendingCommit: ReturnType<typeof setTimeout> | null = null
 
   // 防止 onChange 回写造成死循环
   private applyingRemote = false
@@ -306,17 +314,17 @@ export class CanvasEngine {
   }
 
   // ─── 内部：读取场景元素 ───
-  private getElements(): any[] {
-    return this.api ? this.api.getSceneElements() : []
+  private getElements(): ExElementLike[] {
+    return (this.api ? this.api.getSceneElements() : []) as ExElementLike[]
   }
 
-  private cardElements(): any[] {
+  private cardElements(): ExElementLike[] {
     return this.getElements().filter(
-      (el) => el && !el.isDeleted && el.customData && CARD_TYPES.has(el.customData.cardType),
+      (el) => el && !el.isDeleted && el.customData?.cardType && CARD_TYPES.has(el.customData.cardType),
     )
   }
 
-  private arrowElements(): any[] {
+  private arrowElements(): ExElementLike[] {
     return this.getElements().filter((el) => el && !el.isDeleted && el.type === 'arrow')
   }
 
@@ -421,7 +429,7 @@ export class CanvasEngine {
   // 用于检测真实增删改。除 id/version/isDeleted 外，额外纳入 type 与几何 / 笔画点数，
   // 避免「画笔收笔时 version 未变、仅 points 变长」导致指纹不变、漏判场景变化而不提交历史。
   private sceneSignature(): string {
-    const els = this.api ? this.api.getSceneElements() : []
+    const els = (this.api ? this.api.getSceneElements() : []) as ExElementLike[]
     let sig = ''
     for (const e of els) {
       const pts = Array.isArray(e.points) ? (e.points as number[][]).length : 0
@@ -483,9 +491,9 @@ export class CanvasEngine {
   }
 
   private restoreState(snap: string) {
-    let data: any
+    let data: EngineDocumentLike
     try {
-      data = JSON.parse(snap)
+      data = JSON.parse(snap) as EngineDocumentLike
     } catch {
       return
     }
@@ -661,7 +669,7 @@ export class CanvasEngine {
    */
   createCardFree(
     type: 'note-card' | 'label-card',
-    props: Record<string, any>,
+    props: PropsBag,
     anchor?: { x: number; y: number },
     w?: number,
     h?: number,
@@ -751,7 +759,7 @@ export class CanvasEngine {
   }
 
   // — 变更 —
-  createShape(partial: Partial<ShapeLike> & { type: string; x?: number; y?: number; props?: any }): string {
+  createShape(partial: ShapePartial): string {
     const id = partial.id ?? genId('shape')
     const type = partial.type
     const x = partial.x ?? 0
@@ -773,7 +781,7 @@ export class CanvasEngine {
     return id
   }
 
-  createShapes(partials: any[]): string[] {
+  createShapes(partials: ShapePartial[]): string[] {
     return partials.map((p) => this.createShape(p))
   }
 
@@ -807,8 +815,8 @@ export class CanvasEngine {
    */
   createBoundArrow(fromId: string, toId: string): string | null {
     if (!this.api || fromId === toId) return null
-    const els = this.api.getSceneElements()
-    const isCard = (e: any) => e && !e.isDeleted && e.customData && CARD_TYPES.has(e.customData.cardType)
+    const els = this.api.getSceneElements() as ExElementLike[]
+    const isCard = (e: ExElementLike) => e && !e.isDeleted && e.customData?.cardType && CARD_TYPES.has(e.customData.cardType)
     const fromEl = els.find((e) => e.id === fromId && isCard(e))
     const toEl = els.find((e) => e.id === toId && isCard(e))
     if (!fromEl || !toEl) return null
@@ -853,7 +861,7 @@ export class CanvasEngine {
 
     const next = els.map((e) => {
       if (e.id === fromId || e.id === toId) {
-        const bound = Array.isArray(e.boundElements) ? e.boundElements.filter((b: any) => b.id !== arrowId) : []
+        const bound = Array.isArray(e.boundElements) ? e.boundElements.filter((b) => b.id !== arrowId) : []
         bound.push({ type: 'arrow', id: arrowId })
         return { ...e, boundElements: bound }
       }
@@ -878,7 +886,7 @@ export class CanvasEngine {
    */
   private refreshArrowsForCard(cardId: string): void {
     if (!this.api) return
-    const els = this.api.getSceneElements()
+    const els = this.api.getSceneElements() as ExElementLike[]
     const bound = els.filter(
       (e) => e.type === 'arrow' && !e.isDeleted &&
         (e.startBinding?.elementId === cardId || e.endBinding?.elementId === cardId),
@@ -925,11 +933,11 @@ export class CanvasEngine {
     }
   }
 
-  updateShapes(partials: any[]): void {
+  updateShapes(partials: Array<Partial<ShapeLike> & { id: string }>): void {
     for (const p of partials) this.updateShape(p)
   }
 
-  updateBinding(partial: { id: string; type: 'arrow'; props: any }): void {
+  updateBinding(partial: { id: string; type: 'arrow'; props: PropsBag }): void {
     // 找到对应箭头元素并写回 customData.relationType（Excalidraw 无 updateElement，用 updateScene）
     const el = this.arrowElements().find((e) => `bind-${e.id}-start` === partial.id || `bind-${e.id}-end` === partial.id)
     if (el && this.api) {
@@ -938,7 +946,7 @@ export class CanvasEngine {
     this.emit('document')
   }
 
-  createBinding(partial: any): string {
+  createBinding(partial: BindingPartial): string {
     // 引擎中关系由 Excalidraw 箭头绑定承载；此处记录 customData
     const id = partial.id ?? genId('bind')
     const el = this.arrowElements().find((e) => e.id === partial.fromId || e.id === partial.toId)
@@ -950,7 +958,7 @@ export class CanvasEngine {
   }
 
   // 单元素补丁：Excalidraw 命令式 API 无 updateElement，统一走 updateScene 全量回写
-  private patchElement(elementId: string, patch: Record<string, any>): void {
+  private patchElement(elementId: string, patch: Partial<ExElementLike>): void {
     if (!this.api) return
     const elements = this.getElements().map((e) =>
       e.id === elementId ? { ...e, ...patch, version: (e.version ?? 1) + 1, updated: Date.now() } : e,
@@ -960,7 +968,7 @@ export class CanvasEngine {
     this.applyingRemote = false
   }
 
-  createBindings(partials: any[]): string[] {
+  createBindings(partials: BindingPartial[]): string[] {
     return partials.map((p) => this.createBinding(p))
   }
 
@@ -974,7 +982,7 @@ export class CanvasEngine {
         if (idSet.has(el.id)) return { ...el, isDeleted: true }
         // 删除绑定到被删卡片的箭头
         if ((el.type === 'arrow') &&
-            (idSet.has(el.startBinding?.elementId) || idSet.has(el.endBinding?.elementId))) {
+            (idSet.has(el.startBinding?.elementId ?? '') || idSet.has(el.endBinding?.elementId ?? ''))) {
           return { ...el, isDeleted: true }
         }
         return el
@@ -1051,15 +1059,15 @@ export class CanvasEngine {
    */
   eraseSegment(from: { x: number; y: number }, to: { x: number; y: number }, radius: number): void {
     if (!this.api) return
-    const els = this.api.getSceneElements()
+    const els = this.api.getSceneElements() as ExElementLike[]
     if (!els.length) return
-    const next: any[] = []
+    const next: ExElementLike[] = []
     let changed = false
 
     for (const el of els) {
       if (!el || el.isDeleted) { next.push(el); continue }
       // 卡片代理矩形不擦
-      if (el.customData && CARD_TYPES.has(el.customData.cardType)) { next.push(el); continue }
+      if (el.customData?.cardType && CARD_TYPES.has(el.customData.cardType)) { next.push(el); continue }
 
       // 画笔笔画：局部剔除 + 重新分段
       if (el.type === 'freedraw') {
@@ -1139,9 +1147,9 @@ export class CanvasEngine {
    */
   clearBrushStrokes(): void {
     if (!this.api) return
-    const els = this.api.getSceneElements()
+    const els = this.api.getSceneElements() as ExElementLike[]
     if (!els.length) return
-    const next = els.filter((el: any) => {
+    const next = els.filter((el) => {
       if (el.isDeleted) return true
       // 仅移除画笔笔迹，其余（含卡片代理矩形）全部保留
       return el.type !== 'freedraw'
@@ -1178,7 +1186,7 @@ export class CanvasEngine {
     this.emit('session')
   }
 
-  setCamera(partial: Partial<CameraState>, _opts?: any): void {
+  setCamera(partial: Partial<CameraState>, _opts?: unknown): void {
     if (!this.api) return
     const cur = this.cameraAtom.get()
     const next: CameraState = {
@@ -1232,14 +1240,14 @@ export class CanvasEngine {
     this.setCamera({ z: Math.max(cam.z / 1.2, 0.1) })
   }
 
-  setStyleForNextShapes(_style: any, value: any): void {
+  setStyleForNextShapes(_style: unknown, value: unknown): void {
     // BottomBar 用它传递 geo 子形状（rectangle / ellipse）。记录到 pendingGeo，
     // 供随后的 setCurrentTool('geo') 决定实际激活的 Excalidraw 工具。
     if (value === 'rectangle' || value === 'ellipse' || value === 'diamond') {
       this.pendingGeo = value
     }
   }
-  setStyleForSelectedShapes(_style: any, _value: any): void { /* no-op for hybrid */ }
+  setStyleForSelectedShapes(_style: unknown, _value: unknown): void { /* no-op for hybrid */ }
 
   // —— 画笔（freedraw）颜色 / 粗细 ——
   // 混合引擎下画笔由 Excalidraw 绘制，其颜色/粗细由 appState.currentItemStrokeColor
@@ -1295,14 +1303,14 @@ export class CanvasEngine {
     this.emit('session')
   }
 
-  updateInstanceState(partial: any): void {
+  updateInstanceState(partial: { isReadonly?: boolean; [key: string]: unknown }): void {
     if (this.api && partial.isReadonly !== undefined) {
       this.api.updateScene({ appState: { viewModeEnabled: partial.isReadonly } })
     }
   }
 
   // — 序列化 / 加载（替代 getSnapshot/loadSnapshot） —
-  serialize(): { version: number; viewport: any; elements: any[]; shapes: ShapeLike[] } {
+  serialize(): EngineDocument {
     const app = this.api?.getAppState() ?? {}
     return {
       version: 2,
@@ -1312,7 +1320,7 @@ export class CanvasEngine {
     }
   }
 
-  loadDocument(data: any): void {
+  loadDocument(data: EngineDocumentLike): void {
     if (!data) return
     // 兼容旧 tldraw 快照：若含 elements 则视为 Excalidraw 格式
     this.applyingRemote = true
@@ -1331,8 +1339,8 @@ export class CanvasEngine {
         ? { scrollX: data.viewport.scrollX, scrollY: data.viewport.scrollY, zoom: asZoom(data.viewport.zoom), viewBackgroundColor: viewBg }
         : { viewBackgroundColor: viewBg }
       // 确保卡片代理元素存在（若缺失则补齐）
-      const existingIds = new Set(elements.map((e: any) => e.id))
-      const extra: any[] = []
+      const existingIds = new Set(elements.map((e) => e.id))
+      const extra: ExElementLike[] = []
       for (const s of map.values()) {
         if (!existingIds.has(s.id)) extra.push(this.cardElementFromShape(s))
       }
@@ -1362,7 +1370,7 @@ export class CanvasEngine {
     const el = this.cardElementFromShape(shape)
     const existing = this.getElements()
     const idx = existing.findIndex((e) => e.id === shape.id)
-    let elements: any[]
+    let elements: ExElementLike[]
     if (idx >= 0) {
       elements = existing.map((e) => (e.id === shape.id ? el : e))
     } else {
@@ -1373,7 +1381,7 @@ export class CanvasEngine {
     this.applyingRemote = false
   }
 
-  private cardElementFromShape(shape: ShapeLike): any {
+  private cardElementFromShape(shape: ShapeLike): ExElementLike {
     const el = baseElement('rectangle', shape.id)
     el.x = shape.x
     el.y = shape.y
@@ -1398,14 +1406,14 @@ export class CanvasEngine {
       }
     },
     allRecords: () => {
-      const recs: any[] = []
+      const recs: EngineStoreRecord[] = []
       for (const s of this.shapesAtom.get().values()) recs.push({ typeName: 'shape', ...s })
       for (const a of this.arrowElements()) recs.push({ typeName: 'binding', type: 'arrow', id: a.id })
       return recs
     },
   }
 
-  on(_eventName: string, cb: (info: any) => void): () => void {
+  on(_eventName: string, cb: (info: TLEventInfo) => void): () => void {
     const entry = { cb }
     this.eventListeners.push(entry)
     return () => {
@@ -1423,7 +1431,7 @@ export class CanvasEngine {
     }
   }
 
-  registerExternalContentHandler(_kind: string, cb: (content: { point?: any; files: File[] }) => void | Promise<void>): void {
+  registerExternalContentHandler(_kind: string, cb: (content: { point?: { x: number; y: number }; files: File[] }) => void | Promise<void>): void {
     this.fileHandlers.push(cb)
   }
 
@@ -1433,16 +1441,16 @@ export class CanvasEngine {
     }
   }
 
-  registerRemoteContent(_cb: (content: any) => void) {
+  registerRemoteContent(_cb: (content: unknown) => void) {
     this.remoteContentHandlers.push(_cb)
   }
 
   user = {
-    updateUserPreferences: (_pref: any) => { /* 主题由 ExcalidrawCanvas 自行处理 */ },
+    updateUserPreferences: (_pref: unknown) => { /* 主题由 ExcalidrawCanvas 自行处理 */ },
   }
 
   // — 屏幕截图（缩略图）：Excalidraw 无原生 toImage，降级返回 null —
-  async toImage(_ids: string[], _opts?: any): Promise<{ blob: Blob } | null> {
+  async toImage(_ids: string[], _opts?: unknown): Promise<{ blob: Blob } | null> {
     return null
   }
 

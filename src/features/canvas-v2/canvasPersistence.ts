@@ -9,7 +9,7 @@
  * tldraw Editor（鸭子类型），调用方持有的引用多标注为 Editor。
  * 历史 tldraw 快照在载入时经 migrateTldrawToEngine 自动迁移，不做反向导出。
  */
-import type { Editor } from './engine/engineTypes'
+import type { Editor, EngineDocument, EngineDocumentLike, ExElementLike, ShapeLike, PropsBag } from './engine/engineTypes'
 import type { CanvasEngine } from './engine/CanvasEngine'
 
 /** 鸭子类型判定：CanvasEngine 独有 attach / loadDocument 方法 */
@@ -32,7 +32,8 @@ export function serializeCanvas(editor: Editor | CanvasEngine): unknown {
 export function loadCanvasInto(editor: Editor | CanvasEngine, data: unknown): void {
   if (!data || !isCanvasEngine(editor)) return
   // 旧 tldraw 快照（含 .store）需先迁移为 Excalidraw 混合格式
-  const migrated = isTldrawSnapshot(data) ? migrateTldrawToEngine(data) : data
+  // data 为外部持久化数据（unknown），经迁移或直载入引擎前的边界断言
+  const migrated: EngineDocumentLike = isTldrawSnapshot(data) ? migrateTldrawToEngine(data) : (data as EngineDocumentLike)
   editor.loadDocument(migrated)
 }
 
@@ -53,20 +54,21 @@ export function isTldrawSnapshot(data: unknown): boolean {
  * 将 tldraw 文档快照（getSnapshot 的 document 部分）迁移为 Excalidraw 混合格式。
  * 仅迁移 note-card 等卡片及其连线关系（best-effort）；无法识别的内容忽略。
  */
-export function migrateTldrawToEngine(tldrawDoc: unknown): {
-  version: number
-  viewport: { scrollX: number; scrollY: number; zoom: number }
-  elements: any[]
-  shapes: any[]
-} {
-  const doc = (tldrawDoc as { store?: Record<string, any> }) ?? {}
+export function migrateTldrawToEngine(tldrawDoc: unknown): EngineDocument {
+  const doc = (tldrawDoc as { store?: Record<string, unknown> }) ?? {}
   const records = doc.store ?? {}
-  const shapes: any[] = []
-  const arrowElements: any[] = []
+  const shapes: ShapeLike[] = []
+  const arrowElements: ExElementLike[] = []
   const cardBounds = new Map<string, { x: number; y: number; w: number; h: number }>()
 
-  for (const rec of Object.values(records)) {
-    if (!rec || rec.typeName !== 'shape') continue
+  for (const item of Object.values(records)) {
+    if (!item || typeof item !== 'object') continue
+    const rec = item as {
+      typeName?: string; type?: string; id?: string
+      props?: Record<string, unknown>; x?: number; y?: number
+      rotation?: number; isLocked?: boolean; meta?: Record<string, unknown>
+    }
+    if (rec.typeName !== 'shape' || !rec.type || !rec.id) continue
     const type: string = rec.type
     if (MIGRATABLE_CARD_TYPES.has(type)) {
       const props = rec.props ?? {}
@@ -89,9 +91,11 @@ export function migrateTldrawToEngine(tldrawDoc: unknown): {
   }
 
   // 箭头：从 arrow 的 binding 记录重建 Excalidraw 箭头元素
-  const arrowBindings = Object.values(records).filter(
-    (r) => r && r.typeName === 'binding' && r.type === 'arrow',
-  ) as Array<{ fromId: string; toId: string; props?: any }>
+  const arrowBindings = (
+    Object.values(records) as Array<{ typeName?: string; type?: string; fromId?: string; toId?: string; props?: PropsBag }>
+  ).filter(
+    (r) => r?.typeName === 'binding' && r.type === 'arrow' && typeof r.fromId === 'string' && typeof r.toId === 'string',
+  ) as Array<{ fromId: string; toId: string; props?: PropsBag }>
 
   // 按箭头 id 聚合 start/end binding
   const byArrow = new Map<string, { start?: string; end?: string; rel?: string }>()
