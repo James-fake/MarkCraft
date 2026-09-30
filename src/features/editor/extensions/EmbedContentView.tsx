@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { NodeViewWrapper } from '@tiptap/react'
+import type { Node as PMNode } from '@tiptap/pm/model'
+import type { Editor } from '@tiptap/core'
 import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useFileManager } from '@stores/FileStore'
 import { findNode } from '@services/fileService'
@@ -45,7 +47,7 @@ const parseTarget = (target: string) => {
   return { fileName, heading: anchor, lineStart: undefined, lineEnd: undefined, blockId: undefined }
 }
 
-const EmbedContentView: React.FC<{ node: any; editor: any }> = ({ node }) => {
+const EmbedContentView: React.FC<{ node: PMNode; editor: Editor }> = ({ node }) => {
   const { target, embedType } = node.attrs
   const { resolveTarget, indexVersion, onFileUpdate } = useLinkIndex()
   const { rootFolder, openFile } = useFileManager()

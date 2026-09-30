@@ -71,6 +71,7 @@ const WikiLink = Mark.create({
       relation: {
         default: '',
         parseHTML: (el: HTMLElement) => el.getAttribute('data-wiki-relation') || '',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- interop: 上游 renderHTML 签名即 Record<string, any>（@tiptap/core MarkConfig:1533），忠实镜像不收窄
         renderHTML: (attrs: Record<string, any>) => {
           if (!attrs.relation) return {}
           return { 'data-wiki-relation': attrs.relation }
@@ -79,6 +80,7 @@ const WikiLink = Mark.create({
       note: {
         default: '',
         parseHTML: (el: HTMLElement) => el.getAttribute('data-wiki-note') || '',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- interop: 同上，上游 renderHTML 签名形态
         renderHTML: (attrs: Record<string, any>) => {
           if (!attrs.note) return {}
           return { 'data-wiki-note': attrs.note }
@@ -124,6 +126,7 @@ const WikiLink = Mark.create({
         handler: ({ range, match, chain }) => {
           const target = match[1]
           const pipeContent = match[2] || null
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- interop: mark 属性袋（markType.create 入参），同上游 Attributes 形态
           const markAttrs: Record<string, any> = { target, label: null, relation: '', note: '' }
           let displayText = target
 

@@ -80,6 +80,7 @@ const ImageNode = Node.create({
         return commands.updateAttributes('image', { align })
       },
       setImageSize: (width: number, height?: number) => ({ commands }) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- interop: updateAttributes 属性袋，同上游 Attributes 形态
         const attrs: Record<string, any> = { width }
         if (height !== undefined) attrs.height = height
         return commands.updateAttributes('image', attrs)

@@ -6,7 +6,7 @@ import type { CanvasEngine } from '@features/canvas-v2/engine/CanvasEngine'
 import { useEngineSnapshot } from './canvasHooks'
 import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useTagIndex } from '@stores/TagIndexStore'
-import { useNoteVersion } from '@stores/NoteVersionStore'
+import { useNoteVersion, type NoteVersion } from '@stores/NoteVersionStore'
 import { useFileManager } from '@stores/FileStore'
 import type { FileNode } from '@src/types/fileManager'
 import { collectFolderIds, flattenFileTree } from '@core/files/fileTree'
@@ -565,7 +565,7 @@ function TagsTab({
 function HistoryTab({
   groups, onDelete, onLock, filePathById,
 }: {
-  groups: { today: any[]; yesterday: any[]; earlier: any[] }
+  groups: { today: NoteVersion[]; yesterday: NoteVersion[]; earlier: NoteVersion[] }
   onDelete: (vid: string) => void
   onLock: (vid: string) => void
   filePathById: Map<string, string>
@@ -577,7 +577,7 @@ function HistoryTab({
     return `${hh}:${mm}`
   }
   const opLabel = (op: string) => op === 'manual' ? '手动保存' : op === 'auto' ? '自动保存' : '保存'
-  const renderGroup = (title: string, list: any[]) => {
+  const renderGroup = (title: string, list: NoteVersion[]) => {
     if (list.length === 0) return null
     return (
       <>

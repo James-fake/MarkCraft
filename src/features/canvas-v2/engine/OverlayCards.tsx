@@ -10,7 +10,7 @@
 import React, { useCallback, useRef, useState, useEffect } from 'react'
 import { useValue } from './useValue'
 import type { CanvasEngine } from './CanvasEngine'
-import type { ShapeLike } from './engineTypes'
+import type { ShapeLike, PropsBag } from './engineTypes'
 import { getColorDef, parseTags, renderNoteCardContent, formatRelativeTime, getCardTitle, syncCardTitleToNote } from './cardHelpers'
 import { useFileManager } from '@stores/FileStore'
 import { CanvasIcon } from '../components/CanvasIcon'
@@ -117,7 +117,7 @@ export function OverlayNoteCard({ shape, engine, zoom }: { shape: ShapeLike; eng
     })
   }, [engine, shape.id, fileId, syncEnabled, renameNode])
 
-  const updateProps = useCallback((patch: Record<string, any>) => {
+  const updateProps = useCallback((patch: PropsBag) => {
     engine.updateShape({ id: shape.id, props: { ...patch, updatedAt: Date.now() } })
   }, [engine, shape.id])
 
@@ -315,7 +315,7 @@ export function OverlayLabelCard({ shape, engine, zoom }: { shape: ShapeLike; en
   // 边框色随背景加深，保持同色系描边
   const borderColor = borderOn ? 'rgba(0,0,0,0.28)' : 'transparent'
 
-  const updateProps = useCallback((patch: Record<string, any>) => {
+  const updateProps = useCallback((patch: PropsBag) => {
     engine.updateShape({ id: shape.id, props: { ...patch, updatedAt: Date.now() } })
   }, [engine, shape.id])
 

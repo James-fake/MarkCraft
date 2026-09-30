@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
+import type { Editor } from '@tiptap/core'
 import { getLastHighlightColor } from '@features/editor/extensions/highlightColorPref'
 import { getLastUnderlineColor } from '@features/editor/extensions/underlineColorPref'
 
@@ -11,7 +12,7 @@ export interface EditorContextMenuProps {
   visible: boolean
   x: number
   y: number
-  editor: any // Tiptap Editor instance (null for source mode)
+  editor: Editor | null // Tiptap Editor instance (null for source mode)
   mode: 'wysiwyg' | 'source'
   onClose: () => void
 }
@@ -53,23 +54,32 @@ const SEPARATOR_HEIGHT = 9 // 4px margin top + 1px line + 4px margin bottom
 /*  Safe editor.can() wrapper                                          */
 /* ------------------------------------------------------------------ */
 
-function safeCan(editor: any, command: string, args?: any): boolean {
+function safeCan(editor: Editor | null, command: string, args?: unknown): boolean {
   try {
     if (!editor?.can?.()) return false
-    const chain = editor.can()
+    // 动态命令名索引：CanCommands 无字符串索引签名，按命令表鸭子形态断言
+    const chain = editor.can() as unknown as Record<string, (args?: unknown) => boolean | undefined>
     return args !== undefined ? chain[command]?.(args) ?? false : chain[command]?.() ?? false
   } catch {
     return false
   }
 }
 
-function safeIsActive(editor: any, type: string, attrs?: any): boolean {
+function safeIsActive(editor: Editor | null, type: string, attrs?: Record<string, unknown>): boolean {
   try {
     if (!editor?.isActive) return false
     return attrs !== undefined ? editor.isActive(type, attrs) : editor.isActive(type)
   } catch {
     return false
   }
+}
+
+/**
+ * 非标命令直发（cut/copy/paste 不在 Tiptap 命令表）。保持既有运行时行为不变；
+ * ⚠ 类型揭示：这三个菜单项在 WYSIWYG 下的实际效果存疑（疑似 no-op），待后续验证。
+ */
+const callRawCommand = (editor: Editor, cmd: 'cut' | 'copy' | 'paste'): void => {
+  (editor.chain().focus() as unknown as Record<string, () => { run: () => void }>)[cmd]().run()
 }
 
 /* ------------------------------------------------------------------ */
@@ -255,7 +265,7 @@ export default function EditorContextMenu({
       disabled: mode === 'source' ? true : !safeCan(editor, 'cut'),
       action: () => {
         if (mode === 'wysiwyg' && editor) {
-          editor.chain().focus().cut().run()
+          callRawCommand(editor, 'cut')
         }
       },
     })
@@ -265,7 +275,7 @@ export default function EditorContextMenu({
       disabled: mode === 'source' ? true : !safeCan(editor, 'copy'),
       action: () => {
         if (mode === 'wysiwyg' && editor) {
-          editor.chain().focus().copy().run()
+          callRawCommand(editor, 'copy')
         }
       },
     })
@@ -274,7 +284,7 @@ export default function EditorContextMenu({
       shortcut: 'Ctrl+V',
       action: () => {
         if (mode === 'wysiwyg' && editor) {
-          editor.chain().focus().paste().run()
+          callRawCommand(editor, 'paste')
         }
       },
     })

@@ -92,6 +92,7 @@ const BlockReference = Mark.create({
           const blockId = match[1].trim()
           const alias = match[2]?.trim() || null
           const displayText = alias || `^${blockId}`
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- interop: mark 属性袋（markType.create 入参），同上游 Attributes 形态
           const markAttrs: Record<string, any> = { blockId, alias, broken: false }
 
           chain().command(({ tr, state }) => {
