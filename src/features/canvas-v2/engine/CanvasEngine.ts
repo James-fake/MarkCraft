@@ -1408,7 +1408,29 @@ export class CanvasEngine {
     allRecords: () => {
       const recs: EngineStoreRecord[] = []
       for (const s of this.shapesAtom.get().values()) recs.push({ typeName: 'shape', ...s })
-      for (const a of this.arrowElements()) recs.push({ typeName: 'binding', type: 'arrow', id: a.id })
+      // tldraw 语义：每个 binding 描述箭头的一端 —— fromId=箭头 id（消费方据此分组）、
+      // toId=对端卡片 id、props.terminal 区分 start/end。消费方（AutoLayoutPanel）
+      // 按 fromId 分组后取 start.toId/end.toId 作为流程图边的两端；若缺 fromId/props，
+      // 读取即 TypeError（props 为 undefined），有箭头时打开布局面板直接渲染崩溃。
+      for (const a of this.arrowElements()) {
+        const start = a.startBinding?.elementId
+        const end = a.endBinding?.elementId
+        const anchor = { x: 0.5, y: 0.5 }
+        if (start) {
+          recs.push({
+            typeName: 'binding', type: 'arrow', id: `bind-${a.id}-start`,
+            fromId: a.id, toId: start,
+            props: { terminal: 'start', normalizedAnchor: a.startBinding?.normalizedAnchor ?? anchor },
+          })
+        }
+        if (end) {
+          recs.push({
+            typeName: 'binding', type: 'arrow', id: `bind-${a.id}-end`,
+            fromId: a.id, toId: end,
+            props: { terminal: 'end', normalizedAnchor: a.endBinding?.normalizedAnchor ?? anchor },
+          })
+        }
+      }
       return recs
     },
   }
