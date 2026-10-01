@@ -18,7 +18,8 @@ import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import { describe, it, expect } from 'vitest'
 
-const panel = readFileSync(resolve(__dirname, 'KbPanel.tsx'), 'utf-8')
+// P4-1 拆分后笔记 Tab 独立成文件：契约随实现走（断言本体不变）
+const panel = readFileSync(resolve(__dirname, 'NotesTab.tsx'), 'utf-8')
 const css = readFileSync(resolve(__dirname, '../../styles/panels/kb.css'), 'utf-8')
 
 const rule = (selector: string) => {

@@ -90,10 +90,11 @@ describe('MiniGraph：可交互性由 onSelect 决定', () => {
 })
 
 describe('守卫：接线与样式（防「组件对但没人传 handler」/「恒定手型」回归）', () => {
-  it('KbPanel.tsx 里 <MiniGraph ...> 必须带 onSelect={...}', () => {
+  it('OverviewTab（原 KbPanel）里 <MiniGraph ...> 必须带 onSelect={...}', () => {
     // ⚠️ 不用 `new URL(..., import.meta.url)` —— Vitest 下 import.meta.url 不是 file scheme
     //    （实测报 "The URL must be of scheme file"）；按本仓既有守卫（aliasSync.test.ts）用 __dirname。
-    const src = readFileSync(resolve(__dirname, 'KbPanel.tsx'), 'utf8')
+    // P4-1 拆分后 MiniGraph 的接线在 OverviewTab.tsx（契约随实现走）
+    const src = readFileSync(resolve(__dirname, 'OverviewTab.tsx'), 'utf8')
     const usage = src.match(/<MiniGraph[\s\S]*?\/>/)
     expect(usage, 'KbPanel 中应存在 <MiniGraph .../> 用法').not.toBeNull()
     expect(usage![0], 'MiniGraph 必须收到 onSelect —— 否则又是「看着可点、点了没反应」').toMatch(/onSelect=\{/)

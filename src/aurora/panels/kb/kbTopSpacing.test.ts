@@ -23,7 +23,8 @@ import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import { describe, it, expect } from 'vitest'
 
-const panel = readFileSync(resolve(__dirname, 'KbPanel.tsx'), 'utf-8')
+// P4-1 拆分后依赖 Tab 独立成文件：契约随实现走（断言本体不变）
+const panel = readFileSync(resolve(__dirname, 'DependencyTab.tsx'), 'utf-8')
 // 铁律：CSS「存在/不存在某声明」断言必须先剥离注释，
 // 否则注释里的说明文字会自命中（本文件顶部就写了 12px / 46px 等字样）。
 const cssRaw = readFileSync(resolve(__dirname, '../../styles/panels/kb.css'), 'utf-8')
