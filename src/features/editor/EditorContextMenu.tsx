@@ -75,11 +75,38 @@ function safeIsActive(editor: Editor | null, type: string, attrs?: Record<string
 }
 
 /**
- * 非标命令直发（cut/copy/paste 不在 Tiptap 命令表）。保持既有运行时行为不变；
- * ⚠ 类型揭示：这三个菜单项在 WYSIWYG 下的实际效果存疑（疑似 no-op），待后续验证。
+ * 剪切/复制：恢复编辑器焦点后走 document.execCommand —— ProseMirror 在
+ * contenteditable 上内置 copy/cut 事件拦截，会正确序列化富文本选区。
+ * （execCommand 虽已标记 deprecated，但它是唯一能同步触发 PM 拦截的途径，
+ * 编辑器类产品的通行做法；Tiptap 命令表本身无 cut/copy/paste。）
  */
-const callRawCommand = (editor: Editor, cmd: 'cut' | 'copy' | 'paste'): void => {
-  (editor.chain().focus() as unknown as Record<string, () => { run: () => void }>)[cmd]().run()
+const nativeClipboard = (editor: Editor, cmd: 'cut' | 'copy'): void => {
+  editor.commands.focus(undefined, { scrollIntoView: false })
+  document.execCommand(cmd)
+}
+
+/**
+ * 粘贴：优先剪贴板 text/html（保留富文本，insertContent 会按 schema 解析），
+ * 失败回退纯文本（对齐下方「粘贴为纯文本」既有模式）。
+ */
+const pasteFromClipboard = async (editor: Editor): Promise<void> => {
+  const insertText = async () => {
+    const text = await navigator.clipboard.readText()
+    if (text) editor.chain().focus().insertContent(text).run()
+  }
+  try {
+    const items = await navigator.clipboard.read()
+    for (const item of items) {
+      if (item.types.includes('text/html')) {
+        const html = await (await item.getType('text/html')).text()
+        editor.chain().focus().insertContent(html).run()
+        return
+      }
+    }
+    await insertText()
+  } catch {
+    try { await insertText() } catch { /* 权限拒绝等，静默 */ }
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -262,29 +289,30 @@ export default function EditorContextMenu({
     items.push({
       label: '剪切',
       shortcut: 'Ctrl+X',
-      disabled: mode === 'source' ? true : !safeCan(editor, 'cut'),
+      disabled: mode === 'source', // execCommand 无 can 查询，WYSIWYG 下恒可用
       action: () => {
         if (mode === 'wysiwyg' && editor) {
-          callRawCommand(editor, 'cut')
+          nativeClipboard(editor, 'cut')
         }
       },
     })
     items.push({
       label: '复制',
       shortcut: 'Ctrl+C',
-      disabled: mode === 'source' ? true : !safeCan(editor, 'copy'),
+      disabled: mode === 'source',
       action: () => {
         if (mode === 'wysiwyg' && editor) {
-          callRawCommand(editor, 'copy')
+          nativeClipboard(editor, 'copy')
         }
       },
     })
     items.push({
       label: '粘贴',
       shortcut: 'Ctrl+V',
+      disabled: mode === 'source',
       action: () => {
         if (mode === 'wysiwyg' && editor) {
-          callRawCommand(editor, 'paste')
+          void pasteFromClipboard(editor)
         }
       },
     })
