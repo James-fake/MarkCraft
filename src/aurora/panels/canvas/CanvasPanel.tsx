@@ -4,28 +4,24 @@ import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
 import { ExcalidrawCanvas } from '@features/canvas-v2/engine/ExcalidrawCanvas'
 import { CanvasEngineContext } from '@features/canvas-v2/engine/useCanvasEngine'
 import type { CanvasEngine } from '@features/canvas-v2/engine/CanvasEngine'
-import type { ExElementLike } from '@features/canvas-v2/engine/engineTypes'
 import {
   getCanvasList,
   loadCanvas,
   saveCanvas,
   createCanvas,
-  upsertCanvasThumbnail,
 } from '@features/canvas-v2'
 import type { CanvasDocument } from '@features/canvas-v2'
 import { serializeCanvas } from '@features/canvas-v2'
 import { useGridSnap } from '@features/canvas-v2/hooks/useGridSnap'
-import { getIgnoredLinks } from '@features/canvas-v2/store/ignoredLinks'
-import { RELATION_TYPES } from '@features/canvas-v2/theme/canvasTheme'
 import AutoLayoutPanel from '@features/canvas-v2/components/AutoLayoutPanel'
 import { exportCanvasJSON, exportCanvasPNG } from '@features/canvas-v2/utils/canvasExport'
+import { syncCanvasLinks } from '@features/canvas-v2/utils/syncCanvasLinks'
+import { generateCanvasThumbnail } from '@features/canvas-v2/utils/canvasThumbnail'
 import { cardToNotePlan } from '@features/canvas-v2/utils/cardToNote'
 import { loadKb } from '@stores/kbStore'
-import { inferRelationType } from '@features/canvas-v2/utils/relationInfer'
 import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useFileManager } from '@stores/FileStore'
 import { useKbStore } from '@stores/useKbStore'
-import type { FileNode } from '@src/types/fileManager'
 import { findNode } from '@core/files/fileTree'
 import { CanvasTopbar } from './CanvasTopbar'
 import { CanvasDock } from './CanvasDock'
@@ -38,6 +34,8 @@ import { CommandPalette, type CommandItem } from '../../components/command-palet
 import { CanvasListMenu } from './CanvasListMenu'
 import { RealCanvasView } from './RealCanvasView'
 import { useEngineSnapshot } from './canvasHooks'
+import { useEdgePanelIntent } from './useEdgePanelIntent'
+import { useCanvasHotkeys } from './useCanvasHotkeys'
 import { usePresence, usePresenceValue, POPOVER_EXIT_MS, OVERLAY_EXIT_MS } from '@components/ui/usePresence'
 import { useTheme } from '@features/themes/useTheme'
 import '../../styles/panels/canvas.css'
@@ -265,155 +263,30 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
   }, [selectionSig])
 
   // —— 边缘 hover 防误触（hover-intent，对齐编辑器 v7 手感）——
-  // 鼠标靠到缘侧需“停留”约 HOVER_INTENT_MS 才滑入面板；快速掠过 / 误触会在到期前离开而被取消，
-  // 不再一碰边缘就弹出。浮层覆盖区允许从容跨入：离开触发条/浮层延迟 HOVER_CLOSE_DELAY_MS 才收起，
-  // 期间回到任一处即取消收起，打断「收起→触发条重现→再展开」的抖动循环。
-  // 已钉住（pinned）时无需 hover，离开也不收起；空白板引导锁定（locked）时整组交互停用。
-  const HOVER_INTENT_MS = 220
-  const HOVER_CLOSE_DELAY_MS = 180
-  const leftHoverTimer = useRef<number | null>(null)
-  const leftCloseTimer = useRef<number | null>(null)
-  const rightHoverTimer = useRef<number | null>(null)
-  const rightCloseTimer = useRef<number | null>(null)
-  const cancelLeftClose = useCallback(() => {
-    if (leftCloseTimer.current) { window.clearTimeout(leftCloseTimer.current); leftCloseTimer.current = null }
-  }, [])
-  const cancelRightClose = useCallback(() => {
-    if (rightCloseTimer.current) { window.clearTimeout(rightCloseTimer.current); rightCloseTimer.current = null }
-  }, [])
-  const openLeftIntent = useCallback(() => {
-    if (locked || leftPinned) return
-    if (leftHoverTimer.current) window.clearTimeout(leftHoverTimer.current)
-    cancelLeftClose()
-    leftHoverTimer.current = window.setTimeout(() => setLeftHover(true), HOVER_INTENT_MS)
-  }, [locked, leftPinned, cancelLeftClose])
-  const scheduleLeftClose = useCallback(() => {
-    if (locked || leftPinned) return
-    if (leftCloseTimer.current) window.clearTimeout(leftCloseTimer.current)
-    leftCloseTimer.current = window.setTimeout(() => setLeftHover(false), HOVER_CLOSE_DELAY_MS)
-  }, [locked, leftPinned])
-  const closeLeftIntent = useCallback(() => {
-    if (leftHoverTimer.current) { window.clearTimeout(leftHoverTimer.current); leftHoverTimer.current = null }
-    scheduleLeftClose()
-  }, [scheduleLeftClose])
-  const openRightIntent = useCallback(() => {
-    if (locked || rightPinned) return
-    if (rightHoverTimer.current) window.clearTimeout(rightHoverTimer.current)
-    cancelRightClose()
-    rightHoverTimer.current = window.setTimeout(() => setRightHover(true), HOVER_INTENT_MS)
-  }, [locked, rightPinned, cancelRightClose])
-  const scheduleRightClose = useCallback(() => {
-    if (locked || rightPinned) return
-    if (rightCloseTimer.current) window.clearTimeout(rightCloseTimer.current)
-    rightCloseTimer.current = window.setTimeout(() => setRightHover(false), HOVER_CLOSE_DELAY_MS)
-  }, [locked, rightPinned])
-  const closeRightIntent = useCallback(() => {
-    if (rightHoverTimer.current) { window.clearTimeout(rightHoverTimer.current); rightHoverTimer.current = null }
-    scheduleRightClose()
-  }, [scheduleRightClose])
-  // 卸载时清理挂起的 hover 定时器，避免泄漏
-  useEffect(() => () => {
-    if (leftHoverTimer.current) window.clearTimeout(leftHoverTimer.current)
-    if (rightHoverTimer.current) window.clearTimeout(rightHoverTimer.current)
-    if (leftCloseTimer.current) window.clearTimeout(leftCloseTimer.current)
-    if (rightCloseTimer.current) window.clearTimeout(rightCloseTimer.current)
-  }, [])
+  // 鼠标靠到缘侧需「停留」才滑入面板；快速掠过 / 误触被取消；浮层覆盖区允许从容跨入，
+  // 离开后延迟收起（期间回到任一处即取消收起）。已钉住时不收起；锁定（locked）时停用。
+  // 手势细节（220ms 意图窗口 / 180ms 关闭延迟 / 定时器清理）单源在 useEdgePanelIntent。
+  const leftIntent = useEdgePanelIntent(setLeftHover, locked, leftPinned)
+  const rightIntent = useEdgePanelIntent(setRightHover, locked, rightPinned)
 
   // ─── 同步笔记链接（旧 BottomBar「同步」/ 自动同步；适配引擎 API）───
-  // 关系推断统一走 utils/relationInfer（纯函数，可测；保证落在 RELATION_TYPES.id 集合内）
+  // 忽略列表 / 期望边推导 / 箭头增删的编排逻辑单源在 utils/syncCanvasLinks（纯函数，可测）；
+  // 本回调只做引擎/文档取值与结果播报。
 
   const syncLinks = useCallback(async () => {
     const editor = engineRef.current
     const cur = docRef.current
     if (!editor || !cur) return
-    // 忽略列表
-    let ignoredSet = new Set<string>()
-    try {
-      const ignored = await getIgnoredLinks(cur.id)
-      ignoredSet = new Set(ignored.map((l) => `${l.fromFileId}>${l.toFileId}`))
-    } catch { /* 忽略列表加载失败按空处理 */ }
-
-    const shapes = editor.getCurrentPageShapes()
-    const noteCards = shapes.filter((s) => s.type === 'note-card')
-    const fileToCard = new Map<string, string>()
-    for (const card of noteCards) if (card.props.fileId) fileToCard.set(card.props.fileId, card.id)
-
-    const nameToFileId = new Map<string, string>()
-    const walk = (node: FileNode) => {
-      if (node.name && node.id) nameToFileId.set(node.name.replace(/\.md$/, ''), node.id)
-      if (node.children) for (const c of node.children) walk(c)
-    }
-    walk(rootFolder)
-
-    // 期望边（排除忽略列表）
-    const expectedEdges = new Set<string>()
-    const edgeMeta = new Map<string, { relation: string }>()
-    for (const card of noteCards) {
-      if (!card.props.fileId) continue
-      for (const link of getOutgoingLinks(card.props.fileId)) {
-        const targetName = link.target.replace(/#.*$/, '').replace(/\.md$/, '')
-        const targetFileId = nameToFileId.get(targetName)
-        if (!targetFileId) continue
-        if (ignoredSet.has(`${card.props.fileId}>${targetFileId}`)) continue
-        const targetCardId = fileToCard.get(targetFileId)
-        if (!targetCardId || targetCardId === card.id) continue
-        expectedEdges.add(`${card.id}-${targetCardId}`)
-        edgeMeta.set(`${card.id}-${targetCardId}`, { relation: link.relation || inferRelationType(link.context || '') })
-      }
-    }
-
-    // 现有箭头（引擎箭头元素 startBinding/endBinding）
-    const elements = (editor.excalidrawAPI?.getSceneElements() ?? []) as ExElementLike[]
-    const arrowEls = elements.filter((e) => e.type === 'arrow' && !e.isDeleted)
-    const toRemove: string[] = []
-    const existingPairs = new Set<string>()
-    for (const a of arrowEls) {
-      const from = a.startBinding?.elementId as string | undefined
-      const to = a.endBinding?.elementId as string | undefined
-      if (!from || !to) continue
-      const pairKey = `${from}-${to}`
-      const fromCard = noteCards.find((c) => c.id === from)
-      const toCard = noteCards.find((c) => c.id === to)
-      if (fromCard?.props.fileId && toCard?.props.fileId) {
-        if (!expectedEdges.has(pairKey)) {
-          if (a.customData?.autoGenerated) toRemove.push(a.id)
-        } else {
-          existingPairs.add(pairKey)
-        }
-      }
-    }
-    if (toRemove.length > 0) editor.deleteShapes(toRemove)
-
-    // 创建缺失边（引擎 createBoundArrow + 关系色/autoGenerated 标记）
-    let added = 0
-    for (const pairKey of expectedEdges) {
-      if (existingPairs.has(pairKey)) continue
-      const sep = pairKey.lastIndexOf('-')
-      const from = pairKey.slice(0, sep)
-      const to = pairKey.slice(sep + 1)
-      const relation = edgeMeta.get(pairKey)?.relation ?? 'reference'
-      const arrowId = editor.createBoundArrow(from, to)
-      if (!arrowId) continue
-      added++
-      // 关系类型：优先匹配 id，其次匹配中文名（LinkIndexStore 的 rel: 前缀为自由文本，
-      // 如「支撑/反对」恰与 RELATION_TYPES.name 相等）；都未命中回落灰色「引用」
-      const relDef = RELATION_TYPES.find((r) => r.id === relation || r.name === relation) ?? RELATION_TYPES[0]
-      // 标记 autoGenerated + 关系色（直接 patch 箭头元素）
-      const api = editor.excalidrawAPI
-      if (api) {
-        const els = (api.getSceneElements() as ExElementLike[]).map((e) =>
-          e.id === arrowId
-            ? { ...e, strokeColor: relDef.color, customData: { ...(e.customData ?? {}), autoGenerated: true, relationType: relation } }
-            : e,
-        )
-        api.updateScene({ elements: els })
-      }
-    }
-
-    if (added === 0 && toRemove.length === 0) {
+    const { added, removed } = await syncCanvasLinks({
+      engine: editor,
+      docId: cur.id,
+      rootFolder,
+      getOutgoingLinks,
+    })
+    if (added === 0 && removed === 0) {
       toast?.('链接已是最新')
     } else {
-      toast?.(`同步完成：新增 ${added} 条（虚线），移除 ${toRemove.length} 条`)
+      toast?.(`同步完成：新增 ${added} 条（虚线），移除 ${removed} 条`)
     }
   }, [rootFolder, getOutgoingLinks, toast])
 
@@ -426,33 +299,15 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
   }, [autoSync, indexVersion])
 
   // ─── 缩略图（P2-2）：保存后节流生成场景小图 → 列表封面 ───
+  // 导出与 upsert 细节单源在 utils/canvasThumbnail；本回调只做 5s 节流判定
   const lastThumb = useRef(0)
   const refreshThumbnail = useCallback(async (docId: string) => {
     const editor = engineRef.current
-    const api = editor?.excalidrawAPI
-    if (!api) return
+    if (!editor?.excalidrawAPI) return
     const now = Date.now()
     if (now - lastThumb.current < 5000) return // 5s 节流，避免保存热路径频繁导出
     lastThumb.current = now
-    try {
-      const { exportToBlob } = await import('@excalidraw/excalidraw')
-      const blob = await exportToBlob({
-        elements: api.getSceneElements(),
-        appState: api.getAppState(),
-        files: {},
-        mimeType: 'image/png',
-        scale: 0.4, // 降采样小图
-      })
-      const dataUrl = await new Promise<string>((res, rej) => {
-        const r = new FileReader()
-        r.onload = () => res(String(r.result))
-        r.onerror = () => rej(r.error)
-        r.readAsDataURL(blob)
-      })
-      await upsertCanvasThumbnail(docId, dataUrl)
-    } catch {
-      /* 缩略图失败静默（toImage null 判空先例） */
-    }
+    await generateCanvasThumbnail(editor, docId)
   }, [])
 
   // 自动保存：引擎 document 变化 → 800ms 防抖 → serializeCanvas + saveCanvas
@@ -478,47 +333,10 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
   }, [engine, doc, refreshThumbnail])
 
   // 键盘：⌘K 命令面板 / Delete 删除 / Ctrl+Z·Y 撤销重做 / Escape 关闭浮层
-  // capture 阶段监听：canvas 内 ⌘K 只开本地面板（stopPropagation 阻断主壳全局 ⌘K 总入口，
-  // 避免双面板叠加——P3-B 归一后两面板同用 .aurora-command，叠加会渲染 58 条混合命令）
-  useEffect(() => {
-    const h = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey
-      const tag = (document.activeElement?.tagName || '').toLowerCase()
-      if (tag === 'input' || tag === 'textarea' || tag === 'select') return
-      if (mod && e.key.toLowerCase() === 'k') {
-        e.preventDefault()
-        e.stopPropagation()
-        setPaletteOpen((v) => !v)
-        return
-      }
-      if (paletteOpen) return
-      if (mod && e.key.toLowerCase() === 'z') {
-        e.preventDefault()
-        if (e.shiftKey) engineRef.current?.redo()
-        else engineRef.current?.undo()
-        return
-      }
-      if (mod && e.key.toLowerCase() === 'y') {
-        e.preventDefault()
-        engineRef.current?.redo()
-        return
-      }
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        const ids = engineRef.current?.getSelectedShapeIds()
-        if (ids && ids.length > 0) {
-          e.preventDefault()
-          engineRef.current?.deleteShapes(ids)
-        }
-        return
-      }
-      if (e.key === 'Escape') {
-        setCtx(null)
-        setPaletteOpen(false)
-      }
-    }
-    window.addEventListener('keydown', h, true)
-    return () => window.removeEventListener('keydown', h, true)
-  }, [paletteOpen])
+  // capture 阶段监听（细节单源在 useCanvasHotkeys）；本组件只提供开合动作
+  const togglePalette = useCallback(() => setPaletteOpen((v) => !v), [])
+  const closeOverlays = useCallback(() => { setCtx(null); setPaletteOpen(false) }, [])
+  useCanvasHotkeys(paletteOpen, engineRef, togglePalette, closeOverlays)
 
   // 打开白板上的笔记卡片：默认跳转编辑器打开（镜像知识图谱范本），
   // 仅当外部显式传入 onOpenFile（嵌入式场景）时才交给外部处理
@@ -625,16 +443,16 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
             {engine && (
             <div
               className={`aurora-canvas__hoverzone aurora-canvas__hoverzone--left ${leftPinned ? 'is-pinned' : ''}`}
-              onMouseEnter={openLeftIntent}
-              onMouseLeave={closeLeftIntent}
+              onMouseEnter={leftIntent.openIntent}
+              onMouseLeave={leftIntent.closeIntent}
             >
               {!locked && <div className="aurora-canvas__edge aurora-canvas__edge--left" aria-hidden />}
               {leftOverlay.mounted && (
                 <div
                   className="aurora-canvas__overlay aurora-canvas__overlay--left"
                   data-exiting={leftOverlay.exiting || undefined}
-                  onMouseEnter={cancelLeftClose}
-                  onMouseLeave={scheduleLeftClose}
+                  onMouseEnter={leftIntent.cancelClose}
+                  onMouseLeave={leftIntent.scheduleClose}
                 >
                   <div className="aurora-canvas__overlay-head">
                     <span className="aurora-canvas__overlay-title">浏览</span>
@@ -749,16 +567,16 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
             {engine && (
             <div
               className={`aurora-canvas__hoverzone aurora-canvas__hoverzone--right ${rightPinned ? 'is-pinned' : ''}`}
-              onMouseEnter={openRightIntent}
-              onMouseLeave={closeRightIntent}
+              onMouseEnter={rightIntent.openIntent}
+              onMouseLeave={rightIntent.closeIntent}
             >
               {!locked && <div className="aurora-canvas__edge aurora-canvas__edge--right" aria-hidden />}
               {rightOverlay.mounted && (
                 <div
                   className="aurora-canvas__overlay aurora-canvas__overlay--right"
                   data-exiting={rightOverlay.exiting || undefined}
-                  onMouseEnter={cancelRightClose}
-                  onMouseLeave={scheduleRightClose}
+                  onMouseEnter={rightIntent.cancelClose}
+                  onMouseLeave={rightIntent.scheduleClose}
                 >
                   <div className="aurora-canvas__overlay-head">
                     <div className="aurora-canvas__overlay-actions aurora-canvas__overlay-actions--left">
