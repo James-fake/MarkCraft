@@ -237,9 +237,12 @@ describe('消费者必须真的接上相位机（两侧同断言）', () => {
     it(`${label} → ${rel}`, () => {
       // 🧩 P2-3 拆分适配：GraphPanel 的浮层 JSX 已拆至 graph/ 子模块 ——
       //    契约断言的是「接线存在」而非「文件位置」，扫描面 = 宿主 + 同目录拆分模块拼接。
+      // 🧩 P4-2 拆分适配：InspectorPanel 的主题化下拉（动效接线所在）已拆至 InspectorSelect.tsx。
       const candidates = rel.endsWith('GraphPanel.tsx')
         ? [rel, 'src/aurora/panels/kb/graph/GraphSidebar.tsx', 'src/aurora/panels/kb/graph/GraphOverlays.tsx', 'src/aurora/panels/kb/graph/GraphCanvasArea.tsx']
-        : [rel]
+        : rel.endsWith('CanvasInspectorPanel.tsx')
+          ? [rel, 'src/aurora/panels/canvas/InspectorSelect.tsx']
+          : [rel]
       const src = candidates.map((f) => readFileSync(resolve(REPO_ROOT, f), 'utf-8')).join('\n')
       expect(src, `${rel} 未接入 usePresence`).toMatch(/usePresence(Value)?/)
       expect(src, `${rel} 未透出 data-exiting`).toContain('data-exiting')
