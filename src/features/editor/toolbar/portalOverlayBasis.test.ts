@@ -114,14 +114,16 @@ const OVERLAYS: OverlaySpec[] = [
   { label: '列表菜单浮层', file: 'features/editor/toolbar/ListMenuPopover.tsx', base: 'aurora-dropdown', item: 'aurora-dropdown__item' },
   { label: 'Emoji 选择浮层', file: 'features/editor/toolbar/EmojiPicker.tsx', base: 'aurora-dropdown', item: 'aurora-dropdown__item' },
   {
+    // P4-3 拆分：下划线调色板迁至 WysiwygColorButtons.tsx（scope 锚点随实现走）
     label: 'Wysiwyg 下划线调色板',
-    file: 'features/editor/toolbar/WysiwygToolbar.tsx',
+    file: 'features/editor/toolbar/WysiwygColorButtons.tsx',
     base: 'aurora-dropdown',
     scope: ['<div ref={underlineMenuRef} className="aurora-dropdown"', '\n        )}'],
   },
   {
+    // P4-3 拆分：高亮调色板迁至 WysiwygColorButtons.tsx（scope 锚点随实现走）
     label: 'Wysiwyg 高亮调色板',
-    file: 'features/editor/toolbar/WysiwygToolbar.tsx',
+    file: 'features/editor/toolbar/WysiwygColorButtons.tsx',
     base: 'aurora-dropdown',
     scope: ['<div ref={highlightMenuRef} className="aurora-dropdown"', '\n        )}'],
   },
