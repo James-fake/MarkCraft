@@ -12,44 +12,45 @@ import { useSettingsQuery } from '../settingsSearch'
  */
 export function GeneralSection({ query }: { query?: string; toast?: (msg: string) => void }) {
   const { settings, updateSetting } = useSettings()
-  const { language, setLanguage } = useLanguage()
+  const { t, language, setLanguage } = useLanguage()
+  const G = t.settingsGeneral
   const { q, match } = useSettingsQuery(query)
 
   const hasAny = !q || [
-    ['界面语言', '应用界面显示语言'],
-    ['自动保存间隔', '编辑时按此间隔自动保存更改到本地'],
-    ['启动时显示侧边栏', '应用启动时默认展开左侧文件导航'],
+    [G.language, G.languageDesc],
+    [G.autoSave, G.autoSaveDesc],
+    [G.showSidebar, G.showSidebarDesc],
   ].some(([l, d]) => match(l, d))
   if (!hasAny) return null
 
   return (
     <div>
       <div className="aurora-settings__section">
-        <div className="aurora-settings__section-title">启动与恢复</div>
-        {match('界面语言', '应用界面显示语言') && (
+        <div className="aurora-settings__section-title">{G.sectionTitle}</div>
+        {match(G.language, G.languageDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">界面语言</div>
-              <div className="aurora-settings__item-desc">应用界面显示语言</div>
+              <div className="aurora-settings__item-label">{G.language}</div>
+              <div className="aurora-settings__item-desc">{G.languageDesc}</div>
             </div>
             <div className="aurora-settings__item-control">
               <AuroraSelect
-                ariaLabel="界面语言"
+                ariaLabel={G.language}
                 value={language}
                 onChange={(v) => setLanguage(v as 'zh' | 'en')}
                 options={[
-                  { value: 'zh', label: '简体中文' },
-                  { value: 'en', label: 'English' },
+                  { value: 'zh', label: G.langZh },
+                  { value: 'en', label: G.langEn },
                 ]}
               />
             </div>
           </div>
         )}
-        {match('自动保存间隔', '编辑时按此间隔自动保存更改到本地') && (
+        {match(G.autoSave, G.autoSaveDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">自动保存间隔（秒）</div>
-              <div className="aurora-settings__item-desc">编辑时按此间隔自动保存更改到本地</div>
+              <div className="aurora-settings__item-label">{G.autoSave}</div>
+              <div className="aurora-settings__item-desc">{G.autoSaveDesc}</div>
             </div>
             <div className="aurora-settings__item-control">
               <ScrollNumberInput
@@ -62,11 +63,11 @@ export function GeneralSection({ query }: { query?: string; toast?: (msg: string
             </div>
           </div>
         )}
-        {match('启动时显示侧边栏', '应用启动时默认展开左侧文件导航') && (
+        {match(G.showSidebar, G.showSidebarDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">启动时显示侧边栏</div>
-              <div className="aurora-settings__item-desc">应用启动时默认展开左侧文件导航</div>
+              <div className="aurora-settings__item-label">{G.showSidebar}</div>
+              <div className="aurora-settings__item-desc">{G.showSidebarDesc}</div>
             </div>
             <div className="aurora-settings__item-control">
               <Switch

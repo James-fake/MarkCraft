@@ -1,5 +1,6 @@
 ﻿import { useState, useEffect } from 'react'
 import { PageFrame } from '../../components/shell/PageFrame'
+import { useLanguage } from '@stores/LanguageStore'
 import { useCommandPalette } from '../../components/command-palette/CommandPaletteContext'
 import { Icon } from '../../icons'
 import type { IconName } from '../../types'
@@ -27,29 +28,29 @@ interface SettingsCategory {
   icon: IconName
 }
 
-const CATEGORIES: SettingsCategory[] = [
-  { id: 'user', label: '用户', icon: 'user' as IconName },
-  { id: 'general', label: '通用', icon: 'settings' as IconName },
-  { id: 'appearance', label: '外观', icon: 'sun' as IconName },
-  { id: 'editor', label: '编辑器', icon: 'edit' as IconName },
-  { id: 'image', label: '图片', icon: 'image' as IconName },
-  { id: 'export', label: '导出', icon: 'export' as IconName },
-  { id: 'data', label: '数据', icon: 'save' as IconName },
-  { id: 'shortcuts', label: '快捷键', icon: 'command' as IconName },
-  { id: 'about', label: '关于', icon: 'info' as IconName },
+const CATEGORY_IDS: { id: string; icon: IconName; labelKey: 'catUser' | 'catGeneral' | 'catAppearance' | 'catEditor' | 'catImage' | 'catExport' | 'catData' | 'catShortcuts' | 'catAbout' }[] = [
+  { id: 'user', labelKey: 'catUser', icon: 'user' as IconName },
+  { id: 'general', labelKey: 'catGeneral', icon: 'settings' as IconName },
+  { id: 'appearance', labelKey: 'catAppearance', icon: 'sun' as IconName },
+  { id: 'editor', labelKey: 'catEditor', icon: 'edit' as IconName },
+  { id: 'image', labelKey: 'catImage', icon: 'image' as IconName },
+  { id: 'export', labelKey: 'catExport', icon: 'export' as IconName },
+  { id: 'data', labelKey: 'catData', icon: 'save' as IconName },
+  { id: 'shortcuts', labelKey: 'catShortcuts', icon: 'command' as IconName },
+  { id: 'about', labelKey: 'catAbout', icon: 'info' as IconName },
 ]
 
-const CATEGORY_TITLES: Record<string, { title: string; desc: string }> = {
-  user: { title: '用户设置', desc: '你的昵称、头像与生日，让 MarkCraft 更懂你' },
-  general: { title: '通用设置', desc: '启动、更新、语言与隐私等基础设置' },
-  appearance: { title: '外观设置', desc: '主题、字体、动效与界面元素' },
-  editor: { title: '编辑器设置', desc: '编辑体验、Markdown 预览与排版' },
-  image: { title: '图片设置', desc: '图床类型与图片插入路径行为' },
-  export: { title: '导出设置', desc: '默认导出格式、样式与图表渲染端点' },
-  data: { title: '数据设置', desc: '视图大纲可见性与设置数据管理' },
-  shortcuts: { title: '快捷键', desc: '所有键盘快捷键一览，可搜索' },
-  about: { title: '关于 MarkCraft', desc: '版本信息、更新日志与相关链接' },
-}
+const CATEGORY_TITLE_KEYS = {
+  user: ['userTitle', 'userDesc'],
+  general: ['generalTitle', 'generalDesc'],
+  appearance: ['appearanceTitle', 'appearanceDesc'],
+  editor: ['editorTitle', 'editorDesc'],
+  image: ['imageTitle', 'imageDesc'],
+  export: ['exportTitle', 'exportDesc'],
+  data: ['dataTitle', 'dataDesc'],
+  shortcuts: ['shortcutsTitle', 'shortcutsDesc'],
+  about: ['aboutTitle', 'aboutDesc'],
+} as const
 
 /**
  * 设置面板 Props
@@ -70,9 +71,11 @@ export interface SettingsPanelProps {
  */
 export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProps) {
   const [activeCategory, setActiveCategory] = useState(
-    () => (initialCategory && CATEGORIES.some((c) => c.id === initialCategory) ? initialCategory : 'general'),
+    () => (initialCategory && CATEGORY_IDS.some((c) => c.id === initialCategory) ? initialCategory : 'general'),
   )
   const { openCommandPalette } = useCommandPalette()
+  const { t } = useLanguage()
+  const SP = t.settingsPanel
 
   /**
    * 顶栏分类切换 = Apple 分段控件式滑块（需求 N 第四轮定案）。
@@ -82,14 +85,14 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
    * 形态与参数说明见 hooks/tabStripSwipe.ts。
    */
   const tabs = useTabStripThumb({
-    index: Math.max(0, CATEGORIES.findIndex((c) => c.id === activeCategory)),
-    count: CATEGORIES.length,
-    onIndexChange: (next) => setActiveCategory(CATEGORIES[next].id),
+    index: Math.max(0, CATEGORY_IDS.findIndex((c) => c.id === activeCategory)),
+    count: CATEGORY_IDS.length,
+    onIndexChange: (next) => setActiveCategory(CATEGORY_IDS[next].id),
   })
 
   // 外部带参进入（如侧栏头像点击）→ 同步定位到目标分类
   useEffect(() => {
-    if (initialCategory && CATEGORIES.some((c) => c.id === initialCategory)) {
+    if (initialCategory && CATEGORY_IDS.some((c) => c.id === initialCategory)) {
       setActiveCategory(initialCategory)
     }
   }, [initialCategory])
@@ -124,16 +127,20 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
     }
   }
 
-  const categoryInfo = CATEGORY_TITLES[activeCategory]
+  const categoryInfo = (() => {
+    const [titleKey, descKey] = CATEGORY_TITLE_KEYS[activeCategory as keyof typeof CATEGORY_TITLE_KEYS] ?? ['userTitle', 'userDesc']
+    return { title: SP[titleKey], desc: SP[descKey] }
+  })()
+  const categories: SettingsCategory[] = CATEGORY_IDS.map((c) => ({ id: c.id, label: SP[c.labelKey], icon: c.icon }))
 
   return (
     <PageFrame
       sidebarGroups={AURORA_SIDEBAR_GROUPS}
       sidebarActiveId="设置"
       onSidebarSelect={handleNav}
-      breadcrumbs={['设置', categoryInfo.title]}
+      breadcrumbs={[SP.breadcrumb, categoryInfo.title]}
       statusRightItems={[
-        { content: '⌘K 命令面板', clickable: true, onClick: () => openCommandPalette() },
+        { content: t.welcome.cmdPalette, clickable: true, onClick: () => openCommandPalette() },
       ]}
     >
       <div className="aurora-settings">
@@ -144,7 +151,7 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
           <div
             className="aurora-settings__nav-tabs"
             role="tablist"
-            aria-label="设置分类"
+            aria-label={SP.aria}
             data-swiping={tabs.dragging || undefined}
             {...tabs.bind}
           >
@@ -152,7 +159,7 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
             <div className="aurora-settings__nav-track" ref={tabs.trackRef}>
               {/* 滑块：选中态的视觉承载者（选中底色已从 tab 迁到这里） */}
               <span className="aurora-settings__nav-thumb" ref={tabs.thumbRef} aria-hidden="true" />
-              {CATEGORIES.map((cat) => {
+              {categories.map((cat) => {
                 const IconComp = Icon[cat.icon]
                 const isActive = cat.id === activeCategory
                 return (

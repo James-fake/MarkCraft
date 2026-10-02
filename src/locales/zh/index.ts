@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogModal } from './blog'
-import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory } from './common'
+import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -771,6 +771,48 @@ export interface Translations {
     zoomPrefix: string
     crumbGraphKb: string
   }
+  settingsGeneral: {
+    sectionTitle: string
+    language: string
+    languageDesc: string
+    langZh: string
+    langEn: string
+    autoSave: string
+    autoSaveDesc: string
+    showSidebar: string
+    showSidebarDesc: string
+  }
+  settingsPanel: {
+    catUser: string
+    catGeneral: string
+    catAppearance: string
+    catEditor: string
+    catImage: string
+    catExport: string
+    catData: string
+    catShortcuts: string
+    catAbout: string
+    userTitle: string
+    userDesc: string
+    generalTitle: string
+    generalDesc: string
+    appearanceTitle: string
+    appearanceDesc: string
+    editorTitle: string
+    editorDesc: string
+    imageTitle: string
+    imageDesc: string
+    exportTitle: string
+    exportDesc: string
+    dataTitle: string
+    dataDesc: string
+    shortcutsTitle: string
+    shortcutsDesc: string
+    aboutTitle: string
+    aboutDesc: string
+    breadcrumb: string
+    aria: string
+  }
   app: {
     collapseFileList: string
     expandFileList: string
@@ -1390,6 +1432,8 @@ const zh: Translations = {
   propsTab,
   canvasPanel,
   versionHistory,
+  settingsGeneral,
+  settingsPanel,
   settingsAppearance,
   settingsEditor,
   settingsImage,
