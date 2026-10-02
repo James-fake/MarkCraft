@@ -4,6 +4,7 @@ import type { Editor } from '@tiptap/core'
 // —— P5-1 拆分：类型/常量/构建器下沉 contextMenuShared，行级项组件拆 ContextMenuItems ——
 import { buildMenuEntries, isSeparator } from './contextMenuShared'
 import type { MenuEntry } from './contextMenuShared'
+import { useLanguage } from '../../stores/LanguageStore'
 import {
   MENU_WIDTH,
   SUBMENU_WIDTH,
@@ -36,6 +37,7 @@ export default function EditorContextMenu({
 }: EditorContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null!)
   const submenuRef = useRef<HTMLDivElement>(null!)
+  const { t } = useLanguage()
   const [focusedIndex, setFocusedIndex] = useState(-1)
   const [activeSubmenuIndex, setActiveSubmenuIndex] = useState<number | null>(null)
   const [submenuPos, setSubmenuPos] = useState<{ x: number; y: number } | null>(null)
@@ -53,8 +55,8 @@ export default function EditorContextMenu({
   // P5-1：条目构建（含「格式」「段落」子菜单定义）迁至 contextMenuShared#buildMenuEntries。
   // 原实现为 useCallback 立即调用（deps [editor, mode]），useMemo 语义等价。
   const menuEntries = useMemo(
-    (): MenuEntry[] => buildMenuEntries(editor, mode),
-    [editor, mode],
+    (): MenuEntry[] => buildMenuEntries(editor, mode, t.ctxMenu),
+    [editor, mode, t.ctxMenu],
   )
 
   /* ---- Close on click outside or Escape ---- */

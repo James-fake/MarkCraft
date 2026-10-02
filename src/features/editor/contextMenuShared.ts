@@ -1,4 +1,5 @@
 import type { Editor } from '@tiptap/core'
+import type { Translations } from '../../locales/zh'
 import { getLastHighlightColor } from '@features/editor/extensions/highlightColorPref'
 import { getLastUnderlineColor } from '@features/editor/extensions/underlineColorPref'
 
@@ -99,12 +100,12 @@ export const pasteFromClipboard = async (editor: Editor): Promise<void> => {
 /* ------------------------------------------------------------------ */
 
 /** 构建右键菜单全部条目：公共剪贴板/全选项 + WYSIWYG 专属「格式」「段落」两个子菜单 */
-export function buildMenuEntries(editor: Editor | null, mode: 'wysiwyg' | 'source'): MenuEntry[] {
+export function buildMenuEntries(editor: Editor | null, mode: 'wysiwyg' | 'source', L: Translations['ctxMenu']): MenuEntry[] {
   const items: MenuEntry[] = []
 
   // Common items
   items.push({
-    label: '剪切',
+    label: L.cut,
     shortcut: 'Ctrl+X',
     disabled: mode === 'source', // execCommand 无 can 查询，WYSIWYG 下恒可用
     action: () => {
@@ -114,7 +115,7 @@ export function buildMenuEntries(editor: Editor | null, mode: 'wysiwyg' | 'sourc
     },
   })
   items.push({
-    label: '复制',
+    label: L.copy,
     shortcut: 'Ctrl+C',
     disabled: mode === 'source',
     action: () => {
@@ -124,7 +125,7 @@ export function buildMenuEntries(editor: Editor | null, mode: 'wysiwyg' | 'sourc
     },
   })
   items.push({
-    label: '粘贴',
+    label: L.paste,
     shortcut: 'Ctrl+V',
     disabled: mode === 'source',
     action: () => {
@@ -134,7 +135,7 @@ export function buildMenuEntries(editor: Editor | null, mode: 'wysiwyg' | 'sourc
     },
   })
   items.push({
-    label: '粘贴为纯文本',
+    label: L.pastePlain,
     shortcut: 'Ctrl+Shift+V',
     action: () => {
       if (mode === 'wysiwyg' && editor) {
@@ -152,7 +153,7 @@ export function buildMenuEntries(editor: Editor | null, mode: 'wysiwyg' | 'sourc
   items.push({ type: 'separator' })
 
   items.push({
-    label: '全选',
+    label: L.selectAll,
     shortcut: 'Ctrl+A',
     action: () => {
       if (mode === 'wysiwyg' && editor) {
@@ -166,31 +167,31 @@ export function buildMenuEntries(editor: Editor | null, mode: 'wysiwyg' | 'sourc
     items.push({ type: 'separator' })
 
     items.push({
-      label: '格式',
+      label: L.format,
       submenu: [
         {
-          label: '粗体',
+          label: L.bold,
           shortcut: 'Ctrl+B',
           checked: safeIsActive(editor, 'bold'),
           action: () => editor.chain().focus().toggleBold().run(),
           disabled: !safeCan(editor, 'toggleBold'),
         },
         {
-          label: '斜体',
+          label: L.italic,
           shortcut: 'Ctrl+I',
           checked: safeIsActive(editor, 'italic'),
           action: () => editor.chain().focus().toggleItalic().run(),
           disabled: !safeCan(editor, 'toggleItalic'),
         },
         {
-          label: '删除线',
+          label: L.strike,
           shortcut: 'Ctrl+Shift+S',
           checked: safeIsActive(editor, 'strike'),
           action: () => editor.chain().focus().toggleStrike().run(),
           disabled: !safeCan(editor, 'toggleStrike'),
         },
         {
-          label: '高亮',
+          label: L.highlight,
           checked: safeIsActive(editor, 'highlight'),
           // 与工具栏主按钮同语义：应用/切换「上次颜色」
           action: () => {
@@ -202,7 +203,7 @@ export function buildMenuEntries(editor: Editor | null, mode: 'wysiwyg' | 'sourc
           disabled: !safeCan(editor, 'toggleHighlight'),
         },
         {
-          label: '下划线',
+          label: L.underline,
           checked: safeIsActive(editor, 'underline'),
           // 与工具栏主按钮同语义：应用/切换「上次颜色」（默认「跟随正文」）
           action: () => {
@@ -214,20 +215,20 @@ export function buildMenuEntries(editor: Editor | null, mode: 'wysiwyg' | 'sourc
           disabled: !safeCan(editor, 'toggleUnderline'),
         },
         {
-          label: '行内代码',
+          label: L.inlineCode,
           shortcut: 'Ctrl+E',
           checked: safeIsActive(editor, 'code'),
           action: () => editor.chain().focus().toggleCode().run(),
           disabled: !safeCan(editor, 'toggleCode'),
         },
         {
-          label: '下标',
+          label: L.subscript,
           checked: safeIsActive(editor, 'subscript'),
           action: () => editor.chain().focus().toggleSubscript().run(),
           disabled: !safeCan(editor, 'toggleSubscript'),
         },
         {
-          label: '上标',
+          label: L.superscript,
           checked: safeIsActive(editor, 'superscript'),
           action: () => editor.chain().focus().toggleSuperscript().run(),
           disabled: !safeCan(editor, 'toggleSuperscript'),
@@ -236,78 +237,78 @@ export function buildMenuEntries(editor: Editor | null, mode: 'wysiwyg' | 'sourc
     })
 
     items.push({
-      label: '段落',
+      label: L.paragraph,
       submenu: [
         {
-          label: '标题 1',
+          label: L.heading1,
           checked: safeIsActive(editor, 'heading', { level: 1 }),
           action: () => editor.chain().focus().toggleHeading({ level: 1 }).run(),
           disabled: !safeCan(editor, 'toggleHeading', { level: 1 }),
         },
         {
-          label: '标题 2',
+          label: L.heading2,
           checked: safeIsActive(editor, 'heading', { level: 2 }),
           action: () => editor.chain().focus().toggleHeading({ level: 2 }).run(),
           disabled: !safeCan(editor, 'toggleHeading', { level: 2 }),
         },
         {
-          label: '标题 3',
+          label: L.heading3,
           checked: safeIsActive(editor, 'heading', { level: 3 }),
           action: () => editor.chain().focus().toggleHeading({ level: 3 }).run(),
           disabled: !safeCan(editor, 'toggleHeading', { level: 3 }),
         },
         {
-          label: '标题 4',
+          label: L.heading4,
           checked: safeIsActive(editor, 'heading', { level: 4 }),
           action: () => editor.chain().focus().toggleHeading({ level: 4 }).run(),
           disabled: !safeCan(editor, 'toggleHeading', { level: 4 }),
         },
         {
-          label: '标题 5',
+          label: L.heading5,
           checked: safeIsActive(editor, 'heading', { level: 5 }),
           action: () => editor.chain().focus().toggleHeading({ level: 5 }).run(),
           disabled: !safeCan(editor, 'toggleHeading', { level: 5 }),
         },
         {
-          label: '标题 6',
+          label: L.heading6,
           checked: safeIsActive(editor, 'heading', { level: 6 }),
           action: () => editor.chain().focus().toggleHeading({ level: 6 }).run(),
           disabled: !safeCan(editor, 'toggleHeading', { level: 6 }),
         },
         { type: 'separator' as const },
         {
-          label: '有序列表',
+          label: L.orderedList,
           checked: safeIsActive(editor, 'orderedList'),
           action: () => editor.chain().focus().toggleOrderedList().run(),
           disabled: !safeCan(editor, 'toggleOrderedList'),
         },
         {
-          label: '无序列表',
+          label: L.bulletList,
           checked: safeIsActive(editor, 'bulletList'),
           action: () => editor.chain().focus().toggleBulletList().run(),
           disabled: !safeCan(editor, 'toggleBulletList'),
         },
         {
-          label: '任务列表',
+          label: L.taskList,
           checked: safeIsActive(editor, 'taskList'),
           action: () => editor.chain().focus().toggleTaskList().run(),
           disabled: !safeCan(editor, 'toggleTaskList'),
         },
         { type: 'separator' as const },
         {
-          label: '引用',
+          label: L.blockquote,
           checked: safeIsActive(editor, 'blockquote'),
           action: () => editor.chain().focus().toggleBlockquote().run(),
           disabled: !safeCan(editor, 'toggleBlockquote'),
         },
         { type: 'separator' as const },
         {
-          label: '增加缩进',
+          label: L.indentMore,
           action: () => editor.chain().focus().sinkListItem('listItem').run(),
           disabled: !safeCan(editor, 'sinkListItem', 'listItem'),
         },
         {
-          label: '减少缩进',
+          label: L.indentLess,
           action: () => editor.chain().focus().liftListItem('listItem').run(),
           disabled: !safeCan(editor, 'liftListItem', 'listItem'),
         },

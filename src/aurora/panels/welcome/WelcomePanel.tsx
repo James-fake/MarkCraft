@@ -4,6 +4,7 @@ import { useCommandPalette } from '../../components/command-palette/CommandPalet
 import { Icon } from '../../icons'
 import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
 import { useFileManager } from '@stores/FileStore'
+import { useLanguage } from '@stores/LanguageStore'
 import { useUserProfile, userDisplayName } from '@stores/UserProfileStore'
 import { findNode } from '@core/files/fileTree'
 import {
@@ -71,41 +72,28 @@ function computeStreak(files: RecentFileEntry[]): number {
   return streak
 }
 
-function greetingByHour(hour: number): string {
-  if (hour < 5) return '凌晨好'
-  if (hour < 12) return '早上好'
-  if (hour < 14) return '中午好'
-  if (hour < 18) return '下午好'
-  return '晚上好'
+/** 按时段返回问候文案键（文案在 t.welcome，随界面语言切换） */
+function greetingKeyByHour(hour: number): 'greetingNight' | 'greetingMorning' | 'greetingNoon' | 'greetingAfternoon' | 'greetingEvening' {
+  if (hour < 5) return 'greetingNight'
+  if (hour < 12) return 'greetingMorning'
+  if (hour < 14) return 'greetingNoon'
+  if (hour < 18) return 'greetingAfternoon'
+  return 'greetingEvening'
 }
 
-const WEEKDAYS = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
-
-function formatRelativeTime(ts: number): string {
-  const diff = Date.now() - ts
-  const min = 60_000
-  const hr = 3_600_000
-  const day = 86_400_000
-  if (diff < min) return '刚刚'
-  if (diff < hr) return `${Math.floor(diff / min)} 分钟前`
-  if (diff < day) return `${Math.floor(diff / hr)} 小时前`
-  if (diff < 7 * day) return `${Math.floor(diff / day)} 天前`
-  const d = new Date(ts)
-  return `${d.getMonth() + 1}月${d.getDate()}日`
-}
-
-/** 右栏 5 个模块入口（搜索单列在网格外，走命令面板） */
+/** 右栏 5 个模块入口（搜索单列在网格外，走命令面板）；labelKey 为 t.welcome 键，nav 为内部路由 id（中文，勿译） */
 const MODULE_TILES = [
-  { icon: 'calendar', label: '日记', nav: '日记' },
-  { icon: 'knowledge', label: '知识库', nav: '知识库' },
-  { icon: 'canvas', label: '白板', nav: '白板' },
-  { icon: 'blog', label: '博客', nav: '博客' },
-  { icon: 'settings', label: '设置', nav: '设置' },
+  { icon: 'calendar', labelKey: 'tileDiary', nav: '日记' },
+  { icon: 'knowledge', labelKey: 'tileKnowledge', nav: '知识库' },
+  { icon: 'canvas', labelKey: 'tileCanvas', nav: '白板' },
+  { icon: 'blog', labelKey: 'tileBlog', nav: '博客' },
+  { icon: 'settings', labelKey: 'tileSettings', nav: '设置' },
 ] as const
 
 export function WelcomePanel({ nav }: WelcomePanelProps) {
   const { rootFolder, createFile, openFile } = useFileManager()
   const { openCommandPalette } = useCommandPalette()
+  const { t, language } = useLanguage()
 
   const [files, setFiles] = useState<RecentFileEntry[]>(() => getRecentFiles())
   useEffect(() => subscribeRecentFiles(() => setFiles(getRecentFiles())), [])
@@ -123,9 +111,24 @@ export function WelcomePanel({ nav }: WelcomePanelProps) {
   const streak = useMemo(() => computeStreak(valid), [valid])
 
   const now = new Date()
-  const hello = greetingByHour(now.getHours())
-  const weekday = WEEKDAYS[now.getDay()]
-  const dateStr = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日`
+  const hello = t.welcome[greetingKeyByHour(now.getHours())]
+  // 日期/星期随界面语言本地化（Intl 单源，无需键位）
+  const localeTag = language === 'en' ? 'en-US' : 'zh-CN'
+  const weekday = now.toLocaleDateString(localeTag, { weekday: 'long' })
+  const dateStr = now.toLocaleDateString(localeTag, { year: 'numeric', month: 'long', day: 'numeric' })
+
+  // 相对时间（随语言）：刚刚 / n 分钟前 / n 小时前 / n 天前
+  const formatRelativeTime = useCallback((ts: number): string => {
+    const diff = Date.now() - ts
+    const min = 60_000
+    const hr = 3_600_000
+    const day = 86_400_000
+    if (diff < min) return t.welcome.agoNow
+    if (diff < hr) return t.welcome.agoMinutes.replace('{n}', String(Math.floor(diff / min)))
+    if (diff < day) return t.welcome.agoHours.replace('{n}', String(Math.floor(diff / hr)))
+    if (diff < 7 * day) return t.welcome.agoDays.replace('{n}', String(Math.floor(diff / day)))
+    return new Date(ts).toLocaleDateString(localeTag, { month: 'long', day: 'numeric' })
+  }, [t, localeTag])
 
   // 人情味：欢迎问候使用用户设置的昵称（空则回退「用户」）
   const profile = useUserProfile()
@@ -139,9 +142,9 @@ export function WelcomePanel({ nav }: WelcomePanelProps) {
   )
 
   const handleNewNote = useCallback(() => {
-    createFile(rootFolder.id, '未命名笔记.md', '', true)
+    createFile(rootFolder.id, t.welcome.untitledNote, '', true)
     handleNav('编辑器')
-  }, [createFile, rootFolder.id, handleNav])
+  }, [createFile, rootFolder.id, handleNav, t])
 
   const handleOpenLatest = useCallback(() => {
     if (!latest) {
@@ -166,7 +169,7 @@ export function WelcomePanel({ nav }: WelcomePanelProps) {
       sidebarActiveId="欢迎页"
       onSidebarSelect={handleNav}
       statusRightItems={[
-        { content: '⌘K 命令面板', clickable: true, onClick: () => openCommandPalette() },
+        { content: t.welcome.cmdPalette, clickable: true, onClick: () => openCommandPalette() },
       ]}
     >
       <div className="aurora-welcome">
@@ -183,12 +186,11 @@ export function WelcomePanel({ nav }: WelcomePanelProps) {
               {hello}，{displayName}
             </div>
             <div className="aurora-welcome__usage">
-              这是你使用 MarkCraft 的第{' '}
-              <span className="aurora-welcome__usage-num">{usageDays}</span> 天 · {weekday} ·{' '}
-              {dateStr}
+              {t.welcome.usageDaysLine.replace('{n}', String(usageDays))}
+              {' · '}{weekday} · {dateStr}
             </div>
             {streak > 0 && (
-              <div className="aurora-welcome__streak">已连续使用 {streak} 天</div>
+              <div className="aurora-welcome__streak">{t.welcome.streakDaysLine.replace('{n}', String(streak))}</div>
             )}
           </div>
 
@@ -206,37 +208,37 @@ export function WelcomePanel({ nav }: WelcomePanelProps) {
               <div>
                 <div className="aurora-welcome__hero-meta">
                   <Icon.edit size={18} />
-                  <span>上次停留</span>
+                  <span>{t.welcome.lastStayed}</span>
                 </div>
-                <div className="aurora-welcome__hero-title">编辑器</div>
+                <div className="aurora-welcome__hero-title">{t.welcome.heroEditor}</div>
                 <div className="aurora-welcome__hero-sub">
                   {latest
-                    ? `继续《${latest.fileName.replace(/\.md$/i, '')}》· ${formatRelativeTime(latest.lastOpened)}`
-                    : '开始你的第一篇笔记'}
+                    ? t.welcome.continueDoc.replace('{name}', latest.fileName.replace(/\.md$/i, '')) + ' · ' + formatRelativeTime(latest.lastOpened)
+                    : t.welcome.startFirstNote}
                 </div>
               </div>
               <div className="aurora-welcome__hero-cta">
-                {latest ? '继续编辑' : '新建笔记'} →
+                {latest ? t.welcome.continueEdit : t.welcome.newNoteCta} →
               </div>
             </div>
 
             <div className="aurora-welcome__tiles">
-              {MODULE_TILES.map((t, ti) => {
-                const TileIcon = Icon[t.icon]
+              {MODULE_TILES.map((tile, ti) => {
+                const TileIcon = Icon[tile.icon]
                 return (
                   <div
-                    key={t.label}
+                    key={tile.nav}
                     className="aurora-welcome__tile"
                     style={{ '--i': ti } as CSSProperties}
                     role="button"
                     tabIndex={0}
-                    onClick={() => handleTile(t.nav)}
+                    onClick={() => handleTile(tile.nav)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleTile(t.nav)
+                      if (e.key === 'Enter') handleTile(tile.nav)
                     }}
                   >
                     <TileIcon size={22} />
-                    <span className="aurora-welcome__tile-label">{t.label}</span>
+                    <span className="aurora-welcome__tile-label">{t.welcome[tile.labelKey]}</span>
                   </div>
                 )
               })}
@@ -252,7 +254,7 @@ export function WelcomePanel({ nav }: WelcomePanelProps) {
               >
                 <Icon.search size={22} />
                 <div className="aurora-welcome__tile-foot">
-                  <span className="aurora-welcome__tile-label">搜索</span>
+                  <span className="aurora-welcome__tile-label">{t.welcome.searchTile}</span>
                   <span className="aurora-welcome__tile-kbd">⌘K</span>
                 </div>
               </div>

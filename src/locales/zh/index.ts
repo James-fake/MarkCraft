@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogModal } from './blog'
-import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages } from './common'
+import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -145,6 +145,31 @@ export interface Translations {
     migrateClose: string
     migrateAgain: string
     migrateFolderDefault: string
+    greetingNight: string
+    greetingMorning: string
+    greetingNoon: string
+    greetingAfternoon: string
+    greetingEvening: string
+    usageDaysLine: string
+    streakDaysLine: string
+    lastStayed: string
+    heroEditor: string
+    continueDoc: string
+    startFirstNote: string
+    continueEdit: string
+    newNoteCta: string
+    searchTile: string
+    cmdPalette: string
+    untitledNote: string
+    tileDiary: string
+    tileKnowledge: string
+    tileCanvas: string
+    tileBlog: string
+    tileSettings: string
+    agoNow: string
+    agoMinutes: string
+    agoHours: string
+    agoDays: string
   }
   searchReplace: {
     searchPlaceholder: string
@@ -280,6 +305,90 @@ export interface Translations {
   }
   codeLanguages: {
     plainText: string
+  }
+  menu: {
+    file: string
+    edit: string
+    view: string
+    go: string
+    tools: string
+    window: string
+    help: string
+    newNote: string
+    newFolder: string
+    openDailyNote: string
+    quickCapture: string
+    importFile: string
+    save: string
+    close: string
+    librarySync: string
+    migrate: string
+    undo: string
+    redo: string
+    cut: string
+    copy: string
+    paste: string
+    selectAll: string
+    delete: string
+    find: string
+    toggleTheme: string
+    focusMode: string
+    typewriterMode: string
+    togglePreview: string
+    toggleSidebar: string
+    toggleEditorMode: string
+    quickSwitcher: string
+    quickOpen: string
+    globalSearch: string
+    goToLine: string
+    graphView: string
+    canvas: string
+    knowledgeBase: string
+    blogStudio: string
+    diary: string
+    publish: string
+    addToKb: string
+    insertTemplate: string
+    templateDiscovery: string
+    versionHistory: string
+    blockBacklinks: string
+    crossKbSearch: string
+    linkRedirect: string
+    reverseMoc: string
+    switchLanguage: string
+    minimize: string
+    zoom: string
+    noCommands: string
+    appMenu: string
+  }
+  ctxMenu: {
+    cut: string
+    copy: string
+    paste: string
+    pastePlain: string
+    selectAll: string
+    format: string
+    bold: string
+    italic: string
+    strike: string
+    highlight: string
+    underline: string
+    inlineCode: string
+    subscript: string
+    superscript: string
+    paragraph: string
+    heading1: string
+    heading2: string
+    heading3: string
+    heading4: string
+    heading5: string
+    heading6: string
+    orderedList: string
+    bulletList: string
+    taskList: string
+    blockquote: string
+    indentMore: string
+    indentLess: string
   }
   app: {
     collapseFileList: string
@@ -893,6 +1002,8 @@ const zh: Translations = {
   createFile,
   lint,
   codeLanguages,
+  menu,
+  ctxMenu,
   app,
   fileTreeNode,
   blogStudio,

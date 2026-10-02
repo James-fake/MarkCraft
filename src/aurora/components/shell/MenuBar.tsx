@@ -4,6 +4,8 @@ import { formatShortcut } from '@services/command/shortcutFormat'
 import { useSettings } from '../../../stores/SettingsStore'
 import { useFileManager } from '../../../stores/FileStore'
 import { usePresence, POPOVER_EXIT_MS } from '@components/ui/usePresence'
+import { useLanguage } from '../../../stores/LanguageStore'
+import type { Translations } from '../../../locales/zh'
 
 /**
  * Aurora 应用菜单栏（P1-1 · macOS HIG §1 Menu Bar）
@@ -21,116 +23,119 @@ import { usePresence, POPOVER_EXIT_MS } from '@components/ui/usePresence'
  *   依赖活动文件的编辑器命令在无文件时禁用；
  * - 键盘：Esc 关闭、方向键导航（↓ 进入 / ↑↓ 移动 / ←→ 切换菜单 / Enter 执行）。
  */
+/** 菜单标签键（t.menu 的键，tsc 强制完备 —— 加菜单项必须同步语言包） */
+type MenuLabelKey = keyof Translations['menu']
+
 export interface AuroraMenuEntry {
   /** 命令 id（须已注册于 commandRegistry） */
   id: string
-  /** 菜单显示标题（桌面短语） */
-  label: string
+  /** 菜单显示标题（桌面短语，经 t.menu 解析，随界面语言切换） */
+  labelKey: MenuLabelKey
   /** 是否依赖活动文件（无活动文件时禁用） */
   needsFile?: boolean
 }
 
-export type AuroraMenu = { title: string; entries: (AuroraMenuEntry | '---')[] }
+export type AuroraMenu = { titleKey: MenuLabelKey; entries: (AuroraMenuEntry | '---')[] }
 
 /** 文件 —— 文档生命周期 */
 const FILE_MENU: AuroraMenu = {
-  title: '文件',
+  titleKey: 'file',
   entries: [
-    { id: 'file.newFile', label: '新建笔记' },
-    { id: 'file.newFolder', label: '新建文件夹' },
+    { id: 'file.newFile', labelKey: 'newNote' },
+    { id: 'file.newFolder', labelKey: 'newFolder' },
     '---',
-    { id: 'file.openDailyNote', label: '打开今日笔记' },
-    { id: 'file.quickCapture', label: '快速记一笔' },
-    { id: 'file.importFile', label: '打开文件…' },
+    { id: 'file.openDailyNote', labelKey: 'openDailyNote' },
+    { id: 'file.quickCapture', labelKey: 'quickCapture' },
+    { id: 'file.importFile', labelKey: 'importFile' },
     '---',
-    { id: 'file.save', label: '保存', needsFile: true },
-    { id: 'file.close', label: '关闭', needsFile: true },
+    { id: 'file.save', labelKey: 'save', needsFile: true },
+    { id: 'file.close', labelKey: 'close', needsFile: true },
     '---',
-    { id: 'tools.librarySync', label: '库同步…' },
-    { id: 'tools.migrate', label: '迁移笔记…' },
+    { id: 'tools.librarySync', labelKey: 'librarySync' },
+    { id: 'tools.migrate', labelKey: 'migrate' },
   ],
 }
 
 /** 编辑（HIG §1.1 Edit 菜单）：撤销 / 重做 / 剪贴板 / 查找 */
 const EDIT_MENU: AuroraMenu = {
-  title: '编辑',
+  titleKey: 'edit',
   entries: [
-    { id: 'edit.undo', label: '撤销' },
-    { id: 'edit.redo', label: '重做' },
+    { id: 'edit.undo', labelKey: 'undo' },
+    { id: 'edit.redo', labelKey: 'redo' },
     '---',
-    { id: 'edit.cut', label: '剪切' },
-    { id: 'edit.copy', label: '复制' },
-    { id: 'edit.paste', label: '粘贴' },
-    { id: 'edit.selectAll', label: '全选' },
+    { id: 'edit.cut', labelKey: 'cut' },
+    { id: 'edit.copy', labelKey: 'copy' },
+    { id: 'edit.paste', labelKey: 'paste' },
+    { id: 'edit.selectAll', labelKey: 'selectAll' },
     '---',
-    { id: 'edit.delete', label: '删除' },
-    { id: 'edit.find', label: '查找' },
+    { id: 'edit.delete', labelKey: 'delete' },
+    { id: 'edit.find', labelKey: 'find' },
   ],
 }
 
 /** 视图 —— 显示与模式 */
 const VIEW_MENU: AuroraMenu = {
-  title: '视图',
+  titleKey: 'view',
   entries: [
-    { id: 'view.toggleTheme', label: '切换深色 / 浅色主题' },
-    { id: 'view.focusMode', label: '专注模式' },
-    { id: 'view.typewriterMode', label: '打字机模式' },
+    { id: 'view.toggleTheme', labelKey: 'toggleTheme' },
+    { id: 'view.focusMode', labelKey: 'focusMode' },
+    { id: 'view.typewriterMode', labelKey: 'typewriterMode' },
     '---',
-    { id: 'view.togglePreview', label: '切换预览', needsFile: true },
-    { id: 'view.toggleSidebar', label: '切换侧边栏', needsFile: true },
-    { id: 'view.toggleEditorMode', label: '切换编辑模式', needsFile: true },
+    { id: 'view.togglePreview', labelKey: 'togglePreview', needsFile: true },
+    { id: 'view.toggleSidebar', labelKey: 'toggleSidebar', needsFile: true },
+    { id: 'view.toggleEditorMode', labelKey: 'toggleEditorMode', needsFile: true },
   ],
 }
 
 /** 前往 —— 跳转与检索 */
 const GO_MENU: AuroraMenu = {
-  title: '前往',
+  titleKey: 'go',
   entries: [
-    { id: 'navigation.quickSwitcher', label: '快速切换文件' },
-    { id: 'navigation.quickOpen', label: '快速打开' },
-    { id: 'navigation.globalSearch', label: '全局搜索' },
-    { id: 'navigation.goToLine', label: '跳转到行号…', needsFile: true },
+    { id: 'navigation.quickSwitcher', labelKey: 'quickSwitcher' },
+    { id: 'navigation.quickOpen', labelKey: 'quickOpen' },
+    { id: 'navigation.globalSearch', labelKey: 'globalSearch' },
+    { id: 'navigation.goToLine', labelKey: 'goToLine', needsFile: true },
     '---',
-    { id: 'navigation.graphView', label: '双链图谱' },
-    { id: 'tools.openCanvas', label: '白板' },
-    { id: 'tools.openKnowledgeBase', label: '知识库' },
-    { id: 'tools.openBlogStudio', label: '博客工作室' },
-    { id: 'tools.diary', label: '日记' },
+    { id: 'navigation.graphView', labelKey: 'graphView' },
+    { id: 'tools.openCanvas', labelKey: 'canvas' },
+    { id: 'tools.openKnowledgeBase', labelKey: 'knowledgeBase' },
+    { id: 'tools.openBlogStudio', labelKey: 'blogStudio' },
+    { id: 'tools.diary', labelKey: 'diary' },
   ],
 }
 
 /** 工具 —— 内容操作与发布 */
 const TOOLS_MENU: AuroraMenu = {
-  title: '工具',
+  titleKey: 'tools',
   entries: [
-    { id: 'editor.publish', label: '发布为博客', needsFile: true },
-    { id: 'editor.addToKb', label: '加入知识库', needsFile: true },
+    { id: 'editor.publish', labelKey: 'publish', needsFile: true },
+    { id: 'editor.addToKb', labelKey: 'addToKb', needsFile: true },
     '---',
-    { id: 'tools.insertTemplate', label: '插入模板', needsFile: true },
-    { id: 'tools.templateDiscovery', label: '发现模板', needsFile: true },
-    { id: 'tools.openVersionHistory', label: '版本历史', needsFile: true },
-    { id: 'tools.openBlockBacklinks', label: '块反链', needsFile: true },
+    { id: 'tools.insertTemplate', labelKey: 'insertTemplate', needsFile: true },
+    { id: 'tools.templateDiscovery', labelKey: 'templateDiscovery', needsFile: true },
+    { id: 'tools.openVersionHistory', labelKey: 'versionHistory', needsFile: true },
+    { id: 'tools.openBlockBacklinks', labelKey: 'blockBacklinks', needsFile: true },
     '---',
-    { id: 'tools.crossKbSearch', label: '跨知识库搜索' },
-    { id: 'tools.linkRedirect', label: '链接重定向', needsFile: true },
-    { id: 'tools.generateReverseMoc', label: '生成反向 MOC', needsFile: true },
+    { id: 'tools.crossKbSearch', labelKey: 'crossKbSearch' },
+    { id: 'tools.linkRedirect', labelKey: 'linkRedirect', needsFile: true },
+    { id: 'tools.generateReverseMoc', labelKey: 'reverseMoc', needsFile: true },
   ],
 }
 
 /** 帮助 —— 设置与入口 */
 const HELP_MENU: AuroraMenu = {
-  title: '帮助',
+  titleKey: 'help',
   entries: [
-    { id: 'settings.switchLanguage', label: '切换中 / 英文' },
+    { id: 'settings.switchLanguage', labelKey: 'switchLanguage' },
   ],
 }
 
 /** 窗口（HIG §1.1 Window 菜单）：最小化 / 缩放 / 全部前置 */
 const WINDOW_MENU: AuroraMenu = {
-  title: '窗口',
+  titleKey: 'window',
   entries: [
-    { id: 'window.minimize', label: '最小化' },
-    { id: 'window.zoom', label: '缩放' },
+    { id: 'window.minimize', labelKey: 'minimize' },
+    { id: 'window.zoom', labelKey: 'zoom' },
   ],
 }
 
@@ -166,6 +171,7 @@ const MenuPop: React.FC<{ open: boolean; label: string; children: React.ReactNod
 export function MenuBar() {
   const { settings } = useSettings()
   const { getActiveFileId } = useFileManager()
+  const { t } = useLanguage()
 
   const [openIndex, setOpenIndex] = useState<number | null>(null)
   /** 键盘高亮项在条目内的索引（-1 = 无） */
@@ -300,7 +306,7 @@ export function MenuBar() {
       className="aurora-menubar"
       role="menubar"
       ref={barRef}
-      aria-label="应用菜单"
+      aria-label={t.menu.appMenu}
     >
       {MENUS.map((m, mi) => {
         const isOpen = openIndex === mi
@@ -326,7 +332,7 @@ export function MenuBar() {
                 type="button"
                 role="menuitem"
                 disabled={disabled}
-                title={meta ? `${meta.labelZh}${shortcut ? ` · ${shortcut}` : ''}` : entry.label}
+                title={meta ? `${meta.labelZh}${shortcut ? ` · ${shortcut}` : ''}` : t.menu[entry.labelKey]}
                 className={[
                   'aurora-dropdown__item',
                   highlight === hi ? 'aurora-dropdown__item--highlighted' : '',
@@ -343,7 +349,7 @@ export function MenuBar() {
                     </svg>
                   )}
                 </span>
-                <span className="aurora-dropdown__item-label">{entry.label}</span>
+                <span className="aurora-dropdown__item-label">{t.menu[entry.labelKey]}</span>
                 {shortcut && <span className="aurora-dropdown__item-shortcut">{shortcut}</span>}
               </button>
             )
@@ -351,7 +357,7 @@ export function MenuBar() {
         }
 
         return (
-          <div key={m.title} className="aurora-menubar__item-wrap">
+          <div key={m.titleKey} className="aurora-menubar__item-wrap">
             <button
               type="button"
               role="menuitem"
@@ -368,13 +374,13 @@ export function MenuBar() {
               }}
               onKeyDown={(ev) => onMenuKeyDown(mi, ev)}
             >
-              {m.title}
+              {t.menu[m.titleKey]}
             </button>
 
-            <MenuPop open={isOpen} label={m.title}>
+            <MenuPop open={isOpen} label={t.menu[m.titleKey]}>
               {renderItems()}
               {list.length === 0 && (
-                <div className="aurora-menubar__empty">无可用命令</div>
+                <div className="aurora-menubar__empty">{t.menu.noCommands}</div>
               )}
             </MenuPop>
           </div>
