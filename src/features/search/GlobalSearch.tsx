@@ -3,51 +3,15 @@ import { useFileManager } from '../../stores/FileStore';
 import { useLanguage } from '../../stores/LanguageStore';
 import { useTagIndex } from '../../stores/TagIndexStore';
 import { useGlobalSearch, GlobalSearchResult, GlobalSearchMatch, SearchFilters } from './useGlobalSearch';
-import { FileNode } from '../../types/fileManager';
 import { AuroraSelect } from '@components/ui/AuroraSelect';
+// —— P4-4 拆分：头部工具/纯函数下沉 searchUtils，diff 预览视图为哑组件 ——
+import { collectFolders, findFile, getTimeRange, buildExportContent, MAX_VISIBLE_MATCHES, CONTEXT_CHARS, TIME_PRESETS } from './searchUtils';
+import type { ReplaceDiffPreview } from './searchUtils';
+import { ReplacePreview } from './ReplacePreview';
 
 interface GlobalSearchProps {
   isOpen: boolean;
   onClose: () => void;
-}
-
-const CONTEXT_CHARS = 40;
-const MAX_VISIBLE_MATCHES = 5;
-
-/** 收集所有文件夹节点用于路径过滤下拉 */
-function collectFolders(node: FileNode, path = ''): { id: string; name: string }[] {
-  const result: { id: string; name: string }[] = [];
-  if (node.type === 'folder' && node.id !== 'root') {
-    const fullPath = path ? `${path} / ${node.name}` : node.name;
-    result.push({ id: node.id, name: fullPath });
-  }
-  if (node.children) {
-    const childPath = node.id === 'root' ? '' : (path ? `${path} / ${node.name}` : node.name);
-    for (const child of node.children) {
-      result.push(...collectFolders(child, childPath));
-    }
-  }
-  return result;
-}
-
-const TIME_PRESETS = [
-  { id: 'all', label: '全部时间' },
-  { id: 'today', label: '今天' },
-  { id: 'week', label: '本周' },
-  { id: 'month', label: '本月' },
-  { id: 'year', label: '本年' },
-];
-
-function getTimeRange(preset: string): { start: number; end: number } {
-  const now = Date.now();
-  const day = 24 * 60 * 60 * 1000;
-  switch (preset) {
-    case 'today': return { start: now - day, end: now };
-    case 'week': return { start: now - 7 * day, end: now };
-    case 'month': return { start: now - 30 * day, end: now };
-    case 'year': return { start: now - 365 * day, end: now };
-    default: return { start: 0, end: 0 };
-  }
 }
 
 const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
@@ -80,10 +44,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
   const [inlineReplacement, setInlineReplacement] = useState('');
 
   // P1.2 任务3: 全部替换 diff 预览
-  const [diffPreview, setDiffPreview] = useState<{
-    modifications: { fileId: string; fileName: string; oldContent: string; newContent: string }[];
-    diffs: { fileName: string; line: number; oldLine: string; newLine: string }[];
-  } | null>(null);
+  const [diffPreview, setDiffPreview] = useState<ReplaceDiffPreview | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -263,32 +224,10 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
     setUndoSnapshot(null);
   }, [undoSnapshot, updateFileContent]);
 
-  // P1.2: 导出搜索结果
+  // P1.2: 导出搜索结果（内容构建纯函数见 searchUtils#buildExportContent；此处只负责 Blob 下载）
   const handleExport = useCallback((format: 'md' | 'csv' | 'json') => {
-    let content = '';
+    const content = buildExportContent(format, { query, results, totalMatches });
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
-
-    if (format === 'md') {
-      content = `# 搜索结果: ${query}\n\n共 ${results.length} 个文件，${totalMatches} 处匹配\n\n`;
-      for (const r of results) {
-        content += `## ${r.fileName}\n\n路径: ${r.filePath}\n\n`;
-        for (const m of r.matches) {
-          content += `- L${m.line}: ${m.text.trim()}\n`;
-        }
-        content += '\n';
-      }
-    } else if (format === 'csv') {
-      content = '文件,行号,列号,匹配,上下文\n';
-      for (const r of results) {
-        for (const m of r.matches) {
-          const ctx = m.text.replace(/"/g, '""').trim();
-          const matchText = m.text.substring(m.highlightStart, m.highlightEnd).replace(/"/g, '""');
-          content += `"${r.fileName}",${m.line},${m.column},"${matchText}","${ctx}"\n`;
-        }
-      }
-    } else {
-      content = JSON.stringify({ query, totalMatches, results }, null, 2);
-    }
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -558,74 +497,11 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
 
         {/* P1.2 任务3: 替换预览（diff 视图） */}
         {diffPreview && (
-          <div className="flex flex-col flex-1 min-h-0" style={{ backgroundColor: 'rgba(128,128,128,0.03)' }}>
-            <div
-              className="flex items-center justify-between px-3 py-2 border-b flex-shrink-0"
-              style={{ borderColor: 'var(--mc-border-subtle)' }}
-            >
-              <span style={{ color: 'var(--mc-text-primary)', fontSize: '12px', fontWeight: 600 }}>
-                替换预览（{diffPreview.diffs.length} 处修改 / {diffPreview.modifications.length} 个文件）
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleConfirmReplace}
-                  style={{
-                    padding: '4px 12px', borderRadius: 4, fontSize: '11px', cursor: 'pointer',
-                    border: '1px solid var(--button-primary)',
-                    backgroundColor: 'var(--button-primary)', color: '#fff',
-                  }}
-                >确认替换</button>
-                <button
-                  onClick={handleCancelReplace}
-                  style={{
-                    padding: '4px 12px', borderRadius: 4, fontSize: '11px', cursor: 'pointer',
-                    border: '1px solid var(--mc-border-subtle)',
-                    backgroundColor: 'transparent', color: 'var(--mc-text-secondary)',
-                  }}
-                >取消</button>
-              </div>
-            </div>
-            <div className="overflow-y-auto flex-1" style={{ scrollbarWidth: 'thin' }}>
-              {diffPreview.diffs.length === 0 && (
-                <div className="px-4 py-8 text-center" style={{ color: 'var(--mc-text-secondary)', opacity: 0.5, fontSize: '13px' }}>
-                  没有实际变化
-                </div>
-              )}
-              {diffPreview.diffs.map((d, idx) => (
-                <div key={idx} style={{ borderBottom: '1px solid var(--mc-border-subtle)' }}>
-                  <div
-                    className="px-3 py-0.5 flex items-center gap-2"
-                    style={{ backgroundColor: 'rgba(128,128,128,0.08)' }}
-                  >
-                    <span style={{ color: 'var(--mc-text-secondary)', opacity: 0.5, fontSize: '10px', fontFamily: 'monospace', minWidth: '28px', textAlign: 'right' }}>
-                      {d.line}
-                    </span>
-                    <span style={{ color: 'var(--mc-text-secondary)', opacity: 0.6, fontSize: '10px' }}>
-                      {d.fileName}
-                    </span>
-                  </div>
-                  <div
-                    className="px-3 py-0.5 flex items-start gap-2"
-                    style={{ backgroundColor: 'rgba(255,80,80,0.12)' }}
-                  >
-                    <span style={{ color: '#e55', fontFamily: 'monospace', fontSize: '11px', flexShrink: 0 }}>-</span>
-                    <span style={{ color: '#e55', fontSize: '11px', fontFamily: 'monospace', wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>
-                      {d.oldLine}
-                    </span>
-                  </div>
-                  <div
-                    className="px-3 py-0.5 flex items-start gap-2"
-                    style={{ backgroundColor: 'rgba(80,200,80,0.12)' }}
-                  >
-                    <span style={{ color: '#5a5', fontFamily: 'monospace', fontSize: '11px', flexShrink: 0 }}>+</span>
-                    <span style={{ color: '#5a5', fontSize: '11px', fontFamily: 'monospace', wordBreak: 'break-all', whiteSpace: 'pre-wrap' }}>
-                      {d.newLine}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ReplacePreview
+            preview={diffPreview}
+            onConfirm={handleConfirmReplace}
+            onCancel={handleCancelReplace}
+          />
         )}
 
         {/* Results */}
@@ -802,17 +678,5 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
     </div>
   );
 };
-
-/** 递归查找文件节点 */
-function findFile(node: FileNode, fileId: string): FileNode | null {
-  if (node.id === fileId) return node;
-  if (node.children) {
-    for (const c of node.children) {
-      const found = findFile(c, fileId);
-      if (found) return found;
-    }
-  }
-  return null;
-}
 
 export default GlobalSearch;

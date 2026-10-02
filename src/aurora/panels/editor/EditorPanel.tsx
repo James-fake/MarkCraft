@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
-import type { MutableRefObject } from 'react'
 import { PageFrame } from '../../components/shell/PageFrame'
 import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
 import { setBlogEntryFileId } from '@services/blogEntry'
@@ -18,7 +17,6 @@ import { EditorLayout, type EditorLayoutHandle } from '@features/editor/EditorLa
 import { useEditorIntegration } from '@features/editor/editorIntegration'
 // 编辑器内部左侧文件树：Aurora 外壳 + 真实数据（详见 FileTree.tsx）
 import { FileTree } from './FileTree'
-import { EmptyFileBrowser } from './EmptyFileBrowser'
 // 内置「使用文档」→ 只读简介页（2026-09-22：裁剪编辑 chrome，仅保留阅读所需元素）
 import { UsageDocBrief } from './UsageDocBrief'
 // 编辑器右栏：Aurora 外壳接管 EditorLayout 旧右栏（AuroraOutline + 真实功能面板）
@@ -27,7 +25,6 @@ import { useFileManager } from '@stores/FileStore'
 import { useSettings } from '@stores/SettingsStore'
 import { useLanguage } from '@stores/LanguageStore'
 import { findNode } from '@core/files/fileTree'
-import type { FileNode } from '@src/types/fileManager'
 import { findParentId } from '@services/fileService'
 // 注：「粘贴为脚注」（features/editor/footnoteAuto）随辅助 Tab 旧分区一并退役，本层不再直连；
 // 脚注插入仍由编辑器内核与默认快捷键承担。
@@ -36,76 +33,16 @@ import { useAppLayout } from '@hooks/useAppLayout'
 import { useUsageDocsScope } from '@hooks/useUsageDocsScope'
 import { usePresence, OVERLAY_EXIT_MS } from '@components/ui/usePresence'
 import { textToStorage } from '@core/storage/imageStore'
+// —— P4-4 拆分：类型/纯函数下沉 shared，定时器逻辑与模式状态机各成 hook，空态与徽标为哑组件 ——
+import type { AuroraModalId, EditorPanelProps } from './editorPanelShared'
+import { uniqueFileName } from './editorPanelShared'
+import { usePanelHoverIntent } from './usePanelHoverIntent'
+import { useEditorModeSwitch } from './useEditorModeSwitch'
+import { EditorEmptyState } from './EditorEmptyState'
+import { AuroraLintEntry } from './AuroraLintEntry'
 
-/** Aurora 弹层开关（由 AuroraShell 以单一数据源持有，命令与编辑器 UI 共用；方案 B 就近归属渲染） */
-export interface AuroraModalControls {
-  open: (id: AuroraModalId) => void
-  close: (id: AuroraModalId) => void
-  isOpen: (id: AuroraModalId) => boolean
-}
-export type AuroraModalId =
-  | 'import' | 'linkRedirect' | 'blockBacklinks'
-  | 'templateInsert' | 'templateDiscovery' | 'quickCapture'
-  | 'librarySync' | 'migrate' | 'quickSwitcher'
-  | 'quickOpen' | 'globalSearch' | 'crossKbSearch'
-  | 'quit'
-
-/**
- * 编辑器命令桥：供 AuroraShell（命令面板 / 全局快捷键）触发编辑器内部动作。
- * EditorPanel 挂载时注册实现，卸载时清空；未注册（非编辑器视图）时调用静默无操作。
- */
-export interface EditorCommandBridge {
-  /** Ctrl/Cmd+S 等价：保存当前文档并创建 manual 版本 */
-  save?: () => void
-  /** 切换预览窗格（叠加式，与源码可并存为双屏） */
-  togglePreview?: () => void
-  /** 切换编辑内核：源码 / 所见即所得 */
-  toggleEditorMode?: () => void
-  /** 切换编辑器内部文件树 */
-  toggleSidebar?: () => void
-  /** 打开版本历史模态 */
-  openVersionHistory?: () => void
-  /** 打开编辑器内置「跳转到行号」对话框（命令面板 navigation.goToLine 经此触达） */
-  goToLine?: () => void
-  /** 崩溃恢复：把备份内容写入当前草稿（配合 updateFileContent 双写） */
-  restoreCrash?: (content: string) => void
-  /** B3 发布闭环：标记当前笔记 → 跳转博客面板（命令面板 `editor.publish` 触达） */
-  publish?: () => void
-  /** 知识库串联：打开「加入知识库」菜单（命令面板 `editor.addToKb` 触达） */
-  openKbMenu?: () => void
-  /** 撤销（编辑菜单 · 命令桥） */
-  undo?: () => void
-  /** 重做（编辑菜单 · 命令桥） */
-  redo?: () => void
-  /** 编辑器内查找（编辑菜单 · 命令桥） */
-  find?: () => void
-  /** 删除选区（编辑菜单 · 命令桥） */
-  deleteSelection?: () => void
-}
-
-export interface EditorPanelProps {
-  nav?: (id: string, param?: string) => void
-  auroraModal?: AuroraModalControls
-  /** 命令桥引用（AuroraShell 持有并注入） */
-  cmdBridge?: MutableRefObject<EditorCommandBridge>
-  /** 打开全局命令面板（AuroraShell 透传 setCommandOpen，替换原 toast 假入口） */
-  onOpenCommandPalette?: () => void
-}
-
-// 字数统计统一走真实 features/editor/stats.ts 的 countWords（D4 单一数据源）
-
-// 新建文件同名去重：根目录子节点命中同名 .md 时追加 (n)，避免覆盖已有文件（VS Code 风格）
-function uniqueFileName(root: FileNode, base: string): string {
-  const want = base.endsWith('.md') ? base : `${base}.md`
-  const names = new Set(
-    (root.children ?? []).filter((c) => c.type === 'file').map((c) => c.name),
-  )
-  if (!names.has(want)) return want
-  const stem = base.endsWith('.md') ? base.slice(0, -3) : base
-  let i = 2
-  while (names.has(`${stem} (${i}).md`)) i++
-  return `${stem} (${i}).md`
-}
+// 对外类型路径保稳（AuroraShell / auroraActions 从 EditorPanel 导入）
+export type { AuroraModalControls, AuroraModalId, EditorCommandBridge, EditorPanelProps } from './editorPanelShared'
 
 /**
  * Aurora 编辑器面板（Phase 2 换芯 · D8）
@@ -137,9 +74,13 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   // —— 编辑模式机制（对齐项目真实实现 useEditorSettings）——
   // editorMode：源码 / 所见即所得（TipTap 富文本）双内核；sourceVisible/previewVisible 为源码模式下的窗格开关
   // 默认范式收敛：初始值取真实设置 settings.editorMode（P1-1.2 E1，默认 wysiwyg）
-  const [editorMode, setEditorMode] = useState<'source' | 'wysiwyg'>(settings.editorMode)
-  const [sourceVisible, setSourceVisible] = useState(true)
-  const [previewVisible, setPreviewVisible] = useState(false)
+  // 模式状态机（handleSourceClick/togglePreview/toggleWysiwyg 的 4 态循环）见 useEditorModeSwitch。
+  const {
+    editorMode, setEditorMode,
+    sourceVisible, setSourceVisible,
+    previewVisible, setPreviewVisible,
+    handleSourceClick, togglePreview, toggleWysiwyg,
+  } = useEditorModeSwitch(settings.editorMode)
   // —— v7 边缘悬停召唤面板：左=文件树，右=检查器（大纲/反链/脚注/辅助）——
   // 默认进入即纯编辑区（两栏均隐藏）；鼠标靠到屏幕左/右缘滑入，移开收起；
   // 图钉 pin 可钉成常驻栏；⌘B / ⌘⇧O 快捷键切换。
@@ -149,7 +90,6 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   const [rightPinned, setRightPinned] = useState(false)
   // 空态「新建笔记」文件名输入：需求改为自定义文件名，不再直接生成未命名
   const [newFileName, setNewFileName] = useState('')
-  const newFileInputRef = useRef<HTMLInputElement>(null)
   // 右栏检查器当前 Tab：受控于 RightSidebar（大纲/脚注/块级反链/辅助），默认大纲
   const [rightTab, setRightTab] = useState<InspectorTab>('outline')
   const leftShown = leftPinned || leftHover
@@ -161,57 +101,12 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   const closeLeft = useCallback(() => { setLeftHover(false); setLeftPinned(false) }, [])
   const closeRight = useCallback(() => { setRightHover(false); setRightPinned(false) }, [])
   // —— 边缘 hover 防误触（hover-intent）——
-  // 鼠标靠到缘侧需“停留”约 HOVER_INTENT_MS 才滑入面板；快速掠过 / 误触会在到期前离开而被取消，
+  // 鼠标靠到缘侧需“停留”约 220ms 才滑入面板；快速掠过 / 误触会在到期前离开而被取消，
   // 不再一碰边缘就弹出。已钉住（pinned）时无需 hover，离开也不收起。
-  const HOVER_INTENT_MS = 220
-  const HOVER_CLOSE_DELAY_MS = 180
-  const leftHoverTimer = useRef<number | null>(null)
-  const leftCloseTimer = useRef<number | null>(null)
-  const rightHoverTimer = useRef<number | null>(null)
-  const rightCloseTimer = useRef<number | null>(null)
-  const cancelLeftClose = useCallback(() => {
-    if (leftCloseTimer.current) { window.clearTimeout(leftCloseTimer.current); leftCloseTimer.current = null }
-  }, [])
-  const cancelRightClose = useCallback(() => {
-    if (rightCloseTimer.current) { window.clearTimeout(rightCloseTimer.current); rightCloseTimer.current = null }
-  }, [])
-  const openLeftIntent = useCallback(() => {
-    if (leftPinned) return
-    if (leftHoverTimer.current) window.clearTimeout(leftHoverTimer.current)
-    cancelLeftClose()
-    leftHoverTimer.current = window.setTimeout(() => setLeftHover(true), HOVER_INTENT_MS)
-  }, [leftPinned, cancelLeftClose])
-  const scheduleLeftClose = useCallback(() => {
-    if (leftPinned) return
-    if (leftCloseTimer.current) window.clearTimeout(leftCloseTimer.current)
-    leftCloseTimer.current = window.setTimeout(() => setLeftHover(false), HOVER_CLOSE_DELAY_MS)
-  }, [leftPinned])
-  const closeLeftIntent = useCallback(() => {
-    if (leftHoverTimer.current) { window.clearTimeout(leftHoverTimer.current); leftHoverTimer.current = null }
-    scheduleLeftClose()
-  }, [scheduleLeftClose])
-  const openRightIntent = useCallback(() => {
-    if (rightPinned) return
-    if (rightHoverTimer.current) window.clearTimeout(rightHoverTimer.current)
-    cancelRightClose()
-    rightHoverTimer.current = window.setTimeout(() => setRightHover(true), HOVER_INTENT_MS)
-  }, [rightPinned, cancelRightClose])
-  const scheduleRightClose = useCallback(() => {
-    if (rightPinned) return
-    if (rightCloseTimer.current) window.clearTimeout(rightCloseTimer.current)
-    rightCloseTimer.current = window.setTimeout(() => setRightHover(false), HOVER_CLOSE_DELAY_MS)
-  }, [rightPinned])
-  const closeRightIntent = useCallback(() => {
-    if (rightHoverTimer.current) { window.clearTimeout(rightHoverTimer.current); rightHoverTimer.current = null }
-    scheduleRightClose()
-  }, [scheduleRightClose])
-  // 卸载时清理挂起的 hover 定时器，避免泄漏
-  useEffect(() => () => {
-    if (leftHoverTimer.current) window.clearTimeout(leftHoverTimer.current)
-    if (rightHoverTimer.current) window.clearTimeout(rightHoverTimer.current)
-    if (leftCloseTimer.current) window.clearTimeout(leftCloseTimer.current)
-    if (rightCloseTimer.current) window.clearTimeout(rightCloseTimer.current)
-  }, [])
+  // 定时器逻辑收编于 usePanelHoverIntent（P4-4 拆分）；动效相位（usePresence/data-exiting）留在本文件
+  // —— motionExit.test 直接扫描本文件源码断言接线存在。
+  const leftIntent = usePanelHoverIntent(leftPinned, setLeftHover)
+  const rightIntent = usePanelHoverIntent(rightPinned, setRightHover)
 
   const activeFileId = getActiveFileId()
   const activeNode = activeFileId ? findNode(rootFolder, activeFileId) : null
@@ -318,55 +213,6 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
     showSource: sourceVisible,
     editorMode,
   })
-
-  // —— 模式切换状态机（Aurora 工具栏驱动，映射真实 EditorLayout props）——
-  // 叠加式视图切换：源码 / 预览 两个独立窗格，二者同开 = 双屏（左源码右预览）
-  // 所见即所得为独立内核，与源码/预览互斥。
-  // 切换语义（对齐用户确认的 4 态循环）：
-  //   - 纯源码(A) ⇄ 纯预览(C) 独占互切；双屏(B)下点某窗格 = 收起该窗格转入独占
-  //   - 点「源码」：A→C, B→C, C→B ；点「预览」：A→C, B→A, C→A
-  //   （分段控件是互斥单选，天生无法表达 B 这个复合态，故用两个窗格按钮 + 一个内核按钮）
-  const handleSourceClick = useCallback(() => {
-    if (editorMode === 'wysiwyg') {
-      // 从所见即所得切回：纯源码视图
-      setEditorMode('source'); setSourceVisible(true); setPreviewVisible(false); return
-    }
-    if (sourceVisible && !previewVisible) {
-      // A → C（关源码 → 纯预览）
-      setSourceVisible(false); setPreviewVisible(true)
-    } else if (sourceVisible && previewVisible) {
-      // B → C（收起源码 → 纯预览）
-      setSourceVisible(false)
-    } else {
-      // C（S关P开）→ B（开源码 → 双屏）
-      setSourceVisible(true)
-    }
-  }, [editorMode, sourceVisible, previewVisible])
-
-  const togglePreview = useCallback(() => {
-    if (editorMode === 'wysiwyg') {
-      // 从所见即所得切回：纯预览视图
-      setEditorMode('source'); setSourceVisible(false); setPreviewVisible(true); return
-    }
-    if (sourceVisible && !previewVisible) {
-      // A → C（开预览 → 纯预览）
-      setSourceVisible(false); setPreviewVisible(true)
-    } else if (sourceVisible && previewVisible) {
-      // B → A（收起预览 → 纯源码）
-      setPreviewVisible(false)
-    } else {
-      // C（S关P开）→ A（开源码 → 纯源码）
-      setSourceVisible(true); setPreviewVisible(false)
-    }
-  }, [editorMode, sourceVisible, previewVisible])
-
-  const toggleWysiwyg = useCallback(() => {
-    setEditorMode((m) => (m === 'wysiwyg' ? 'source' : 'wysiwyg'))
-    // 退出所见即所得后回到纯源码视图
-    if (editorMode === 'wysiwyg') {
-      setSourceVisible(true); setPreviewVisible(false)
-    }
-  }, [editorMode])
 
   // B3 发布闭环：标记目标笔记 → 跳转博客面板（博客按「单篇」呈现该文件；无参时取当前激活文件）
   const handlePublish = useCallback((fileId?: string) => {
@@ -568,28 +414,11 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
                     clickable: true,
                     onClick: () => lint.setPanelOpen(!lint.panelOpen),
                     content: (
-                      <span
-                        className="aurora-lint-entry"
-                        title="点击查看语法检查列表"
-                        aria-label="打开语法检查列表"
-                        role="button"
-                        tabIndex={0}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); lint.setPanelOpen(!lint.panelOpen) } }}
-                      >
-                        {lint.errorCount > 0 && (
-                          <span className="aurora-lint-entry__dot aurora-lint-entry__dot--error" />
-                        )}
-                        {lint.errorCount > 0 && (
-                          <span className="aurora-lint-entry__num aurora-lint-entry__num--error">{lint.errorCount}</span>
-                        )}
-                        {lint.warnCount > 0 && (
-                          <span className="aurora-lint-entry__dot aurora-lint-entry__dot--warn" />
-                        )}
-                        {lint.warnCount > 0 && (
-                          <span className="aurora-lint-entry__num aurora-lint-entry__num--warn">{lint.warnCount}</span>
-                        )}
-                        <span className="aurora-lint-entry__label">语法</span>
-                      </span>
+                      <AuroraLintEntry
+                        errorCount={lint.errorCount}
+                        warnCount={lint.warnCount}
+                        onToggle={() => lint.setPanelOpen(!lint.panelOpen)}
+                      />
                     ),
                   }]
                 : []),
@@ -644,16 +473,16 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
           {editorChromeShown && (
           <div
             className={`aurora-editor__hoverzone aurora-editor__hoverzone--left ${leftPinned ? 'is-pinned' : ''}`}
-            onMouseEnter={openLeftIntent}
-            onMouseLeave={closeLeftIntent}
+            onMouseEnter={leftIntent.openIntent}
+            onMouseLeave={leftIntent.closeIntent}
           >
             <div className="aurora-editor__edge aurora-editor__edge--left" aria-hidden />
             {leftOverlay.mounted && (
               <div
                 className="aurora-editor__overlay aurora-editor__overlay--left"
                 data-exiting={leftOverlay.exiting || undefined}
-                onMouseEnter={cancelLeftClose}
-                onMouseLeave={scheduleLeftClose}
+                onMouseEnter={leftIntent.cancelClose}
+                onMouseLeave={leftIntent.scheduleClose}
               >
                 <div className="aurora-editor__overlay-head">
                   <span className="aurora-editor__overlay-title">文件</span>
@@ -688,42 +517,11 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
 
           <div className="aurora-editor__main" onKeyDown={handleEditorKeyDown} tabIndex={0}>
             {!activeFileId ? (
-              <div className="aurora-editor__empty">
-                <div className="aurora-editor__empty-icon">
-                  <Icon.fileText size={20} />
-                </div>
-                <div className="aurora-editor__empty-title">未打开文档</div>
-                <div className="aurora-editor__empty-sub">
-                  在下方文件列表中选择一篇笔记，或按 <kbd className="aurora-editor__empty-kbd">⌘K</kbd> 打开命令面板快速定位
-                </div>
-                <div className="aurora-editor__empty-actions">
-                  <div className="aurora-editor__newfile">
-                    <Icon.fileText size={15} className="aurora-editor__newfile-icon" />
-                    <input
-                      ref={newFileInputRef}
-                      className="aurora-editor__filename-input"
-                      type="text"
-                      value={newFileName}
-                      onChange={(e) => setNewFileName(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === 'Enter') handleCreateNote() }}
-                      placeholder="为这篇笔记起个名字…"
-                      aria-label="新文件名"
-                      autoFocus
-                    />
-                    <button
-                      type="button"
-                      className="aurora-editor__newfile-btn"
-                      onClick={handleCreateNote}
-                    >
-                      新建笔记
-                    </button>
-                  </div>
-                </div>
-                {/* 文件列表直接内嵌于引导界面：轻量定制列表（非侧栏 FileTree），点文件即打开，无需再点按钮唤起侧栏 */}
-                <div className="aurora-editor__empty-files">
-                  <EmptyFileBrowser />
-                </div>
-              </div>
+              <EditorEmptyState
+                value={newFileName}
+                onChange={setNewFileName}
+                onCreate={handleCreateNote}
+              />
             ) : isUsageDoc ? (
               /* 内置「使用文档」→ 只读简介页（需求②）：不挂 EditorLayout，因此没有编辑区、
                  没有格式工具条（撤销/加粗/…/删除线/更多）与模式切换；只呈现渲染后的正文。
@@ -745,8 +543,8 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
           {!isUsageDoc && (
           <div
             className={`aurora-editor__hoverzone aurora-editor__hoverzone--right ${rightPinned ? 'is-pinned' : ''}`}
-            onMouseEnter={openRightIntent}
-            onMouseLeave={closeRightIntent}
+            onMouseEnter={rightIntent.openIntent}
+            onMouseLeave={rightIntent.closeIntent}
           >
             <div className="aurora-editor__edge aurora-editor__edge--right" aria-hidden />
             {rightOverlay.mounted && activeFileId && (
