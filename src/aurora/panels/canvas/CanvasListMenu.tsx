@@ -14,6 +14,7 @@ import {
   type CanvasTrashItem,
 } from '@features/canvas-v2'
 import { downloadBlob } from '@features/canvas-v2/utils/canvasExport'
+import { useLanguage } from '../../../stores/LanguageStore'
 
 /**
  * Aurora 白板列表（.aurora-canvaslist，真实 canvasStore）—— 打开/新建/删除/导出 + 回收站
@@ -30,6 +31,7 @@ export interface CanvasListMenuProps {
 type ListTab = 'list' | 'trash'
 
 export function CanvasListMenu({ open, currentId, onClose, onOpen, onCreate, toast }: CanvasListMenuProps) {
+  const { t } = useLanguage()
   const [items, setItems] = useState<CanvasListItem[]>([])
   const [trashItems, setTrashItems] = useState<CanvasTrashItem[]>([])
   const [tab, setTab] = useState<ListTab>('list')
@@ -72,12 +74,12 @@ export function CanvasListMenu({ open, currentId, onClose, onOpen, onCreate, toa
 
   // 新建白板：打开内联输入框
   const startCreate = () => {
-    setNewName('未命名白板')
+    setNewName(t.canvasList.untitled)
     setCreating(true)
   }
   // 确认新建：把名称交给父级（父级负责 createCanvas + 打开）
   const confirmCreate = async () => {
-    const name = newName.trim() || '未命名白板'
+    const name = newName.trim() || t.canvasList.untitled
     setCreating(false)
     await onCreate(name)
   }
@@ -102,20 +104,21 @@ export function CanvasListMenu({ open, currentId, onClose, onOpen, onCreate, toa
     const [list, trash] = await Promise.all([getCanvasList(), getTrash()])
     setItems(list)
     setTrashItems(trash)
-    toast?.(`已删除白板「${name}」，可在回收站恢复`)
+    toast?.(t.canvasList.deletedBoardToast.replace('{n}', name))
   }
 
   const handleExportItem = async (id: string, name: string) => {
     const d = await loadCanvas(id)
     if (!d) {
-      toast?.('白板数据读取失败')
+      toast?.(t.canvasList.loadFailed)
       return
     }
     const blob = new Blob([JSON.stringify(d.data, null, 2)], {
       type: 'application/json',
     })
-    downloadBlob(blob, `${name || '白板'}.json`)
-    toast?.(`已导出「${name || '白板'}」数据`)
+    const displayName = name || t.canvasList.defaultName
+    downloadBlob(blob, `${displayName}.json`)
+    toast?.(t.canvasList.exportedToast.replace('{n}', displayName))
   }
 
   const handleRestore = async (id: string) => {
@@ -123,30 +126,30 @@ export function CanvasListMenu({ open, currentId, onClose, onOpen, onCreate, toa
     const [list, trash] = await Promise.all([getCanvasList(), getTrash()])
     setItems(list)
     setTrashItems(trash)
-    toast?.(`已恢复「${d?.name ?? '白板'}」`)
+    toast?.(t.canvasList.restoredToast.replace('{n}', d?.name ?? t.canvasList.defaultName))
     onOpen(id)
   }
 
   const handlePurge = async (id: string, name: string) => {
     await purgeFromTrash(id)
     setTrashItems(await getTrash())
-    toast?.(`已彻底删除「${name}」`)
+    toast?.(t.canvasList.purgedToast.replace('{n}', name))
   }
 
   const handleClearTrash = async () => {
     await clearTrash()
     setTrashItems([])
-    toast?.('回收站已清空')
+    toast?.(t.canvasList.trashClearedToast)
   }
 
   const fmt = (ts: number) => {
     const d = Date.now() - ts
     const m = Math.floor(d / 60000)
-    if (m < 1) return '刚刚'
-    if (m < 60) return `${m} 分钟前`
+    if (m < 1) return t.welcome.agoNow
+    if (m < 60) return t.welcome.agoMinutes.replace('{n}', String(m))
     const h = Math.floor(m / 60)
-    if (h < 24) return `${h} 小时前`
-    return `${Math.floor(h / 24)} 天前`
+    if (h < 24) return t.welcome.agoHours.replace('{n}', String(h))
+    return t.welcome.agoDays.replace('{n}', String(Math.floor(h / 24)))
   }
 
   const el = (
@@ -155,12 +158,12 @@ export function CanvasListMenu({ open, currentId, onClose, onOpen, onCreate, toa
         <div className="aurora-cmdk__search">
           <Icon.search size={15} />
           <span className="aurora-cmdk__search-input" style={{ border: 'none', background: 'transparent', flex: 1, fontSize: 13, color: 'var(--mc-text-primary)' }}>
-            白板管理
+            {t.canvasList.title}
           </span>
-          <button type="button" className="aurora-cmdk__esc" onClick={onClose}>关闭</button>
+          <button type="button" className="aurora-cmdk__esc" onClick={onClose}>{t.canvasList.close}</button>
         </div>
         <div className="aurora-canvaslist" style={{ overflowY: 'auto', padding: 12 }}>
-          <div className="aurora-canvaslist__tabs" role="tablist" aria-label="白板列表与回收站">
+          <div className="aurora-canvaslist__tabs" role="tablist" aria-label={t.canvasList.tabsAria}>
             <button
               type="button"
               role="tab"
@@ -168,7 +171,7 @@ export function CanvasListMenu({ open, currentId, onClose, onOpen, onCreate, toa
               className={`aurora-canvaslist__tab ${tab === 'list' ? 'aurora-canvaslist__tab--on' : ''}`}
               onClick={() => setTab('list')}
             >
-              白板列表（{items.length}）
+              {t.canvasList.listTab.replace('{n}', String(items.length))}
             </button>
             <button
               type="button"
@@ -177,7 +180,7 @@ export function CanvasListMenu({ open, currentId, onClose, onOpen, onCreate, toa
               className={`aurora-canvaslist__tab ${tab === 'trash' ? 'aurora-canvaslist__tab--on' : ''}`}
               onClick={() => setTab('trash')}
             >
-              回收站（{trashItems.length}）
+              {t.canvasList.trashTab.replace('{n}', String(trashItems.length))}
             </button>
           </div>
 
@@ -189,7 +192,7 @@ export function CanvasListMenu({ open, currentId, onClose, onOpen, onCreate, toa
                     className="aurora-canvaslist__create-input"
                     autoFocus
                     value={newName}
-                    placeholder="输入白板名称"
+                    placeholder={t.canvasList.namePlaceholder}
                     onChange={(e) => setNewName(e.target.value)}
                     onFocus={(e) => e.currentTarget.select()}
                     onKeyDown={(e) => {
@@ -197,15 +200,15 @@ export function CanvasListMenu({ open, currentId, onClose, onOpen, onCreate, toa
                       else if (e.key === 'Escape') setCreating(false)
                     }}
                   />
-                  <button type="button" className="aurora-canvaslist__create-ok" title="确认新建" aria-label="确认新建" onClick={() => void confirmCreate()}>
+                  <button type="button" className="aurora-canvaslist__create-ok" title={t.canvasList.confirmNew} aria-label={t.canvasList.confirmNew} onClick={() => void confirmCreate()}>
                     <Icon.check size={14} />
                   </button>
-                  <button type="button" className="aurora-canvaslist__create-cancel" title="取消" aria-label="取消" onClick={() => setCreating(false)}>
+                  <button type="button" className="aurora-canvaslist__create-cancel" title={t.canvasList.cancel} aria-label={t.canvasList.cancel} onClick={() => setCreating(false)}>
                     <Icon.close size={14} />
                   </button>
                 </div>
               )}
-              {items.length === 0 && <div className="aurora-canvaslist__empty" style={{ padding: 24, textAlign: 'center', fontSize: 12, color: 'var(--mc-text-tertiary)' }}>暂无白板，点击下方新建</div>}
+              {items.length === 0 && <div className="aurora-canvaslist__empty" style={{ padding: 24, textAlign: 'center', fontSize: 12, color: 'var(--mc-text-tertiary)' }}>{t.canvasList.emptyList}</div>}
               {items.map((c) => {
                 const isRenaming = renamingId === c.id
                 return (
@@ -235,17 +238,17 @@ export function CanvasListMenu({ open, currentId, onClose, onOpen, onCreate, toa
                       ) : (
                         <div className="aurora-canvaslist__name">
                           <span>{c.name}</span>
-                          {c.id === currentId && <span className="aurora-canvaslist__current-tag">当前</span>}
+                          {c.id === currentId && <span className="aurora-canvaslist__current-tag">{t.canvasList.current}</span>}
                         </div>
                       )}
-                      <div className="aurora-canvaslist__time">{fmt(c.updatedAt)} · {c.cardCount ?? 0} 卡片</div>
+                      <div className="aurora-canvaslist__time">{fmt(c.updatedAt)} · {t.canvasList.cardsCount.replace('{n}', String(c.cardCount ?? 0))}</div>
                     </div>
                     <div className="aurora-canvaslist__actions">
                       <button
                         type="button"
                         className="aurora-canvaslist__del"
-                        title="重命名白板"
-                        aria-label="重命名白板"
+                        title={t.canvasList.renameBoard}
+                        aria-label={t.canvasList.renameBoard}
                         onClick={(e) => {
                           e.stopPropagation()
                           startRename(c)
@@ -256,8 +259,8 @@ export function CanvasListMenu({ open, currentId, onClose, onOpen, onCreate, toa
                       <button
                         type="button"
                         className="aurora-canvaslist__del"
-                        title="导出白板数据（JSON）"
-                        aria-label="导出白板数据"
+                        title={t.canvasList.exportDataTitle}
+                        aria-label={t.canvasList.exportDataAria}
                         onClick={(e) => {
                           e.stopPropagation()
                           void handleExportItem(c.id, c.name)
@@ -268,7 +271,7 @@ export function CanvasListMenu({ open, currentId, onClose, onOpen, onCreate, toa
                       <button
                         type="button"
                         className="aurora-canvaslist__del"
-                        title="删除白板"
+                        title={t.canvasList.deleteBoard}
                         onClick={(e) => {
                           e.stopPropagation()
                           void handleDelete(c.id, c.name)
@@ -282,7 +285,7 @@ export function CanvasListMenu({ open, currentId, onClose, onOpen, onCreate, toa
               })}
               {!creating && (
                 <button type="button" className="aurora-ctop__act aurora-ctop__act--primary" style={{ marginTop: 12, justifyContent: 'center', width: '100%' }} onClick={() => startCreate()}>
-                  <Icon.plus size={14} /> 新建白板
+                  <Icon.plus size={14} /> {t.canvasList.newBoard}
                 </button>
               )}
             </>
@@ -292,14 +295,14 @@ export function CanvasListMenu({ open, currentId, onClose, onOpen, onCreate, toa
             <>
               {trashItems.length === 0 ? (
                 <div className="aurora-canvaslist__empty" style={{ padding: 24, textAlign: 'center', fontSize: 12, color: 'var(--mc-text-tertiary)' }}>
-                  回收站为空<br />删除的白板保留 30 天，可在此恢复
+                  {t.canvasList.emptyTrash}<br />{t.canvasList.trashRetention}
                 </div>
               ) : (
                 <>
                   <div className="aurora-canvaslist__trashhead">
-                    <span>删除的白板保留 30 天</span>
+                    <span>{t.canvasList.trashRetentionShort}</span>
                     <button type="button" className="aurora-canvaslist__clear" onClick={() => void handleClearTrash()}>
-                      清空回收站
+                      {t.canvasList.clearTrash}
                     </button>
                   </div>
                   {trashItems.map((c) => (
@@ -309,14 +312,14 @@ export function CanvasListMenu({ open, currentId, onClose, onOpen, onCreate, toa
                         <div className="aurora-canvaslist__name">
                           <span>{c.name}</span>
                         </div>
-                        <div className="aurora-canvaslist__time">{fmt(c.deletedAt)} 删除 · {c.cardCount ?? 0} 卡片</div>
+                        <div className="aurora-canvaslist__time">{fmt(c.deletedAt)} {t.canvasList.deletedWord} · {t.canvasList.cardsCount.replace('{n}', String(c.cardCount ?? 0))}</div>
                       </div>
                       <div className="aurora-canvaslist__actions">
                         <button
                           type="button"
                           className="aurora-canvaslist__del"
-                          title="恢复白板"
-                          aria-label="恢复白板"
+                          title={t.canvasList.restoreBoard}
+                          aria-label={t.canvasList.restoreBoard}
                           onClick={() => void handleRestore(c.id)}
                         >
                           <Icon.undo size={14} />
@@ -324,8 +327,8 @@ export function CanvasListMenu({ open, currentId, onClose, onOpen, onCreate, toa
                         <button
                           type="button"
                           className="aurora-canvaslist__del aurora-canvaslist__del--danger"
-                          title="彻底删除（不可恢复）"
-                          aria-label="彻底删除"
+                          title={t.canvasList.purgeTitle}
+                          aria-label={t.canvasList.purgeAria}
                           onClick={() => void handlePurge(c.id, c.name)}
                         >
                           <Icon.trash size={14} />

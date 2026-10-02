@@ -4,6 +4,8 @@ import { usePresence, usePresenceValue, POPOVER_EXIT_MS } from '@components/ui/u
 import { Icon } from '../../icons'
 import type { CanvasEngine } from '@features/canvas-v2/engine/CanvasEngine'
 import { useEngineSnapshot } from './canvasHooks'
+import { useLanguage } from '../../../stores/LanguageStore'
+import type { Translations } from '../../../locales/zh'
 import { getCardTemplates, saveCardTemplate, deleteCardTemplate } from '@features/canvas-v2'
 import type { CardTemplate } from '@features/canvas-v2'
 
@@ -28,49 +30,51 @@ export interface CanvasDockProps {
   onAutoLayout?: () => void
 }
 
+type DockKey = keyof Translations['canvasDock']
+
 interface ToolDef {
   id: string
   icon: string
-  label: string
+  labelKey: DockKey
   geo?: string
   /** 白板原生元素类型（便签=note-card / 标签=label-card） */
   create?: 'note' | 'label'
 }
 
 const PRIMARY_TOOLS: ToolDef[] = [
-  { id: 'select', icon: 'cursor', label: '选择' },
-  { id: 'hand', icon: 'hand', label: '拖拽' },
-  { id: 'draw', icon: 'edit', label: '画笔' },
-  { id: 'eraser', icon: 'trash', label: '橡皮' },
-  { id: 'geo', icon: 'square', label: '矩形', geo: 'rectangle' },
-  { id: 'geo', icon: 'circle', label: '椭圆', geo: 'ellipse' },
-  { id: 'arrow', icon: 'arrowR', label: '箭头' },
-  { id: 'text', icon: 'type', label: '文本' },
-  { id: 'note', icon: 'file', label: '便签', create: 'note' },
-  { id: 'label', icon: 'tag', label: '标签', create: 'label' },
+  { id: 'select', icon: 'cursor', labelKey: 'select' },
+  { id: 'hand', icon: 'hand', labelKey: 'hand' },
+  { id: 'draw', icon: 'edit', labelKey: 'draw' },
+  { id: 'eraser', icon: 'trash', labelKey: 'eraser' },
+  { id: 'geo', icon: 'square', labelKey: 'rect', geo: 'rectangle' },
+  { id: 'geo', icon: 'circle', labelKey: 'ellipse', geo: 'ellipse' },
+  { id: 'arrow', icon: 'arrowR', labelKey: 'arrow' },
+  { id: 'text', icon: 'type', labelKey: 'text' },
+  { id: 'note', icon: 'file', labelKey: 'note', create: 'note' },
+  { id: 'label', icon: 'tag', labelKey: 'label', create: 'label' },
 ]
 
 const ADVANCED_TOOLS: ToolDef[] = [
-  { id: 'line', icon: 'minus', label: '直线' },
-  { id: 'frame', icon: 'frame', label: '框' },
-  { id: 'asset', icon: 'image', label: '图片' },
+  { id: 'line', icon: 'minus', labelKey: 'line' },
+  { id: 'frame', icon: 'frame', labelKey: 'frame' },
+  { id: 'asset', icon: 'image', labelKey: 'image' },
 ]
 
 // 画笔预设色（黑/红/橙/黄/绿/蓝/紫/白，与旧 PenContextMenu 一致）
-const PEN_COLORS: { name: string; value: string }[] = [
-  { name: '黑', value: '#1e1e1e' },
-  { name: '红', value: '#e03131' },
-  { name: '橙', value: '#f08c00' },
-  { name: '黄', value: '#f1c40f' },
-  { name: '绿', value: '#2f9e44' },
-  { name: '蓝', value: '#1971c2' },
-  { name: '紫', value: '#6741d9' },
-  { name: '白', value: '#ffffff' },
+const PEN_COLORS: { nameKey: DockKey; value: string }[] = [
+  { nameKey: 'penBlack', value: '#1e1e1e' },
+  { nameKey: 'penRed', value: '#e03131' },
+  { nameKey: 'penOrange', value: '#f08c00' },
+  { nameKey: 'penYellow', value: '#f1c40f' },
+  { nameKey: 'penGreen', value: '#2f9e44' },
+  { nameKey: 'penBlue', value: '#1971c2' },
+  { nameKey: 'penPurple', value: '#6741d9' },
+  { nameKey: 'penWhite', value: '#ffffff' },
 ]
-const PEN_WIDTHS: { name: string; value: number }[] = [
-  { name: '细', value: 2 },
-  { name: '中', value: 5 },
-  { name: '粗', value: 9 },
+const PEN_WIDTHS: { nameKey: DockKey; value: number }[] = [
+  { nameKey: 'widthThin', value: 2 },
+  { nameKey: 'widthMedium', value: 5 },
+  { nameKey: 'widthThick', value: 9 },
 ]
 
 export function CanvasDock({
@@ -78,6 +82,7 @@ export function CanvasDock({
   onSync, autoSync = false, onToggleAutoSync,
   gridSnapEnabled = false, onToggleGrid, onAutoLayout,
 }: CanvasDockProps) {
+  const { t } = useLanguage()
   const tool = useEngineSnapshot(engine, (e) => e.getCurrentToolId(), 'session')
   const canUndo = useEngineSnapshot(engine, (e) => e.getCanUndo(), 'session') ?? false
   const canRedo = useEngineSnapshot(engine, (e) => e.getCanRedo(), 'session') ?? false
@@ -116,11 +121,11 @@ export function CanvasDock({
     const ids = engine.getSelectedShapeIds()
     const s = ids.length ? engine.getShape(ids[0]) : undefined
     if (!s || s.type !== 'note-card') {
-      toast?.('请先选中一张笔记卡片')
+      toast?.(t.canvasDock.selectNoteFirst)
       return
     }
     const p = s.props
-    const name = String(p.text || '').split('\n')[0]?.replace(/^#+\s*/, '').slice(0, 20) || '未命名模板'
+    const name = String(p.text || '').split('\n')[0]?.replace(/^#+\s*/, '').slice(0, 20) || t.canvasDock.untitledTemplate
     void saveCardTemplate({
       name,
       category: 'custom',
@@ -130,43 +135,43 @@ export function CanvasDock({
       color: p.color,
       tags: p.tags,
       content: p.text || '',
-    }).then((t) => toast?.(`已保存模板「${t.name}」`))
+    }).then((saved) => toast?.(t.canvasDock.templateSaved.replace('{n}', saved.name)))
   }
 
-  const insertTemplate = (t: CardTemplate) => {
+  const insertTemplate = (tpl: CardTemplate) => {
     if (!engine) return
     const v = engine.getViewportPageBounds()
     engine.createCardFree(
       'note-card',
-      { text: t.content, color: t.color ?? '#F59E0B', w: t.width, h: t.height, tags: t.tags },
+      { text: tpl.content, color: tpl.color ?? '#F59E0B', w: tpl.width, h: tpl.height, tags: tpl.tags },
       { x: v.x + 80, y: v.y + 80 },
-      t.width,
-      t.height,
+      tpl.width,
+      tpl.height,
     )
     setTplOpen(false)
-    toast?.(`已插入模板「${t.name}」`)
+    toast?.(t.canvasDock.templateInserted.replace('{n}', tpl.name))
   }
 
   const activeTool = (id: string) => (id === 'geo' ? tool === 'geo' : tool === id)
 
-  const activate = (t: ToolDef) => {
+  const activate = (tool: ToolDef) => {
     if (!engine) return
-    if (t.create === 'note') {
-      engine.createCardFree('note-card', { text: '新便签', color: '#F59E0B' })
+    if (tool.create === 'note') {
+      engine.createCardFree('note-card', { text: t.canvasDock.newNoteDefault, color: '#F59E0B' })
       setMoreOpen(false)
       return
     }
-    if (t.create === 'label') {
+    if (tool.create === 'label') {
       // 标签：视口中心创建 label-card 并进入编辑态（对齐旧 handleCreateLabel）
       const center = engine.getViewportPageBounds().center
-      const id = engine.createCardFree('label-card', { text: '新标签' }, { x: center.x - 60, y: center.y - 18 })
+      const id = engine.createCardFree('label-card', { text: t.canvasDock.newLabelDefault }, { x: center.x - 60, y: center.y - 18 })
       engine.setSelectedShapes([id])
       engine.setEditingShape(id)
       setMoreOpen(false)
       return
     }
-    if (t.id === 'geo' && t.geo) engine.setStyleForNextShapes(null, t.geo)
-    engine.setCurrentTool(t.id)
+    if (tool.id === 'geo' && tool.geo) engine.setStyleForNextShapes(null, tool.geo)
+    engine.setCurrentTool(tool.id)
     setMoreOpen(false)
   }
 
@@ -202,7 +207,7 @@ export function CanvasDock({
     (engine as unknown as { clearBrushStrokes?: () => void })?.clearBrushStrokes?.()
     engine?.setCurrentTool('draw')
     setEraserClear(null)
-    toast?.('已清空全部画笔笔迹')
+    toast?.(t.canvasDock.strokesCleared)
   }
 
   const moreBottom = moreRef.current ? Number(moreRef.current.dataset.menuBottom ?? 0) : 0
@@ -210,13 +215,13 @@ export function CanvasDock({
 
   return (
     <>
-      <div className="aurora-dock" role="toolbar" aria-label="底部工具栏">
+      <div className="aurora-dock" role="toolbar" aria-label={t.canvasDock.toolbarAria}>
         {/* 撤销 / 重做（第一、第二位置） */}
         <div className="aurora-dock__group">
-          <button type="button" className="aurora-dock__item" onClick={() => engine?.undo()} disabled={!canUndo} title="撤销 Ctrl+Z" aria-label="撤销">
+          <button type="button" className="aurora-dock__item" onClick={() => engine?.undo()} disabled={!canUndo} title={`${t.canvasDock.undo} Ctrl+Z`} aria-label={t.canvasDock.undo}>
             <Icon.undo size={16} className="aurora-dock__item-icon" />
           </button>
-          <button type="button" className="aurora-dock__item" onClick={() => engine?.redo()} disabled={!canRedo} title="重做 Ctrl+Y" aria-label="重做">
+          <button type="button" className="aurora-dock__item" onClick={() => engine?.redo()} disabled={!canRedo} title={`${t.canvasDock.redo} Ctrl+Y`} aria-label={t.canvasDock.redo}>
             <Icon.redo size={16} className="aurora-dock__item-icon" />
           </button>
         </div>
@@ -225,26 +230,27 @@ export function CanvasDock({
 
         {/* 工具组 */}
         <div className="aurora-dock__group">
-          {PRIMARY_TOOLS.map((t) => {
-            const IconComp = Icon[t.icon as keyof typeof Icon]
-            const isDraw = t.id === 'draw'
-            const isEraser = t.id === 'eraser'
+          {PRIMARY_TOOLS.map((tool) => {
+            const IconComp = Icon[tool.icon as keyof typeof Icon]
+            const isDraw = tool.id === 'draw'
+            const isEraser = tool.id === 'eraser'
+            const toolLabel = t.canvasDock[tool.labelKey]
             return (
               <button
-                key={t.label}
+                key={tool.labelKey}
                 type="button"
-                className={`aurora-dock__item ${activeTool(t.id) ? 'aurora-dock__item--active' : ''}`}
-                onClick={() => activate(t)}
+                className={`aurora-dock__item ${activeTool(tool.id) ? 'aurora-dock__item--active' : ''}`}
+                onClick={() => activate(tool)}
                 onContextMenu={(e) => {
                   if (isDraw) { e.preventDefault(); openFloat(e.currentTarget, 'pen') }
                   else if (isEraser) { e.preventDefault(); openFloat(e.currentTarget, 'eraser') }
                 }}
-                title={t.label}
-                aria-label={t.label}
-                aria-pressed={activeTool(t.id)}
+                title={toolLabel}
+                aria-label={toolLabel}
+                aria-pressed={activeTool(tool.id)}
                 style={isDraw ? { position: 'relative' } : undefined}
               >
-                {IconComp ? <IconComp size={18} className="aurora-dock__item-icon" /> : <span>{t.label}</span>}
+                {IconComp ? <IconComp size={18} className="aurora-dock__item-icon" /> : <span>{toolLabel}</span>}
                 {isDraw && (
                   <span
                     className="aurora-dock__pen-dot"
@@ -260,7 +266,7 @@ export function CanvasDock({
 
         {/* 同步笔记链接 */}
         <div className="aurora-dock__group">
-          <button type="button" className="aurora-dock__item" onClick={() => onSync?.()} title="同步笔记链接" aria-label="同步笔记链接">
+          <button type="button" className="aurora-dock__item" onClick={() => onSync?.()} title={t.canvasDock.syncLink} aria-label={t.canvasDock.syncLink}>
             <Icon.sync size={14} className="aurora-dock__item-icon" />
           </button>
         </div>
@@ -274,8 +280,8 @@ export function CanvasDock({
             type="button"
             className={`aurora-dock__item ${moreOpen ? 'aurora-dock__item--active' : ''}`}
             onClick={toggleMore}
-            title="更多工具与功能"
-            aria-label="更多工具与功能"
+            title={t.canvasDock.moreTools}
+            aria-label={t.canvasDock.moreTools}
           >
             <Icon.chevronDown size={14} className="aurora-dock__item-icon" />
           </button>
@@ -291,29 +297,29 @@ export function CanvasDock({
             data-exiting={morePresence.exiting || undefined}
             style={{ position: 'fixed', right: moreRight, bottom: moreBottom, zIndex: 10001 }}
           >
-            <div className="aurora-dock__menu-title">绘图工具</div>
-            {ADVANCED_TOOLS.map((t) => {
-              const IconComp = Icon[t.icon as keyof typeof Icon]
+            <div className="aurora-dock__menu-title">{t.canvasDock.drawTools}</div>
+            {ADVANCED_TOOLS.map((tool) => {
+              const IconComp = Icon[tool.icon as keyof typeof Icon]
               return (
-                <button key={t.label} type="button" className="aurora-canvas-ctxmenu__item" onClick={() => activate(t)}>
+                <button key={tool.labelKey} type="button" className="aurora-canvas-ctxmenu__item" onClick={() => activate(tool)}>
                   {IconComp ? <IconComp size={14} /> : null}
-                  <span>{t.label}</span>
+                  <span>{t.canvasDock[tool.labelKey]}</span>
                 </button>
               )
             })}
             <div className="aurora-canvas-ctxmenu__sep" />
-            <div className="aurora-dock__menu-title">视图与同步</div>
+            <div className="aurora-dock__menu-title">{t.canvasDock.viewSync}</div>
             <button
               type="button"
               className={`aurora-canvas-ctxmenu__item ${gridSnapEnabled ? 'is-on' : ''}`}
               onClick={() => { onToggleGrid?.(); setMoreOpen(false) }}
             >
               <Icon.grid size={14} />
-              <span>网格吸附 {gridSnapEnabled ? <Icon.check size={12} /> : null}</span>
+              <span>{t.canvasDock.gridSnap} {gridSnapEnabled ? <Icon.check size={12} /> : null}</span>
             </button>
             <button type="button" className="aurora-canvas-ctxmenu__item" onClick={() => { onAutoLayout?.(); setMoreOpen(false) }}>
               <Icon.refresh size={14} />
-              <span>自动布局</span>
+              <span>{t.canvasDock.autoLayout}</span>
             </button>
             <button
               type="button"
@@ -321,12 +327,12 @@ export function CanvasDock({
               onClick={() => { onToggleAutoSync?.(); setMoreOpen(false) }}
             >
               <Icon.sync size={14} />
-              <span>自动同步 {autoSync ? <Icon.check size={12} /> : null}</span>
+              <span>{t.canvasDock.autoSync} {autoSync ? <Icon.check size={12} /> : null}</span>
             </button>
-            <div className="aurora-dock__menu-title">卡片模板</div>
+            <div className="aurora-dock__menu-title">{t.canvasDock.cardTemplates}</div>
             <button type="button" className="aurora-canvas-ctxmenu__item" onClick={() => { saveTemplate(); setMoreOpen(false) }}>
               <Icon.save size={14} />
-              <span>存为模板（选中卡片）</span>
+              <span>{t.canvasDock.saveAsTemplate}</span>
             </button>
             <button
               type="button"
@@ -334,7 +340,7 @@ export function CanvasDock({
               onClick={() => { setMoreOpen(false); setTplOpen(true); void loadTpls() }}
             >
               <Icon.export size={14} />
-              <span>插入模板</span>
+              <span>{t.canvasDock.insertTemplate}</span>
             </button>
           </div>
         </>,
@@ -350,20 +356,20 @@ export function CanvasDock({
             data-exiting={penPresence.exiting || undefined}
             style={{ left: penPresence.value.x, bottom: penPresence.value.bottom }}
           >
-            <div className="aurora-dock__menu-title">画笔设置</div>
+            <div className="aurora-dock__menu-title">{t.canvasDock.penSettings}</div>
             <div className="aurora-dock__pen-colors">
               {PEN_COLORS.map((c) => (
                 <button
                   key={c.value}
                   type="button"
-                  title={c.name}
+                  title={t.canvasDock[c.nameKey]}
                   className={`aurora-dock__swatch ${c.value.toLowerCase() === penColor.toLowerCase() ? 'is-on' : ''}`}
                   style={{ background: c.value }}
                   onClick={() => pickColor(c.value)}
                 />
               ))}
             </div>
-            <div className="aurora-dock__menu-title" style={{ marginTop: 10 }}>粗细</div>
+            <div className="aurora-dock__menu-title" style={{ marginTop: 10 }}>{t.canvasDock.penWidthTitle}</div>
             <div className="aurora-dock__pen-widths">
               {PEN_WIDTHS.map((w) => (
                 <button
@@ -373,7 +379,7 @@ export function CanvasDock({
                   onClick={() => pickWidth(w.value)}
                 >
                   <span className="aurora-dock__width-line" style={{ height: Math.max(w.value, 2), background: penColor }} />
-                  <span>{w.name}</span>
+                  <span>{t.canvasDock[w.nameKey]}</span>
                 </button>
               ))}
             </div>
@@ -391,7 +397,7 @@ export function CanvasDock({
             data-exiting={eraserPresence.exiting || undefined}
             style={{ left: eraserPresence.value.x, bottom: eraserPresence.value.bottom }}
           >
-            <div className="aurora-dock__menu-title">清空全部画笔笔迹</div>
+            <div className="aurora-dock__menu-title">{t.canvasDock.clearStrokesTitle}</div>
             <EraserSlider onCommit={clearStrokes} />
           </div>
         </>,
@@ -407,28 +413,28 @@ export function CanvasDock({
             data-exiting={tplPresence.exiting || undefined}
             style={{ left: moreRight, bottom: moreBottom, width: 300, maxHeight: 380, overflowY: 'auto' }}
           >
-            <div className="aurora-dock__menu-title">卡片模板</div>
+            <div className="aurora-dock__menu-title">{t.canvasDock.cardTemplates}</div>
             {tpls.length === 0 ? (
               <div style={{ fontSize: 11, color: 'var(--mc-text-tertiary)', padding: '6px 10px' }}>
-                暂无模板，先选中卡片后「存为模板」
+                {t.canvasDock.noTemplates}
               </div>
             ) : (
-              tpls.map((t) => (
-                <div key={t.id} className="aurora-canvas-ctxmenu__item" style={{ justifyContent: 'space-between', gap: 8 }}>
+              tpls.map((tpl) => (
+                <div key={tpl.id} className="aurora-canvas-ctxmenu__item" style={{ justifyContent: 'space-between', gap: 8 }}>
                   <button
                     type="button"
                     style={{ flex: 1, textAlign: 'left', display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--mc-text-primary)', fontSize: 12, padding: 0 }}
-                    onClick={() => insertTemplate(t)}
-                    title={`插入「${t.name}」`}
+                    onClick={() => insertTemplate(tpl)}
+                    title={t.canvasDock.insertTplTitle.replace('{n}', tpl.name)}
                   >
-                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tpl.name}</span>
                   </button>
                   <button
                     type="button"
                     style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--mc-text-tertiary)', fontSize: 12, padding: 0 }}
-                    title="删除模板"
+                    title={t.canvasDock.deleteTemplate}
                     onClick={async () => {
-                      await deleteCardTemplate(t.id)
+                      await deleteCardTemplate(tpl.id)
                       void loadTpls()
                     }}
                   ><Icon.close size={12} /></button>
@@ -445,6 +451,7 @@ export function CanvasDock({
 
 /** 清空确认滑动条：拖到最右（≥0.95）触发 */
 function EraserSlider({ onCommit }: { onCommit: () => void }) {
+  const { t } = useLanguage()
   const [pct, setPct] = useState(0)
   const [armed, setArmed] = useState(false)
   const trackRef = useRef<HTMLDivElement>(null)
@@ -484,7 +491,7 @@ function EraserSlider({ onCommit }: { onCommit: () => void }) {
       <div className="aurora-dock__eraser-thumb" style={{ left: `calc(${pct * 100}% - 12px)` }}>
         <Icon.trash size={14} />
       </div>
-      <span className="aurora-dock__eraser-hint">{armed ? '已清空' : '拖到最右清空'}</span>
+      <span className="aurora-dock__eraser-hint">{armed ? t.canvasDock.eraserCleared : t.canvasDock.eraserHint}</span>
     </div>
   )
 }

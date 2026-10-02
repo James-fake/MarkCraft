@@ -4,6 +4,7 @@ import { LABEL_BG_PRESETS, autoTextColor } from '@features/canvas-v2/engine/Over
 import type { CanvasEngine } from '@features/canvas-v2/engine/CanvasEngine'
 import { InspectorSelect } from './InspectorSelect'
 import { COLORS, type ParsedShape } from './inspectorPanelShared'
+import { useLanguage } from '../../../stores/LanguageStore'
 
 // ───────────── 属性 ─────────────
 export function PropsTab({
@@ -23,10 +24,11 @@ export function PropsTab({
   clamp: (v: number, min: number, max: number) => number
   parentCards: { id: string; text: string }[]
 }) {
+  const { t } = useLanguage()
   if (!selected) {
     return (
       <div className="aurora-cip__empty">
-        未选中元素。点击白板上的卡片查看属性。
+        {t.propsTab.empty}
       </div>
     )
   }
@@ -43,17 +45,17 @@ export function PropsTab({
   const canDelete = !!engine
   return (
     <div className="aurora-cip__section" style={{ padding: 'var(--mc-space-5)' }}>
-      <div className="aurora-cip__section-title">内容</div>
+      <div className="aurora-cip__section-title">{t.propsTab.content}</div>
       <textarea
         className="aurora-cip__textarea"
         rows={4}
         value={s.text.replace(/ {2,}/g, ' ')}
-        placeholder="卡片内容…"
+        placeholder={t.propsTab.contentPlaceholder}
         onChange={(e) => set({ props: { text: e.target.value } })}
       />
       {s.type === 'label-card' ? (
         <>
-          <div className="aurora-cip__section-title">背景色</div>
+          <div className="aurora-cip__section-title">{t.propsTab.bgColor}</div>
           <div className="aurora-cip__swatches">
             {LABEL_BG_PRESETS.map((c) => (
               <button
@@ -62,22 +64,22 @@ export function PropsTab({
                 className={`aurora-cip__swatch ${(s.bg ?? '').toLowerCase() === c.toLowerCase() ? 'aurora-cip__swatch--on' : ''}`}
                 style={{ background: c }}
                 onClick={() => set({ props: { bg: c, textColor: autoTextColor(c) } })}
-                aria-label={`背景色 ${c}`}
+                aria-label={t.propsTab.bgColorAria.replace('{n}', c)}
               />
             ))}
           </div>
-          <div className="aurora-cip__section-title">文字色</div>
+          <div className="aurora-cip__section-title">{t.propsTab.textColor}</div>
           <div className="aurora-cip__row" style={{ gap: 8 }}>
-            <button type="button" className="aurora-cip__chip" onClick={() => set({ props: { textColor: '#1F2937' } })}>深色</button>
-            <button type="button" className="aurora-cip__chip" onClick={() => set({ props: { textColor: '#F9FAFB' } })}>浅色</button>
+            <button type="button" className="aurora-cip__chip" onClick={() => set({ props: { textColor: '#1F2937' } })}>{t.propsTab.colorDark}</button>
+            <button type="button" className="aurora-cip__chip" onClick={() => set({ props: { textColor: '#F9FAFB' } })}>{t.propsTab.colorLight}</button>
           </div>
           <div className="aurora-cip__row" style={{ justifyContent: 'space-between' }}>
-            <span className="aurora-cip__label">边框</span>
+            <span className="aurora-cip__label">{t.propsTab.border}</span>
             <button
               type="button"
               className={`aurora-cip__switch ${s.borderOn ? 'aurora-cip__switch--on' : ''}`}
               onClick={() => set({ props: { borderOn: !s.borderOn } })}
-              aria-label={s.borderOn ? '关闭边框' : '开启边框'}
+              aria-label={s.borderOn ? t.propsTab.borderOffAria : t.propsTab.borderOnAria}
             >
               <span className="aurora-cip__switch-knob" />
             </button>
@@ -85,7 +87,7 @@ export function PropsTab({
         </>
       ) : (
         <>
-          <div className="aurora-cip__section-title">颜色</div>
+          <div className="aurora-cip__section-title">{t.propsTab.color}</div>
           <div className="aurora-cip__swatches">
             {COLORS.map((c) => (
               <button
@@ -94,15 +96,15 @@ export function PropsTab({
                 className={`aurora-cip__swatch ${(s.color ?? '').toLowerCase() === c.toLowerCase() ? 'aurora-cip__swatch--on' : ''}`}
                 style={{ background: c }}
                 onClick={() => set({ props: { color: c } })}
-                aria-label={`颜色 ${c}`}
+                aria-label={t.propsTab.colorAria.replace('{n}', c)}
               />
             ))}
           </div>
         </>
       )}
-      <div className="aurora-cip__section-title">字号</div>
+      <div className="aurora-cip__section-title">{t.propsTab.fontSize}</div>
       <div className="aurora-cip__row">
-        <span className="aurora-cip__label">字号</span>
+        <span className="aurora-cip__label">{t.propsTab.fontSize}</span>
         <ScrollNumberInput
           className="aurora-cip__input"
           value={s.fontSize}
@@ -111,7 +113,7 @@ export function PropsTab({
           onChange={(n) => set({ props: { fontSize: clamp(Number.isNaN(n) ? 14 : n, 10, 32) } })}
         />
         <span className="aurora-cip__unit">px</span>
-        <span className="aurora-cip__label">旋转</span>
+        <span className="aurora-cip__label">{t.propsTab.rotation}</span>
         <ScrollNumberInput
           className="aurora-cip__input"
           value={rad2deg(s.rotation)}
@@ -129,51 +131,51 @@ export function PropsTab({
       </div>
       {s.type === 'note-card' && (
         <>
-          <div className="aurora-cip__section-title">父卡片（思维导图）</div>
+          <div className="aurora-cip__section-title">{t.propsTab.parentCard}</div>
           <InspectorSelect
-            ariaLabel="父卡片"
+            ariaLabel={t.propsTab.parentCardAria}
             value={s.parentId ?? ''}
-            placeholder="（无）"
+            placeholder={t.propsTab.none}
             options={[
-              { value: '', label: '（无）' },
+              { value: '', label: t.propsTab.none },
               ...parentCards.map((c) => ({ value: c.id, label: c.text })),
             ]}
             onChange={(v) => set({ props: { parentId: v || undefined } })}
           />
-          <div className="aurora-cip__section-title">标签（看板分组）</div>
+          <div className="aurora-cip__section-title">{t.propsTab.tagsTitle}</div>
           <input
             className="aurora-cip__input aurora-cip__field"
             value={s.tags.join('，')}
             onChange={(e) => set({ props: { tags: e.target.value } })}
-            placeholder="逗号分隔：重要，待办"
-            aria-label="卡片标签"
+            placeholder={t.propsTab.tagsPlaceholder}
+            aria-label={t.propsTab.tagsAria}
           />
         </>
       )}
       <div className="aurora-cip__row">
-        <span className="aurora-cip__label">宽</span>
+        <span className="aurora-cip__label">{t.propsTab.width}</span>
         <ScrollNumberInput className="aurora-cip__input" min={20} max={1200} value={Math.round(s.w)} onChange={(n) => setSize('w', Number.isNaN(n) ? 20 : n)} />
-        <span className="aurora-cip__label">高</span>
+        <span className="aurora-cip__label">{t.propsTab.height}</span>
         <ScrollNumberInput className="aurora-cip__input" min={20} max={1200} value={Math.round(s.h)} onChange={(n) => setSize('h', Number.isNaN(n) ? 20 : n)} />
       </div>
       <div className="aurora-cip__row" style={{ justifyContent: 'space-between', marginTop: 10 }}>
-        <span className="aurora-cip__label">置顶</span>
+        <span className="aurora-cip__label">{t.propsTab.pinned}</span>
         <button
           type="button"
           className={`aurora-cip__switch ${s.pinned ? 'aurora-cip__switch--on' : ''}`}
           onClick={() => set({ props: { pinned: !s.pinned } })}
-          aria-label={s.pinned ? '取消置顶收藏' : '置顶收藏'}
+          aria-label={s.pinned ? t.propsTab.unpinAria : t.propsTab.pinAria}
         >
           <span className="aurora-cip__switch-knob" />
         </button>
       </div>
       <div className="aurora-cip__row" style={{ justifyContent: 'space-between', marginTop: 10 }}>
-        <span className="aurora-cip__label">锁定</span>
+        <span className="aurora-cip__label">{t.propsTab.lock}</span>
         <button
           type="button"
           className={`aurora-cip__switch ${s.isLocked ? 'aurora-cip__switch--on' : ''}`}
           onClick={() => set({ isLocked: !s.isLocked })}
-          aria-label={s.isLocked ? '解锁元素' : '锁定元素'}
+          aria-label={s.isLocked ? t.propsTab.unlockAria : t.propsTab.lockAria}
         >
           <span className="aurora-cip__switch-knob" />
         </button>
@@ -187,12 +189,12 @@ export function PropsTab({
             if (ids && ids[0]) engine?.setSelectedShapes([ids[0]])
           }}
         >
-          <Icon.copy size={13} /> 复制元素
+          <Icon.copy size={13} /> {t.propsTab.duplicate}
         </button>
       )}
       {canDelete && (
         <button type="button" className="aurora-cip__delete" onClick={() => engine?.deleteShapes([s.id])}>
-          <Icon.trash size={13} /> 删除元素
+          <Icon.trash size={13} /> {t.propsTab.delete}
         </button>
       )}
     </div>

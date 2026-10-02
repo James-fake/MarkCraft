@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogModal } from './blog'
-import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu } from './common'
+import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -389,6 +389,127 @@ export interface Translations {
     blockquote: string
     indentMore: string
     indentLess: string
+  }
+  canvasDock: {
+    toolbarAria: string
+    undo: string
+    redo: string
+    syncLink: string
+    moreTools: string
+    select: string
+    hand: string
+    draw: string
+    eraser: string
+    rect: string
+    ellipse: string
+    arrow: string
+    text: string
+    note: string
+    label: string
+    line: string
+    frame: string
+    image: string
+    penBlack: string
+    penRed: string
+    penOrange: string
+    penYellow: string
+    penGreen: string
+    penBlue: string
+    penPurple: string
+    penWhite: string
+    widthThin: string
+    widthMedium: string
+    widthThick: string
+    drawTools: string
+    viewSync: string
+    gridSnap: string
+    autoLayout: string
+    autoSync: string
+    cardTemplates: string
+    saveAsTemplate: string
+    insertTemplate: string
+    deleteTemplate: string
+    penSettings: string
+    penWidthTitle: string
+    clearStrokesTitle: string
+    selectNoteFirst: string
+    templateSaved: string
+    templateInserted: string
+    insertTplTitle: string
+    strokesCleared: string
+    newNoteDefault: string
+    newLabelDefault: string
+    untitledTemplate: string
+    noTemplates: string
+    eraserCleared: string
+    eraserHint: string
+  }
+  canvasList: {
+    title: string
+    close: string
+    tabsAria: string
+    listTab: string
+    trashTab: string
+    untitled: string
+    namePlaceholder: string
+    confirmNew: string
+    cancel: string
+    emptyList: string
+    current: string
+    cardsCount: string
+    deletedWord: string
+    renameBoard: string
+    exportDataTitle: string
+    exportDataAria: string
+    deleteBoard: string
+    newBoard: string
+    emptyTrash: string
+    trashRetention: string
+    trashRetentionShort: string
+    clearTrash: string
+    restoreBoard: string
+    purgeTitle: string
+    purgeAria: string
+    deletedBoardToast: string
+    loadFailed: string
+    exportedToast: string
+    restoredToast: string
+    purgedToast: string
+    trashClearedToast: string
+    defaultName: string
+  }
+  propsTab: {
+    empty: string
+    content: string
+    contentPlaceholder: string
+    bgColor: string
+    bgColorAria: string
+    textColor: string
+    colorDark: string
+    colorLight: string
+    border: string
+    borderOffAria: string
+    borderOnAria: string
+    color: string
+    colorAria: string
+    fontSize: string
+    rotation: string
+    parentCard: string
+    parentCardAria: string
+    none: string
+    tagsTitle: string
+    tagsPlaceholder: string
+    tagsAria: string
+    width: string
+    height: string
+    pinned: string
+    unpinAria: string
+    pinAria: string
+    lock: string
+    unlockAria: string
+    lockAria: string
+    duplicate: string
+    delete: string
   }
   app: {
     collapseFileList: string
@@ -1004,6 +1125,9 @@ const zh: Translations = {
   codeLanguages,
   menu,
   ctxMenu,
+  canvasDock,
+  canvasList,
+  propsTab,
   app,
   fileTreeNode,
   blogStudio,
