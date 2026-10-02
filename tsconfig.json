@@ -40,8 +40,6 @@
       "@locales/*": ["src/locales/*"],
       "@styles": ["src/styles"],
       "@styles/*": ["src/styles/*"],
-      "@workers": ["src/workers"],
-      "@workers/*": ["src/workers/*"],
       "@src": ["src"],
       "@src/*": ["src/*"]
     },

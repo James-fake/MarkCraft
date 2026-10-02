@@ -20,7 +20,15 @@ import { readFileSync } from 'fs'
 import { resolve } from 'path'
 import { describe, it, expect } from 'vitest'
 
-const css = readFileSync(resolve(__dirname, '../../styles/panels/editor.css'), 'utf-8')
+// 🧩 P5-4 拆分适配：editor.css 已拆为 editor/ 子模块（barrel 只剩 @import）——
+//    契约断言的是「规则存在」而非「文件位置」，扫描面 = 7 个子模块按级联序拼接。
+const EDITOR_CSS_PARTS = [
+  'editorArea.css', 'inspector.css', 'publish.css',
+  'states.css', 'lint.css', 'tabs.css', 'auroraOverride.css',
+] as const
+const css = EDITOR_CSS_PARTS
+  .map((f) => readFileSync(resolve(__dirname, '../../styles/panels/editor', f), 'utf-8'))
+  .join('\n')
 const sidebar = readFileSync(resolve(__dirname, 'RightSidebar.tsx'), 'utf-8')
 const body = readFileSync(resolve(__dirname, 'EditorPanel.tsx'), 'utf-8')
 

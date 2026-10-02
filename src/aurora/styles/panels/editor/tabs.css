@@ -1,0 +1,167 @@
+/* [P5-4 拆分] editor.css §多文件标签栏 */
+/* ============================================================
+ * 多文件标签栏（Aurora 桌面风格 · VS Code 式 · 内嵌于 EditorToolbar 行）
+ * 数据：真实 FileStore tab API（tabs/switchTab/closeTab/reorderTabs…）
+ * 视觉：激活 tab 顶部 accent 细条 / 非卡片化 / hover 轻提
+ * 布局：并入工具栏同一行（左导航+标题 · 中标签栏 · 右模式切换），不新增一行
+ * ========================================================== */
+.aurora-toolbar__tabs {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+.aurora-tabs {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+  box-sizing: border-box;
+}
+.aurora-tabs__strip {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.aurora-tabs__strip::-webkit-scrollbar { display: none; }
+
+.aurora-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 100%;
+  padding: 0 8px 0 12px;
+  font-size: var(--mc-font-base);
+  color: var(--mc-text-secondary);
+  background: transparent;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 0;
+  transition: background var(--mc-dur-micro), color var(--mc-dur-micro);
+  border: none;
+  box-sizing: border-box;
+}
+.aurora-tab:hover {
+  background: var(--mc-bg-hover);
+  color: var(--mc-text-primary);
+}
+.aurora-tab.is-active {
+  background: var(--mc-bg-elevated);
+  color: var(--mc-text-primary);
+  font-weight: 600;
+}
+.aurora-tab.is-dragged { opacity: 0.4; }
+.aurora-tab.is-drop-target { background: var(--mc-accent-soft); }
+
+/* 激活指示条：顶部 accent 细线（VS Code 语义） */
+.aurora-tab__indicator {
+  position: absolute;
+  top: 0;
+  left: 10px;
+  right: 10px;
+  height: 2px;
+  border-radius: 0 0 1px 1px;
+  background: var(--mc-accent, #7C8CFF);
+}
+
+.aurora-tab__icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--mc-icon-muted);
+  flex-shrink: 0;
+}
+.aurora-tab.is-active .aurora-tab__icon { color: var(--mc-accent-text); }
+
+/* 未保存圆点 */
+.aurora-tab__dirty {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mc-accent, #7C8CFF);
+  flex-shrink: 0;
+}
+
+.aurora-tab__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 160px;
+}
+
+/* 关闭按钮：hover 显现 */
+.aurora-tab__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  background: transparent;
+  color: var(--mc-icon-muted);
+  font-size: var(--mc-font-xs);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity var(--mc-dur-micro), background var(--mc-dur-micro), color var(--mc-dur-micro);
+}
+.aurora-tab:hover .aurora-tab__close,
+.aurora-tab.is-active .aurora-tab__close { opacity: 1; }
+.aurora-tab__close:hover { background: var(--mc-bg-pressed); color: var(--mc-text-primary); }
+
+/* 右键菜单（aurora 玻璃浮层） */
+.aurora-tabs__menu {
+  position: fixed;
+  z-index: 1000;
+  min-width: 140px;
+  padding: 5px;
+  background: rgba(21, 24, 33, 0.94);
+  border: 1px solid var(--mc-border-medium, rgba(255, 255, 255, 0.08));
+  border-radius: var(--mc-radius-md);
+  box-shadow: var(--mc-shadow-popover, 0 12px 32px rgba(0, 0, 0, 0.45));
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-sizing: border-box;
+}
+.aurora-tabs__menu button {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--mc-dur-micro), color var(--mc-dur-micro);
+}
+.aurora-tabs__menu button:hover { background: var(--mc-bg-pressed); color: var(--mc-text-primary); }
+.aurora-tabs__menu-sep {
+  display: block;
+  height: 1px;
+  background: var(--mc-border-subtle);
+  margin: 4px 2px;
+}
+/* 文件级动作项图标（发布 / 知识库） */
+.aurora-tabs__menu .ico {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 8px;
+  opacity: 0.72;
+  vertical-align: -2px;
+}
+

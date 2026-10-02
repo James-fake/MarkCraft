@@ -1,0 +1,255 @@
+/* [P5-4 拆分] editor.css §语法检查 + 统一波浪线 */
+/* ============================================================
+ * 语法检查（Aurora 编辑器集成）
+ * 数据：真实 lintMarkdown(localContent) 500ms 防抖后传入
+ * 修复：真实 fixIssue → handleChange（handleFixAuroraLint）
+ * 视觉：aurora 玻璃面板 + --mc-* token + 发丝分隔 + 红/黄 wavy 波浪线
+ * ========================================================== */
+
+/* 隐藏真实 LintPopover 与 lint-status-area（features/* 组件在 Aurora 下的位置 bug：
+   hover LintPopover 由 anchorEl.getBoundingClientRect() 计算 top，
+   编辑器重渲染时 anchor 位置异常会导致其跑到标题栏区域；
+   Aurora 层已自建稳定的 AuroraLintList + 状态栏「语法」入口，故在此屏蔽真实 UI 避免用户混淆）
+   仅作用于 Aurora 编辑器作用域，零 features/* 修改。 */
+.aurora-editor .lint-popover,
+.aurora-editor .lint-status-area {
+  display: none !important;
+}
+
+/* 状态栏入口（与 PageFrame statusLeftItems 一起渲染） */
+.aurora-lint-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: var(--mc-radius-sm);
+  background: transparent;
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-xs);
+  cursor: pointer;
+  transition: background var(--mc-dur-micro), color var(--mc-dur-micro);
+  user-select: none;
+}
+.aurora-lint-entry:hover { background: var(--mc-bg-pressed); }
+.aurora-lint-entry:focus-visible {
+  outline: 1px solid var(--mc-accent, #7C8CFF);
+  outline-offset: 1px;
+}
+.aurora-lint-entry__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.aurora-lint-entry__dot--error {
+  background: var(--mc-danger);
+  box-shadow: 0 0 6px var(--mc-danger-soft);
+}
+.aurora-lint-entry__dot--warn {
+  background: var(--mc-warning);
+  box-shadow: 0 0 6px var(--mc-warning-soft);
+}
+.aurora-lint-entry__num {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  font-size: var(--mc-font-xs);
+  line-height: 1;
+}
+.aurora-lint-entry__num--error { color: var(--mc-danger); }
+.aurora-lint-entry__num--warn  { color: var(--mc-warning); }
+.aurora-lint-entry__label {
+  font-size: var(--mc-font-xs);
+  letter-spacing: 0.04em;
+  color: var(--mc-text-tertiary);
+}
+
+/* 浮层面板（aurora 桌面玻璃 · absolute 锚定 .aurora-editor 右下角） */
+.aurora-lint-panel {
+  position: absolute;
+  bottom: 76px; /* 相对 .aurora-editor（= 视口同高），避开 PageFrame 底部状态栏 */
+  right: 24px;
+  width: 380px;
+  max-height: 60vh;
+  background: rgba(21, 24, 33, 0.92);
+  border: 1px solid var(--mc-border-medium, rgba(255, 255, 255, 0.08));
+  border-radius: var(--mc-radius-lg);
+  box-shadow: var(--mc-shadow-popover, 0 12px 32px rgba(0, 0, 0, 0.45));
+  backdrop-filter: blur(20px) saturate(1.2);
+  -webkit-backdrop-filter: blur(20px) saturate(1.2);
+  color: var(--mc-text-primary, #e8ecf4);
+  display: flex;
+  flex-direction: column;
+  z-index: 1000; /* 挂载于 document.body 顶层（createPortal），与标题栏/命令面板同层竞争 */
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.aurora-lint-panel__head {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  border-bottom: 1px solid var(--mc-border-subtle, rgba(255, 255, 255, 0.06));
+}
+.aurora-lint-panel__title {
+  font-size: var(--mc-font-sm);
+  font-weight: 600;
+  color: var(--mc-text-primary, #e8ecf4);
+  letter-spacing: 0.02em;
+}
+.aurora-lint-panel__count {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  font-size: var(--mc-font-xs);
+  font-variant-numeric: tabular-nums;
+}
+.aurora-lint-panel__count-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.aurora-lint-panel__count-item--error { color: var(--mc-danger); }
+.aurora-lint-panel__count-item--warn  { color: var(--mc-warning); }
+.aurora-lint-panel__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.aurora-lint-panel__count-item--error .aurora-lint-panel__dot { background: var(--mc-danger); }
+.aurora-lint-panel__count-item--warn  .aurora-lint-panel__dot { background: var(--mc-warning); }
+.aurora-lint-panel__close {
+  border: none;
+  background: transparent;
+  color: var(--mc-text-tertiary);
+  font-size: var(--mc-font-base);
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+  transition: background var(--mc-dur-micro), color var(--mc-dur-micro);
+}
+.aurora-lint-panel__close:hover { background: var(--mc-bg-pressed); color: var(--mc-text-primary); }
+
+.aurora-lint-panel__list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 4px 0;
+  min-height: 0;
+}
+.aurora-lint-panel__empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--mc-text-tertiary);
+  font-size: var(--mc-font-sm);
+}
+.aurora-lint-panel__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-secondary);
+  cursor: pointer;
+  border-left: 2px solid transparent;
+  transition: background var(--mc-dur-micro), color var(--mc-dur-micro), border-color var(--mc-dur-micro);
+}
+.aurora-lint-panel__item:hover {
+  background: var(--mc-bg-pressed);
+  color: var(--mc-text-primary);
+}
+.aurora-lint-panel__item.is-error   { border-left-color: var(--mc-danger); }
+.aurora-lint-panel__item.is-warning { border-left-color: var(--mc-warning); }
+.aurora-lint-panel__item:focus-visible {
+  outline: 1px solid var(--mc-accent, #7C8CFF);
+  outline-offset: -1px;
+}
+.aurora-lint-panel__line {
+  font-family: var(--mc-font-mono, ui-monospace, monospace);
+  font-size: var(--mc-font-xs);
+  font-weight: 600;
+  color: var(--mc-text-tertiary);
+  padding: 1px 6px;
+  background: var(--mc-bg-pressed);
+  border-radius: var(--mc-radius-sm);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.aurora-lint-panel__item.is-error   .aurora-lint-panel__line { color: var(--mc-danger); background: var(--mc-danger-soft); }
+.aurora-lint-panel__item.is-warning .aurora-lint-panel__line { color: var(--mc-warning); background: var(--mc-warning-soft); }
+.aurora-lint-panel__msg {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.aurora-lint-panel__fix {
+  border: 1px solid var(--mc-border-subtle);
+  background: var(--mc-bg-elevated);
+  color: var(--mc-accent-text, #7C8CFF);
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: var(--mc-font-sm);
+  transition: background var(--mc-dur-micro), border-color var(--mc-dur-micro);
+}
+.aurora-lint-panel__fix:hover {
+  background: var(--mc-accent-soft);
+  border-color: var(--mc-accent, #7C8CFF);
+}
+
+/* ---------- 统一波浪线视觉 ----------
+   覆盖 CodeMirror 原生 cm-lintRange-*（4px 斜纹斑马纹）与 Tiptap LintExtension（已 wavy）的样式，
+   在 Aurora 编辑器内统一呈现清晰的黄/红波浪线，呼应用户描述。 */
+.cm-editor .cm-lintRange-error,
+.aurora-editor .cm-lintRange-error {
+  background: none !important;
+  background-image: none !important;
+  padding-bottom: 0 !important;
+  border-bottom: 2px wavy var(--mc-danger) !important;
+}
+.cm-editor .cm-lintRange-warning,
+.aurora-editor .cm-lintRange-warning {
+  background: none !important;
+  background-image: none !important;
+  padding-bottom: 0 !important;
+  border-bottom: 2px wavy var(--mc-warning) !important;
+}
+.cm-editor .cm-lintRange-error::after,
+.cm-editor .cm-lintRange-warning::after {
+  display: none !important;
+}
+.cm-tooltip-lint {
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium, rgba(255, 255, 255, 0.10)) !important;
+  border-radius: var(--mc-radius-md) !important;
+  color: var(--mc-text-primary, #e8ecf4) !important;
+  font-size: var(--mc-font-xs) !important;
+  padding: 4px 8px !important;
+  box-shadow: var(--mc-shadow-popover, 0 8px 24px rgba(0, 0, 0, 0.4)) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+.cm-tooltip-lint .cm-tooltip-lint-message {
+  color: var(--mc-text-primary, #e8ecf4) !important;
+}
+.aurora-editor .lint-error-line {
+  background-color: var(--mc-danger-soft);
+  border-bottom: 2px wavy var(--mc-danger) !important;
+}
+.aurora-editor .lint-warning-line {
+  background-color: var(--mc-warning-soft);
+  border-bottom: 2px wavy var(--mc-warning) !important;
+}
+

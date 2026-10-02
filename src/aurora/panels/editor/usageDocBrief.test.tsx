@@ -177,7 +177,15 @@ describe('EditorPanel：使用文档 → 只读简介页', () => {
     // 只读简介页不得出现任何删除入口 → 需有作用域限定的 display:none 规则。
     const fs = await import('node:fs')
     const path = await import('node:path')
-    const css = fs.readFileSync(path.resolve(__dirname, '../../styles/panels/editor.css'), 'utf8')
+    // 🧩 P5-4 拆分适配：editor.css 已拆为 editor/ 子模块（barrel 只剩 @import）——
+    //    契约断言的是「规则存在」而非「文件位置」，扫描面 = 7 个子模块按级联序拼接。
+    const EDITOR_CSS_PARTS = [
+      'editorArea.css', 'inspector.css', 'publish.css',
+      'states.css', 'lint.css', 'tabs.css', 'auroraOverride.css',
+    ] as const
+    const css = EDITOR_CSS_PARTS
+      .map((f) => fs.readFileSync(path.resolve(__dirname, '../../styles/panels/editor', f), 'utf8'))
+      .join('\n')
     // 先剥注释，避免注释里的字面量造成假阳性
     const noComments = css.replace(/\/\*[\s\S]*?\*\//g, '')
     expect(noComments).toMatch(/\.aurora-brief\s+\.preview-image-delete-btn\s*\{[^}]*display:\s*none/)

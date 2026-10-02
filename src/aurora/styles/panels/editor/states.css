@@ -1,0 +1,297 @@
+/* [P5-4 拆分] editor.css §空态引导 + 欢迎页成长概览 */
+/* ============================================================
+ * 空态引导（未打开文档 · 引导卡居中、文件列表铺满整宽）
+ * 桌面原生引导页：图标托盘 + 标题 + 副标题(kbd 提示) + CTA 居中展示；
+ * 下方文件列表用 align-self:stretch 撑满整宽、左对齐铺开，不再挤在中间窄列
+ * 按钮复用 components.css 的 .aurora-btn 体系（不重复造轮子）
+ * ========================================================== */
+.aurora-editor__empty {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 56px 24px 48px;
+  box-sizing: border-box;
+  background: var(--mc-bg-content);
+  text-align: center;
+  user-select: none;
+  overflow-y: auto;
+}
+
+/* 空态内嵌文件列表：轻量定制列表（非侧栏 FileTree），align-self:stretch 撑满整宽、行左对齐铺开，
+   不再锁在 560px 居中窄列；列表自身按视口高度内部滚动，引导卡仍居中展示 */
+.aurora-editor__empty-files {
+  align-self: stretch;
+  width: 100%;
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--mc-border-subtle);
+  box-sizing: border-box;
+  max-height: 56vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  text-align: left;
+}
+
+/* 轻量文件列表本体 */
+.aurora-emptyfiles {
+  display: flex;
+  flex-direction: column;
+}
+.aurora-emptyfiles__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px 8px;
+}
+.aurora-emptyfiles__title {
+  font-size: var(--mc-font-base);
+  font-weight: 600;
+  color: var(--mc-text-secondary);
+  letter-spacing: 0.02em;
+}
+.aurora-emptyfiles__count {
+  font-size: var(--mc-font-xs);
+  line-height: 16px;
+  min-width: 16px;
+  padding: 0 7px;
+  text-align: center;
+  color: var(--mc-text-tertiary);
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-pill);
+  box-sizing: border-box;
+}
+.aurora-emptyfiles__list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+/* 扁平文件行：类型图标 + 文件名 + 右侧灰显所在文件夹/相对时间 + 悬停高亮 + 点击打开（零树形） */
+.aurora-emptyfiles__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+  color: var(--mc-text-primary);
+  font-size: var(--mc-font-base);
+  user-select: none;
+  box-sizing: border-box;
+  min-width: 0;
+  transition: background var(--mc-dur-fast) ease-out;
+}
+.aurora-emptyfiles__row:hover {
+  background: var(--mc-bg-hover);
+}
+.aurora-emptyfiles__row:focus-visible {
+  outline: 2px solid var(--mc-accent);
+  outline-offset: -2px;
+}
+.aurora-emptyfiles__row-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.aurora-emptyfiles__row-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+.aurora-emptyfiles__group-title {
+  padding: 12px 12px 2px;
+  font-size: var(--mc-font-xs);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--mc-text-tertiary);
+}
+
+.aurora-emptyfiles__empty {
+  padding: 16px 8px;
+  font-size: var(--mc-font-base);
+  color: var(--mc-text-tertiary);
+  text-align: center;
+}
+
+/* 图标托盘：accent-soft 底 + accent 图标（不发散成卡片，仅 4px 圆角） */
+.aurora-editor__empty-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-accent-soft);
+  color: var(--mc-accent-text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--mc-accent) 22%, transparent);
+}
+
+.aurora-editor__empty-title {
+  font-size: var(--mc-font-md);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  letter-spacing: 0.01em;
+}
+
+.aurora-editor__empty-sub {
+  font-size: var(--mc-font-base);
+  line-height: 1.6;
+  color: var(--mc-text-secondary);
+  max-width: 380px;
+}
+
+/* ⌘K 键帽提示 */
+.aurora-editor__empty-kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 6px;
+  margin: 0 2px;
+  border-radius: var(--mc-radius-sm);
+  border: 1px solid var(--mc-border-medium);
+  border-bottom-width: 2px;
+  background: var(--mc-bg-elevated);
+  color: var(--mc-text-tertiary);
+  font-family: var(--mc-font-mono);
+  font-size: var(--mc-font-xs);
+  vertical-align: 1px;
+  box-sizing: border-box;
+}
+
+.aurora-editor__empty-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+/* 空态「新建笔记」：整合为统一输入组（文档图标 + 文件名输入 + 强调色按钮共用边框，桌面原生） */
+.aurora-editor__newfile {
+  display: inline-flex;
+  align-items: stretch;
+  height: 34px;
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-md);
+  overflow: hidden;
+  background: var(--mc-bg-elevated);
+  box-sizing: border-box;
+  transition: border-color var(--mc-dur-fast) ease-out, box-shadow var(--mc-dur-fast) ease-out;
+}
+.aurora-editor__newfile:focus-within {
+  border-color: var(--mc-accent);
+  box-shadow: 0 0 0 3px var(--mc-accent-soft);
+}
+.aurora-editor__newfile-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  padding-left: 12px;
+  color: var(--mc-text-tertiary);
+}
+.aurora-editor__filename-input {
+  flex: 1;
+  min-width: 0;
+  width: 300px;
+  height: 100%;
+  padding: 0 12px;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: var(--mc-font-base);
+  color: var(--mc-text-primary);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.aurora-editor__filename-input::placeholder { color: var(--mc-text-tertiary); }
+.aurora-editor__newfile-btn {
+  flex: none;
+  height: 100%;
+  padding: 0 20px;
+  border: none;
+  border-left: 1px solid var(--mc-border-medium);
+  background: var(--mc-accent);
+  color: var(--mc-text-inverse);
+  font-size: var(--mc-font-base);
+  font-family: inherit;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--mc-dur-fast) ease-out;
+}
+.aurora-editor__newfile-btn:hover {
+  background: var(--mc-accent-hover);
+}
+.aurora-editor__newfile-btn:active {
+  background: var(--mc-accent);
+}
+
+/* ============================================================
+ * 欢迎页成长概览（WelcomePanel 复用；编辑器空态已移除）
+ * 数据：真实 useDashboardData（单一数据源，由 WelcomePanel 持有）
+ * ============================================================ */
+.aurora-editor__empty-dash {
+  width: 100%;
+  max-width: 640px;
+  margin-top: 32px;
+  padding-top: 20px;
+  border-top: 1px solid var(--mc-border-subtle);
+  box-sizing: border-box;
+}
+
+.aurora-editor__dash-kpis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.aurora-editor__dash-kpi {
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-md);
+  padding: 12px;
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.aurora-editor__dash-kpi-num {
+  font-size: var(--mc-font-lg);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.aurora-editor__dash-kpi-label {
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+  margin-top: 2px;
+}
+
+.aurora-editor__dash-heat {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 1fr);
+  gap: 2px;
+  height: 84px;
+}
+
+.aurora-editor__dash-cell {
+  border-radius: 2px;
+  background: var(--mc-border-subtle);
+}
+

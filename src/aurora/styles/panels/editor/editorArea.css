@@ -1,0 +1,236 @@
+/* [P5-4 拆分] editor.css §编辑区（含头部说明、源码/预览/分屏模式）—— 原文逐字未动 */
+/* ============================================================
+ * Aurora · Editor Panel Styles
+ * 编辑器视图：工具栏 + 编辑区 + 右栏 Inspector
+ * ========================================================== */
+
+/* ============================================================
+/* 格式按钮激活态（规范 §3.5 ghost 交互：accent 强调） */
+.aurora-btn--active-format {
+  color: var(--mc-accent);
+  background-color: var(--mc-accent-soft);
+}
+
+/* ============================================================
+ * 编辑区
+ * ========================================================== */
+.aurora-editor {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  /* 定位锚点：lint 面板 absolute 相对本容器右下角，坐标系确定（不受祖先 transform 影响） */
+  position: relative;
+}
+
+.aurora-editor__content {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ---------- 源码模式 ---------- */
+.aurora-editor__source {
+  flex: 1;
+  overflow: auto;
+  padding: 20px 0;
+  font-family: var(--mc-font-mono);
+  font-size: var(--mc-font-md);
+  line-height: 22px;
+  color: var(--mc-text-primary);
+}
+
+.aurora-editor__line {
+  display: flex;
+  min-height: 22px;
+}
+
+.aurora-editor__line-number {
+  width: 48px;
+  flex-shrink: 0;
+  text-align: right;
+  padding-right: 12px;
+  color: var(--mc-text-tertiary);
+  font-size: var(--mc-font-sm);
+  user-select: none;
+}
+
+.aurora-editor__line-content {
+  flex: 1;
+  padding-right: 24px;
+  white-space: pre;
+}
+
+/* 当前行高亮 */
+.aurora-editor__line--active {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.aurora-editor__line--active .aurora-editor__line-number {
+  color: var(--mc-accent);
+}
+
+/* 代码块 */
+.aurora-editor__code-block {
+  background: var(--mc-bg-elevated);
+  border-radius: var(--mc-radius-sm);
+  margin: 8px 0 8px 48px;
+  padding: 12px 16px;
+  border: 1px solid var(--mc-border-subtle);
+}
+
+/* 引用块 */
+.aurora-editor__quote {
+  border-left: 3px solid var(--mc-accent);
+  background: var(--mc-accent-soft);
+  margin: 4px 0 4px 48px;
+  padding: 8px 12px;
+  color: var(--mc-text-secondary);
+  border-radius: 0 4px 4px 0;
+}
+
+/* 光标 */
+.aurora-editor__cursor {
+  display: inline-block;
+  width: 2px;
+  height: 18px;
+  background: var(--mc-accent);
+  animation: aurora-cursor-blink 1s ease-in-out infinite;
+  vertical-align: text-bottom;
+  margin-left: 1px;
+}
+
+@keyframes aurora-cursor-blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* ---------- 预览模式 ---------- */
+.aurora-editor__preview {
+  flex: 1;
+  overflow: auto;
+  padding: 40px;
+}
+
+/* 所见即所得：复用富文本渲染，独立 class 避免与预览列语义混淆 */
+.aurora-editor__wysiwyg {
+  flex: 1;
+  overflow: auto;
+  padding: 40px;
+}
+
+.aurora-editor__preview-content {
+  max-width: 720px;
+  margin: 0 auto;
+  font-size: var(--mc-font-md);
+  line-height: 28px;
+  color: var(--mc-text-primary);
+}
+
+.aurora-editor__preview-content h1 {
+  font-size: var(--mc-font-2xl);
+  font-weight: 600;
+  margin: 48px 0 24px;
+  color: var(--mc-text-primary);
+}
+
+.aurora-editor__preview-content h2 {
+  font-size: var(--mc-font-xl);
+  font-weight: 600;
+  margin: 32px 0 16px;
+  color: var(--mc-text-primary);
+}
+
+.aurora-editor__preview-content h3 {
+  font-size: var(--mc-font-lg);
+  font-weight: 600;
+  margin: 24px 0 12px;
+  color: var(--mc-text-primary);
+}
+
+.aurora-editor__preview-content p {
+  margin: 0 0 16px;
+}
+
+.aurora-editor__preview-content blockquote {
+  margin: 16px 0;
+  padding-left: 16px;
+  border-left: 4px solid var(--mc-accent);
+  color: var(--mc-text-secondary);
+}
+
+.aurora-editor__preview-content code {
+  font-family: var(--mc-font-mono);
+  font-size: 0.9em;
+  background: var(--mc-code-soft);
+  padding: 2px 6px;
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-code-text);
+}
+
+.aurora-editor__preview-content pre {
+  background: var(--mc-bg-elevated);
+  border-radius: var(--mc-radius-md);
+  padding: 16px;
+  overflow-x: auto;
+  margin: 16px 0;
+  border: 1px solid var(--mc-border-subtle);
+}
+
+.aurora-editor__preview-content pre code {
+  background: transparent;
+  padding: 0;
+  color: var(--mc-text-primary);
+  font-size: var(--mc-font-base);
+  line-height: 1.6;
+}
+
+.aurora-editor__preview-content ul,
+.aurora-editor__preview-content ol {
+  margin: 16px 0;
+  padding-left: 24px;
+}
+
+.aurora-editor__preview-content li {
+  margin-bottom: 4px;
+}
+
+.aurora-editor__preview-content a {
+  color: var(--mc-accent-text);
+  text-decoration: none;
+}
+
+.aurora-editor__preview-content a:hover {
+  text-decoration: underline;
+}
+
+/* ---------- 分屏模式 ---------- */
+.aurora-editor__split {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.aurora-editor__split-divider {
+  width: 1px;
+  background: var(--mc-border-subtle);
+  flex-shrink: 0;
+  cursor: col-resize;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-editor__split-divider:hover {
+  background: var(--mc-accent);
+}
+
+.aurora-editor__split-pane {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+

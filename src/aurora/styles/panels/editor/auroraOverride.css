@@ -1,0 +1,242 @@
+/* [P5-4 拆分] editor.css §Aurora 化 · 真实编辑器/工具栏视觉覆盖层 */
+/* ============================================================
+ * Aurora 化 · 真实编辑器/工具栏视觉覆盖层
+ * 目标：EditorLayout 内真实组件（MarkdownToolbar / WysiwygToolbar /
+ *       CodeMirror / TipTap / Preview / 状态栏）在 Aurora 下呈现统一视觉。
+ * 策略：1) .aurora-editor 作用域内把真实主题变量（--editor-* / --toolbar-* /
+ *          --preview-* / --code-* / --link-color / --hover-bg 等）映射为 --mc-* token；
+ *       2) 用 !important 覆盖真实组件内联的 Tailwind 蓝系 hover/active（rgba(59,130,246,…)）；
+ *       3) 隐藏非 Aurora 的品牌渐变装饰线；统一圆角/字体/间距。
+ * 原则：零 features/* 修改；功能/交互/快捷键不变；仅视觉层。
+ * 注：早期文件顶部的「Token 桥接」单块已并入本节，--editor-*/--button-primary
+ *     同一作用域仅声明一次（同一 .aurora-editor 元素，避免重复声明）。
+ * ========================================================== */
+
+/* ── 1. 变量映射：真实主题变量 → Aurora token（作用于 Aurora 编辑器子树） ── */
+.aurora-editor {
+  --editor-bg: var(--mc-bg-content);
+  --editor-text: var(--mc-text-primary);
+  --editor-border: var(--mc-border-subtle);
+  --editor-code-font-family: var(--mc-font-mono);
+  --button-primary: var(--mc-accent); /* 激活强调（features TSX 内联 var 消费：Toolbar/TabBar/Outline 等 ~100 处） */
+  --toolbar-bg: var(--mc-bg-content);
+  --toolbar-text: var(--mc-text-primary);
+  --toolbar-border: var(--mc-border-subtle);
+  --preview-bg: var(--mc-bg-content);
+  --preview-text: var(--mc-text-primary);
+  --preview-border: var(--mc-border-subtle);
+  --hover-bg: var(--mc-bg-hover);
+  --muted-color: var(--mc-text-tertiary);
+  --text-primary: var(--mc-text-primary);
+  --text-secondary: var(--mc-text-secondary);
+  --text-muted: var(--mc-text-tertiary);
+  --border-color: var(--mc-border-subtle);
+  --link-color: var(--mc-accent-text);
+  --code-bg: var(--mc-bg-elevated);
+  --code-block-bg: var(--mc-bg-elevated);
+  --code-block-text: var(--mc-text-primary);
+  --code-font-family: var(--mc-font-mono);
+  --font-mono: var(--mc-font-mono);
+  --blockquote-bg: var(--mc-bg-elevated);
+  --blockquote-border: var(--mc-accent);
+  --line-number-bg: var(--mc-bg-content);
+  --line-number-color: var(--mc-text-tertiary);
+  --line-number-border: var(--mc-border-subtle);
+  --table-border: var(--mc-border-subtle);
+  --table-header-bg: var(--mc-bg-elevated);
+  --katex-color: var(--mc-text-primary);
+  --button-primary-bg: var(--mc-accent-soft);
+  --button-primary-hover: var(--mc-accent);
+}
+
+/* ── 2. 工具栏按钮：蓝系 hover/active → Aurora ── */
+.aurora-editor .format-toolbar button:hover:not(:disabled),
+.aurora-editor .format-toolbar button:focus-visible:not(:disabled),
+.aurora-editor .wysiwyg-toolbar button:hover:not(:disabled),
+.aurora-editor .wysiwyg-toolbar button:focus-visible:not(:disabled) {
+  background-color: var(--mc-bg-hover) !important;
+  box-shadow: none !important;
+}
+.aurora-editor .format-toolbar button:active:not(:disabled),
+.aurora-editor .wysiwyg-toolbar button:active:not(:disabled) {
+  background-color: var(--mc-bg-pressed) !important;
+}
+/* 激活态（is-active class 或有 aria-pressed=true）→ accent 柔和底 */
+.aurora-editor .format-toolbar button.is-active,
+.aurora-editor .format-toolbar button[aria-pressed='true'],
+.aurora-editor .wysiwyg-toolbar button.is-active,
+.aurora-editor .wysiwyg-toolbar button[aria-pressed='true'] {
+  background-color: var(--mc-accent-soft) !important;
+  color: var(--mc-accent-text) !important;
+}
+/* 按钮统一圆角/过渡 */
+.aurora-editor .format-toolbar button,
+.aurora-editor .wysiwyg-toolbar button {
+  border-radius: var(--mc-radius-sm) !important;
+  transition: background-color var(--mc-dur-fast) ease, color var(--mc-dur-fast) ease !important;
+}
+
+/* ── 3. 隐藏非 Aurora 品牌渐变装饰线 ──
+   原界面 MarkdownToolbar / WysiwygToolbar / EditorStatusBar / Preview /
+   FocusModeToolbar / CodeMirrorEditor 左缘 的蓝紫粉品牌渐变线（inline style），
+   与 Aurora 发丝分隔的桌面语言冲突，全部移除（lint 斑马纹由 CM6 theme CSS 注入、
+   非 inline，不受此规则影响）。 */
+.aurora-editor div[style*='linear-gradient'] {
+  display: none !important;
+}
+/* 状态栏顶部补发丝分隔（替代被隐藏的渐变线，保持视觉层级） */
+.aurora-editor [class*='h-8'] {
+  border-top: 1px solid var(--mc-border-subtle);
+}
+
+/* ── 4. 工具栏容器：底部分隔线 ── */
+.aurora-editor .format-toolbar,
+.aurora-editor .wysiwyg-toolbar {
+  border-bottom: 1px solid var(--mc-border-subtle) !important;
+  padding: 5px 12px !important;
+}
+
+/* ── 5. CodeMirror 源码编辑区 ── */
+.aurora-editor .cm-editor {
+  background-color: var(--mc-bg-content);
+  color: var(--mc-text-primary);
+  font-family: var(--mc-font-mono);
+}
+.aurora-editor .cm-editor .cm-scroller {
+  font-family: var(--mc-font-mono);
+  line-height: 1.65;
+}
+.aurora-editor .cm-editor .cm-content {
+  caret-color: var(--mc-accent);
+}
+.aurora-editor .cm-editor .cm-gutters {
+  background-color: var(--mc-bg-content);
+  color: var(--mc-text-tertiary);
+  border-right: 1px solid var(--mc-border-subtle);
+}
+.aurora-editor .cm-editor .cm-activeLine {
+  background-color: var(--mc-bg-elevated);
+}
+.aurora-editor .cm-editor .cm-activeLineGutter {
+  background-color: var(--mc-bg-elevated);
+  color: var(--mc-text-secondary);
+}
+.aurora-editor .cm-editor .cm-cursor {
+  border-left-color: var(--mc-accent);
+}
+.aurora-editor .cm-editor .cm-selectionBackground,
+.aurora-editor .cm-editor.cm-focused .cm-selectionBackground {
+  background-color: var(--mc-accent-soft) !important;
+}
+.aurora-editor .cm-editor .cm-lineNumbers .cm-gutterElement {
+  color: var(--mc-text-tertiary);
+}
+
+/* ── 6. TipTap 所见即所得编辑区 ── */
+.aurora-editor .tiptap-editor-content,
+.aurora-editor .tiptap-editor-content .ProseMirror {
+  background-color: var(--mc-bg-content);
+  color: var(--mc-text-primary);
+  font-family: var(--mc-font-sans);
+  line-height: var(--mc-line-height-lg);
+}
+.aurora-editor .tiptap-editor-content .ProseMirror h1,
+.aurora-editor .tiptap-editor-content .ProseMirror h2,
+.aurora-editor .tiptap-editor-content .ProseMirror h3,
+.aurora-editor .tiptap-editor-content .ProseMirror h4 {
+  color: var(--mc-text-primary);
+}
+.aurora-editor .tiptap-editor-content .ProseMirror a {
+  color: var(--mc-accent-text);
+}
+.aurora-editor .tiptap-editor-content .ProseMirror code {
+  background-color: var(--mc-bg-elevated);
+  color: var(--mc-text-primary);
+  border-radius: var(--mc-radius-sm);
+}
+.aurora-editor .tiptap-editor-content .ProseMirror blockquote {
+  border-left: 3px solid var(--mc-accent);
+  color: var(--mc-text-secondary);
+}
+
+/* ── 7. 预览区 ── */
+.aurora-editor [class*='preview'] {
+  background-color: var(--mc-bg-content);
+  color: var(--mc-text-primary);
+}
+
+/* ── 8. 面板串联：返回来源芯片（知识库详情 / 双链图谱）+ 加入知识库菜单 ──
+   ⚠️ 落点（2026-09-23 用户报障「位置非常不合理」）：
+     · 常态编辑 → 该按钮并入**标签行首位**、落在文件标签左侧（`--inline` 变体）；
+     · 无标签行的版式（内置《使用文档》只读简介页 / 未打开文档的空态）→ 退回 `.aurora-editor__returnbar`
+       这条只含该按钮的极简行（那里它是唯一回跳入口）。
+   两处共用同一个 `.aurora-editor__return` 本体，只在形态上分叉，避免同款控件各自漂移。 */
+.aurora-editor__returnbar {
+  display: flex;
+  padding: 6px 12px 0;
+}
+.aurora-editor__return {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-secondary);
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-md);
+  padding: 3px 12px;
+  cursor: pointer;
+}
+.aurora-editor__return:hover {
+  color: var(--mc-text-primary);
+  border-color: var(--mc-border-strong);
+}
+/* 文字层单列一个元素，长库名才能吃 ellipsis（inline-flex 容器上的 text-overflow 不生效） */
+.aurora-editor__return-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* 行内形态：并入标签行首位。与标签同高、透明底（不用 --mc-bg-elevated —— 那是激活标签的底色，
+   会让返回按钮看起来像一个被选中的标签）、不参与压缩（标签区让位并横向滚动）。 */
+.aurora-editor__return--inline {
+  flex: 0 0 auto;
+  height: 24px;
+  padding: 0 10px;
+  max-width: 240px;
+  background: transparent;
+}
+.aurora-editor__return--inline:hover {
+  background: var(--mc-bg-hover);
+}
+/* 「返回」与标签之间的一道发丝分隔：明确左边这一格不是标签 */
+.aurora-editor__tabs-lead-sep {
+  flex: 0 0 auto;
+  width: 1px;
+  height: 18px;
+  margin: 0 10px;
+  background: var(--mc-border-subtle);
+}
+
+/* 注：原「加入知识库」独立浮层（.aurora-kb-menu__*：fixed 定位 + mask + 自绘勾选框）
+   已随知识库列表迁入右栏辅助 Tab（AuroraPublish · .aurora-aidpanel__*）而退役。 */
+
+/* ── 9. 内置「使用文档」只读简介页（2026-09-22）────────────────────────
+   编辑器 chrome（左栏文件列表 / 标签栏 / 编辑模式选择框 / 格式工具条 / 右栏检查器）
+   由 EditorPanel 按 isUsageDoc **条件不渲染** —— 这里只负责内容区铺满与只读约束，
+   不另立一套阅读版式：正文排版直接继承 Preview 的 .markdown-preview，与编辑器预览窗格同源。 */
+.aurora-brief {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* 只读场景不得出现任何删除入口：Preview 会**无条件**给正文图片注入
+   .preview-image-delete-btn（仅在点击时才判 onDeleteImage），此处双重保险屏蔽。
+   ⚠️ 作用域限定在 .aurora-brief，普通笔记的预览仍保有该按钮（可删图），行为不变。 */
+.aurora-brief .preview-image-delete-btn {
+  display: none !important;
+}

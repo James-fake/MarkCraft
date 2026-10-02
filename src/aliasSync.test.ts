@@ -35,10 +35,10 @@ const TS_CONFIG = 'tsconfig.json'
 
 /**
  * 已知悬空别名 —— **诚实绊线，不是豁免**。
- * `@workers` → `src/workers` 目录不存在、全仓零引用，源码结构审计已立项（P2）。
- * 一旦该别名被删除、或目录被补上，本清单必须同步清空（见最后一个用例）。
+ * 历史记录：`@workers` → `src/workers` 曾目录不存在、全仓零引用（源码结构审计 P2 立项），
+ * 已于 P5-4（2026-10-02）从四处配置删除并清空本清单 —— 正是本用例设计的收口路径。
  */
-const KNOWN_DANGLING = ['@workers'] as const
+const KNOWN_DANGLING = [] as const
 
 /**
  * 剥离 JSONC 注释（逐字符扫描，**尊重字符串字面量**）。
