@@ -183,3 +183,22 @@ export function baseElement(type: string, id: string): ExElementLike {
     index: undefined,
   }
 }
+
+/**
+ * 白板统一底色（随主题）：单源 = desktop-chrome.css 的 --canvas-unified-bg
+ * （暗色档 #0D0F15 = §18 桌面原生暗色基线；浅色档 #FFFFFF = Excalidraw 标准白）。
+ * CanvasPanel 注入 viewBackgroundColor / 强制子视图根背景与 loadDocument 的兜底
+ * 三处共用本函数，主题切换时随 CSS 变量自动取到新值。
+ * SSR/测试环境无 document 时回退暗色基线。
+ */
+export function unifiedCanvasBg(): string {
+  try {
+    if (typeof document === 'undefined') return '#0D0F15'
+    const v = getComputedStyle(document.documentElement)
+      .getPropertyValue('--canvas-unified-bg')
+      .trim()
+    return v || '#0D0F15'
+  } catch {
+    return '#0D0F15'
+  }
+}

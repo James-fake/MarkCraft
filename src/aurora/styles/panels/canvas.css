@@ -372,10 +372,10 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
-  /* 统一暗色兜底（§18 #0D0F15，与 CANVAS_UNIFIED_BG 一致）：
+  /* 统一兜底底色（随主题 token --canvas-unified-bg，暗色档 = §18 #0D0F15）：
      Excalidraw 引擎亮出门闸（booted 前 opacity:0）期间透出此底色，
-     保证从挂载第一帧到 loadDocument 注入暗色之间全程无白色闪帧。 */
-  background: #0D0F15;
+     保证从挂载第一帧到 loadDocument 注入底色之间全程无闪帧。 */
+  background: var(--canvas-unified-bg);
 }
 /* 子视图浮层激活时，底层画布仅作背景、不接收交互 */
 .aurora-canvas__viewport--behind {

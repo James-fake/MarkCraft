@@ -126,7 +126,7 @@
 
 .aurora-welcome__hero:hover {
   border-color: color-mix(in srgb, var(--mc-accent) 70%, transparent);
-  background: #1a1e27;
+  background: var(--mc-bg-hover);
 }
 
 .aurora-welcome__hero:focus-visible {

@@ -4,6 +4,7 @@ import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
 import { ExcalidrawCanvas } from '@features/canvas-v2/engine/ExcalidrawCanvas'
 import { CanvasEngineContext } from '@features/canvas-v2/engine/useCanvasEngine'
 import type { CanvasEngine } from '@features/canvas-v2/engine/CanvasEngine'
+import { unifiedCanvasBg } from '@features/canvas-v2/engine/engineUtils'
 import {
   getCanvasList,
   loadCanvas,
@@ -184,17 +185,19 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
     setListOpen(false)
   }, [])
 
-  // 4 界面统一底色 = Aurora 暗色白板底 #0D0F15（§18 桌面原生暗色基线）。
-  // 白板暗色由 unifiedInitialData 注入 Excalidraw 挂载即生效；子视图根背景由下方
+  // 4 界面统一底色随主题（单源 = desktop-chrome.css --canvas-unified-bg）：
+  // 暗色档 = §18 桌面原生暗色基线 #0D0F15；浅色档 = Excalidraw 标准白 #FFFFFF。
+  // 白板底色由 unifiedInitialData 注入 Excalidraw 挂载即生效；子视图根背景由下方
   // effect 强制为同一常量，白板 / 思维导图 / 看板 / 时间轴 4 界面逐像素同色。
-  const CANVAS_UNIFIED_BG = '#0D0F15'
+  // 每次渲染重取（主题切换 → useTheme 重渲染 → 取到新 token 值）。
+  const CANVAS_UNIFIED_BG = unifiedCanvasBg()
 
   const handleReady = useCallback((e: CanvasEngine) => {
     setEngine(e)
   }, [])
 
-  // 统一白板底色：在持久化文档的 initialData 中注入 viewBackgroundColor=#0D0F15，
-  // 使 Excalidraw 挂载即暗（比 updateScene 更稳，不会被持久化场景的白值回退覆盖）。
+  // 统一白板底色：在持久化文档的 initialData 中注入 viewBackgroundColor，
+  // 使 Excalidraw 挂载即带正确底色（比 updateScene 更稳，不会被持久化场景的旧值回退覆盖）。
   const unifiedInitialData = useMemo(() => {
     if (!initialData) return { appState: { viewBackgroundColor: CANVAS_UNIFIED_BG } }
     const base = initialData as { appState?: Record<string, unknown> }
@@ -202,7 +205,7 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
       ...base,
       appState: { ...(base.appState ?? {}), viewBackgroundColor: CANVAS_UNIFIED_BG },
     }
-  }, [initialData])
+  }, [initialData, CANVAS_UNIFIED_BG])
 
   // 子视图激活时，底层 Excalidraw 的 .excalidraw 根 div 背景直接强制为统一暗色常量
   // （不读 getAppState().viewBackgroundColor，避免被持久化场景的白值覆盖）。canvas 内容层
@@ -211,7 +214,16 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
     const el = viewportRef.current?.querySelector<HTMLElement>('.excalidraw')
     if (!el) return
     el.style.backgroundColor = view === 'canvas' ? '' : CANVAS_UNIFIED_BG
-  }, [view, engine])
+  }, [view, engine, CANVAS_UNIFIED_BG])
+
+  // 主题切换时，白板视图的 Excalidraw 场景底色实时跟随
+  // （viewBackgroundColor 在挂载时经 initialData 注入，切主题后需显式 updateScene；
+  //  仅改 appState 不动 elements → 场景指纹不变，不会误提交历史）。
+  useEffect(() => {
+    const api = engine?.excalidrawAPI
+    if (!api) return
+    try { api.updateScene({ appState: { viewBackgroundColor: CANVAS_UNIFIED_BG } }) } catch { /* noop */ }
+  }, [engine, CANVAS_UNIFIED_BG])
 
   // 空场景检测：仅「白板整体确实没有任何内容」时才显示「空白白板」引导。
   // 判定必须是「白板整体」而非「只看自由白板场景」——便签（note-card）与思维导图 /

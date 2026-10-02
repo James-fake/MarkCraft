@@ -1,4 +1,4 @@
-import { asZoom, zoomValue, baseElement } from './engineUtils'
+import { asZoom, zoomValue, baseElement, unifiedCanvasBg } from './engineUtils'
 import { getElements } from './engineQueries'
 import { serializeState, sceneSignature, emit } from './engineHistory'
 import type { ShapeLike, ExElementLike, EngineDocument, EngineDocumentLike } from './engineTypes'
@@ -31,10 +31,10 @@ export function loadDocument(e: CanvasEngine, data: EngineDocumentLike): void {
   e.shapesAtom.set(map)
   if (e.api) {
     const elements = Array.isArray(data.elements) ? data.elements : []
-    // 统一白板底色：viewBackgroundColor 来自 CanvasPanel 注入的 initialDocument
-    // （Aurora 暗色 #0D0F15）；未被持久化场景覆盖时回退到同一暗色，保证
-    // 画布视图与思维导图/看板/时间轴子视图逐像素同色（§18 桌面原生暗色基线）。
-    const viewBg = data?.appState?.viewBackgroundColor ?? '#0D0F15'
+    // 统一白板底色：随主题（单源 --canvas-unified-bg，见 engineUtils#unifiedCanvasBg）。
+    // viewBackgroundColor 来自 CanvasPanel 注入的 initialDocument；未被持久化场景
+    // 覆盖时回退到当前主题的统一底色，保证画布视图与思维导图/看板/时间轴子视图同色。
+    const viewBg = data?.appState?.viewBackgroundColor ?? unifiedCanvasBg()
     const appState = data.viewport
       ? { scrollX: data.viewport.scrollX, scrollY: data.viewport.scrollY, zoom: asZoom(data.viewport.zoom), viewBackgroundColor: viewBg }
       : { viewBackgroundColor: viewBg }

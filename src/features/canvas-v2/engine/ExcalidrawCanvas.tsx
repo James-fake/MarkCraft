@@ -15,6 +15,7 @@ import { useValue } from './useValue'
 import { CanvasEngine } from './CanvasEngine'
 import type { ExcalidrawAPILike } from './engineTypes'
 import { CanvasEngineContext } from './useCanvasEngine'
+import { unifiedCanvasBg } from './engineUtils'
 import { CardOverlay } from './CardOverlay'
 // 隐藏 Excalidraw 自带 UI（工具栏/菜单/缩放/右键菜单等），操作入口全部由自定义组件接管
 import './excalidraw-hide-ui.css'
@@ -333,23 +334,24 @@ export function ExcalidrawCanvas({ onReady, initialDocument, isReadonly, theme =
       // Excalidraw 的 static + interactive 双 canvas 在挂载首帧已用默认
       // COLOR_PALETTE.white 绘制 fillRect（fillStyle=viewBackgroundColor）。
       // 对于空白板（elements=[], 无 diff），后续 updateScene 不会触发画布重绘，
-      // 两画布始终保持默认浅色——即便 viewBackgroundColor 已是 #0D0F15。
-      // 双保险：直接拿到两画布的 2D 上下文 fillRect 暗色覆盖 + 同步 viewBackgroundColor
+      // 两画布始终保持默认浅色——即便 viewBackgroundColor 已注入统一底色。
+      // 双保险：直接拿到两画布的 2D 上下文 fillRect 底色覆盖 + 同步 viewBackgroundColor
       // 设置（供未来 Excalidraw 重绘时使用正确色）。下一帧 booted 亮出前完成，
-      // user-visible 区域即时变为统一暗色。
+      // user-visible 区域即时变为统一底色（随主题，见 engineUtils#unifiedCanvasBg）。
       try {
+        const bg = unifiedCanvasBg()
         const canvases = containerRef.current?.querySelectorAll('canvas.excalidraw__canvas')
         if (canvases) {
           for (const c of Array.from(canvases)) {
             const ctx = (c as HTMLCanvasElement).getContext('2d')
             if (ctx) {
-              ctx.fillStyle = '#0D0F15'
+              ctx.fillStyle = bg
               ctx.fillRect(0, 0, (c as HTMLCanvasElement).width, (c as HTMLCanvasElement).height)
             }
           }
         }
         if (import.meta.env?.DEV) window.__plan03_filled = canvases?.length ?? 0
-        api.updateScene({ appState: { viewBackgroundColor: '#0D0F15' } })
+        api.updateScene({ appState: { viewBackgroundColor: bg } })
       } catch { /* noop */ }
       if (!readyRef.current && aliveRef.current) {
         readyRef.current = true

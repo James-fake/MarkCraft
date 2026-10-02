@@ -87,6 +87,9 @@
   --mc-bg-pressed: #1F2330;
   --mc-bg-selected: #252A38;
 
+  /* 白板统一底色（随主题：CanvasPanel 注入 Excalidraw viewBackgroundColor 与子视图根背景共用） */
+  --canvas-unified-bg: #0D0F15;
+
   /* 边框 4 层（补充 medium/strong/outline） */
   --mc-border-medium: #262B3B;
   --mc-border-strong: #3A4055;
@@ -200,6 +203,8 @@
   --mc-bg-hover: #E2E5EC;
   --mc-bg-pressed: #D6DAE4;
   --mc-bg-selected: #CBD2E2;
+
+  --canvas-unified-bg: #FFFFFF;
 
   --mc-border-medium: #D2D7E0;
   --mc-border-strong: #B4BCCB;
