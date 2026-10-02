@@ -6,13 +6,17 @@ import { useSettingsQuery } from '../settingsSearch'
 import { AuroraSelect } from '@components/ui/AuroraSelect'
 import { Switch } from '@components/ui/Switch'
 import { ScrollNumberInput } from '@components/ui/ScrollNumberInput'
+import { useLanguage } from '@stores/LanguageStore'
+import type { Translations } from '../../../../locales/zh'
 
-const FONT_OPTIONS = [
+type SAKey = keyof Translations['settingsAppearance']
+
+const FONT_OPTIONS: { value: string; label?: string; labelKey?: SAKey }[] = [
   { value: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", label: 'System Default' },
   { value: "'Georgia', 'Noto Serif SC', serif", label: 'Georgia / Noto Serif' },
-  { value: "'Source Han Sans SC', 'Noto Sans SC', sans-serif", label: '思源黑体' },
-  { value: "'Source Han Serif SC', 'Noto Serif SC', serif", label: '思源宋体' },
-  { value: "'LXGW WenKai', sans-serif", label: '霞鹜文楷' },
+  { value: "'Source Han Sans SC', 'Noto Sans SC', sans-serif", labelKey: 'fontSourceHanSans' },
+  { value: "'Source Han Serif SC', 'Noto Serif SC', serif", labelKey: 'fontSourceHanSerif' },
+  { value: "'LXGW WenKai', sans-serif", labelKey: 'fontLxgw' },
 ]
 
 const CODE_FONT_OPTIONS = [
@@ -28,19 +32,21 @@ const CODE_FONT_OPTIONS = [
  */
 export function AppearanceSection({ query }: { query?: string; toast?: (msg: string) => void }) {
   const { settings, updateSetting } = useSettings()
+  const { t } = useLanguage()
+  const A = t.settingsAppearance
   const density = useDensitySetting()
   const allThemes: EditorTheme[] = getThemes()
   const { q, match } = useSettingsQuery(query)
 
   const hasAny = !q || [
-    ['主题模式', ''],
-    ['密度', '调整界面元素的紧凑程度'],
-    ['界面字体', '正文与 UI 文字字体'],
-    ['界面字号', '调整整体界面文字大小'],
-    ['行高', ''],
-    ['代码字体', ''],
-    ['代码主题', ''],
-    ['侧边栏宽度', '文件导航栏的默认宽度'],
+    [A.themeMode, ''],
+    [A.density, A.densityDesc],
+    [A.uiFont, A.uiFontDesc],
+    [A.uiFontSize, A.uiFontSizeDesc],
+    [A.lineHeight, ''],
+    [A.codeFont, ''],
+    [A.codeTheme, ''],
+    [A.sidebarWidth, A.sidebarWidthDesc],
   ].some(([l, d]) => match(l, d))
   if (!hasAny) return null
 
@@ -50,16 +56,16 @@ export function AppearanceSection({ query }: { query?: string; toast?: (msg: str
   return (
     <div>
       <div className="aurora-settings__section">
-        <div className="aurora-settings__section-title">主题</div>
-        <div className="aurora-settings__section-desc">选择应用的外观主题</div>
-        {match('主题模式', '') && (
+        <div className="aurora-settings__section-title">{A.themeTitle}</div>
+        <div className="aurora-settings__section-desc">{A.themeDesc}</div>
+        {match(A.themeMode, '') && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">主题模式</div>
+              <div className="aurora-settings__item-label">{A.themeMode}</div>
             </div>
             <div className="aurora-settings__item-control">
               <AuroraSelect
-                ariaLabel="主题模式"
+                ariaLabel={A.themeMode}
                 value={settings.theme}
                 onChange={(v) => updateSetting('theme', v)}
                 options={allThemes.map(t => ({ value: t.id, label: t.name }))}
@@ -70,21 +76,21 @@ export function AppearanceSection({ query }: { query?: string; toast?: (msg: str
       </div>
 
       <div className="aurora-settings__section">
-        <div className="aurora-settings__section-title">布局密度</div>
-        <div className="aurora-settings__section-desc">调整界面元素的紧凑程度（与侧边栏切换按钮共享同一来源）</div>
-        {match('密度', '调整界面元素的紧凑程度') && (
+        <div className="aurora-settings__section-title">{A.densityTitle}</div>
+        <div className="aurora-settings__section-desc">{A.densityDesc}</div>
+        {match(A.density, A.densityDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">密度</div>
+              <div className="aurora-settings__item-label">{A.density}</div>
             </div>
             <div className="aurora-settings__item-control">
               <AuroraSelect
-                ariaLabel="密度"
+                ariaLabel={A.density}
                 value={density}
                 onChange={(v) => setDensitySetting(v as 'compact' | 'comfortable')}
                 options={[
-                  { value: 'comfortable', label: '舒适' },
-                  { value: 'compact', label: '紧凑' },
+                  { value: 'comfortable', label: A.comfortable },
+                  { value: 'compact', label: A.compact },
                 ]}
               />
             </div>
@@ -93,13 +99,13 @@ export function AppearanceSection({ query }: { query?: string; toast?: (msg: str
       </div>
 
       <div className="aurora-settings__section">
-        <div className="aurora-settings__section-title">辅助功能</div>
-        <div className="aurora-settings__section-desc">提高文本与分隔线的对比度（Increase Contrast）</div>
-        {match('高对比度', '提高文本与分隔线的对比度') && (
+        <div className="aurora-settings__section-title">{A.a11yTitle}</div>
+        <div className="aurora-settings__section-desc">{A.a11yDesc}</div>
+        {match(A.highContrast, A.highContrastDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">高对比度</div>
-              <div className="aurora-settings__item-desc">提亮文本、加粗发丝分隔线，改善低视力可读性</div>
+              <div className="aurora-settings__item-label">{A.highContrast}</div>
+              <div className="aurora-settings__item-desc">{A.highContrastDesc}</div>
             </div>
             <div className="aurora-settings__item-control">
               <Switch
@@ -112,20 +118,20 @@ export function AppearanceSection({ query }: { query?: string; toast?: (msg: str
       </div>
 
       <div className="aurora-settings__section">
-        <div className="aurora-settings__section-title">字体</div>
-        {match('界面字体', '正文与 UI 文字字体') && (
+        <div className="aurora-settings__section-title">{A.fontTitle}</div>
+        {match(A.uiFont, A.uiFontDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">界面字体</div>
-              <div className="aurora-settings__item-desc">正文与 UI 文字字体</div>
+              <div className="aurora-settings__item-label">{A.uiFont}</div>
+              <div className="aurora-settings__item-desc">{A.uiFontDesc}</div>
             </div>
             <div className="aurora-settings__item-control">
               <AuroraSelect
-                ariaLabel="界面字体"
+                ariaLabel={A.uiFont}
                 value={fontIsCustom ? '__custom__' : settings.fontFamily}
                 onChange={(v) => { if (v !== '__custom__') updateSetting('fontFamily', v) }}
                 options={[
-                  ...FONT_OPTIONS.map(o => ({ value: o.value, label: o.label })),
+                  ...FONT_OPTIONS.map(o => ({ value: o.value, label: o.labelKey ? A[o.labelKey] : (o.label as string) })),
                   ...(fontIsCustom ? [{ value: '__custom__', label: 'Custom' }] : []),
                 ]}
               />
@@ -140,11 +146,11 @@ export function AppearanceSection({ query }: { query?: string; toast?: (msg: str
             </div>
           </div>
         )}
-        {match('界面字号', '调整整体界面文字大小') && (
+        {match(A.uiFontSize, A.uiFontSizeDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">界面字号</div>
-              <div className="aurora-settings__item-desc">调整整体界面文字大小</div>
+              <div className="aurora-settings__item-label">{A.uiFontSize}</div>
+              <div className="aurora-settings__item-desc">{A.uiFontSizeDesc}</div>
             </div>
             <div className="aurora-settings__item-control">
               <ScrollNumberInput
@@ -157,10 +163,10 @@ export function AppearanceSection({ query }: { query?: string; toast?: (msg: str
             </div>
           </div>
         )}
-        {match('行高', '') && (
+        {match(A.lineHeight, '') && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">行高</div>
+              <div className="aurora-settings__item-label">{A.lineHeight}</div>
             </div>
             <div className="aurora-settings__item-control">
               <ScrollNumberInput
@@ -174,14 +180,14 @@ export function AppearanceSection({ query }: { query?: string; toast?: (msg: str
             </div>
           </div>
         )}
-        {match('代码字体', '') && (
+        {match(A.codeFont, '') && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">代码字体</div>
+              <div className="aurora-settings__item-label">{A.codeFont}</div>
             </div>
             <div className="aurora-settings__item-control">
               <AuroraSelect
-                ariaLabel="代码字体"
+                ariaLabel={A.codeFont}
                 value={codeFontIsCustom ? '__custom__' : settings.codeFontFamily}
                 onChange={(v) => { if (v !== '__custom__') updateSetting('codeFontFamily', v) }}
                 options={[
@@ -200,14 +206,14 @@ export function AppearanceSection({ query }: { query?: string; toast?: (msg: str
             </div>
           </div>
         )}
-        {match('代码主题', '') && (
+        {match(A.codeTheme, '') && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">代码主题</div>
+              <div className="aurora-settings__item-label">{A.codeTheme}</div>
             </div>
             <div className="aurora-settings__item-control">
               <AuroraSelect
-                ariaLabel="代码主题"
+                ariaLabel={A.codeTheme}
                 value={settings.codeTheme}
                 onChange={(v) => updateSetting('codeTheme', v)}
                 options={CODE_THEMES.map(t => ({ value: t.id, label: t.name }))}
@@ -215,11 +221,11 @@ export function AppearanceSection({ query }: { query?: string; toast?: (msg: str
             </div>
           </div>
         )}
-        {match('侧边栏宽度', '文件导航栏的默认宽度') && (
+        {match(A.sidebarWidth, A.sidebarWidthDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">侧边栏宽度</div>
-              <div className="aurora-settings__item-desc">文件导航栏的默认宽度（像素）</div>
+              <div className="aurora-settings__item-label">{A.sidebarWidth}</div>
+              <div className="aurora-settings__item-desc">{A.sidebarWidthDesc}</div>
             </div>
             <div className="aurora-settings__item-control">
               <ScrollNumberInput

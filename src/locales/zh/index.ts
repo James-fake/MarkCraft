@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogModal } from './blog'
-import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab } from './common'
+import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -510,6 +510,75 @@ export interface Translations {
     lockAria: string
     duplicate: string
     delete: string
+  }
+  settingsAppearance: {
+    themeTitle: string
+    themeDesc: string
+    themeMode: string
+    densityTitle: string
+    densityDesc: string
+    density: string
+    comfortable: string
+    compact: string
+    a11yTitle: string
+    a11yDesc: string
+    highContrast: string
+    highContrastDesc: string
+    fontTitle: string
+    uiFont: string
+    uiFontDesc: string
+    uiFontSize: string
+    uiFontSizeDesc: string
+    lineHeight: string
+    codeFont: string
+    codeTheme: string
+    sidebarWidth: string
+    sidebarWidthDesc: string
+    fontSourceHanSans: string
+    fontSourceHanSerif: string
+    fontLxgw: string
+  }
+  settingsEditor: {
+    editTitle: string
+    defaultMode: string
+    defaultModeDesc: string
+    source: string
+    wysiwyg: string
+    spellCheck: string
+    spellCheckDesc: string
+    smartPunct: string
+    smartPunctDesc: string
+    indent: string
+    indentDesc: string
+    pairBrackets: string
+    pairQuotes: string
+    pairMarkdown: string
+    typoTitle: string
+    maxWidth: string
+    maxWidthDesc: string
+    tabWidth: string
+    tabWidthDesc: string
+    spacesCount: string
+    codeLang: string
+    codeLangDesc: string
+    codeLangPlaceholder: string
+  }
+  settingsImage: {
+    imgTitle: string
+    hostType: string
+    hostTypeDesc: string
+    hostNone: string
+    hostCustom: string
+    relPath: string
+    relPathDesc: string
+    picgoPath: string
+    picgoPathDesc: string
+    customUrl: string
+    customUrlDesc: string
+    token: string
+    tokenDesc: string
+    tokenPlaceholder: string
+    customUrlHint: string
   }
   app: {
     collapseFileList: string
@@ -1128,6 +1197,9 @@ const zh: Translations = {
   canvasDock,
   canvasList,
   propsTab,
+  settingsAppearance,
+  settingsEditor,
+  settingsImage,
   app,
   fileTreeNode,
   blogStudio,

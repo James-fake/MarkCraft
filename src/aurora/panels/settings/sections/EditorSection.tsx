@@ -4,6 +4,7 @@ import { Switch } from '@components/ui/Switch'
 import { AuroraSelect } from '@components/ui/AuroraSelect'
 import { useSettingsQuery } from '../settingsSearch'
 import { ScrollNumberInput } from '@components/ui/ScrollNumberInput'
+import { useLanguage } from '@stores/LanguageStore'
 
 /**
  * 编辑器设置分组 —— 接真实 useSettings()
@@ -12,102 +13,104 @@ import { ScrollNumberInput } from '@components/ui/ScrollNumberInput'
  */
 export function EditorSection({ query }: { query?: string; toast?: (msg: string) => void }) {
   const { settings, updateSetting } = useSettings()
+  const { t } = useLanguage()
+  const E = t.settingsEditor
   const { q, match } = useSettingsQuery(query)
 
   const hasAny = !q || [
-    ['默认编辑器模式', '新打开笔记时使用的编辑器模式'],
-    ['拼写检查', '标记可能的拼写错误'],
-    ['智能标点', '自动转换直引号与连字符为排版引号'],
-    ['段首缩进', '段落首行自动缩进'],
-    ['自动配对括号', ''],
-    ['自动配对引号', ''],
-    ['自动配对 Markdown', ''],
-    ['编辑器最大宽度', '编辑区内容的最大宽度'],
-    ['Tab 宽度', '一个 Tab 等于多少个空格'],
-    ['代码块默认语言', '新建代码块使用的默认语言'],
+    [E.defaultMode, E.defaultModeDesc],
+    [E.spellCheck, E.spellCheckDesc],
+    [E.smartPunct, E.smartPunctDesc],
+    [E.indent, E.indentDesc],
+    [E.pairBrackets, ''],
+    [E.pairQuotes, ''],
+    [E.pairMarkdown, ''],
+    [E.maxWidth, E.maxWidthDesc],
+    [E.tabWidth, E.tabWidthDesc],
+    [E.codeLang, E.codeLangDesc],
   ].some(([l, d]) => match(l, d))
   if (!hasAny) return null
 
   return (
     <div>
       <div className="aurora-settings__section">
-        <div className="aurora-settings__section-title">编辑体验</div>
-        {match('默认编辑器模式', '新打开笔记时使用的编辑器模式') && (
+        <div className="aurora-settings__section-title">{E.editTitle}</div>
+        {match(E.defaultMode, E.defaultModeDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">默认编辑器模式</div>
-              <div className="aurora-settings__item-desc">新打开笔记时使用的编辑器模式（可在编辑器内随时切换）</div>
+              <div className="aurora-settings__item-label">{E.defaultMode}</div>
+              <div className="aurora-settings__item-desc">{E.defaultModeDesc}</div>
             </div>
             <div className="aurora-settings__item-control">
               <AuroraSelect
-                ariaLabel="默认编辑器模式"
+                ariaLabel={E.defaultMode}
                 value={settings.editorMode}
                 onChange={(v) => updateSetting('editorMode', v as AppSettings['editorMode'])}
                 options={[
-                  { value: 'source', label: '源码' },
-                  { value: 'wysiwyg', label: '所见即所得' },
+                  { value: 'source', label: E.source },
+                  { value: 'wysiwyg', label: E.wysiwyg },
                 ]}
               />
             </div>
           </div>
         )}
-        {match('拼写检查', '标记可能的拼写错误') && (
+        {match(E.spellCheck, E.spellCheckDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">拼写检查</div>
-              <div className="aurora-settings__item-desc">标记可能的拼写错误</div>
+              <div className="aurora-settings__item-label">{E.spellCheck}</div>
+              <div className="aurora-settings__item-desc">{E.spellCheckDesc}</div>
             </div>
             <div className="aurora-settings__item-control">
               <Switch checked={settings.spellCheck} onChange={v => updateSetting('spellCheck', v)} />
             </div>
           </div>
         )}
-        {match('智能标点', '自动转换直引号与连字符为排版引号') && (
+        {match(E.smartPunct, E.smartPunctDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">智能标点</div>
-              <div className="aurora-settings__item-desc">自动转换直引号与连字符为排版引号</div>
+              <div className="aurora-settings__item-label">{E.smartPunct}</div>
+              <div className="aurora-settings__item-desc">{E.smartPunctDesc}</div>
             </div>
             <div className="aurora-settings__item-control">
               <Switch checked={settings.smartPunctuation} onChange={v => updateSetting('smartPunctuation', v)} />
             </div>
           </div>
         )}
-        {match('段首缩进', '段落首行自动缩进') && (
+        {match(E.indent, E.indentDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">段首缩进</div>
-              <div className="aurora-settings__item-desc">段落首行自动缩进</div>
+              <div className="aurora-settings__item-label">{E.indent}</div>
+              <div className="aurora-settings__item-desc">{E.indentDesc}</div>
             </div>
             <div className="aurora-settings__item-control">
               <Switch checked={settings.paragraphIndent} onChange={v => updateSetting('paragraphIndent', v)} />
             </div>
           </div>
         )}
-        {match('自动配对括号', '') && (
+        {match(E.pairBrackets, '') && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">自动配对括号</div>
+              <div className="aurora-settings__item-label">{E.pairBrackets}</div>
             </div>
             <div className="aurora-settings__item-control">
               <Switch checked={settings.autoPairBrackets} onChange={v => updateSetting('autoPairBrackets', v)} />
             </div>
           </div>
         )}
-        {match('自动配对引号', '') && (
+        {match(E.pairQuotes, '') && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">自动配对引号</div>
+              <div className="aurora-settings__item-label">{E.pairQuotes}</div>
             </div>
             <div className="aurora-settings__item-control">
               <Switch checked={settings.autoPairQuotes} onChange={v => updateSetting('autoPairQuotes', v)} />
             </div>
           </div>
         )}
-        {match('自动配对 Markdown', '') && (
+        {match(E.pairMarkdown, '') && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">自动配对 Markdown</div>
+              <div className="aurora-settings__item-label">{E.pairMarkdown}</div>
             </div>
             <div className="aurora-settings__item-control">
               <Switch checked={settings.autoPairMarkdown} onChange={v => updateSetting('autoPairMarkdown', v)} />
@@ -117,12 +120,12 @@ export function EditorSection({ query }: { query?: string; toast?: (msg: string)
       </div>
 
       <div className="aurora-settings__section">
-        <div className="aurora-settings__section-title">字体与排版</div>
-        {match('编辑器最大宽度', '编辑区内容的最大宽度') && (
+        <div className="aurora-settings__section-title">{E.typoTitle}</div>
+        {match(E.maxWidth, E.maxWidthDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">编辑器最大宽度</div>
-              <div className="aurora-settings__item-desc">编辑区内容的最大宽度（像素）</div>
+              <div className="aurora-settings__item-label">{E.maxWidth}</div>
+              <div className="aurora-settings__item-desc">{E.maxWidthDesc}</div>
             </div>
             <div className="aurora-settings__item-control">
               <ScrollNumberInput
@@ -136,37 +139,37 @@ export function EditorSection({ query }: { query?: string; toast?: (msg: string)
             </div>
           </div>
         )}
-        {match('Tab 宽度', '一个 Tab 等于多少个空格') && (
+        {match(E.tabWidth, E.tabWidthDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">Tab 宽度</div>
-              <div className="aurora-settings__item-desc">一个 Tab 等于多少个空格</div>
+              <div className="aurora-settings__item-label">{E.tabWidth}</div>
+              <div className="aurora-settings__item-desc">{E.tabWidthDesc}</div>
             </div>
             <div className="aurora-settings__item-control">
               <AuroraSelect
-                ariaLabel="Tab 宽度"
+                ariaLabel={E.tabWidth}
                 value={String(settings.tabSize)}
                 onChange={(v) => updateSetting('tabSize', Number(v))}
                 options={[
-                  { value: '2', label: '2 空格' },
-                  { value: '4', label: '4 空格' },
-                  { value: '8', label: '8 空格' },
+                  { value: '2', label: E.spacesCount.replace('{n}', '2') },
+                  { value: '4', label: E.spacesCount.replace('{n}', '4') },
+                  { value: '8', label: E.spacesCount.replace('{n}', '8') },
                 ]}
               />
             </div>
           </div>
         )}
-        {match('代码块默认语言', '新建代码块使用的默认语言') && (
+        {match(E.codeLang, E.codeLangDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">代码块默认语言</div>
-              <div className="aurora-settings__item-desc">新建代码块使用的默认语言</div>
+              <div className="aurora-settings__item-label">{E.codeLang}</div>
+              <div className="aurora-settings__item-desc">{E.codeLangDesc}</div>
             </div>
             <div className="aurora-settings__item-control">
               <input
                 type="text"
                 className="aurora-settings__text"
-                placeholder="留空为自动"
+                placeholder={E.codeLangPlaceholder}
                 value={settings.codeBlockDefaultLang}
                 onChange={e => updateSetting('codeBlockDefaultLang', e.target.value)}
               />
