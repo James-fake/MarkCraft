@@ -9,6 +9,7 @@ import { Icon } from '../../../icons'
 import { AuroraSelect } from '@components/ui/AuroraSelect'
 import { GROUP_COLORS } from '../../../themes/categoricalColors'
 import type { Layout, GraphMode, GraphGroup } from './graphModel'
+import { useLanguage } from '../../../../stores/LanguageStore'
 
 export interface GraphSidebarProps {
   // —— 左缘 hoverzone / 导航浮层 ——
@@ -70,6 +71,8 @@ export interface GraphSidebarProps {
 }
 
 export function GraphSidebar(p: GraphSidebarProps) {
+  const { t } = useLanguage()
+  const G = t.graph
   return (
     <div
       className={`aurora-graph__hoverzone ${p.navPinned ? 'is-pinned' : ''}`}
@@ -85,14 +88,14 @@ export function GraphSidebar(p: GraphSidebarProps) {
           onMouseLeave={p.scheduleNavClose}
         >
           <div className="aurora-graph__overlay-head">
-            <span className="aurora-graph__overlay-title">图谱导航</span>
+            <span className="aurora-graph__overlay-title">{G.navTitle}</span>
             <div className="aurora-graph__overlay-actions">
               <button
                 type="button"
                 className={`aurora-graph__pin ${p.navPinned ? 'is-on' : ''}`}
                 onClick={() => p.setNavPinned((v) => !v)}
-                aria-label={p.navPinned ? '取消钉住图谱导航' : '钉住图谱导航'}
-                title={p.navPinned ? '取消钉住' : '钉住常驻'}
+                aria-label={p.navPinned ? G.unpinNav : G.pinNav}
+                title={p.navPinned ? G.collapse : G.pinStay}
               >
                 <svg width="13" height="13" viewBox="0 0 13 13"><path d="M8 2l3 3-5 5-1-1 1-3-3-3 2-2z" fill="none" stroke="currentColor" strokeWidth="1.1" /></svg>
               </button>
@@ -100,8 +103,8 @@ export function GraphSidebar(p: GraphSidebarProps) {
                 type="button"
                 className="aurora-graph__overlay-close"
                 onClick={p.closeNav}
-                aria-label="收起图谱导航"
-                title="收起"
+                aria-label={G.collapseNav}
+                title={G.collapse}
               >
                 <Icon.chevronLeft size={14} />
               </button>
@@ -111,9 +114,9 @@ export function GraphSidebar(p: GraphSidebarProps) {
             {/* 数据范围（2026-09-23 用户需求）：最上游的一档 —— 决定「画哪些文件」，
                 故置于视图控制之前。选项 = 文件列表（默认）/ 全部文件 / 每个知识库一档。 */}
             <div className="aurora-graph__group">
-              <div className="aurora-graph__group-title">数据范围</div>
+              <div className="aurora-graph__group-title">{G.scopeTitle}</div>
               <AuroraSelect
-                ariaLabel="数据范围"
+                ariaLabel={G.scopeTitle}
                 className="aurora-graph__scopesel"
                 value={p.scope}
                 onChange={p.setScope}
@@ -121,10 +124,10 @@ export function GraphSidebar(p: GraphSidebarProps) {
               />
               <div className="aurora-graph__grp-hint">
                 {p.scopeKind === 'files'
-                  ? '只显示「文件列表」里的笔记 —— 不含任何知识库的文件。'
+                  ? G.scopeFilesOnly
                   : p.scopeKind === 'all'
-                    ? '显示 MarkCraft 的全部文件（含各知识库）。'
-                    : `只显示「${p.scopeLabel}」知识库内的笔记。`}
+                    ? G.scopeAll
+                    : G.scopeKbOnly.replace('{n}', p.scopeLabel)}
               </div>
             </div>
 
@@ -132,14 +135,14 @@ export function GraphSidebar(p: GraphSidebarProps) {
 
             {/* 使用优化⑤ · 重排：视图控制（模式/布局）置顶——高频操作优先 */}
             <div className="aurora-graph__group">
-              <div className="aurora-graph__group-title">图谱模式</div>
+              <div className="aurora-graph__group-title">{G.modeTitle}</div>
               <div className="aurora-graph__seg">
                 {([
-                  ['global', '全局'],
-                  ['local', '局部'],
-                  ['backlinks', '反向'],
-                  ['forwardlinks', '正向'],
-                  ['tag', '标签'],
+                  ['global', G.modeGlobal],
+                  ['local', G.modeLocal],
+                  ['backlinks', G.modeBacklinks],
+                  ['forwardlinks', G.modeForward],
+                  ['tag', G.modeTag],
                 ] as const).map(([m, label]) => (
                   <button key={m} className={p.mode === m ? 'is-active' : ''} onClick={() => p.onModeChange(m)}>
                     {label}
@@ -148,7 +151,7 @@ export function GraphSidebar(p: GraphSidebarProps) {
               </div>
               {p.mode === 'local' && (
                 <div className="aurora-graph__depth">
-                  深度
+                  {G.depth}
                   <input type="range" min={1} max={3} value={p.depth} onChange={(e) => p.setDepth(Number(e.target.value))} />
                   <span>{p.depth}</span>
                 </div>
@@ -156,13 +159,13 @@ export function GraphSidebar(p: GraphSidebarProps) {
             </div>
 
             <div className="aurora-graph__group">
-              <div className="aurora-graph__group-title">布局方式</div>
+              <div className="aurora-graph__group-title">{G.layoutTitle}</div>
               <div className="aurora-graph__seg">
                 {([
-                  ['force', '力导向'],
-                  ['concentric', '同心圆'],
-                  ['tree', '树形'],
-                  ['grid', '网格'],
+                  ['force', G.layoutForce],
+                  ['concentric', G.layoutConcentric],
+                  ['tree', G.layoutTree],
+                  ['grid', G.layoutGrid],
                 ] as const).map(([l, label]) => (
                   <button key={l} className={p.layout === l ? 'is-active' : ''} onClick={() => p.applyLayout(l)}>
                     {label}
@@ -174,7 +177,7 @@ export function GraphSidebar(p: GraphSidebarProps) {
             <div className="aurora-graph__divider" />
 
             <div className="aurora-graph__group">
-              <div className="aurora-graph__group-title">标签筛选（多选）</div>
+              <div className="aurora-graph__group-title">{G.tagFilter}</div>
               <div className="aurora-graph__chips">
                 {p.allTags.map((t) => (
                   <button
@@ -190,7 +193,7 @@ export function GraphSidebar(p: GraphSidebarProps) {
 
             <div className="aurora-graph__group">
               <div className="aurora-graph__group-title">
-                连接强度 <span className="val">最小 {p.minConn}</span>
+                {G.minConn} <span className="val">{G.minConnVal.replace('{n}', String(p.minConn))}</span>
               </div>
               <input
                 className="aurora-graph__slider"
@@ -203,18 +206,18 @@ export function GraphSidebar(p: GraphSidebarProps) {
             </div>
 
             <div className="aurora-graph__group">
-              <div className="aurora-graph__group-title">显示</div>
+              <div className="aurora-graph__group-title">{G.show}</div>
               <label className="aurora-graph__check">
                 <input type="checkbox" checked={p.showOrphan} onChange={(e) => p.setShowOrphan(e.target.checked)} />
-                显示孤立节点
+                {G.showOrphan}
               </label>
               <label className="aurora-graph__check">
                 <input type="checkbox" checked={p.showFolderLinks} onChange={(e) => p.setShowFolderLinks(e.target.checked)} />
-                显示文件夹关联
+                {G.showFolderLinks}
               </label>
               <label className="aurora-graph__check">
                 <input type="checkbox" checked={p.showArrows} onChange={(e) => p.setShowArrows(e.target.checked)} />
-                显示箭头
+                {G.showArrows}
               </label>
             </div>
 
@@ -223,7 +226,7 @@ export function GraphSidebar(p: GraphSidebarProps) {
             {/* 方案 C · 着色分组导航：点分组聚焦该色节点（dim 其余），既是导航也是图例（使用优化⑤：随分组着色一并后置） */}
             <div className="aurora-graph__nav">
               <div className="aurora-graph__group-title">
-                着色分组 <span className="val">{p.focusGroup ? '聚焦中' : `${p.groupAgg.length} 组`}</span>
+                {G.groupNavTitle} <span className="val">{p.focusGroup ? G.focusing : G.groupsCount.replace('{n}', String(p.groupAgg.length))}</span>
               </div>
               {p.groupAgg.map((g) => (
                 <button
@@ -231,7 +234,7 @@ export function GraphSidebar(p: GraphSidebarProps) {
                   type="button"
                   className={`aurora-graph__nav-row${p.focusGroup === g.key ? ' is-active' : ''}`}
                   onClick={() => p.setFocusGroup((cur) => (cur === g.key ? null : g.key))}
-                  title={`聚焦 ${g.name} 分组`}
+                  title={G.focusGroupTitle.replace('{n}', g.name)}
                 >
                   <i className="aurora-graph__nav-dot" style={{ background: g.color }} />
                   <span className="aurora-graph__nav-name">{g.name}</span>
@@ -240,7 +243,7 @@ export function GraphSidebar(p: GraphSidebarProps) {
               ))}
               {p.focusGroup && (
                 <button type="button" className="aurora-graph__nav-clear" onClick={() => p.setFocusGroup(() => null)}>
-                  清除聚焦
+                  {G.clearFocus}
                 </button>
               )}
             </div>
@@ -248,7 +251,7 @@ export function GraphSidebar(p: GraphSidebarProps) {
             {/* P2-3 分组着色（对标 Obsidian Groups）· 方案 C：可折叠，默认收起（grp-form 始终在 DOM，测试兼容） */}
             <div className={`aurora-graph__group aurora-graph__grp${p.grpOpen ? '' : ' is-fold'}`}>
               <div className="aurora-graph__group-title aurora-graph__grp-head" onClick={() => p.setGrpOpen((o) => !o)}>
-                分组着色 <span className="val">{p.grpOpen ? '收起' : '展开'}</span>
+                {G.groupColorTitle} <span className="val">{p.grpOpen ? G.fold : G.unfold}</span>
               </div>
               <div className="aurora-graph__grp-body">
                 {p.groups.length > 0 && (
@@ -261,7 +264,7 @@ export function GraphSidebar(p: GraphSidebarProps) {
                         <button
                           type="button"
                           className="aurora-graph__grp-del"
-                          title="删除分组"
+                          title={G.deleteGroup}
                           onClick={() => p.setGroups((prev) => prev.filter((x) => x.id !== g.id))}
                         >
                           <Icon.close size={11} />
@@ -275,25 +278,25 @@ export function GraphSidebar(p: GraphSidebarProps) {
                     className="aurora-graph__grp-input"
                     value={p.grpName}
                     onChange={(e) => p.setGrpName(e.target.value)}
-                    placeholder="分组名"
-                    aria-label="分组名"
+                    placeholder={G.groupNamePh}
+                    aria-label={G.groupNamePh}
                   />
                   <div className="aurora-graph__grp-row">
                     <AuroraSelect
-                      ariaLabel="匹配方式"
+                      ariaLabel={G.matchMode}
                       value={p.grpMatch}
                       onChange={(v) => p.setGrpMatch(v as 'tag' | 'name')}
                       options={[
-                        { value: 'tag', label: '标签' },
-                        { value: 'name', label: '名称' },
+                        { value: 'tag', label: G.matchTag },
+                        { value: 'name', label: G.matchName },
                       ]}
                     />
                     <input
                       className="aurora-graph__grp-input"
                       value={p.grpKeyword}
                       onChange={(e) => p.setGrpKeyword(e.target.value)}
-                      placeholder={p.grpMatch === 'tag' ? '标签名' : '关键词'}
-                      aria-label="匹配关键词"
+                      placeholder={p.grpMatch === 'tag' ? G.tagPh : G.keywordPh}
+                      aria-label={G.keywordAria}
                     />
                   </div>
                   <div className="aurora-graph__grp-colors">
@@ -303,7 +306,7 @@ export function GraphSidebar(p: GraphSidebarProps) {
                         type="button"
                         className={`aurora-graph__grp-swatch${p.grpColor === c ? ' is-on' : ''}`}
                         style={{ background: c }}
-                        title={`分组色 ${i + 1}`}
+                        title={G.groupColorN.replace('{n}', String(i + 1))}
                         onClick={() => p.setGrpColor(c)}
                       />
                     ))}
@@ -314,10 +317,10 @@ export function GraphSidebar(p: GraphSidebarProps) {
                     onClick={p.addGroup}
                     disabled={!p.grpName.trim() || !p.grpKeyword.trim()}
                   >
-                    添加分组
+                    {G.addGroup}
                   </button>
                 </div>
-                <div className="aurora-graph__grp-hint">匹配的笔记节点将按分组着色（标签或名称匹配；当前笔记与类型色优先）</div>
+                <div className="aurora-graph__grp-hint">{G.groupHint}</div>
               </div>
             </div>
 
@@ -326,20 +329,20 @@ export function GraphSidebar(p: GraphSidebarProps) {
             {/* G4/I3 链接健康（复用 useDashboardData 单一数据源） */}
             <div className="aurora-graph__group aurora-graph__health">
               <div className="aurora-graph__group-title">
-                链接健康 <span className={`val band band--${p.band}`}>{p.healthScore} 分</span>
+                {G.healthTitle} <span className={`val band band--${p.band}`}>{G.score.replace('{n}', String(p.healthScore))}</span>
               </div>
               <div className="aurora-graph__health-row">
                 <span className="aurora-graph__health-item">
-                  断链 <b className={p.linkHealth.brokenList.length ? 'bad' : 'ok'}>{p.linkHealth.brokenList.length}</b>
+                  {G.broken} <b className={p.linkHealth.brokenList.length ? 'bad' : 'ok'}>{p.linkHealth.brokenList.length}</b>
                 </span>
                 <span className="aurora-graph__health-item">
-                  孤立 <b className={p.linkHealth.orphan.length ? 'bad' : 'ok'}>{p.linkHealth.orphan.length}</b>
+                  {G.orphanWord} <b className={p.linkHealth.orphan.length ? 'bad' : 'ok'}>{p.linkHealth.orphan.length}</b>
                 </span>
               </div>
               {p.linkHealth.brokenList.length > 0 && (
                 <ul className="aurora-graph__health-list">
                   {p.linkHealth.brokenList.slice(0, 3).map((b) => (
-                    <li key={b.target} title={`被 ${b.count} 处引用`}>
+                    <li key={b.target} title={G.citedBy.replace('{n}', String(b.count))}>
                       <span className="tgt">{b.target.length > 16 ? b.target.slice(0, 15) + '…' : b.target}</span>
                       <em>×{b.count}</em>
                     </li>
@@ -349,7 +352,7 @@ export function GraphSidebar(p: GraphSidebarProps) {
             </div>
 
             <button className="aurora-graph__reset" onClick={p.resetView}>
-              重置视图
+              {G.resetView}
             </button>
           </div>
         </div>

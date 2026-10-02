@@ -7,6 +7,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import { Icon } from '../../../icons'
 import type { GNode, GraphMode } from './graphModel'
 import { clamp } from './graphModel'
+import { useLanguage } from '../../../../stores/LanguageStore'
 
 export interface GraphOverlaysProps {
   // —— 视图控制 ——
@@ -51,11 +52,13 @@ export interface GraphOverlaysProps {
 }
 
 export function GraphOverlays(p: GraphOverlaysProps) {
+  const { t } = useLanguage()
+  const G = t.graph
   return (
     <>
       {/* 视图控制（右上）*/}
       <div className="aurora-graph__float aurora-graph__controls">
-        <button onClick={() => p.setView((v) => ({ ...v, scale: clamp(v.scale / 1.2, 0.2, 3) }))} title="缩小">
+        <button onClick={() => p.setView((v) => ({ ...v, scale: clamp(v.scale / 1.2, 0.2, 3) }))} title={G.zoomOut}>
           <Icon.minus size={15} />
         </button>
         <button
@@ -64,11 +67,11 @@ export function GraphOverlays(p: GraphOverlaysProps) {
             p.setView({ scale: 1, tx: 0, ty: 0 })
             p.reheat(0.5)
           }}
-          title="点击重置为 100%"
+          title={G.zoomReset}
         >
           {Math.round(p.view.scale * 100)}%
         </button>
-        <button onClick={() => p.setView((v) => ({ ...v, scale: clamp(v.scale * 1.2, 0.2, 3) }))} title="放大">
+        <button onClick={() => p.setView((v) => ({ ...v, scale: clamp(v.scale * 1.2, 0.2, 3) }))} title={G.zoomIn}>
           <Icon.plus size={15} />
         </button>
         <span className="divider" />
@@ -77,18 +80,18 @@ export function GraphOverlays(p: GraphOverlaysProps) {
             p.setView({ scale: 1, tx: 0, ty: 0 })
             p.reheat(0.6)
           }}
-          title="适应视图"
+          title={G.fitView}
         >
           <Icon.frame size={15} />
         </button>
-        <button onClick={p.focusCenter} title="聚焦当前笔记">
+        <button onClick={p.focusCenter} title={G.focusCurrent}>
           <Icon.target size={15} />
         </button>
-        <button onClick={p.toggleFullscreen} title="全屏">
+        <button onClick={p.toggleFullscreen} title={G.fullscreen}>
           <Icon.maximize size={15} />
         </button>
         <span className="divider" />
-        <button onClick={() => p.setExportOpen((o) => !o)} title="导出">
+        <button onClick={() => p.setExportOpen((o) => !o)} title={G.export}>
           <Icon.download size={15} />
         </button>
       </div>
@@ -99,13 +102,13 @@ export function GraphOverlays(p: GraphOverlaysProps) {
           data-exiting={p.exportPresence.exiting || undefined}
         >
           <button onClick={() => { p.exportPng(); p.setExportOpen(() => false) }}>
-            <Icon.download size={14} /> 导出 PNG
+            <Icon.download size={14} /> {G.exportPng}
           </button>
           <button onClick={() => { p.exportSvg(); p.setExportOpen(() => false) }}>
-            <Icon.download size={14} /> 导出 SVG
+            <Icon.download size={14} /> {G.exportSvg}
           </button>
           <button onClick={() => { p.exportJson(); p.setExportOpen(() => false) }}>
-            <Icon.copy size={14} /> 导出 JSON
+            <Icon.copy size={14} /> {G.exportJson}
           </button>
         </div>
       )}
@@ -123,7 +126,7 @@ export function GraphOverlays(p: GraphOverlaysProps) {
             </button>
           </div>
           <span className="aurora-graph__ic-type">
-            {p.infoNode.isCurrent ? '当前笔记' : p.infoNode.type === 'tag' ? '标签' : p.infoNode.type === 'folder' ? '文件夹' : p.infoNode.deg === 0 ? '孤立笔记' : '笔记'}
+            {p.infoNode.isCurrent ? G.typeCurrent : p.infoNode.type === 'tag' ? G.typeTag : p.infoNode.type === 'folder' ? G.typeFolder : p.infoNode.deg === 0 ? G.typeOrphan : G.typeNote}
           </span>
           {p.infoNode.filePath && <div className="aurora-graph__ic-path">{p.infoNode.filePath}</div>}
           {p.infoNode.tags.length > 0 && (
@@ -134,10 +137,10 @@ export function GraphOverlays(p: GraphOverlaysProps) {
             </div>
           )}
           <div className="aurora-graph__ic-stats">
-            <div className="aurora-graph__ic-stat"><div className="v">{p.infoNode.inLinks}</div><div className="k">入链</div></div>
-            <div className="aurora-graph__ic-stat"><div className="v">{p.infoNode.outLinks}</div><div className="k">出链</div></div>
-            <div className="aurora-graph__ic-stat"><div className="v">{p.infoNode.wordCount ?? '—'}</div><div className="k">字数</div></div>
-            <div className="aurora-graph__ic-stat"><div className="v sm">{p.infoModified}</div><div className="k">修改</div></div>
+            <div className="aurora-graph__ic-stat"><div className="v">{p.infoNode.inLinks}</div><div className="k">{G.inLinks}</div></div>
+            <div className="aurora-graph__ic-stat"><div className="v">{p.infoNode.outLinks}</div><div className="k">{G.outLinks}</div></div>
+            <div className="aurora-graph__ic-stat"><div className="v">{p.infoNode.wordCount ?? '—'}</div><div className="k">{G.wordCount}</div></div>
+            <div className="aurora-graph__ic-stat"><div className="v sm">{p.infoModified}</div><div className="k">{G.modified}</div></div>
           </div>
           <div className="aurora-graph__ic-actions">
             {p.infoNode.type === 'file' && (
@@ -148,14 +151,14 @@ export function GraphOverlays(p: GraphOverlaysProps) {
                   p.setInfoCard(null)
                 }}
               >
-                <Icon.arrowR size={13} /> 打开笔记
+                <Icon.arrowR size={13} /> {G.openNote}
               </button>
             )}
             <button onClick={() => { p.setMode('local'); p.setCenterId(p.infoNode!.id); p.setInfoCard(null); p.reheat(0.4) }}>
-              <Icon.target size={13} /> 在图谱中聚焦
+              <Icon.target size={13} /> {G.focusInGraph}
             </button>
             <button onClick={() => { p.setMode('backlinks'); p.setCenterId(p.infoNode!.id); p.setInfoCard(null); p.reheat(0.4) }}>
-              <Icon.link size={13} /> 查看反向链接
+              <Icon.link size={13} /> {G.viewBacklinks}
             </button>
           </div>
         </div>
@@ -175,24 +178,24 @@ export function GraphOverlays(p: GraphOverlaysProps) {
             onPointerLeave={() => p.setMenu(null)}
           >
             <button onClick={() => { p.onNodeDouble(m.id); p.setMenu(null) }}>
-              <Icon.arrowR size={14} /> 打开笔记
+              <Icon.arrowR size={14} /> {G.openNote}
             </button>
             {m.type === 'file' && (
               <button onClick={() => { void p.openOwningKb(m.id); p.setMenu(null) }}>
-                <Icon.book size={14} /> 打开所属知识库
+                <Icon.book size={14} /> {G.openOwningKb}
               </button>
             )}
             <button onClick={() => { p.setMode('local'); p.setCenterId(m.id); p.setMenu(null); p.reheat(0.4) }}>
-              <Icon.frame size={14} /> 局部视图
+              <Icon.frame size={14} /> {G.localView}
             </button>
             <button onClick={() => { p.setMode('backlinks'); p.setCenterId(m.id); p.setMenu(null) }}>
-              <Icon.link size={14} /> 查看反向链接
+              <Icon.link size={14} /> {G.viewBacklinks}
             </button>
             <button onClick={() => { p.setMode('forwardlinks'); p.setCenterId(m.id); p.setMenu(null) }}>
-              <Icon.share size={14} /> 查看正向链接
+              <Icon.share size={14} /> {G.viewForwardLinks}
             </button>
             <button onClick={() => { p.setCenterId(m.id); p.setMenu(null); p.reheat(0.4) }}>
-              <Icon.refresh size={14} /> 设为中心
+              <Icon.refresh size={14} /> {G.setCenter}
             </button>
             <div className="sep" />
             <button
@@ -202,7 +205,7 @@ export function GraphOverlays(p: GraphOverlaysProps) {
                 p.setInfoCard(null)
               }}
             >
-              <Icon.eyeOff size={14} /> 隐藏节点
+              <Icon.eyeOff size={14} /> {G.hideNode}
             </button>
             <button
               onClick={() => {
@@ -217,10 +220,10 @@ export function GraphOverlays(p: GraphOverlaysProps) {
                 p.reheat(0.4)
               }}
             >
-              <Icon.share size={14} /> 展开邻居
+              <Icon.share size={14} /> {G.expandNeighbors}
             </button>
             <button onClick={() => { p.setSelectedId(m.id); p.setInfoCard({ id: m.id }); p.setMenu(null) }}>
-              <Icon.info size={14} /> 查看详情
+              <Icon.info size={14} /> {G.viewDetails}
             </button>
           </div>
         )
@@ -236,12 +239,12 @@ export function GraphOverlays(p: GraphOverlaysProps) {
         </div>
         <span className="aurora-graph__sb-sep" />
         <div className="aurora-graph__sb-legend">
-          <span className="lg-current">当前</span>
-          <span className="lg-file">笔记</span>
-          <span className="lg-folder">文件夹</span>
-          <span className="lg-tag">标签</span>
-          <span><i className="lg-wiki" />引用</span>
-          <span><i className="lg-taglink" />标签关联</span>
+          <span className="lg-current">{G.legendCurrent}</span>
+          <span className="lg-file">{G.legendNote}</span>
+          <span className="lg-folder">{G.legendFolder}</span>
+          <span className="lg-tag">{G.legendTag}</span>
+          <span><i className="lg-wiki" />{G.legendRefs}</span>
+          <span><i className="lg-taglink" />{G.legendTagLinks}</span>
         </div>
         <span className="aurora-graph__sb-sep" />
         {/* 布局切换已在左侧栏「视图·布局方式」提供，状态栏去重，避免与左栏重复 */}
@@ -254,25 +257,25 @@ export function GraphOverlays(p: GraphOverlaysProps) {
           {/* 范围内的空态必须说明「是范围所致」，否则用户会以为是筛选条件把图筛没了 */}
           <div className="title">
             {p.scopeKind === 'kb'
-              ? '本知识库暂无可显示的节点'
+              ? G.emptyKb
               : p.scopeKind === 'files'
-                ? '文件列表里没有可显示的节点'
-                : '没有匹配的节点'}
+                ? G.emptyFiles
+                : G.emptyNone}
           </div>
           <div className="sub">
             {p.scopeKind === 'kb'
-              ? `「${p.scopeLabel}」内还没有笔记，或这些笔记之间尚未建立引用关系。`
+              ? G.emptyKbSub.replace('{n}', p.scopeLabel)
               : p.scopeKind === 'files'
-                ? '默认范围不含知识库里的文件 —— 如果笔记都在知识库里，切到「全部文件」或直接选一个知识库即可看到。'
-                : '调整筛选条件、标签选择或图谱模式，图谱将重新显现。'}
+                ? G.emptyFilesSub
+                : G.emptyNoneSub}
           </div>
           {p.scopeKind === 'files' ? (
             <button type="button" className="aurora-graph__empty-exit" onClick={() => p.setScope('all')}>
-              查看全部文件
+              {G.viewAllFiles}
             </button>
           ) : p.scopeKind === 'kb' ? (
             <button type="button" className="aurora-graph__empty-exit" onClick={() => p.setScope(p.defaultScope)}>
-              回到文件列表
+              {G.backToFileList}
             </button>
           ) : null}
         </div>

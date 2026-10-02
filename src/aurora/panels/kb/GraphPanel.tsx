@@ -9,6 +9,7 @@ import { useTagIndex } from '@stores/TagIndexStore'
 import { useFileManager } from '@stores/FileStore'
 import { useKbStore } from '@stores/useKbStore'
 import { useDashboardData } from '@features/dashboard'
+import { useLanguage } from '@stores/LanguageStore'
 import '../../styles/panels/graph.css'
 import { setEditorReturn } from '../../navigation/navReturn'
 // —— P2-3 拆分（2026-09-28）：数据模型/力模拟在 ./graph/graphModel，范围与现场隔离在 ./graph/graphScope；
@@ -75,6 +76,8 @@ export interface GraphPanelProps {
 export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
   // —— 真实数据接入：LinkIndex 图谱 + TagIndex + FileStore（D8 续·Phase 2 第六批）——
   const { getGraphData, getFilePath } = useLinkIndex()
+  const { t } = useLanguage()
+  const G = t.graph
   const { tagIndex } = useTagIndex()
   const { rootFolder, getActiveFileId, openFile } = useFileManager()
   const { openCommandPalette } = useCommandPalette()
@@ -229,11 +232,11 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
 
   // 方案 C · 着色分组导航：按当前着色维度聚合（聚合逻辑见 visibleIds 之后，因其依赖可见性集合）
   const groupMeta: Record<string, { name: string; color: string }> = {
-    current: { name: '当前笔记', color: 'var(--mc-accent)' },
-    note: { name: '笔记', color: 'var(--mc-graph-file)' },
-    tag: { name: '标签', color: 'var(--mc-graph-tag)' },
-    folder: { name: '文件夹', color: 'var(--mc-graph-folder)' },
-    orphan: { name: '孤立笔记', color: 'var(--mc-graph-orphan)' },
+    current: { name: G.typeNameCurrent, color: 'var(--mc-accent)' },
+    note: { name: G.typeNameNote, color: 'var(--mc-graph-file)' },
+    tag: { name: G.typeNameTag, color: 'var(--mc-graph-tag)' },
+    folder: { name: G.typeNameFolder, color: 'var(--mc-graph-folder)' },
+    orphan: { name: G.typeNameOrphan, color: 'var(--mc-graph-orphan)' },
   }
   const groupKeyFor = useCallback(
     (n: GNode): string => {
@@ -294,10 +297,10 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
     // 「全部文件」档只改芯片文案；默认档就是无参形态。
     setEditorReturn(
       scopeKb
-        ? { view: 'graph', kbId: scopeKb.id, label: `${scopeKb.name} · 图谱` }
+        ? { view: 'graph', kbId: scopeKb.id, label: G.crumbGraphKb.replace('{n}', scopeKb.name) }
         : scopeKind === 'all'
-          ? { view: 'graph', label: '双链图谱 · 全部文件' }
-          : { view: 'graph', label: '双链图谱' },
+          ? { view: 'graph', label: G.crumbGraphAll }
+          : { view: 'graph', label: G.crumbGraph },
     )
     openFile(id)
     handleNav('编辑器')
@@ -340,8 +343,8 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
   const openOwningKb = useCallback(async (id: string) => {
     const ids = await kbStore.getKbsContainingFile(id)
     if (ids.length > 0) nav?.('kb', ids[0])
-    else toast?.('该笔记尚未加入任何知识库')
-  }, [kbStore, nav, toast])
+    else toast?.(G.kbNotJoined)
+  }, [kbStore, nav, toast, G.kbNotJoined])
 
   // —— 导出（P2-3：实现下沉 graph/graphExport.ts，这里只注入 svg 引用与可见集合）——
   const doExportSvg = () => { if (svgRef.current) exportSVG(svgRef.current, toast) }
@@ -422,9 +425,9 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
     folder: nodes.filter((n) => n.type === 'folder').length,
     edge: edges.length,
   }
-  const layoutLabel = (l: Layout) => (l === 'force' ? '力导向' : l === 'concentric' ? '同心圆' : l === 'tree' ? '树形' : '网格')
+  const layoutLabel = (l: Layout) => (l === 'force' ? G.layoutForceL : l === 'concentric' ? G.layoutConcentricL : l === 'tree' ? G.layoutTreeL : G.layoutGridL)
   const modeLabel = (m: GraphMode) =>
-    m === 'global' ? '全局图谱' : m === 'local' ? '局部图谱' : m === 'backlinks' ? '反向链接' : m === 'forwardlinks' ? '正向链接' : '标签图谱'
+    m === 'global' ? G.modeGlobalTitle : m === 'local' ? G.modeLocalTitle : m === 'backlinks' ? G.modeBacklinksTitle : m === 'forwardlinks' ? G.modeForwardTitle : G.modeTagTitle
 
   const toggleTag = (t: string) =>
     setSelectedTags((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]))
@@ -457,22 +460,22 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
       onSidebarSelect={handleNav}
       // 范围明示：非默认档把范围名接到面包屑上（「双链图谱 › 甲库 / 全部文件」）；
       // 点首段 = 退出范围、回到默认档（文件列表）。默认档不标注（它就是默认，加了反而啰嗦）
-      breadcrumbs={scopeKind === 'files' ? ['双链图谱'] : ['双链图谱', scopeLabel]}
+      breadcrumbs={scopeKind === 'files' ? [G.crumbGraph] : [G.crumbGraph, scopeLabel]}
       breadcrumbOnClick={scopeKind === 'files' ? undefined : (i) => { if (i === 0) setScope(DEFAULT_GRAPH_SCOPE) }}
       statusLeftItems={[
         ...(scopeKind === 'files'
           ? []
-          : [{ content: `范围：${scopeLabel}`, clickable: true, onClick: () => setScope(DEFAULT_GRAPH_SCOPE) }]),
-        { content: `笔记 ${stats.note}` },
-        { content: `标签 ${stats.tag}` },
-        { content: `文件夹 ${stats.folder}` },
-        { content: `连线 ${stats.edge}` },
+          : [{ content: G.scopeRange.replace('{n}', scopeLabel), clickable: true, onClick: () => setScope(DEFAULT_GRAPH_SCOPE) }]),
+        { content: G.statNotes.replace('{n}', String(stats.note)) },
+        { content: G.statTags.replace('{n}', String(stats.tag)) },
+        { content: G.statFolders.replace('{n}', String(stats.folder)) },
+        { content: G.statEdges.replace('{n}', String(stats.edge)) },
       ]}
       statusRightItems={[
-        { content: `模式：${modeLabel(mode)}` },
-        { content: `布局：${layoutLabel(layout)}` },
-        { content: `缩放 ${Math.round(view.scale * 100)}%` },
-        { content: '⌘K 命令面板', clickable: true, onClick: () => openCommandPalette() },
+        { content: G.modePrefix.replace('{n}', modeLabel(mode)) },
+        { content: G.layoutPrefix.replace('{n}', layoutLabel(layout)) },
+        { content: G.zoomPrefix.replace('{n}', String(Math.round(view.scale * 100))) },
+        { content: t.welcome.cmdPalette, clickable: true, onClick: () => openCommandPalette() },
       ]}
     >
       <div className="aurora-graph">

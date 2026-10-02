@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogModal } from './blog'
-import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage } from './common'
+import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -579,6 +579,131 @@ export interface Translations {
     tokenDesc: string
     tokenPlaceholder: string
     customUrlHint: string
+  }
+  graph: {
+    navTitle: string
+    unpinNav: string
+    pinNav: string
+    pinStay: string
+    collapseNav: string
+    collapse: string
+    scopeTitle: string
+    scopeFilesOnly: string
+    scopeAll: string
+    scopeKbOnly: string
+    modeTitle: string
+    modeGlobal: string
+    modeLocal: string
+    modeBacklinks: string
+    modeForward: string
+    modeTag: string
+    depth: string
+    layoutTitle: string
+    layoutForce: string
+    layoutConcentric: string
+    layoutTree: string
+    layoutGrid: string
+    tagFilter: string
+    minConn: string
+    minConnVal: string
+    show: string
+    showOrphan: string
+    showFolderLinks: string
+    showArrows: string
+    groupNavTitle: string
+    focusing: string
+    groupsCount: string
+    focusGroupTitle: string
+    clearFocus: string
+    groupColorTitle: string
+    fold: string
+    unfold: string
+    deleteGroup: string
+    groupNamePh: string
+    matchMode: string
+    matchTag: string
+    matchName: string
+    tagPh: string
+    keywordPh: string
+    keywordAria: string
+    groupColorN: string
+    addGroup: string
+    groupHint: string
+    healthTitle: string
+    score: string
+    broken: string
+    orphanWord: string
+    citedBy: string
+    resetView: string
+    zoomOut: string
+    zoomReset: string
+    zoomIn: string
+    fitView: string
+    focusCurrent: string
+    fullscreen: string
+    export: string
+    exportPng: string
+    exportSvg: string
+    exportJson: string
+    typeCurrent: string
+    typeTag: string
+    typeFolder: string
+    typeOrphan: string
+    typeNote: string
+    inLinks: string
+    outLinks: string
+    wordCount: string
+    modified: string
+    openNote: string
+    focusInGraph: string
+    viewBacklinks: string
+    openOwningKb: string
+    localView: string
+    viewForwardLinks: string
+    setCenter: string
+    hideNode: string
+    expandNeighbors: string
+    viewDetails: string
+    legendCurrent: string
+    legendNote: string
+    legendFolder: string
+    legendTag: string
+    legendRefs: string
+    legendTagLinks: string
+    emptyKb: string
+    emptyFiles: string
+    emptyNone: string
+    emptyKbSub: string
+    emptyFilesSub: string
+    emptyNoneSub: string
+    viewAllFiles: string
+    backToFileList: string
+    typeNameCurrent: string
+    typeNameNote: string
+    typeNameTag: string
+    typeNameFolder: string
+    typeNameOrphan: string
+    crumbGraph: string
+    crumbGraphAll: string
+    kbNotJoined: string
+    layoutForceL: string
+    layoutConcentricL: string
+    layoutTreeL: string
+    layoutGridL: string
+    modeGlobalTitle: string
+    modeLocalTitle: string
+    modeBacklinksTitle: string
+    modeForwardTitle: string
+    modeTagTitle: string
+    scopeRange: string
+    statNotes: string
+    statTags: string
+    statFolders: string
+    statEdges: string
+    modePrefix: string
+    layoutPrefix: string
+    zoomPrefix: string
+    crumbGraphKb: string
   }
   app: {
     collapseFileList: string
@@ -1200,6 +1325,7 @@ const zh: Translations = {
   settingsAppearance,
   settingsEditor,
   settingsImage,
+  graph,
   app,
   fileTreeNode,
   blogStudio,
