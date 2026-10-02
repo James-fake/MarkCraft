@@ -39,6 +39,7 @@ import { useEdgePanelIntent } from './useEdgePanelIntent'
 import { useCanvasHotkeys } from './useCanvasHotkeys'
 import { usePresence, usePresenceValue, POPOVER_EXIT_MS, OVERLAY_EXIT_MS } from '@components/ui/usePresence'
 import { useTheme } from '@features/themes/useTheme'
+import { useLanguage } from '@stores/LanguageStore'
 import '../../styles/panels/canvas.css'
 
 /**
@@ -63,6 +64,8 @@ export interface CanvasPanelProps {
 
 export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelProps) {
   const { theme } = useTheme()
+  const { t } = useLanguage()
+  const CP = t.canvasPanel
   const { rootFolder, openFile, createFile } = useFileManager()
   const kbStore = useKbStore()
   const [engine, setEngine] = useState<CanvasEngine | null>(null)
@@ -92,20 +95,20 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
   // P3-B 归一：canvas ⌘K 面板直接复用主壳 CommandPalette（单一实现），
   // 引擎动作在本地构造为 CommandItem[]（engine 为面板局部实例，不入全局 registry）
   const canvasCommands = useMemo<CommandItem[]>(() => [
-    { id: 'canvas.list', title: '打开白板列表', icon: 'listTree', group: 'tools', keywords: ['list', '白板', '列表'], action: () => { setListOpen(true); setPaletteOpen(false) } },
-    { id: 'canvas.view.canvas', title: '自由白板', icon: 'frame', group: 'view', keywords: ['canvas', '白板'], action: () => setView('canvas') },
-    { id: 'canvas.view.mindmap', title: '思维导图视图', icon: 'frame', group: 'view', keywords: ['mindmap', '思维导图'], action: () => setView('mindmap') },
-    { id: 'canvas.view.kanban', title: '看板视图', icon: 'frame', group: 'view', keywords: ['kanban', '看板'], action: () => setView('kanban') },
-    { id: 'canvas.view.timeline', title: '时间轴视图', icon: 'frame', group: 'view', keywords: ['timeline', '时间轴'], action: () => setView('timeline') },
-    { id: 'canvas.tool.select', title: '工具：选择', icon: 'target', group: 'tools', keywords: ['select', '选择'], action: () => engine?.setCurrentTool('select') },
-    { id: 'canvas.tool.text', title: '工具：文字', icon: 'type', group: 'tools', keywords: ['text', '文字'], action: () => engine?.setCurrentTool('text') },
-    { id: 'canvas.tool.draw', title: '工具：画笔', icon: 'edit', group: 'tools', keywords: ['draw', '画笔'], action: () => engine?.setCurrentTool('draw') },
-    { id: 'canvas.tool.arrow', title: '工具：连线', icon: 'arrowR', group: 'tools', keywords: ['arrow', '连线'], action: () => engine?.setCurrentTool('arrow') },
-    { id: 'canvas.undo', title: '撤销', icon: 'undo', group: 'edit', shortcut: ['Ctrl', 'Z'], keywords: ['undo', '撤销'], action: () => engine?.undo() },
-    { id: 'canvas.redo', title: '重做', icon: 'redo', group: 'edit', shortcut: ['Ctrl', '⇧', 'Z'], keywords: ['redo', '重做'], action: () => engine?.redo() },
-    { id: 'canvas.fit', title: '适应缩放', icon: 'frame', group: 'view', keywords: ['fit', '缩放', '适应'], action: () => engine?.zoomToFit() },
-    { id: 'canvas.note', title: '新建便签', icon: 'file', group: 'file', keywords: ['note', '便签', '新建'], action: () => engine?.createCardFree('note-card', { text: '新便签', color: '#F59E0B' }) },
-  ], [engine])
+    { id: 'canvas.list', title: CP.cmdOpenList, icon: 'listTree', group: 'tools', keywords: ['list', '白板', '列表'], action: () => { setListOpen(true); setPaletteOpen(false) } },
+    { id: 'canvas.view.canvas', title: CP.cmdViewCanvas, icon: 'frame', group: 'view', keywords: ['canvas', '白板'], action: () => setView('canvas') },
+    { id: 'canvas.view.mindmap', title: CP.cmdViewMindmap, icon: 'frame', group: 'view', keywords: ['mindmap', '思维导图'], action: () => setView('mindmap') },
+    { id: 'canvas.view.kanban', title: CP.cmdViewKanban, icon: 'frame', group: 'view', keywords: ['kanban', '看板'], action: () => setView('kanban') },
+    { id: 'canvas.view.timeline', title: CP.cmdViewTimeline, icon: 'frame', group: 'view', keywords: ['timeline', '时间轴'], action: () => setView('timeline') },
+    { id: 'canvas.tool.select', title: CP.cmdToolSelect, icon: 'target', group: 'tools', keywords: ['select', '选择'], action: () => engine?.setCurrentTool('select') },
+    { id: 'canvas.tool.text', title: CP.cmdToolText, icon: 'type', group: 'tools', keywords: ['text', '文字'], action: () => engine?.setCurrentTool('text') },
+    { id: 'canvas.tool.draw', title: CP.cmdToolDraw, icon: 'edit', group: 'tools', keywords: ['draw', '画笔'], action: () => engine?.setCurrentTool('draw') },
+    { id: 'canvas.tool.arrow', title: CP.cmdToolArrow, icon: 'arrowR', group: 'tools', keywords: ['arrow', '连线'], action: () => engine?.setCurrentTool('arrow') },
+    { id: 'canvas.undo', title: t.canvasDock.undo, icon: 'undo', group: 'edit', shortcut: ['Ctrl', 'Z'], keywords: ['undo', '撤销'], action: () => engine?.undo() },
+    { id: 'canvas.redo', title: t.canvasDock.redo, icon: 'redo', group: 'edit', shortcut: ['Ctrl', '⇧', 'Z'], keywords: ['redo', '重做'], action: () => engine?.redo() },
+    { id: 'canvas.fit', title: CP.cmdFitZoom, icon: 'frame', group: 'view', keywords: ['fit', '缩放', '适应'], action: () => engine?.zoomToFit() },
+    { id: 'canvas.note', title: t.canvasDock.note, icon: 'file', group: 'file', keywords: ['note', '便签', '新建'], action: () => engine?.createCardFree('note-card', { text: t.canvasDock.newNoteDefault, color: '#F59E0B' }) },
+  ], [engine, CP, t])
   const [ctx, setCtx] = useState<{ x: number; y: number } | null>(null)
   // 右键菜单退场相位（动效审计 P0-3）：setCtx(null) 后仍保留最后一份 x/y 播完 100ms 再卸载，
   // 于是菜单「从光标处长出来的，就缩回光标处」。
@@ -144,7 +147,7 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
         const list = await getCanvasList()
         if (!alive) return
         const target = list.length > 0 ? list[0] : null
-        const d = target ? await loadCanvas(target.id) : await createCanvas('默认白板')
+        const d = target ? await loadCanvas(target.id) : await createCanvas(CP.defaultCanvas)
         if (d && alive) {
           setDoc(d)
           setInitialData(d.data)
@@ -156,7 +159,7 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
     return () => {
       alive = false
     }
-  }, [canvasId])
+  }, [canvasId, CP])
 
   // 反向解析所属知识库（canvasIds），供顶部「所属知识库」芯片回跳
   useEffect(() => {
@@ -296,11 +299,11 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
       getOutgoingLinks,
     })
     if (added === 0 && removed === 0) {
-      toast?.('链接已是最新')
+      toast?.(CP.linksUpToDate)
     } else {
       toast?.(`同步完成：新增 ${added} 条（虚线），移除 ${removed} 条`)
     }
-  }, [rootFolder, getOutgoingLinks, toast])
+  }, [rootFolder, getOutgoingLinks, toast, CP])
 
   // 自动同步：链接索引变化时自动同步（对齐旧 autoSync effect）
   useEffect(() => {
@@ -366,8 +369,8 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
   const addQuickNote = useCallback(() => {
     const eng = engineRef.current
     if (!eng) return
-    eng.createCardFree('note-card', { text: '新便签', color: '#F59E0B' })
-  }, [])
+    eng.createCardFree('note-card', { text: t.canvasDock.newNoteDefault, color: '#F59E0B' })
+  }, [t.canvasDock.newNoteDefault])
 
   // 从「文件」Tab 拖拽文件到白板：生成带 fileId 的 note-card（落点居中于光标），点击即跳编辑器
   const handleDropFile = useCallback((e: ReactDragEvent<HTMLDivElement>) => {
@@ -376,7 +379,7 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
     e.preventDefault()
     const eng = engineRef.current
     if (!eng) return
-    const name = e.dataTransfer.getData(CANVAS_FILE_DRAG_NAME_MIME) || findNode(rootFolder, fileId)?.name || '笔记'
+    const name = e.dataTransfer.getData(CANVAS_FILE_DRAG_NAME_MIME) || findNode(rootFolder, fileId)?.name || CP.noteWord
     const p = eng.screenToPage({ x: e.clientX, y: e.clientY })
     eng.createShape({
       type: 'note-card',
@@ -385,7 +388,7 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
       props: { text: name.replace(/\.md$/i, ''), color: '#06B6D4', fileId },
     })
     toast?.(`已插入笔记：${name}`)
-  }, [rootFolder, toast])
+  }, [rootFolder, toast, CP])
 
   // ─── 转为笔记：把选中的自由便签（无 fileId 的 note-card）全文落成真实笔记文件 ───
   // 文件建在根目录（openAfterCreate=false：留在白板不打断），新文件 id 回写绑定到卡片
@@ -413,29 +416,29 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
       taken.add(plan.fileName)
       converted++
     }
-    toast?.(converted > 0 ? `已转为笔记 ${converted} 篇（文件列表根目录）` : '转换失败')
-  }, [rootFolder, createFile, toast])
+    toast?.(converted > 0 ? CP.convertedNotes.replace('{n}', String(converted)) : CP.convertFailed)
+  }, [rootFolder, createFile, toast, CP])
 
   // ─── 导出当前白板：PNG（Excalidraw 场景）+ JSON（完整数据，可再导入）───
   const handleExport = useCallback(async () => {
     const editor = engineRef.current
     const cur = docRef.current
     if (!editor || !cur) {
-      toast?.('白板尚未就绪，无法导出')
+      toast?.(CP.notReadyExport)
       return
     }
-    const base = cur.name || '白板'
+    const base = cur.name || CP.canvasWord
     const pngOk = await exportCanvasPNG(editor, `${base}.png`)
     exportCanvasJSON(editor, `${base}.json`)
     toast?.(pngOk ? `已导出 ${base}（PNG+JSON）` : `已导出 ${base}（JSON；PNG 引擎未就绪）`)
-  }, [toast])
+  }, [toast, CP])
 
   return (
     <PageFrame
       sidebarGroups={AURORA_SIDEBAR_GROUPS}
       sidebarActiveId="白板"
       onSidebarSelect={(id) => nav?.(resolveAuroraNav(id))}
-      breadcrumbs={owningKb ? ['白板', owningKb.name, doc?.name ?? '白板'] : ['白板', doc?.name ?? '白板']}
+      breadcrumbs={owningKb ? [CP.canvasWord, owningKb.name, doc?.name ?? CP.canvasWord] : [CP.canvasWord, doc?.name ?? CP.canvasWord]}
     >
       <CanvasEngineContext.Provider value={engine}>
         <div className="aurora-canvas">
@@ -467,14 +470,14 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
                   onMouseLeave={leftIntent.scheduleClose}
                 >
                   <div className="aurora-canvas__overlay-head">
-                    <span className="aurora-canvas__overlay-title">浏览</span>
+                    <span className="aurora-canvas__overlay-title">{CP.browseTitle}</span>
                     <div className="aurora-canvas__overlay-actions">
                       <button
                         type="button"
                         className={`aurora-canvas__pin ${leftPinned ? 'is-on' : ''}`}
                         onClick={() => setLeftPinned((p) => !p)}
-                        aria-label={leftPinned ? '取消钉住浏览' : '钉住浏览'}
-                        title={leftPinned ? '取消钉住' : '钉住常驻'}
+                        aria-label={leftPinned ? CP.unpinBrowse : CP.pinBrowse}
+                        title={leftPinned ? CP.unpin : CP.pin}
                       >
                         <svg width="13" height="13" viewBox="0 0 13 13"><path d="M8 2l3 3-5 5-1-1 1-3-3-3 2-2z" fill="none" stroke="currentColor" strokeWidth="1.1" /></svg>
                       </button>
@@ -482,8 +485,8 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
                         type="button"
                         className="aurora-canvas__overlay-close"
                         onClick={closeLeft}
-                        aria-label="收起浏览"
-                        title="收起"
+                        aria-label={CP.collapseBrowse}
+                        title={CP.collapse}
                       >
                         <Icon.chevronLeft size={14} />
                       </button>
@@ -540,8 +543,8 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
               {view === 'canvas' && isCanvasEmpty && !guideSkipped && (
                 <div className="aurora-canvas__empty">
                   <div className="aurora-canvas__empty-inner">
-                  <div className="aurora-canvas__empty-title">白板还是空的</div>
-                  <div className="aurora-canvas__empty-sub">从一张便签开始，记录你的灵感</div>
+                  <div className="aurora-canvas__empty-title">{CP.emptyTitle}</div>
+                  <div className="aurora-canvas__empty-sub">{CP.emptySub}</div>
                   <div className="aurora-canvas__empty-actions">
                     <button type="button" className="aurora-canvas__empty-btn aurora-canvas__empty-btn--primary" onClick={addQuickNote}>
                       <Icon.edit size={15} /> 新建便签
@@ -596,8 +599,8 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
                         type="button"
                         className="aurora-canvas__overlay-close"
                         onClick={closeRight}
-                        aria-label="收起检视"
-                        title="收起"
+                        aria-label={CP.collapseInspect}
+                        title={CP.collapse}
                       >
                         <Icon.chevronRight size={14} />
                       </button>
@@ -605,13 +608,13 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
                         type="button"
                         className={`aurora-canvas__pin ${rightPinned ? 'is-on' : ''}`}
                         onClick={() => setRightPinned((p) => !p)}
-                        aria-label={rightPinned ? '取消钉住检视' : '钉住检视'}
-                        title={rightPinned ? '取消钉住' : '钉住常驻'}
+                        aria-label={rightPinned ? CP.unpinInspect : CP.pinInspect}
+                        title={rightPinned ? CP.unpin : CP.pin}
                       >
                         <svg width="13" height="13" viewBox="0 0 13 13"><path d="M8 2l3 3-5 5-1-1 1-3-3-3 2-2z" fill="none" stroke="currentColor" strokeWidth="1.1" /></svg>
                       </button>
                     </div>
-                    <span className="aurora-canvas__overlay-title">检视</span>
+                    <span className="aurora-canvas__overlay-title">{CP.inspectTitle}</span>
                   </div>
                   <div className="aurora-canvas__overlay-body">
                     <CanvasInspectorPanel engine={engine} />
@@ -638,7 +641,7 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
           onClose={() => setListOpen(false)}
           onOpen={openCanvas}
           onCreate={async (name) => {
-            const d = await createCanvas(name || '未命名白板')
+            const d = await createCanvas(name || t.canvasList.untitled)
             await openCanvas(d.id)
           }}
           toast={toast}

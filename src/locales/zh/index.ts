@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogModal } from './blog'
-import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph } from './common'
+import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -579,6 +579,38 @@ export interface Translations {
     tokenDesc: string
     tokenPlaceholder: string
     customUrlHint: string
+  }
+  canvasPanel: {
+    cmdOpenList: string
+    cmdViewCanvas: string
+    cmdViewMindmap: string
+    cmdViewKanban: string
+    cmdViewTimeline: string
+    cmdToolSelect: string
+    cmdToolText: string
+    cmdToolDraw: string
+    cmdToolArrow: string
+    cmdFitZoom: string
+    defaultCanvas: string
+    linksUpToDate: string
+    noteWord: string
+    convertedNotes: string
+    convertFailed: string
+    notReadyExport: string
+    canvasWord: string
+    browseTitle: string
+    inspectTitle: string
+    unpinBrowse: string
+    pinBrowse: string
+    unpinInspect: string
+    pinInspect: string
+    collapse: string
+    collapseBrowse: string
+    collapseInspect: string
+    unpin: string
+    pin: string
+    emptyTitle: string
+    emptySub: string
   }
   graph: {
     navTitle: string
@@ -1322,6 +1354,7 @@ const zh: Translations = {
   canvasDock,
   canvasList,
   propsTab,
+  canvasPanel,
   settingsAppearance,
   settingsEditor,
   settingsImage,
