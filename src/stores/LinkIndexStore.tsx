@@ -1,200 +1,20 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { FileNode } from '../types/fileManager';
-import { collectAllFiles } from '@core/files/fileTree';
+// —— P5-2 拆分：类型/纯函数层下沉 linkIndexShared，全量构建纯函数化 buildIndexSnapshot，
+//    查询方法组收编 useLinkIndexQueries —— 本文件保留 Provider 编排与增量更新（updateFileIndex）。
+import { buildIndexSnapshot } from './buildLinkIndex';
+import { useLinkIndexQueries } from './useLinkIndexQueries';
+import { extractHeadings, isInsideLink, parseLinks, stripMdExtension } from './linkIndexShared';
+import type { FileLinkIndex, LinkIndexContextType, LinkRecord } from './linkIndexShared';
 
-// --- Types ---
-
-export interface LinkRecord {
-  sourceFileId: string;
-  sourceFileName: string;
-  target: string;
-  type: 'wikilink' | 'embed';
-  line: number;
-  matchedName?: string;
-  text?: string;
-  /** 引用行的上下文片段（当前行+前后各1行） */
-  context?: string;
-  /** 链接关系类型，如 引用、反驳、支撑 等 */
-  relation?: string;
-  /** 链接备注 */
-  note?: string;
-}
-
-export interface FileLinkIndex {
-  fileId: string;
-  fileName: string;
-  outgoingLinks: LinkRecord[];
-  backlinks: LinkRecord[];
-  unlinkedMentions: LinkRecord[];
-}
-
-export interface GraphNode {
-  id: string;
-  label: string;
-  links: number;
-}
-
-export interface GraphEdge {
-  source: string;
-  target: string;
-  type: 'wikilink' | 'embed' | 'tag';
-  relation?: string;
-}
-
-export interface GraphData {
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-}
-
-interface LinkIndexContextType {
-  fileIndex: Map<string, FileLinkIndex>;
-  indexVersion: number;
-  rebuildIndex: (rootFolder: FileNode) => void;
-  updateFileIndex: (fileId: string, content: string, fileName: string) => void;
-  getBacklinks: (fileId: string) => LinkRecord[];
-  getOutgoingLinks: (fileId: string) => LinkRecord[];
-  getUnlinkedMentions: (fileId: string) => LinkRecord[];
-  resolveTarget: (targetName: string) => string | undefined;
-  resolveTargetFuzzy: (targetName: string) => { fileId: string; fuzzy: boolean } | undefined;
-  getFilePath: (fileId: string) => string;
-  searchFiles: (query: string) => FileNode[];
-  getGraphData: (tagIndex?: Map<string, Set<string>>) => GraphData;
-  getFileHeadings: (fileId: string) => string[];
-  onFileUpdate: (listener: (fileId: string) => void) => () => void;
-}
-
-// --- Helpers ---
-
-const LINK_REGEX = /(!?)\[\[([^\]]+)\]\]/g;
-
-
-/** Strip .md extension if present. */
-function stripMdExtension(name: string): string {
-  return name.endsWith('.md') ? name.slice(0, -3) : name;
-}
-
-/** Extract headings (H1-H6) from content */
-function extractHeadings(content: string): string[] {
-  const headings: string[] = [];
-  const lines = content.split('\n');
-  for (const line of lines) {
-    const match = line.match(/^#{1,6}\s+(.+)$/);
-    if (match) {
-      headings.push(match[1].trim());
-    }
-  }
-  return headings;
-}
-
-/** Parse content for wikilinks and embeds, returning LinkRecord[]. */
-function parseLinks(sourceFileId: string, sourceFileName: string, content: string): LinkRecord[] {
-  const links: LinkRecord[] = [];
-  const lines = content.split('\n');
-
-  for (let i = 0; i < lines.length; i++) {
-    let match: RegExpExecArray | null;
-    LINK_REGEX.lastIndex = 0;
-    while ((match = LINK_REGEX.exec(lines[i])) !== null) {
-      const isEmbed = match[1] === '!';
-      // Support [[target|pipeContent]] syntax
-      const rawTarget = match[2];
-      const parts = rawTarget.split('|');
-      const target = parts[0].trim();
-      const pipeContent = parts.length > 1 ? parts.slice(1).join('|').trim() : '';
-
-      // Parse relation and note from pipe content
-      let relation = '';
-      let note = '';
-      if (pipeContent) {
-        if (pipeContent.startsWith('关系:')) {
-          relation = pipeContent.slice(3);
-        } else if (pipeContent.startsWith('备注:')) {
-          note = pipeContent.slice(3);
-        }
-      }
-
-      // 提取上下文：当前行+前后各1行
-      const contextStart = Math.max(0, i - 1);
-      const contextEnd = Math.min(lines.length, i + 2);
-      const contextLines = lines.slice(contextStart, contextEnd);
-      // 标记引用行（中间行）
-      const contextOffset = i - contextStart;
-
-      links.push({
-        sourceFileId,
-        sourceFileName,
-        target,
-        type: isEmbed ? 'embed' : 'wikilink',
-        line: i + 1,
-        context: contextLines.map((l, idx) => (idx === contextOffset ? '→ ' : '  ') + l).join('\n'),
-        relation: relation || undefined,
-        note: note || undefined,
-      });
-    }
-  }
-
-  return links;
-}
-
-/**
- * Build a name→fileId lookup map from all files in a root folder.
- * Strips .md extensions so links like [[Note]] match Note.md.
- */
-function buildNameMap(rootFolder: FileNode): Map<string, string> {
-  const map = new Map<string, string>();
-  const files = collectAllFiles(rootFolder);
-  for (const file of files) {
-    const nameWithoutExt = stripMdExtension(file.name);
-    // First match wins if there are duplicates
-    if (!map.has(nameWithoutExt.toLowerCase())) {
-      map.set(nameWithoutExt.toLowerCase(), file.id);
-    }
-    // Also map with the original case
-    if (!map.has(nameWithoutExt)) {
-      map.set(nameWithoutExt, file.id);
-    }
-  }
-  return map;
-}
-
-/** Check whether a given target text in content is inside [[...]] brackets. */
-function isInsideLink(content: string, index: number): boolean {
-  // Look backwards for [[ that isn't closed by ]] before index
-  const before = content.substring(0, index);
-  const lastOpen = before.lastIndexOf('[[');
-  if (lastOpen === -1) return false;
-  const between = before.substring(lastOpen);
-  // If there's a ]] after [[ but before the match, it's not inside
-  const closeAfterOpen = between.indexOf(']]');
-  return closeAfterOpen === -1;
-}
-
-/** Build a path→fileId map from a folder tree, e.g. "folderA/Note" → fileId */
-function collectFilePaths(node: FileNode, basePath: string = ''): Map<string, string> {
-  const map = new Map<string, string>()
-  if (node.type === 'file') {
-    const nameWithoutExt = stripMdExtension(node.name)
-    const fullPath = basePath ? `${basePath}/${nameWithoutExt}` : nameWithoutExt
-    if (!map.has(fullPath.toLowerCase())) {
-      map.set(fullPath.toLowerCase(), node.id)
-    }
-    if (!map.has(fullPath)) {
-      map.set(fullPath, node.id)
-    }
-  }
-  if (node.children) {
-    for (const child of node.children) {
-      const childPath = basePath ? `${basePath}/${child.name}` : child.name
-      const childMap = child.type === 'folder'
-        ? collectFilePaths(child, childPath)
-        : collectFilePaths(child, basePath)
-      for (const [key, value] of childMap) {
-        if (!map.has(key)) map.set(key, value)
-      }
-    }
-  }
-  return map
-}
+// 对外类型路径保稳（消费方从本模块导入 LinkRecord / GraphData 等）
+export type {
+  LinkRecord,
+  FileLinkIndex,
+  GraphNode,
+  GraphEdge,
+  GraphData,
+} from './linkIndexShared';
 
 // --- Context ---
 
@@ -230,104 +50,14 @@ export const LinkIndexProvider: React.FC<{ children: React.ReactNode; rootFolder
     fileUpdateListeners.forEach(l => l(fileId))
   }, [])
 
-  // --- Core: full rebuild ---
+  // --- Core: full rebuild（计算段见 buildLinkIndex#buildIndexSnapshot，算与报分离）---
 
   const doRebuild = useCallback((folder: FileNode) => {
-    const allFiles = collectAllFiles(folder);
-    const nameMap = buildNameMap(folder);
-
-    // P0.3: 缓存所有文件内容，供增量更新使用
-    const contentCache = new Map<string, { content: string; fileName: string }>();
-    for (const file of allFiles) {
-      contentCache.set(file.id, { content: file.content ?? '', fileName: file.name });
-    }
-    contentCacheRef.current = contentCache;
-
-    // Parse outgoing links for every file
-    const outgoingMap = new Map<string, LinkRecord[]>();
-    for (const file of allFiles) {
-      const content = file.content ?? '';
-      outgoingMap.set(file.id, parseLinks(file.id, file.name, content));
-    }
-
-    // Build headings map for every file
-    const headingsMap = new Map<string, string[]>();
-    for (const file of allFiles) {
-      const content = file.content ?? '';
-      headingsMap.set(file.id, extractHeadings(content));
-    }
-
-    // Build the index
-    const newIndex = new Map<string, FileLinkIndex>();
-
-    for (const file of allFiles) {
-      const outgoing = outgoingMap.get(file.id) ?? [];
-
-      // Compute backlinks: links from other files that target this file
-      const backlinks: LinkRecord[] = [];
-      for (const otherFile of allFiles) {
-        if (otherFile.id === file.id) continue;
-        const otherOutgoing = outgoingMap.get(otherFile.id) ?? [];
-        for (const link of otherOutgoing) {
-          const resolvedId = nameMap.get(link.target) ?? nameMap.get(link.target.toLowerCase());
-          if (resolvedId === file.id) {
-            backlinks.push(link);
-          }
-        }
-      }
-
-      // Compute unlinked mentions: other files that mention this file's name but not in [[...]]
-      const unlinkedMentions: LinkRecord[] = [];
-      const fileNameWithoutExt = stripMdExtension(file.name);
-      if (fileNameWithoutExt.length >= 2) {
-        for (const otherFile of allFiles) {
-          if (otherFile.id === file.id) continue;
-          const content = otherFile.content ?? '';
-          const lines = content.split('\n');
-
-          for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            let searchIdx = 0;
-            while (searchIdx < line.length) {
-              const mentionIdx = line.indexOf(fileNameWithoutExt, searchIdx);
-              if (mentionIdx === -1) break;
-
-              if (!isInsideLink(line, mentionIdx)) {
-                const contextStart = Math.max(0, mentionIdx - 20);
-                const contextEnd = Math.min(line.length, mentionIdx + fileNameWithoutExt.length + 20);
-                const contextText = (contextStart > 0 ? '...' : '') + line.slice(contextStart, contextEnd) + (contextEnd < line.length ? '...' : '');
-
-                unlinkedMentions.push({
-                  sourceFileId: otherFile.id,
-                  sourceFileName: otherFile.name,
-                  target: fileNameWithoutExt,
-                  type: 'wikilink',
-                  line: i + 1,
-                  matchedName: fileNameWithoutExt,
-                  text: contextText,
-                });
-                // Only one mention per line per source file
-                break;
-              }
-
-              searchIdx = mentionIdx + 1;
-            }
-          }
-        }
-      }
-
-      newIndex.set(file.id, {
-        fileId: file.id,
-        fileName: file.name,
-        outgoingLinks: outgoing,
-        backlinks,
-        unlinkedMentions,
-      });
-    }
-
-    setFileIndex(newIndex);
-    setFileHeadings(headingsMap);
-    setFilePathMap(collectFilePaths(folder));
+    const snapshot = buildIndexSnapshot(folder);
+    contentCacheRef.current = snapshot.contentCache;
+    setFileIndex(snapshot.fileIndex);
+    setFileHeadings(snapshot.headingsMap);
+    setFilePathMap(snapshot.filePathMap);
     setIndexVersion(v => v + 1);
   }, []);
 
@@ -484,191 +214,9 @@ export const LinkIndexProvider: React.FC<{ children: React.ReactNode; rootFolder
     notifyFileUpdate(fileId);
   }, [notifyFileUpdate]);
 
-  // --- Query functions ---
+  // --- Query functions（P5-2：方法组收编于 useLinkIndexQueries，闭合当前索引 state）---
 
-  const getBacklinks = useCallback((fileId: string): LinkRecord[] => {
-    return fileIndex.get(fileId)?.backlinks ?? [];
-  }, [fileIndex]);
-
-  const getOutgoingLinks = useCallback((fileId: string): LinkRecord[] => {
-    return fileIndex.get(fileId)?.outgoingLinks ?? [];
-  }, [fileIndex]);
-
-  const getUnlinkedMentions = useCallback((fileId: string): LinkRecord[] => {
-    return fileIndex.get(fileId)?.unlinkedMentions ?? [];
-  }, [fileIndex]);
-
-  const getFileHeadings = useCallback((fileId: string): string[] => {
-    return fileHeadings.get(fileId) ?? [];
-  }, [fileHeadings]);
-
-  const resolveTarget = useCallback((targetName: string): string | undefined => {
-    // Strip #heading part for file name matching
-    const fileName = targetName.split('#')[0].trim();
-    // 也去掉 target 的 .md 后缀（用户可能在 [[...]] 中写了 .md 后缀）
-    const fileNameNoExt = stripMdExtension(fileName);
-    // Try exact match first, then case-insensitive
-    for (const [, entry] of fileIndex) {
-      if (stripMdExtension(entry.fileName) === fileName || stripMdExtension(entry.fileName) === fileNameNoExt) {
-        return entry.fileId;
-      }
-    }
-    const lower = fileName.toLowerCase();
-    const lowerNoExt = fileNameNoExt.toLowerCase();
-    for (const [, entry] of fileIndex) {
-      const entryName = stripMdExtension(entry.fileName).toLowerCase();
-      if (entryName === lower || entryName === lowerNoExt) {
-        return entry.fileId;
-      }
-    }
-    // Path match: support [[folder/file]] format
-    if (fileName.includes('/')) {
-      const pathLower = fileName.toLowerCase();
-      if (filePathMap.has(pathLower)) {
-        return filePathMap.get(pathLower)!;
-      }
-      if (filePathMap.has(fileName)) {
-        return filePathMap.get(fileName)!;
-      }
-    }
-    return undefined;
-  }, [fileIndex, filePathMap]);
-
-  const resolveTargetFuzzy = useCallback((targetName: string): { fileId: string; fuzzy: boolean } | undefined => {
-    // Strip #heading part for file name matching
-    const fileName = targetName.split('#')[0].trim();
-
-    // 1. Exact match (same as resolveTarget)
-    for (const [, entry] of fileIndex) {
-      if (stripMdExtension(entry.fileName) === fileName) {
-        return { fileId: entry.fileId, fuzzy: false };
-      }
-    }
-    const lower = fileName.toLowerCase();
-    for (const [, entry] of fileIndex) {
-      if (stripMdExtension(entry.fileName).toLowerCase() === lower) {
-        return { fileId: entry.fileId, fuzzy: false };
-      }
-    }
-
-    // 1.5. Path match: support [[folder/file]] format
-    if (fileName.includes('/')) {
-      const pathLower = fileName.toLowerCase();
-      if (filePathMap.has(pathLower)) {
-        return { fileId: filePathMap.get(pathLower)!, fuzzy: false };
-      }
-      if (filePathMap.has(fileName)) {
-        return { fileId: filePathMap.get(fileName)!, fuzzy: false };
-      }
-    }
-
-    // 2. Contains match: targetName is a substring of the file name
-    for (const [, entry] of fileIndex) {
-      const nameWithoutExt = stripMdExtension(entry.fileName);
-      if (nameWithoutExt.toLowerCase().includes(lower)) {
-        return { fileId: entry.fileId, fuzzy: true };
-      }
-    }
-    // Reverse: file name contains target
-    for (const [, entry] of fileIndex) {
-      const nameWithoutExt = stripMdExtension(entry.fileName);
-      if (lower.includes(nameWithoutExt.toLowerCase())) {
-        return { fileId: entry.fileId, fuzzy: true };
-      }
-    }
-
-    // 3. Ignore spaces match
-    const noSpaces = lower.replace(/\s+/g, '');
-    for (const [, entry] of fileIndex) {
-      const nameNoSpaces = stripMdExtension(entry.fileName).toLowerCase().replace(/\s+/g, '');
-      if (nameNoSpaces === noSpaces) {
-        return { fileId: entry.fileId, fuzzy: true };
-      }
-    }
-
-    return undefined;
-  }, [fileIndex, filePathMap]);
-
-  const getFilePath = useCallback((fileId: string): string => {
-    for (const [path, id] of filePathMap) {
-      if (id === fileId) return path;
-    }
-    return '';
-  }, [filePathMap]);
-
-  const searchFiles = useCallback((query: string): FileNode[] => {
-    // We don't have access to rootFolder as state here; accept it via closure
-    // from the last rebuild. Since we track file names in the index, use that.
-    if (!query) return [];
-    const lower = query.toLowerCase();
-    const results: FileNode[] = [];
-    for (const [, entry] of fileIndex) {
-      if (stripMdExtension(entry.fileName).toLowerCase().includes(lower)) {
-        results.push({
-          id: entry.fileId,
-          name: entry.fileName,
-          type: 'file',
-          createdAt: 0,
-          updatedAt: 0,
-        });
-      }
-    }
-    return results;
-  }, [fileIndex]);
-
-  const getGraphData = useCallback((tagIndex?: Map<string, Set<string>>): GraphData => {
-    const nodeMap = new Map<string, GraphNode>();
-    const edges: GraphEdge[] = [];
-
-    for (const [, entry] of fileIndex) {
-      const label = stripMdExtension(entry.fileName);
-      nodeMap.set(entry.fileId, {
-        id: entry.fileId,
-        label,
-        links: entry.outgoingLinks.length,
-      });
-
-      for (const link of entry.outgoingLinks) {
-        const targetId = resolveTarget(link.target);
-        if (targetId) {
-          edges.push({
-            source: entry.fileId,
-            target: targetId,
-            type: link.type,
-            relation: link.relation || undefined,
-          });
-        }
-      }
-    }
-
-    // D3: Add tag nodes and tag edges
-    if (tagIndex) {
-      for (const [tagPath, fileIds] of tagIndex) {
-        const tagNodeId = `tag:${tagPath}`;
-        const tagName = tagPath.includes('/') ? tagPath.split('/').pop()! : tagPath;
-        nodeMap.set(tagNodeId, {
-          id: tagNodeId,
-          label: tagName,
-          links: fileIds.size,
-        });
-        for (const fileId of fileIds) {
-          // Only add edge if the file exists in the graph
-          if (nodeMap.has(fileId)) {
-            edges.push({
-              source: tagNodeId,
-              target: fileId,
-              type: 'tag',
-            });
-          }
-        }
-      }
-    }
-
-    return {
-      nodes: Array.from(nodeMap.values()),
-      edges,
-    };
-  }, [fileIndex, resolveTarget]);
+  const queries = useLinkIndexQueries(fileIndex, fileHeadings, filePathMap);
 
   // --- Context value ---
 
@@ -677,15 +225,15 @@ export const LinkIndexProvider: React.FC<{ children: React.ReactNode; rootFolder
     indexVersion,
     rebuildIndex,
     updateFileIndex,
-    getBacklinks,
-    getOutgoingLinks,
-    getUnlinkedMentions,
-    resolveTarget,
-    resolveTargetFuzzy,
-    getFilePath,
-    searchFiles,
-    getGraphData,
-    getFileHeadings,
+    getBacklinks: queries.getBacklinks,
+    getOutgoingLinks: queries.getOutgoingLinks,
+    getUnlinkedMentions: queries.getUnlinkedMentions,
+    resolveTarget: queries.resolveTarget,
+    resolveTargetFuzzy: queries.resolveTargetFuzzy,
+    getFilePath: queries.getFilePath,
+    searchFiles: queries.searchFiles,
+    getGraphData: queries.getGraphData,
+    getFileHeadings: queries.getFileHeadings,
     onFileUpdate,
   };
 
