@@ -1,6 +1,4 @@
 import { useEditor, EditorContent } from '@tiptap/react'
-import { EditorView } from '@tiptap/pm/view'
-import { Slice } from '@tiptap/pm/model'
 import { djb2Hash } from '../../utils/hash'
 import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback, useState, useMemo } from 'react'
 import { htmlToMarkdown } from './markdownConvert'
@@ -20,7 +18,11 @@ import { useTiptapSearch } from './hooks/useTiptapSearch'
 import { useTiptapLint } from './hooks/useTiptapLint'
 import { useTiptapFileOps } from './hooks/useTiptapFileOps'
 import { useTiptapExtensions } from './hooks/useTiptapExtensions'
-import { useTiptapImageHandler } from './hooks/useTiptapImageHandler'
+// —— P5-1 拆分：拖放/粘贴编排、大纲滚动联动、链接接线、滚动命令各成 hook ——
+import { useTiptapDropPaste } from './hooks/useTiptapDropPaste'
+import { useTiptapOutlineScroll } from './hooks/useTiptapOutlineScroll'
+import { useTiptapLinkWiring } from './hooks/useTiptapLinkWiring'
+import { useTiptapScrollCommands } from './hooks/useTiptapScrollCommands'
 import { useTiptapUndoRedo } from './hooks/useTiptapUndoRedo'
 import { useTiptapContentSync } from './hooks/useTiptapContentSync'
 import SearchReplaceBar from './components/SearchReplaceBar'
@@ -30,10 +32,6 @@ import { imageStore } from '@core/storage/imageStore'
 import type { Editor as TiptapEditorType } from '@tiptap/react'
 import WikiLinkAutocomplete from './extensions/WikiLinkAutocomplete'
 import WikiLinkHoverPreview from './extensions/WikiLinkHoverPreview'
-import { setWikiLinkClickHandler, setBrokenLinkClickHandler } from './extensions/WikiLink'
-import { setBlockReferenceClickHandler } from './extensions/BlockReference'
-import { saveEditorScroll } from '../../services/scrollPositionManager'
-import { smoothScrollTo } from '../../utils/smoothScroll'
 
 interface TiptapEditorProps {
   value: string
@@ -112,8 +110,6 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
   const htmlSnapshotRef = useRef<Map<number, { md: string; html: string }>>(new Map())
 
   // Stable refs for callbacks to avoid stale closures
-  const onActiveHeadingChangeRef = useRef(onActiveHeadingChange)
-  onActiveHeadingChangeRef.current = onActiveHeadingChange
   const onUndoRedoStateChangeRef = useRef(onUndoRedoStateChange)
   onUndoRedoStateChangeRef.current = onUndoRedoStateChange
   const fileIdRef = useRef(fileId)
@@ -145,65 +141,8 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
     t, livePreview, undoFnRef, redoFnRef,
   })
 
-  // Extracted hook for image handling (drag/drop/paste)
-  const { handleDrop: imageHandleDrop, handlePaste: imageHandlePaste } = useTiptapImageHandler({ editorRef, t, useRelativeImagePath: appSettings.useRelativeImagePath })
-
-  // Enhanced handleDrop: check for file drag from sidebar first, then fall through to image handler
-  const handleDrop = useCallback((view: EditorView, event: DragEvent, slice: Slice, moved: boolean) => {
-    // Check for file drag from sidebar (WikiLink creation)
-    const fileData = event.dataTransfer?.getData('application/markcraft-file')
-    if (fileData) {
-      try {
-        const { fileName } = JSON.parse(fileData)
-        const linkName = fileName.endsWith('.md') ? fileName.slice(0, -3) : fileName
-        const coord = view.posAtCoords({ left: event.clientX, top: event.clientY })
-        if (coord) {
-          const { pos } = coord
-          const markType = view.state.schema.marks.wikiLink
-          if (markType) {
-            const tr = view.state.tr.insertText(linkName, pos)
-            tr.addMark(pos, pos + linkName.length, markType.create({ target: linkName }))
-            view.dispatch(tr)
-          } else {
-            view.dispatch(view.state.tr.insertText(`[[${linkName}]]`, pos))
-          }
-        }
-      } catch {}
-      return true
-    }
-    // Fall through to image handler
-    return imageHandleDrop(view, event, slice, moved)
-  }, [imageHandleDrop])
-
-  const handlePaste = useCallback((view: EditorView, event: ClipboardEvent, slice: Slice) => {
-    const shiftKey = (event as unknown as { shiftKey?: boolean }).shiftKey
-    if (shiftKey) {
-      event.preventDefault()
-      const text = event.clipboardData?.getData('text/plain') || ''
-      view.dispatch(view.state.tr.insertText(text))
-      return true
-    }
-
-    // F3: Smart paste — detect WikiLink format and insert as WikiLink mark
-    const plainText = event.clipboardData?.getData('text/plain')
-    if (plainText) {
-      const wikiLinkMatch = plainText.match(/^\[\[([^\]]+)\]\]$/m)
-      if (wikiLinkMatch) {
-        const target = wikiLinkMatch[1]
-        const { from } = view.state.selection
-        const markType = view.state.schema.marks.wikiLink
-        if (markType) {
-          event.preventDefault()
-          const tr = view.state.tr.insertText(target, from)
-          tr.addMark(from, from + target.length, markType.create({ target }))
-          view.dispatch(tr)
-          return true
-        }
-      }
-    }
-
-    return imageHandlePaste(view, event, slice)
-  }, [imageHandlePaste])
+  // Extracted hook for drag/paste orchestration（文件拖入建 WikiLink / Shift 纯文本 / 智能粘贴 → 图片回落）
+  const { handleDrop, handlePaste } = useTiptapDropPaste({ editorRef, t, useRelativeImagePath: appSettings.useRelativeImagePath })
 
   const editor = useEditor({
     onCreate: ({ editor: ed }) => {
@@ -308,6 +247,9 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
     }
   }, [value])
 
+  // 滚动命令（P5-1：scrollToHeading / restoreScroll 迁至 useTiptapScrollCommands）
+  const { scrollToHeading, restoreScroll } = useTiptapScrollCommands(scrollContainerRef)
+
   useImperativeHandle(ref, () => ({
     getEditor: () => editor,
     flushContent: () => {
@@ -333,41 +275,9 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
     undo: () => undoFnRef.current(),
     redo: () => redoFnRef.current(),
     find: () => openSearchRef.current('search'),
-    scrollToHeading: (headingId: string) => {
-      if (!editor) return
-      // 使用真正的滚动容器 .tiptap-wrapper（scrollContainerRef）
-      const scrollContainer = scrollContainerRef.current
-      if (!scrollContainer) return
-      // 用 rAF 平滑滚动到标题顶部，每帧重读 heading 元素位置
-      // 应对 Tiptap 内容渲染过程中位置动态变化
-      smoothScrollTo(scrollContainer, () => {
-        const headingEl = scrollContainer.querySelector(`[id="${headingId}"]`) as HTMLElement | null
-        if (!headingEl) return scrollContainer.scrollTop
-        const containerRect = scrollContainer.getBoundingClientRect()
-        const headingRect = headingEl.getBoundingClientRect()
-        // margin 0：标题精准对齐编辑区顶部，不露上一行
-        return headingRect.top - containerRect.top + scrollContainer.scrollTop
-      })
-    },
-    restoreScroll: (scrollTop: number) => {
-      const scrollContainer = scrollContainerRef.current
-      if (!scrollContainer) return
-      // 用 rAF 延迟 + 多帧重试，应对 Tiptap 内容/图片异步渲染
-      // 导致 scrollHeight 偏小、scrollTop 被 clamp 到错误位置
-      let attempts = 0
-      const maxAttempts = 30 // 约 500ms
-      const tryRestore = () => {
-        const sc = scrollContainerRef.current
-        if (!sc) return
-        sc.scrollTop = scrollTop
-        // 如果还没达到目标（被 clamp），继续重试
-        if (Math.abs(sc.scrollTop - scrollTop) > 1 && attempts++ < maxAttempts) {
-          requestAnimationFrame(tryRestore)
-        }
-      }
-      requestAnimationFrame(tryRestore)
-    },
-  }), [editor, fileId, undoRedo])
+    scrollToHeading,
+    restoreScroll,
+  }), [editor, fileId, undoRedo, scrollToHeading, restoreScroll])
 
   // Sync undo/redo state
   useEffect(() => {
@@ -381,78 +291,8 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
     return unsub
   }, [fileId, undoRedo])
 
-  // WYSIWYG scroll → outline highlight
-  useEffect(() => {
-    if (!editor) return
-
-    let scrollContainer: HTMLElement | null = null
-    let raf = 0
-    let attempts = 0
-    let cleanup: (() => void) | null = null
-
-    const setup = () => {
-      // 真正滚动的容器是 .tiptap-wrapper（scrollContainerRef）
-      scrollContainer = scrollContainerRef.current
-      if (!scrollContainer) {
-        if (attempts++ < 60) {
-          raf = requestAnimationFrame(setup)
-        }
-        return
-      }
-      const sc = scrollContainer
-
-      let ticking = false
-      const handleScroll = () => {
-        if (ticking) return
-        ticking = true
-        requestAnimationFrame(() => {
-          ticking = false
-          // headings 实时查询，应对内容渲染延迟
-          const headings = sc.querySelectorAll('[id^="heading-"]')
-          let activeId: string | null = null
-          for (let i = headings.length - 1; i >= 0; i--) {
-            const el = headings[i] as HTMLElement
-            const rect = el.getBoundingClientRect()
-            const containerRect = sc.getBoundingClientRect()
-            if (rect.top <= containerRect.top + containerRect.height * 0.3) {
-              activeId = el.id
-              break
-            }
-          }
-          if (!activeId && headings.length > 0) {
-            const first = headings[0] as HTMLElement
-            const rect = first.getBoundingClientRect()
-            const containerRect = sc.getBoundingClientRect()
-            if (rect.top < containerRect.bottom) {
-              activeId = first.id
-            }
-          }
-          onActiveHeadingChangeRef.current?.(activeId)
-        })
-        // 保存编辑器滚动位置（用于切换标签页后恢复）
-        // saveEditorScroll 内部只在 scrollTop > 0 时更新，
-        // 避免文件切换时 setTextSelection(0) 触发的 scroll-to-top 覆盖正确位置
-        if (fileId) {
-          saveEditorScroll(fileId, sc.scrollTop, sc.scrollHeight)
-        }
-      }
-
-      sc.addEventListener('scroll', handleScroll, { passive: true })
-      cleanup = () => {
-        // 卸载前保存最终滚动位置
-        if (fileId && sc) {
-          saveEditorScroll(fileId, sc.scrollTop, sc.scrollHeight)
-        }
-        sc.removeEventListener('scroll', handleScroll)
-      }
-    }
-
-    setup()
-    return () => {
-      cancelAnimationFrame(raf)
-      cleanup?.()
-    }
-  }, [editor, fileId])
+  // WYSIWYG scroll → outline highlight（P5-1：effect 迁至 useTiptapOutlineScroll）
+  useTiptapOutlineScroll(editor, scrollContainerRef, fileId, onActiveHeadingChange)
 
   // Theme sync
   useEffect(() => {
@@ -468,81 +308,8 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
     }
   }, [theme, editor])
 
-  // Register WikiLink click handler for Ctrl+Click navigation
-  useEffect(() => {
-    const handler = (target: string, _event: MouseEvent) => {
-      const result = linkIndex.resolveTargetFuzzy(target)
-      if (result) {
-        openFile(result.fileId)
-      }
-    }
-    setWikiLinkClickHandler(handler)
-    return () => setWikiLinkClickHandler(null)
-  }, [linkIndex, openFile])
-
-  // Register broken link click handler for Ctrl+Click on broken WikiLinks
-  useEffect(() => {
-    if (onBrokenLinkClick) {
-      setBrokenLinkClickHandler(onBrokenLinkClick)
-    } else {
-      setBrokenLinkClickHandler(null)
-    }
-    return () => setBrokenLinkClickHandler(null)
-  }, [onBrokenLinkClick])
-
-  // Register block reference click handler: navigate to block source
-  useEffect(() => {
-    const handler = (blockId: string, _event: MouseEvent) => {
-      // Resolve block via bridge and open source file
-      import('../../services/blockReferenceBridge').then(({ resolveBlock, triggerBlockClick }) => {
-        const block = resolveBlock(blockId)
-        if (block) {
-          openFile(block.fileId)
-        } else {
-          // Fallback: trigger generic click handler
-          triggerBlockClick(blockId)
-        }
-      })
-    }
-    setBlockReferenceClickHandler(handler)
-    return () => setBlockReferenceClickHandler(null)
-  }, [openFile])
-
-  // Update WikiLink mark attributes (broken/fuzzy/backlinkCount) when the link index changes
-  useEffect(() => {
-    if (!editor || editor.isDestroyed) return
-
-    const { state, view } = editor
-    const { tr } = state
-    let modified = false
-
-    state.doc.descendants((node, pos) => {
-      const wikiLinkMark = node.marks?.find(m => m.type.name === 'wikiLink')
-      if (wikiLinkMark) {
-        const target = wikiLinkMark.attrs.target as string
-        const result = linkIndex.resolveTargetFuzzy(target)
-        const isBroken = !result
-        const isFuzzy = result?.fuzzy ?? false
-        const backlinkCount = result ? linkIndex.getBacklinks(result.fileId).length : 0
-
-        if (wikiLinkMark.attrs.broken !== isBroken || wikiLinkMark.attrs.fuzzy !== isFuzzy || wikiLinkMark.attrs.backlinkCount !== backlinkCount) {
-          const newMark = wikiLinkMark.type.create({
-            ...wikiLinkMark.attrs,
-            broken: isBroken,
-            fuzzy: isFuzzy,
-            backlinkCount,
-          })
-          tr.removeMark(pos, pos + node.nodeSize, wikiLinkMark.type)
-          tr.addMark(pos, pos + node.nodeSize, newMark)
-          modified = true
-        }
-      }
-    })
-
-    if (modified && !editor.isDestroyed) {
-      view.dispatch(tr)
-    }
-  }, [editor, linkIndex.indexVersion, linkIndex.resolveTargetFuzzy, linkIndex])
+  // WikiLink / 块引用点击导航接线 + mark 属性同步（P5-1：4 个 effect 迁至 useTiptapLinkWiring）
+  useTiptapLinkWiring(editor, linkIndex, openFile, onBrokenLinkClick)
 
   // Flush pending debounced content on unmount
   useEffect(() => {
