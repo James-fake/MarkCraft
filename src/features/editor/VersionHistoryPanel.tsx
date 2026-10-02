@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useNoteVersion, NoteVersion } from '../../stores/NoteVersionStore'
+import { useLanguage } from '../../stores/LanguageStore'
+import type { Translations } from '../../locales/zh'
 import { HistoryIcon } from './HistoryIcon'
 import './versionHistory.css'
+
+type VHLabels = Translations['versionHistory']
 
 interface VersionHistoryPanelProps {
   fileId: string | undefined
@@ -14,11 +18,14 @@ interface VersionHistoryPanelProps {
 type GroupKey = 'today' | 'yesterday' | 'earlier'
 type ViewMode = 'list' | 'preview' | 'diff'
 
-const operationMeta: Record<string, { label: string; color: string }> = {
-  save: { label: '保存', color: 'var(--mc-accent)' },
-  manual: { label: '手动', color: '#10b981' },
-  auto: { label: '自动', color: '#6b7280' },
+const OPERATION_COLOR: Record<string, string> = {
+  save: 'var(--mc-accent)',
+  manual: '#10b981',
+  auto: '#6b7280',
 }
+
+const opLabelKey = (op: string): keyof VHLabels =>
+  op === 'save' ? 'opSave' : op === 'manual' ? 'opManual' : 'opAuto'
 
 function pad(n: number) {
   return String(n).padStart(2, '0')
@@ -29,19 +36,19 @@ function formatAbsolute(ts: number) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 
-function formatRelative(ts: number, now: number, lang: 'zh' | 'en') {
+function formatRelative(ts: number, now: number, L: VHLabels) {
   const diff = now - ts
   const sec = Math.floor(diff / 1000)
-  if (sec < 60) return lang === 'zh' ? '刚刚' : 'just now'
+  if (sec < 60) return L.agoNow
   const min = Math.floor(sec / 60)
-  if (min < 60) return lang === 'zh' ? `${min} 分钟前` : `${min}m ago`
+  if (min < 60) return L.agoMin.replace('{n}', String(min))
   const hr = Math.floor(min / 60)
-  if (hr < 24) return lang === 'zh' ? `${hr} 小时前` : `${hr}h ago`
+  if (hr < 24) return L.agoHour.replace('{n}', String(hr))
   const day = Math.floor(hr / 24)
-  if (day < 30) return lang === 'zh' ? `${day} 天前` : `${day}d ago`
+  if (day < 30) return L.agoDay.replace('{n}', String(day))
   const mon = Math.floor(day / 30)
-  if (mon < 12) return lang === 'zh' ? `${mon} 个月前` : `${mon}mo ago`
-  return `${Math.floor(mon / 12)} ${lang === 'zh' ? '年前' : 'y ago'}`
+  if (mon < 12) return L.agoMonth.replace('{n}', String(mon))
+  return L.agoYear.replace('{n}', String(Math.floor(mon / 12)))
 }
 
 function isSameDay(a: Date, b: Date) {
@@ -82,8 +89,10 @@ const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
   onRestore,
   currentContent,
   onClose,
-  language = 'zh',
 }) => {
+  // 语言文案统一走语言包（t.versionHistory）；language prop 保留于接口（调用方兼容）但不再参与渲染
+  const { t: TL } = useLanguage()
+  const vh = TL.versionHistory
   const { versions, loading, loadVersions, restoreVersion, deleteVersion, toggleLock } = useNoteVersion()
   const [open, setOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -118,9 +127,9 @@ const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
   }, [versions, now])
 
   const groupLabels: Record<GroupKey, string> = {
-    today: language === 'zh' ? '今日' : 'Today',
-    yesterday: language === 'zh' ? '昨日' : 'Yesterday',
-    earlier: language === 'zh' ? '更早' : 'Earlier',
+    today: vh.groupToday,
+    yesterday: vh.groupYesterday,
+    earlier: vh.groupEarlier,
   }
 
   const wordDiff = (v: NoteVersion, idx: number) => {
@@ -147,30 +156,7 @@ const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
     }
   }
 
-  const t = {
-    title: language === 'zh' ? '版本历史' : 'Version History',
-    preview: language === 'zh' ? '预览' : 'Preview',
-    diff: language === 'zh' ? '对比' : 'Diff',
-    restore: language === 'zh' ? '恢复' : 'Restore',
-    delete: language === 'zh' ? '删除' : 'Delete',
-    lock: language === 'zh' ? '锁定' : 'Lock',
-    unlock: language === 'zh' ? '解锁' : 'Unlock',
-    back: language === 'zh' ? '返回列表' : 'Back',
-    empty: language === 'zh' ? '暂无版本历史' : 'No version history',
-    emptyHint: language === 'zh'
-      ? '编辑并保存后，系统会自动记录版本。按 Ctrl/⌘+S 可手动创建版本。'
-      : 'Versions are recorded automatically as you edit and save. Press Ctrl/⌘+S to save a manual version.',
-    loading: language === 'zh' ? '加载中…' : 'Loading…',
-    confirmRestore: language === 'zh' ? '恢复到此版本？' : 'Restore this version?',
-    confirmRestoreDesc: language === 'zh'
-      ? '当前未保存的内容将被该版本覆盖，此操作不可撤销。'
-      : 'Your current unsaved content will be overwritten by this version. This cannot be undone.',
-    confirmDelete: language === 'zh' ? '删除此版本？' : 'Delete this version?',
-    confirmDeleteDesc: language === 'zh' ? '删除后无法恢复。' : 'This action cannot be undone.',
-    cancel: language === 'zh' ? '取消' : 'Cancel',
-    author: language === 'zh' ? '我' : 'Me',
-    compareLabel: language === 'zh' ? '对比当前版本' : 'vs current',
-  }
+  const t = vh
 
   return (
     <>
@@ -216,7 +202,7 @@ const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                 <div key={g}>
                   <div className="vh-group-title">{groupLabels[g]}</div>
                   {groups[g].map((v, idx) => {
-                    const op = operationMeta[v.operation] || operationMeta.auto
+                    const op = { label: vh[opLabelKey(v.operation)], color: OPERATION_COLOR[v.operation] ?? OPERATION_COLOR.auto }
                     const diff = wordDiff(v, idx)
                     const isSel = selectedId === v.versionId
                     return (
@@ -233,14 +219,14 @@ const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
                             {op.label}
                           </span>
                           <span className="vh-time">{formatAbsolute(v.timestamp)}</span>
-                          <span className="vh-relative">{formatRelative(v.timestamp, now, language)}</span>
+                          <span className="vh-relative">{formatRelative(v.timestamp, now, vh)}</span>
                         </div>
                         <div className="vh-item-meta">
                           <span className="vh-author">
                             <span className="vh-avatar">{t.author.slice(0, 1)}</span>
                             {t.author}
                           </span>
-                          <span className="vh-word">{v.wordCount} 字</span>
+                          <span className="vh-word">{vh.words.replace('{n}', String(v.wordCount))}</span>
                           {diff !== 0 && (
                             <span className={diff > 0 ? 'vh-diff-up' : 'vh-diff-down'}>
                               {diff > 0 ? '+' : ''}{diff}
@@ -303,7 +289,7 @@ const VersionHistoryPanel: React.FC<VersionHistoryPanelProps> = ({
             <div className="vh-detail-bar">
               <button className="vh-btn" onClick={() => setView('list')}>← {t.back}</button>
               <span className="vh-detail-title">
-                {formatAbsolute(selected.timestamp)} → {language === 'zh' ? '当前' : 'current'}
+                {formatAbsolute(selected.timestamp)} → {vh.current}
               </span>
             </div>
             <div className="vh-diff">

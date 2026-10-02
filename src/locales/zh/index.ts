@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogModal } from './blog'
-import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel } from './common'
+import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -611,6 +611,40 @@ export interface Translations {
     pin: string
     emptyTitle: string
     emptySub: string
+  }
+  versionHistory: {
+    opSave: string
+    opManual: string
+    opAuto: string
+    agoNow: string
+    agoMin: string
+    agoHour: string
+    agoDay: string
+    agoMonth: string
+    agoYear: string
+    groupToday: string
+    groupYesterday: string
+    groupEarlier: string
+    title: string
+    preview: string
+    diff: string
+    restore: string
+    delete: string
+    lock: string
+    unlock: string
+    back: string
+    empty: string
+    emptyHint: string
+    loading: string
+    confirmRestore: string
+    confirmRestoreDesc: string
+    confirmDelete: string
+    confirmDeleteDesc: string
+    cancel: string
+    author: string
+    compareLabel: string
+    words: string
+    current: string
   }
   graph: {
     navTitle: string
@@ -1355,6 +1389,7 @@ const zh: Translations = {
   canvasList,
   propsTab,
   canvasPanel,
+  versionHistory,
   settingsAppearance,
   settingsEditor,
   settingsImage,

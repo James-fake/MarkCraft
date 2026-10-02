@@ -305,9 +305,9 @@ function ShellInner() {
       if (!action) return
       commandRegistry.register({ ...meta, action })
     })
-    setCommands(adaptCommands(commandRegistry.getAll()))
+    setCommands(adaptCommands(commandRegistry.getAll(), language))
     // eslint-disable-next-line react-hooks/exhaustive-deps -- interop: auroraActions 由 buildAuroraActions 每渲染新建，补入将使注册表每帧重建并触发 setCommands 死循环；下方 deps 已枚举其全部实际输入
-  }, [rootFolder, createFile, createFolder, openFile, theme, focusMode, typewriterMode, getOutgoingLinks, updateSetting, toggleLanguage, nav, getActiveFileId, modalOpen, cmdBridge, toast])
+  }, [rootFolder, createFile, createFolder, openFile, theme, focusMode, typewriterMode, getOutgoingLinks, updateSetting, toggleLanguage, language, nav, getActiveFileId, modalOpen, cmdBridge, toast])
 
   // P2-4 融合文件搜索：从文件树派生全量文件列表（含嵌套），供命令面板按名称/路径检索
   const fileItems = useMemo<FileSearchItem[]>(() => {

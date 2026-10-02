@@ -24,11 +24,15 @@ function parseShortcut(shortcut?: string): string[] | undefined {
     .filter(Boolean)
 }
 
-export function adaptCommand(cmd: RealCommandItem): AuroraCommandItem {
+export function adaptCommand(cmd: RealCommandItem, language: 'zh' | 'en' = 'zh'): AuroraCommandItem {
   return {
     id: cmd.id,
-    title: cmd.labelZh,
-    description: [cmd.labelEn, ...cmd.keywords].join(' · '),
+    // 标题按界面语言取（catalog 为双语目录 labelZh/labelEn，原文不改）
+    title: language === 'en' ? cmd.labelEn : cmd.labelZh,
+    // 描述：中文档附英文名做提示；英文档标题已是英文，描述只留搜索别名
+    description: language === 'en'
+      ? cmd.keywords.join(' · ')
+      : [cmd.labelEn, ...cmd.keywords].join(' · '),
     icon: cmd.icon as IconName,
     group: cmd.category,
     keywords: cmd.keywords,
@@ -37,8 +41,8 @@ export function adaptCommand(cmd: RealCommandItem): AuroraCommandItem {
   }
 }
 
-export function adaptCommands(cmds: RealCommandItem[]): AuroraCommandItem[] {
+export function adaptCommands(cmds: RealCommandItem[], language: 'zh' | 'en' = 'zh'): AuroraCommandItem[] {
   return cmds
     .filter((cmd) => (cmd.visible ? cmd.visible() : true))
-    .map(adaptCommand)
+    .map((cmd) => adaptCommand(cmd, language))
 }

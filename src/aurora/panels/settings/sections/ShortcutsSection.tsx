@@ -1,4 +1,5 @@
 ﻿import { useState, useCallback, useMemo } from 'react'
+import { useLanguage } from '@stores/LanguageStore'
 import {
   getAllBindings,
   setShortcut,
@@ -61,6 +62,9 @@ export function ShortcutsSection({ query }: { query?: string; toast?: (msg: stri
     refreshBindings()
   }, [refreshBindings])
 
+  const { language } = useLanguage()
+  const labelOf = (b: { label: string; labelEn: string }) => (language === 'en' ? b.labelEn : b.label)
+
   const filtered = useMemo(() => {
     const grouped = CATEGORY_ORDER.reduce<Record<string, (typeof bindings)[number][]>>((acc, cat) => {
       acc[cat] = bindings.filter(b => b.category === cat)
@@ -69,7 +73,7 @@ export function ShortcutsSection({ query }: { query?: string; toast?: (msg: stri
     if (!term) return grouped
     const result: Record<string, (typeof bindings)[number][]> = {}
     for (const cat of CATEGORY_ORDER) {
-      const items = (grouped[cat] || []).filter(b => b.label.toLowerCase().includes(term))
+      const items = (grouped[cat] || []).filter(b => b.label.toLowerCase().includes(term) || b.labelEn.toLowerCase().includes(term))
       if (items.length) result[cat] = items
     }
     return result
@@ -112,7 +116,7 @@ export function ShortcutsSection({ query }: { query?: string; toast?: (msg: stri
             <div className="aurora-settings__shortcut-group-title">{CATEGORY_LABELS[cat]}</div>
             {items.map(b => (
               <div key={b.id} className="aurora-settings__shortcut-item">
-                <span className="aurora-settings__shortcut-label">{b.label}</span>
+                <span className="aurora-settings__shortcut-label">{labelOf(b)}</span>
                 <span className="aurora-settings__shortcut-keys">
                   {editingId === b.id ? (
                     <ShortcutRecorder

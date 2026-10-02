@@ -171,7 +171,7 @@ const MenuPop: React.FC<{ open: boolean; label: string; children: React.ReactNod
 export function MenuBar() {
   const { settings } = useSettings()
   const { getActiveFileId } = useFileManager()
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
 
   const [openIndex, setOpenIndex] = useState<number | null>(null)
   /** 键盘高亮项在条目内的索引（-1 = 无） */
@@ -332,7 +332,7 @@ export function MenuBar() {
                 type="button"
                 role="menuitem"
                 disabled={disabled}
-                title={meta ? `${meta.labelZh}${shortcut ? ` · ${shortcut}` : ''}` : t.menu[entry.labelKey]}
+                title={meta ? `${language === 'en' ? meta.labelEn : meta.labelZh}${shortcut ? ` · ${shortcut}` : ''}` : t.menu[entry.labelKey]}
                 className={[
                   'aurora-dropdown__item',
                   highlight === hi ? 'aurora-dropdown__item--highlighted' : '',
