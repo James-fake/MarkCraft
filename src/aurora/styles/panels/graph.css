@@ -252,7 +252,7 @@
 /* ---------- 浮层通用（玻璃 popover） ---------- */
 .aurora-graph__float {
   position: absolute;
-  background: rgba(21, 24, 33, 0.8);
+  background: color-mix(in srgb, var(--mc-bg-elevated) 80%, transparent);
   border: 1px solid var(--mc-border-medium);
   border-radius: var(--mc-radius-lg);
   box-shadow: var(--mc-shadow-popover);
@@ -621,7 +621,7 @@
   height: 36px;
   padding: 0 16px;
   max-width: calc(100% - 560px);
-  background: rgba(21, 24, 33, 0.8);
+  background: color-mix(in srgb, var(--mc-bg-elevated) 80%, transparent);
   border: 1px solid var(--mc-border-medium);
   border-radius: var(--mc-radius-pill);
   box-shadow: var(--mc-shadow-panel);
@@ -718,7 +718,7 @@
   align-items: center;
   gap: 8px;
   padding: 6px 8px;
-  background: rgba(21, 24, 33, 0.82);
+  background: color-mix(in srgb, var(--mc-bg-elevated) 82%, transparent);
   border: 1px solid var(--mc-border-medium);
   border-radius: var(--mc-radius-lg);
   box-shadow: var(--mc-shadow-popover);
@@ -794,7 +794,7 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
-  background: rgba(21, 24, 33, 0.94);
+  background: color-mix(in srgb, var(--mc-bg-elevated) 94%, transparent);
   border: 1px solid var(--mc-border-medium);
   border-radius: var(--mc-radius-md);
   box-shadow: var(--mc-shadow-popover);

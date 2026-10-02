@@ -70,7 +70,7 @@
   right: 24px;
   width: 380px;
   max-height: 60vh;
-  background: rgba(21, 24, 33, 0.92);
+  background: color-mix(in srgb, var(--mc-bg-elevated) 92%, transparent);
   border: 1px solid var(--mc-border-medium, rgba(255, 255, 255, 0.08));
   border-radius: var(--mc-radius-lg);
   box-shadow: var(--mc-shadow-popover, 0 12px 32px rgba(0, 0, 0, 0.45));
