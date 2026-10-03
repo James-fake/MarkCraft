@@ -1,8 +1,8 @@
 import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
-import { blogStudio, blogModal } from './blog'
-import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, blog, editorPanel, diary, kbSearch, kbOverview, kbCreate, kbFilter, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
+import { blogStudio, blogCss, platformPublish, blogModal } from './blog'
+import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, blog, editorPanel, diary, kbSearch, kbOverview, kbCreate, kbFilter, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -443,6 +443,47 @@ export interface Translations {
     noTemplates: string
     eraserCleared: string
     eraserHint: string
+  }
+  canvasCtxMenu: {
+    newNote: string
+    newRect: string
+    newGroup: string
+    delete: string
+    duplicate: string
+    toNote: string
+    toNoteHint: string
+    lockToggle: string
+    defaultNoteText: string
+    defaultRectText: string
+    defaultGroupTitle: string
+  }
+  canvasTopbar: {
+    viewCanvas: string
+    viewMindmap: string
+    viewKanban: string
+    viewTimeline: string
+    viewSwitcherAria: string
+    openKb: string
+    canvasList: string
+    untitledCanvas: string
+    exportTitle: string
+    exportAria: string
+  }
+  canvasSidebar: {
+    tabOutline: string
+    tabBacklinks: string
+    tabTags: string
+    tabHistory: string
+    tabFiles: string
+    tabMinimap: string
+  }
+  canvasInspector: {
+    tabProps: string
+    tabLayers: string
+    tabFilter: string
+    tabFav: string
+    tabRec: string
+    tabSearch: string
   }
   canvasList: {
     title: string
@@ -1289,6 +1330,8 @@ export interface Translations {
     sansSerif: string
     monospace: string
     colorScheme: string
+    colorPalette: string
+    customColor: string
     warmGold: string
     ocean: string
     forest: string
@@ -1299,6 +1342,7 @@ export interface Translations {
     siteDescription: string
     author: string
     language: string
+    languageZh: string
     docList: string
     noMarkdownDocs: string
     selected: string
@@ -1314,6 +1358,7 @@ export interface Translations {
     totalWords: string
     style: string
     generateResult: string
+    stepDownload: string
     files: string
     noSelectedFiles: string
     generatingPreview: string
@@ -1336,6 +1381,7 @@ export interface Translations {
     blogPreview: string
     customCss: string
     customCssPlaceholder: string
+    customTheme: string
     clearCustomCss: string
     presetNeonGlow: string
     presetWideLayout: string
@@ -1392,6 +1438,259 @@ export interface Translations {
     templatePortfolio: string
     templateTech: string
     publishFlowHint: string
+  }
+  blogCss: {
+    inspectOn: string
+    inspectOff: string
+    deviceMobile: string
+    deviceTablet: string
+    deviceHint: string
+    deviceHostTip: string
+    outputUnit: string
+    unitAutoConvert: string
+    groupTypography: string
+    groupColor: string
+    groupBorder: string
+    groupSpacing: string
+    groupSize: string
+    propFontSize: string
+    propFontWeight: string
+    propFontFamily: string
+    propFontStyle: string
+    propTextDecoration: string
+    propLineHeight: string
+    propLetterSpacing: string
+    propTextAlign: string
+    styleItalic: string
+    styleNormal: string
+    decoNone: string
+    decoUnderline: string
+    decoLineThrough: string
+    alignJustify: string
+    alignLeft: string
+    alignCenter: string
+    alignRight: string
+    propColor: string
+    propBackground: string
+    propOpacity: string
+    propBorderRadius: string
+    propBorderWidth: string
+    propBorderStyle: string
+    propBorderColor: string
+    propBoxShadow: string
+    borderStyleNone: string
+    propPaddingTop: string
+    propPaddingBottom: string
+    propPaddingLeft: string
+    propPaddingRight: string
+    propMarginTop: string
+    propMarginBottom: string
+    propMarginLeft: string
+    propMarginRight: string
+    propWidth: string
+    propHeight: string
+    presetStyles: string
+    presetScopeTitle: string
+    catTheme: string
+    catTypography: string
+    catLayout: string
+    catEffect: string
+    catComponent: string
+    catAnimation: string
+    catUtility: string
+    scopeHomePost: string
+    scopeHomeOnly: string
+    scopePostOnly: string
+    cssVarRef: string
+    insertVarTip: string
+    cssSelectorRef: string
+    insertSelectorTip: string
+    varPanel: string
+    varDefault: string
+    varGroupColor: string
+    varGroupLayout: string
+    varGroupEffect: string
+    varAccentWarm: string
+    varAccentCool: string
+    varAccentViolet: string
+    varBgPrimary: string
+    varBgSecondary: string
+    varBgTertiary: string
+    varTextPrimary: string
+    varTextSecondary: string
+    varBorderColor: string
+    varContentWidth: string
+    varTransition: string
+    varRadius: string
+    varShadow: string
+    varFontFamily: string
+    kfTitle: string
+    kfIntro: string
+    kfName: string
+    kfNamePlaceholder: string
+    kfTarget: string
+    kfTimeline: string
+    kfTimelineHint: string
+    kfAddFrame: string
+    kfDeleteFrame: string
+    kfPosition: string
+    kfProps: string
+    kfPropPlaceholder: string
+    kfValuePlaceholder: string
+    kfDeleteProp: string
+    kfAddProp: string
+    kfDuration: string
+    kfDurationAria: string
+    kfTiming: string
+    kfTimingLabel: string
+    kfIteration: string
+    kfPreview: string
+    kfInsert: string
+    timingEase: string
+    timingEaseIn: string
+    timingEaseOut: string
+    timingEaseInOut: string
+    timingLinear: string
+    timingSmoothCurve: string
+    iterationOnce: string
+    iteration2: string
+    iteration3: string
+    iterationInfinite: string
+    customCode: string
+    editorMetaLines: string
+    editorMetaErrors: string
+    editorMetaWarnings: string
+    editorMetaHints: string
+    editorMetaEmpty: string
+    undoTitle: string
+    redoTitle: string
+    collapseEditor: string
+    issueLine: string
+    compatTitle: string
+    compatPrefixNeeded: string
+    compatLowSupport: string
+    compatExperimental: string
+    compatIssueLine: string
+    cssExtraCloseBrace: string
+    cssUnclosedBraces: string
+    cssUnclosedComment: string
+    cssEmptyRule: string
+    cssMissingSemicolon: string
+    cssTypoProperty: string
+    cssUnknownProperty: string
+    customBlogTheme: string
+    cssOverrideActive: string
+    cssOverrideIdle: string
+    cssLight: string
+    cssDark: string
+    cssDarkBannerPre: string
+    cssDarkBannerMid: string
+    cssDarkBannerPost: string
+    cssDarkPlaceholder: string
+    cssSecurityWarnings: string
+    cssSecurityAutoFilter: string
+    cssSecurityLine: string
+    cssSecurityMore: string
+    cssImport: string
+    cssExport: string
+    cssExportDark: string
+    cssExportMinify: string
+    scopeConditionLabel: string
+    scopeConditionDesc: string
+    scopeCustom: string
+    scopeCustomPlaceholder: string
+    scopeGlobalHint: string
+    scopeWrappedHint: string
+    scopeNeedCustom: string
+    scopeApplyLabel: string
+    scopeGlobal: string
+    scopeGlobalDesc: string
+    scopeHomepage: string
+    scopeHomepageDesc: string
+    scopePost: string
+    scopePostDesc: string
+    scopeArchive: string
+    scopeArchiveDesc: string
+    scopeTags: string
+    scopeTagsDesc: string
+    mySnippets: string
+    saveSnippet: string
+    snippetEmptyHint: string
+    snippetDelete: string
+    snippetNamePlaceholder: string
+    snippetSave: string
+    snippetCancel: string
+    shadowInset: string
+    shadowBlur: string
+    shadowSpread: string
+    shadowColor: string
+    colorFineTune: string
+    colorLightness: string
+    colorSaturation: string
+    colorSharpness: string
+    colorRgbChannels: string
+    deployStep: string
+    deployValidate: string
+    deployValidating: string
+    deployRepoName: string
+    deployTokenHintGithub: string
+    deployTokenHintGitee: string
+    deployTokenHintVercel: string
+    deployTokenHintCloudflare: string
+    deployTokenHintNetlify: string
+    deployStart: string
+    deployInProgress: string
+    deployButton: string
+    deploySuccess: string
+    deployFailed: string
+    deployValidateFailed: string
+    deployStageAuthenticating: string
+    deployStageCreatingRepo: string
+    deployStagePreparing: string
+    deployStageUploading: string
+    deployStageCommitting: string
+    deployStageUpdatingBranch: string
+    deployStageConfiguringPages: string
+    deployStageDone: string
+    deployStageCheckingProject: string
+    deployStagePackaging: string
+    deployStageCreatingDeploy: string
+    deployStageCreatingProject: string
+    deployStageCreatingDeployment: string
+    deployStageWaiting: string
+    publishStatusTitle: string
+    publishSeries: string
+    publishSeriesItem: string
+    publishTrail: string
+    publishClear: string
+    publishEmpty: string
+    cfgExtendedFeatures: string
+    cfgViewsCount: string
+    cfgApplause: string
+    cfgReward: string
+    cfgEnabled: string
+    cfgEnableReward: string
+    cfgWechatQrcode: string
+    cfgAlipayQrcode: string
+    cfgZhLabel: string
+  }
+  platformPublish: {
+    title: string
+    emptyHint: string
+    wechatLabel: string
+    wechatHint: string
+    substackHint: string
+    mdxHint: string
+    hugoHint: string
+    astroHint: string
+    copy: string
+    download: string
+    copied: string
+    copyFailed: string
+    downloaded: string
+    needHtml: string
+    emptyContent: string
+    articleFallback: string
   }
   sidebarExtra: {
     files: string
@@ -1866,6 +2165,10 @@ const zh: Translations = {
   menu,
   ctxMenu,
   canvasDock,
+  canvasCtxMenu,
+  canvasTopbar,
+  canvasSidebar,
+  canvasInspector,
   canvasList,
   propsTab,
   canvasPanel,
@@ -1893,6 +2196,8 @@ const zh: Translations = {
   app,
   fileTreeNode,
   blogStudio,
+  blogCss,
+  platformPublish,
   sidebarExtra,
   createFileExtra,
   previewExtra,

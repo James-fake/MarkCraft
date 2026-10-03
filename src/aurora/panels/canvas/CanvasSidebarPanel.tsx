@@ -7,8 +7,9 @@ import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useTagIndex } from '@stores/TagIndexStore'
 import { useNoteVersion } from '@stores/NoteVersionStore'
 import { useFileManager } from '@stores/FileStore'
+import { useLanguage } from '@stores/LanguageStore'
 import type { FileNode } from '@src/types/fileManager'
-import { TABS, TAG_SUGGESTIONS, type TabId, type ParsedShape } from './sidebarPanelShared'
+import { TABS, TAG_SUGGESTIONS, TAG_SUGGESTIONS_EN, type TabId, type ParsedShape } from './sidebarPanelShared'
 import { OutlineTab } from './OutlineTab'
 import { BacklinksTab } from './BacklinksTab'
 import { TagsTab } from './TagsTab'
@@ -40,6 +41,9 @@ export type { TabId }
 export { CANVAS_FILE_DRAG_MIME, CANVAS_FILE_DRAG_NAME_MIME } from './sidebarPanelShared'
 
 export function CanvasSidebarPanel({ engine, onOpenFile, initialTab }: CanvasSidebarPanelProps) {
+  const { t, language } = useLanguage()
+  const cs = t.canvasSidebar
+  const tagSuggestions = language === 'en' ? TAG_SUGGESTIONS_EN : TAG_SUGGESTIONS
   const [tab, setTab] = useState<TabId>(initialTab ?? 'outline')
   // 由 CanvasPanel 传入的初始 Tab（如「文件便签」按钮要求直接打开到文件列表）：
   // 既作为挂载初值，也在该属性变化时同步切换当前 Tab。
@@ -143,9 +147,9 @@ const [shapes, setShapes] = useState<ParsedShape[]>([])
   // 标签：真实标签 + 推荐合并去重
   const allTags = useMemo(() => {
     const real = getAllTags()
-    return Array.from(new Set([...real, ...TAG_SUGGESTIONS]))
+    return Array.from(new Set([...real, ...tagSuggestions]))
     // eslint-disable-next-line react-hooks/exhaustive-deps -- nonce: shapes 变化时强制重算标签合集（getAllTags 为读取型函数）
-  }, [getAllTags, shapes])
+  }, [getAllTags, shapes, tagSuggestions])
 
   // 历史：加载本白板 note-card 关联文件的版本
   const historyFileIds = useMemo(
@@ -202,20 +206,21 @@ const [shapes, setShapes] = useState<ParsedShape[]>([])
           <div className="aurora-csp__tabs-track" ref={tabStrip.trackRef}>
             {/* 滑块：选中态的视觉承载者（下划线，选中色已从 tab 迁到这里） */}
             <span className="aurora-csp__tabs-thumb" ref={tabStrip.thumbRef} aria-hidden="true" />
-            {TABS.map((t) => {
-              const IconComp = Icon[t.icon as keyof typeof Icon]
+            {TABS.map((item) => {
+              const IconComp = Icon[item.icon as keyof typeof Icon]
+              const label = (cs as unknown as Record<string, string>)[item.labelKey]
               return (
                 <button
-                  key={t.id}
+                  key={item.id}
                   role="tab"
-                  aria-selected={tab === t.id}
-                  title={t.label}
-                  className={`aurora-csp__tab ${tab === t.id ? 'aurora-csp__tab--active' : ''}`}
-                  onClick={() => setTab(t.id)}
+                  aria-selected={tab === item.id}
+                  title={label}
+                  className={`aurora-csp__tab ${tab === item.id ? 'aurora-csp__tab--active' : ''}`}
+                  onClick={() => setTab(item.id)}
                 >
                   {IconComp ? <IconComp size={14} /> : null}
                   {/* 使用优化⑥：补渲染文字（图标+文字竖排，与编辑器 rightbar__tab 全站同款） */}
-                  <span>{t.label}</span>
+                  <span>{label}</span>
                 </button>
               )
             })}

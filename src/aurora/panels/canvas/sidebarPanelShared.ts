@@ -3,18 +3,20 @@
 // 单向依赖本文件；禁止反向 import CanvasSidebarPanel.tsx（防环）。
 
 export const TABS = [
-  { id: 'outline', label: '大纲', icon: 'list' },
-  { id: 'backlinks', label: '反链', icon: 'backlinks' },
-  { id: 'tags', label: '标签', icon: 'tag' },
-  { id: 'history', label: '历史', icon: 'history' },
-  { id: 'files', label: '文件', icon: 'fileText' },
-  { id: 'minimap', label: '小地图', icon: 'frame' },
+  { id: 'outline', labelKey: 'tabOutline', icon: 'list' },
+  { id: 'backlinks', labelKey: 'tabBacklinks', icon: 'backlinks' },
+  { id: 'tags', labelKey: 'tabTags', icon: 'tag' },
+  { id: 'history', labelKey: 'tabHistory', icon: 'history' },
+  { id: 'files', labelKey: 'tabFiles', icon: 'fileText' },
+  { id: 'minimap', labelKey: 'tabMinimap', icon: 'frame' },
 ] as const
 
 export type TabId = (typeof TABS)[number]['id']
 
 // 标签 Tab 推荐标签（与真实 TagIndex 合并展示，确保即便无任何标签也有可用项）
+// 新标签默认名（新建标签时的初始文本，属用户内容 → 随语言走）
 export const TAG_SUGGESTIONS = ['重要', '待办', '想法', '参考资料', '设计', '紧急']
+export const TAG_SUGGESTIONS_EN = ['Important', 'Todo', 'Ideas', 'Reference', 'Design', 'Urgent']
 
 export interface ParsedShape {
   id: string

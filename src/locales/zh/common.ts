@@ -305,6 +305,56 @@ export const canvasDock = {
   eraserHint: '拖到最右清空',
 }
 
+// ---- 白板右键菜单（CanvasContextMenu）----
+export const canvasCtxMenu = {
+  newNote: '新建便签',
+  newRect: '新建矩形',
+  newGroup: '新建分组框',
+  delete: '删除选中',
+  duplicate: '复制选中',
+  toNote: '转为笔记',
+  toNoteHint: '把便签全文保存为根目录下的笔记文件，并绑定到这张卡片',
+  lockToggle: '锁定/解锁',
+  // 新建元素时写入画布的默认文本
+  defaultNoteText: '新便签',
+  defaultRectText: '矩形',
+  defaultGroupTitle: '分组',
+}
+
+// ---- 白板顶栏（CanvasTopbar）----
+export const canvasTopbar = {
+  viewCanvas: '白板',
+  viewMindmap: '思维导图',
+  viewKanban: '看板',
+  viewTimeline: '时间轴',
+  viewSwitcherAria: '视图切换',
+  openKb: '打开知识库：{name}',
+  canvasList: '白板列表',
+  untitledCanvas: '未命名白板',
+  exportTitle: '导出当前白板（PNG+JSON）',
+  exportAria: '导出当前白板',
+}
+
+// ---- 白板左栏 Tab（CanvasSidebarPanel）----
+export const canvasSidebar = {
+  tabOutline: '大纲',
+  tabBacklinks: '反链',
+  tabTags: '标签',
+  tabHistory: '历史',
+  tabFiles: '文件',
+  tabMinimap: '小地图',
+}
+
+// ---- 白板检查器 Tab（CanvasInspectorPanel）----
+export const canvasInspector = {
+  tabProps: '属性',
+  tabLayers: '图层',
+  tabFilter: '筛选',
+  tabFav: '收藏',
+  tabRec: '推荐',
+  tabSearch: '搜索',
+}
+
 export const canvasList = {
   title: '白板管理',
   close: '关闭',

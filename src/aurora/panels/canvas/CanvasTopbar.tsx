@@ -1,6 +1,7 @@
 import { Icon } from '../../icons'
 import { useTabStripThumb } from '../../hooks/useTabStripThumb'
 import type { CanvasViewId } from './CanvasPanel'
+import { useLanguage } from '@stores/LanguageStore'
 
 /**
  * Aurora 白板顶栏（.aurora-ctop）—— 视图切换（居中）+ 白板名/列表 + 导出
@@ -24,11 +25,11 @@ export interface CanvasTopbarProps {
   onOpenOwningKb?: () => void
 }
 
-const VIEWS: { id: CanvasViewId; label: string; icon: string }[] = [
-  { id: 'canvas', label: '白板', icon: 'canvas' },
-  { id: 'mindmap', label: '思维导图', icon: 'mindmap' },
-  { id: 'kanban', label: '看板', icon: 'kanban' },
-  { id: 'timeline', label: '时间轴', icon: 'timeline' },
+const VIEWS: { id: CanvasViewId; labelKey: string; icon: string }[] = [
+  { id: 'canvas', labelKey: 'viewCanvas', icon: 'canvas' },
+  { id: 'mindmap', labelKey: 'viewMindmap', icon: 'mindmap' },
+  { id: 'kanban', labelKey: 'viewKanban', icon: 'kanban' },
+  { id: 'timeline', labelKey: 'viewTimeline', icon: 'timeline' },
 ]
 
 export function CanvasTopbar({
@@ -56,6 +57,8 @@ export function CanvasTopbar({
    * 要验手势得先在空态点「跳过，直接开始」退出该状态。jsdom 侧见
    * `tabBarSwipeBinding.test.tsx` 的「引导锁定态下手势停用」两条对照组。
    */
+  const { t } = useLanguage()
+  const ct = t.canvasTopbar
   const tabs = useTabStripThumb({
     index: Math.max(0, VIEWS.findIndex((v) => v.id === view)),
     count: VIEWS.length,
@@ -73,7 +76,7 @@ export function CanvasTopbar({
               type="button"
               className="aurora-ctop__crumb"
               onClick={onOpenOwningKb}
-              title={`打开知识库：${owningKb.name}`}
+              title={ct.openKb.replace('{name}', owningKb.name)}
             >
               <Icon.book size={13} />
               <span>{owningKb.name}</span>
@@ -81,9 +84,9 @@ export function CanvasTopbar({
             <span className="aurora-ctop__crumb-sep" aria-hidden="true">›</span>
           </>
         )}
-        <button type="button" className="aurora-ctop__name" onClick={onOpenList} title="白板列表">
+        <button type="button" className="aurora-ctop__name" onClick={onOpenList} title={ct.canvasList}>
           <Icon.file size={14} />
-          <span>{canvasName || '未命名白板'}</span>
+          <span>{canvasName || ct.untitledCanvas}</span>
           <Icon.chevronDown size={12} />
         </button>
       </div>
@@ -91,7 +94,7 @@ export function CanvasTopbar({
       <div
         className="aurora-ctop__switcher"
         role="tablist"
-        aria-label="视图切换"
+        aria-label={ct.viewSwitcherAria}
         data-swiping={tabs.dragging || undefined}
         {...tabs.bind}
       >
@@ -114,7 +117,7 @@ export function CanvasTopbar({
                 onClick={() => { if (disabled) return; onView(v.id) }}
               >
                 {IconComp ? <IconComp size={15} className="aurora-ctop__view-icon" /> : null}
-                <span>{v.label}</span>
+                <span>{(ct as unknown as Record<string, string>)[v.labelKey]}</span>
               </button>
             )
           })}
@@ -123,7 +126,7 @@ export function CanvasTopbar({
 
       <div className="aurora-ctop__right">
         {onExport && (
-          <button type="button" className="aurora-ctop__export" onClick={onExport} title="导出当前白板（PNG+JSON）" aria-label="导出当前白板">
+          <button type="button" className="aurora-ctop__export" onClick={onExport} title={ct.exportTitle} aria-label={ct.exportAria}>
             <Icon.download size={14} />
           </button>
         )}

@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { Icon } from '../../icons'
 import type { CanvasEngine } from '@features/canvas-v2/engine/CanvasEngine'
 import { useEngineSnapshot } from './canvasHooks'
+import { useLanguage } from '@stores/LanguageStore'
 
 /**
  * Aurora 右键菜单（.aurora-canvas-ctxmenu，Portal 到 body）—— 新建/删除/复制/锁定
@@ -25,19 +26,26 @@ export interface CanvasContextMenuProps {
   exiting?: boolean
 }
 
-const ITEMS: { id: string; label: string; icon: string }[] = [
-  { id: 'new-note', label: '新建便签', icon: 'file' },
-  { id: 'new-rect', label: '新建矩形', icon: 'square' },
-  { id: 'new-group', label: '新建分组框', icon: 'group' },
-  { id: 'sep' as string, label: '', icon: '' },
-  { id: 'delete', label: '删除选中', icon: 'trash' },
-  { id: 'duplicate', label: '复制选中', icon: 'copy' },
-  { id: 'to-note', label: '转为笔记', icon: 'fileText' },
-  { id: 'lock', label: '锁定/解锁', icon: 'target' },
+/** 菜单项：label 走语言包键，UI 侧解析 */
+type CtxMenuItem =
+  | { id: 'sep'; labelKey?: undefined; icon?: undefined }
+  | { id: string; labelKey: string; icon: string }
+
+const ITEMS: CtxMenuItem[] = [
+  { id: 'new-note', labelKey: 'newNote', icon: 'file' },
+  { id: 'new-rect', labelKey: 'newRect', icon: 'square' },
+  { id: 'new-group', labelKey: 'newGroup', icon: 'group' },
+  { id: 'sep' },
+  { id: 'delete', labelKey: 'delete', icon: 'trash' },
+  { id: 'duplicate', labelKey: 'duplicate', icon: 'copy' },
+  { id: 'to-note', labelKey: 'toNote', icon: 'fileText' },
+  { id: 'lock', labelKey: 'lockToggle', icon: 'target' },
 ]
 
 export function CanvasContextMenu({ x, y, engine, onClose, onConvertToNote, exiting }: CanvasContextMenuProps) {
   const ref = useRef<HTMLDivElement>(null)
+  const { t } = useLanguage()
+  const cm = t.canvasCtxMenu
   const selectedCount = useEngineSnapshot(engine, (e) => e.getSelectedShapeIds().length, 'session')
   // 「转为笔记」可用性 = 选中项里存在**未绑文件**的便签（已绑文件的卡片本身就是笔记替身，无需转换）
   const convertibleCount = useEngineSnapshot(
@@ -66,11 +74,11 @@ export function CanvasContextMenu({ x, y, engine, onClose, onConvertToNote, exit
     if (!engine) return
     switch (id) {
       case 'new-note': {
-        engine.createCardFree('note-card', { text: '新便签', color: '#F59E0B' })
+        engine.createCardFree('note-card', { text: cm.defaultNoteText, color: '#F59E0B' })
         break
       }
       case 'new-rect': {
-        engine.createCardFree('note-card', { text: '矩形', color: '#93C5FD' })
+        engine.createCardFree('note-card', { text: cm.defaultRectText, color: '#93C5FD' })
         break
       }
       case 'new-group': {
@@ -79,7 +87,7 @@ export function CanvasContextMenu({ x, y, engine, onClose, onConvertToNote, exit
           type: 'group-card',
           x: -cam.x + 160,
           y: -cam.y + 100,
-          props: { title: '分组', color: '#94A3B8', w: 340, h: 220 },
+          props: { title: cm.defaultGroupTitle, color: '#94A3B8', w: 340, h: 220 },
         })
         break
       }
@@ -119,10 +127,10 @@ export function CanvasContextMenu({ x, y, engine, onClose, onConvertToNote, exit
               ? convertibleCount === 0
               : it.id !== 'new-note' && it.id !== 'new-rect' && it.id !== 'new-group' && selectedCount === 0
           }
-          title={it.id === 'to-note' ? '把便签全文保存为根目录下的笔记文件，并绑定到这张卡片' : undefined}
+          title={it.id === 'to-note' ? cm.toNoteHint : undefined}
           >
             {IconComp ? <IconComp size={14} /> : null}
-            <span>{it.label}</span>
+            <span>{(cm as unknown as Record<string, string>)[it.labelKey as string]}</span>
           </button>
         )
       })}

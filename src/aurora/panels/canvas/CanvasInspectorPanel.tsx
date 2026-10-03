@@ -6,8 +6,9 @@ import { useEngineSnapshot } from './canvasHooks'
 import { useTagIndex } from '@stores/TagIndexStore'
 import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useFileManager } from '@stores/FileStore'
+import { useLanguage } from '@stores/LanguageStore'
 import type { FileNode } from '@src/types/fileManager'
-import { TABS, TAG_SUGGESTIONS, numOr, rad2deg, deg2rad, clamp, type TabId, type ParsedShape } from './inspectorPanelShared'
+import { TABS, TAG_SUGGESTIONS, TAG_SUGGESTIONS_EN, numOr, rad2deg, deg2rad, clamp, type TabId, type ParsedShape } from './inspectorPanelShared'
 import { PropsTab } from './PropsTab'
 import { LayersTab } from './LayersTab'
 import { FilterTab } from './FilterTab'
@@ -33,6 +34,9 @@ export interface CanvasInspectorPanelProps {
 }
 
 export function CanvasInspectorPanel({ engine }: CanvasInspectorPanelProps) {
+  const { t, language } = useLanguage()
+  const ci = t.canvasInspector
+  const tagSuggestions = language === 'en' ? TAG_SUGGESTIONS_EN : TAG_SUGGESTIONS
   const [tab, setTab] = useState<TabId>('props')
   const [filterTags, setFilterTags] = useState<Set<string>>(new Set())
   const [filterTagLogic, setFilterTagLogic] = useState<'AND' | 'OR'>('OR')
@@ -126,7 +130,7 @@ export function CanvasInspectorPanel({ engine }: CanvasInspectorPanelProps) {
   const { rootFolder } = useFileManager()
 
   // eslint-disable-next-line react-hooks/exhaustive-deps -- nonce: shapes 变化时强制重算标签合集（getAllTags 为读取型函数，规则看不见其内部数据源）
-  const allTags = useMemo(() => Array.from(new Set([...getAllTags(), ...TAG_SUGGESTIONS])), [getAllTags, shapes])
+  const allTags = useMemo(() => Array.from(new Set([...getAllTags(), ...tagSuggestions])), [getAllTags, shapes, tagSuggestions])
 
   const update = (id: string, partial: Record<string, unknown>) => {
     // 面板侧以宽松 Record 收集控件值，此处一次定向收窄到引擎签名（Partial<ShapeLike> & { id }）
@@ -148,20 +152,21 @@ export function CanvasInspectorPanel({ engine }: CanvasInspectorPanelProps) {
     <div className="aurora-csp">
       <div className="aurora-csp__head">
         <div className="aurora-csp__tabs" role="tablist">
-          {TABS.map((t) => {
-            const IconComp = Icon[t.icon as keyof typeof Icon]
+          {TABS.map((item) => {
+            const IconComp = Icon[item.icon as keyof typeof Icon]
+            const label = (ci as unknown as Record<string, string>)[item.labelKey]
             return (
               <button
-                key={t.id}
+                key={item.id}
                 role="tab"
-                aria-selected={tab === t.id}
-                title={t.label}
-                className={`aurora-csp__tab ${tab === t.id ? 'aurora-csp__tab--active' : ''}`}
-                onClick={() => setTab(t.id)}
+                aria-selected={tab === item.id}
+                title={label}
+                className={`aurora-csp__tab ${tab === item.id ? 'aurora-csp__tab--active' : ''}`}
+                onClick={() => setTab(item.id)}
               >
                 {IconComp ? <IconComp size={14} /> : null}
                 {/* 使用优化⑥：补渲染文字（图标+文字竖排，与编辑器 rightbar__tab 全站同款） */}
-                <span>{t.label}</span>
+                <span>{label}</span>
               </button>
             )
           })}

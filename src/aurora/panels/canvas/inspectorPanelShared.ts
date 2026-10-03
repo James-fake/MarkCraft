@@ -4,12 +4,12 @@
 import { CARD_COLORS_LEGACY } from '@features/canvas-v2/theme/canvasTheme'
 
 export const TABS = [
-  { id: 'props', label: '属性', icon: 'settings' },
-  { id: 'layers', label: '图层', icon: 'layers' },
-  { id: 'filter', label: '筛选', icon: 'filter' },
-  { id: 'fav', label: '收藏', icon: 'star' },
-  { id: 'rec', label: '推荐', icon: 'sparkle' },
-  { id: 'search', label: '搜索', icon: 'search' },
+  { id: 'props', labelKey: 'tabProps', icon: 'settings' },
+  { id: 'layers', labelKey: 'tabLayers', icon: 'layers' },
+  { id: 'filter', labelKey: 'tabFilter', icon: 'filter' },
+  { id: 'fav', labelKey: 'tabFav', icon: 'star' },
+  { id: 'rec', labelKey: 'tabRec', icon: 'sparkle' },
+  { id: 'search', labelKey: 'tabSearch', icon: 'search' },
 ] as const
 
 export type TabId = (typeof TABS)[number]['id']
@@ -19,6 +19,7 @@ export type TabId = (typeof TABS)[number]['id']
 export const COLORS = CARD_COLORS_LEGACY
 
 export const TAG_SUGGESTIONS = ['重要', '待办', '想法', '参考资料', '设计', '紧急']
+export const TAG_SUGGESTIONS_EN = ['Important', 'Todo', 'Ideas', 'Reference', 'Design', 'Urgent']
 
 // 形状类型 → 图标名（与 Icon 注册表对齐）
 export const TYPE_ICON: Record<string, string> = {
