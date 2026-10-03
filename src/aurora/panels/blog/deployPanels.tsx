@@ -1,6 +1,7 @@
 /**
  * 博客工作室 · CSS 面板 / 导出面板（P2-3 从 BlogPanel.tsx 拆出，2026-09-28）
  */
+import { useLanguage } from '@stores/LanguageStore'
 
 import { useState, useRef, useEffect, useCallback, type RefObject } from 'react'
 import { Icon } from '../../icons'
@@ -31,6 +32,8 @@ interface CssPanelProps {
 }
 
 function CssPanel({ cfg, setCfg, toast, iframeRef, previewDevice }: CssPanelProps) {
+  const { t } = useLanguage()
+  const B = t.blog
   // useCallback 稳定化：否则 pushHistory/undo/redo（deps 含 setF）每渲染失效
   const setF = useCallback((p: Partial<BlogConfig>) => setCfg(p), [setCfg])
   // 使用优化③：亮/暗 CSS 模式跟随预览主题模式（预览暗色时默认展示"暗色 CSS"，不再固定亮色）；
@@ -133,8 +136,8 @@ function CssPanel({ cfg, setCfg, toast, iframeRef, previewDevice }: CssPanelProp
           {(cfg.theme === 'dark' || sysDark) && (
             <div className="aurora-blog-banner">
               {cfg.theme === 'dark'
-                ? '当前为深色模式，暗色 CSS 将优先生效。'
-                : '系统为深色模式，暗色 CSS 中的颜色规则会在预览中生效。'}
+                ? B.darkModeActive
+                : B.systemDark}
             </div>
           )}
 
@@ -143,8 +146,8 @@ function CssPanel({ cfg, setCfg, toast, iframeRef, previewDevice }: CssPanelProp
             value={currentCss}
             onChange={pushHistory}
             placeholder={cssMode === 'dark'
-              ? '在此输入暗色模式专用 CSS...\n例如: body { background: #1a1a2e; color: #e0e0e0; }'
-              : '在此输入自定义 CSS...'}
+              ? B.darkCssPh
+              : B.customCssPh}
             canUndo={history.past.length > 0}
             canRedo={history.future.length > 0}
             onUndo={undo}
@@ -153,9 +156,9 @@ function CssPanel({ cfg, setCfg, toast, iframeRef, previewDevice }: CssPanelProp
           />
 
           <div className="aurora-blog-row2">
-            <StudioButton variant="ghost" onClick={() => toast?.('已导入 CSS')}><Icon.upload size={14} /> 导入</StudioButton>
-            <StudioButton variant="ghost" onClick={() => toast?.('已导出 CSS')}><Icon.download size={14} /> 导出</StudioButton>
-            <StudioButton variant="secondary" onClick={() => toast?.('已压缩 CSS')}><Icon.wand size={14} /> 压缩</StudioButton>
+            <StudioButton variant="ghost" onClick={() => toast?.(B.importedCss)}><Icon.upload size={14} /> {B.importBtn}</StudioButton>
+            <StudioButton variant="ghost" onClick={() => toast?.(B.exportedCss)}><Icon.download size={14} /> {B.exportBtn}</StudioButton>
+            <StudioButton variant="secondary" onClick={() => toast?.(B.minifiedCss)}><Icon.wand size={14} /> {B.minifyBtn}</StudioButton>
           </div>
 
           {/* 可视化 CSS 编辑器（点击预览元素取样式，仅亮色模式，与真实 CssPanel 一致） */}
@@ -181,7 +184,7 @@ function CssPanel({ cfg, setCfg, toast, iframeRef, previewDevice }: CssPanelProp
           />
         </>
       )}
-      {!cfg.enableCustomCss && <div className="aurora-blog-empty">未启用自定义 CSS，博客将使用主题内置样式。</div>}
+      {!cfg.enableCustomCss && <div className="aurora-blog-empty">{B.customCssOff}</div>}
     </div>
   )
 }
@@ -210,6 +213,8 @@ interface ExportPanelProps {
 }
 
 function ExportPanel({ cfg, docs, onGenerate, isGenerating, result, onOpenPreview, onDownloadFolder, onDownloadSingleFile, isDownloading, genError }: ExportPanelProps) {
+  const { t } = useLanguage()
+  const B = t.blog
   const docCount = docs.filter((d) => d.included).length
   const totalWords = docs.filter((d) => d.included).reduce((s, d) => s + d.words, 0)
   const themeName = THEME_MARKET.find((t) => t.key === cfg.themeKey)?.nameZh ?? cfg.themeKey
@@ -217,25 +222,25 @@ function ExportPanel({ cfg, docs, onGenerate, isGenerating, result, onOpenPrevie
   return (
     <div className="aurora-blog-panel__scroll">
       <div className="aurora-blog-stats">
-        <div className="aurora-blog-stat"><span className="aurora-blog-stat__dot" /><b>{docCount}</b><span>文档</span></div>
-        <div className="aurora-blog-stat"><span className="aurora-blog-stat__dot aurora-blog-stat__dot--2" /><b>{totalWords.toLocaleString()}</b><span>字数</span></div>
-        <div className="aurora-blog-stat"><span className="aurora-blog-stat__dot aurora-blog-stat__dot--3" /><b>{themeName}</b><span>主题</span></div>
+        <div className="aurora-blog-stat"><span className="aurora-blog-stat__dot" /><b>{docCount}</b><span>{B.statDocs}</span></div>
+        <div className="aurora-blog-stat"><span className="aurora-blog-stat__dot aurora-blog-stat__dot--2" /><b>{totalWords.toLocaleString()}</b><span>{B.statWords}</span></div>
+        <div className="aurora-blog-stat"><span className="aurora-blog-stat__dot aurora-blog-stat__dot--3" /><b>{themeName}</b><span>{B.statTheme}</span></div>
       </div>
 
       {genError && <div className="aurora-blog-banner aurora-blog-banner--error">{genError}</div>}
 
       <SectionLabel>步骤 1 · 生成</SectionLabel>
       <button className={`aurora-blog-generate ${isGenerating ? 'is-loading' : ''}`} onClick={onGenerate} disabled={isGenerating || docCount === 0}>
-        {isGenerating ? <><Icon.refresh size={15} className="spin" /> 生成中…</> : <><Icon.sparkle size={15} /> 生成博客站点</>}
+        {isGenerating ? <><Icon.refresh size={15} className="spin" /> {B.generating}</> : <><Icon.sparkle size={15} /> {B.generateSite}</>}
       </button>
 
       {result && (
         <>
           <SectionLabel>步骤 2 · 查看 / 下载</SectionLabel>
           <div className="aurora-blog-download">
-            <button className="aurora-blog-dl" onClick={onOpenPreview}><Icon.externalLink size={18} /><span>打开</span><em>新标签页</em></button>
-            <button className="aurora-blog-dl" onClick={onDownloadFolder} disabled={isDownloading}><Icon.folder size={18} /><span>文件夹</span><em>多文件</em></button>
-            <button className="aurora-blog-dl" onClick={onDownloadSingleFile} disabled={isDownloading}><Icon.file size={18} /><span>单文件</span><em>自包含</em></button>
+            <button className="aurora-blog-dl" onClick={onOpenPreview}><Icon.externalLink size={18} /><span>{B.openBtn}</span><em>{B.openNewTab}</em></button>
+            <button className="aurora-blog-dl" onClick={onDownloadFolder} disabled={isDownloading}><Icon.folder size={18} /><span>{B.folderBtn}</span><em>{B.multiFile}</em></button>
+            <button className="aurora-blog-dl" onClick={onDownloadSingleFile} disabled={isDownloading}><Icon.file size={18} /><span>{B.singleFile}</span><em>{B.selfContained}</em></button>
           </div>
 
           {/* P0 · 1.2：真实部署面板（平台选择/Token 验证/仓库/进度/成功 URL，deployToPages） */}

@@ -83,8 +83,8 @@ describe('主题市场 · 卡片 tag 中文映射（单一数据源）', () => {
 
 describe('主题市场 · 筛选分组标识', () => {
   it('分类行与风格行行首各有「分类」「风格」分组微标签', () => {
-    expect(tsx).toMatch(/aurora-blog-chipgroup__label">分类</)
-    expect(tsx).toMatch(/aurora-blog-chipgroup__label">风格</)
+    expect(tsx).toMatch(/aurora-blog-chipgroup__label">{B.catLabel}</)
+    expect(tsx).toMatch(/aurora-blog-chipgroup__label">{B.styleLabel}</)
   })
 
   it('分组微标签有样式定义且与选择器触发器同高对齐（height: 28px）', () => {
@@ -96,13 +96,13 @@ describe('主题市场 · 筛选分组标识', () => {
 
 describe('主题市场 · 筛选改滚轮鼓选择（与设置页 AuroraSelect 同一套交互）', () => {
   it('分类行与风格行均使用 AuroraSelect 滚轮鼓选择器（替代整排 chip 点选）', () => {
-    expect(tsx).toMatch(/aurora-blog-chipgroup__label">分类<\/span>\s*\n\s*<AuroraSelect/)
-    expect(tsx).toMatch(/aurora-blog-chipgroup__label">风格<\/span>\s*\n\s*<AuroraSelect/)
+    expect(tsx).toMatch(/aurora-blog-chipgroup__label">{B.catLabel}<\/span>\s*\n\s*<AuroraSelect/)
+    expect(tsx).toMatch(/aurora-blog-chipgroup__label">{B.styleLabel}<\/span>\s*\n\s*<AuroraSelect/)
   })
 
   it('筛选行不再夹带 StudioChip（chip 仅保留给文档列表全选/全不选等非筛选场景）', () => {
     expect(tsx).not.toMatch(
-      /chipgroup__label">分类<\/span>[\s\S]{0,400}?StudioChip[\s\S]{0,400}?chipgroup__label">风格/,
+      /chipgroup__label">{B.catLabel}<\/span>[\s\S]{0,400}?StudioChip[\s\S]{0,400}?chipgroup__label">{B.styleLabel}/,
     )
   })
 
@@ -113,8 +113,8 @@ describe('主题市场 · 筛选改滚轮鼓选择（与设置页 AuroraSelect �
   })
 
   it('风格滚轮选项头部补「全部」，其后展开单一数据源 THEME_STYLE_TAGS', () => {
-    expect(tsx).toMatch(/value: '',\s*label: '全部'/)
-    expect(tsx).toMatch(/THEME_STYLE_FILTER_OPTIONS[\s\S]{0,200}\.\.\.THEME_STYLE_TAGS/)
+    expect(tsx).toMatch(/i === 0 \? \{ \.\.\.o, label: B\.all \} : o/)
+    expect(tsx).toMatch(/THEME_STYLE_FILTER_OPTIONS\.map/)
   })
 
   it('过滤逻辑随单选收敛：未选风格（空串）放行全部，否则命中当前风格', () => {
@@ -133,7 +133,7 @@ describe('主题市场 · 筛选行宽 + 搜索框滚动显现', () => {
     const body = css.match(/\.aurora-blog-tabs \.aurora-select--custom[\s\S]*?\{([\s\S]*?)\}/)?.[1] ?? ''
     expect(body).toMatch(/flex:\s*1\s+1\s+auto/)
     expect(body).toMatch(/min-width:\s*0/)
-    expect(tsx).toMatch(/chipgroup__label">分类<\/span>\s*\n\s*<AuroraSelect/)
+    expect(tsx).toMatch(/chipgroup__label">{B.catLabel}<\/span>\s*\n\s*<AuroraSelect/)
   })
 
   it('搜索框常驻 DOM（不条件渲染），初始收起 + is-hidden 类折叠 + 已输入查询时保持可见', () => {

@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogModal } from './blog'
-import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, editorPanel, diary, kbSearch, kbOverview, kbCreate, kbFilter, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
+import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, blog, editorPanel, diary, kbSearch, kbOverview, kbCreate, kbFilter, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -899,6 +899,101 @@ export interface Translations {
     unpinInspector: string
     inspectorOverlay: string
   }
+  blog: {
+    studio: string
+    pendingCount: string
+    switchedSingle: string
+    targetMissing: string
+    kbMissing: string
+    loadingKb: string
+    kbNoFilesTitle: string
+    kbNoFilesBody: string
+    diagNoMd: string
+    noPreviewDoc: string
+    previewFailedTitle: string
+    previewFailedBody: string
+    previewFailedHint: string
+    notGenerated: string
+    openPreviewFailed: string
+    themeLabel: string
+    darkMode: string
+    lightMode: string
+    restoredAll: string
+    sourceLabel: string
+    viewAllNotes: string
+    ariaGroups: string
+    ariaSubTabs: string
+    deviceDesktop: string
+    deviceTablet: string
+    deviceMobile: string
+    gripTitle: string
+    previewTitle: string
+    searchTheme: string
+    catLabel: string
+    styleLabel: string
+    all: string
+    ariaByCat: string
+    ariaByStyle: string
+    featured: string
+    custom: string
+    fontSerif: string
+    fontSans: string
+    fontMono: string
+    siteInfoLabel: string
+    featuresLabel: string
+    rewardLabel: string
+    docsLabel: string
+    themeMarket: string
+    themeMode: string
+    colorScheme: string
+    previewLabel: string
+    fontLabel: string
+    siteTitle: string
+    siteDesc: string
+    author: string
+    language: string
+    langZh: string
+    noMdDocs: string
+    wordsUnit: string
+    openInEditor: string
+    willPublish: string
+    views: string
+    likes: string
+    wechatQr: string
+    alipayQr: string
+    imageUrl: string
+    bio: string
+    skills: string
+    commaSeparated: string
+    seriesCount: string
+    newSeries: string
+    addSeries: string
+    seriesAdded: string
+    configExported: string
+    configImported: string
+    darkModeActive: string
+    systemDark: string
+    darkCssPh: string
+    customCssPh: string
+    importedCss: string
+    exportedCss: string
+    minifiedCss: string
+    importBtn: string
+    exportBtn: string
+    minifyBtn: string
+    customCssOff: string
+    statDocs: string
+    statWords: string
+    statTheme: string
+    generating: string
+    generateSite: string
+    openBtn: string
+    openNewTab: string
+    folderBtn: string
+    multiFile: string
+    singleFile: string
+    selfContained: string
+  }
   diary: {
     breadcrumb: string
     countUnit: string
@@ -1778,6 +1873,7 @@ const zh: Translations = {
   settingsGeneral,
   settingsUser,
   editorToolbar,
+  blog,
   editorPanel,
   diary,
   kbSearch,

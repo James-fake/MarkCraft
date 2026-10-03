@@ -19,6 +19,7 @@ import { PANELS, PANEL_GROUPS, THEME_MARKET, DEFAULT_CONFIG, toRealBlogConfig, c
   type PanelKey, type BlogConfig, type BlogFriend, type BlogSeries } from './blogStudioModel'
 import { StylePanel, ColorPanel, ContentPanel, FeaturesPanel } from './settingPanels'
 import { CssPanel, ExportPanel } from './deployPanels'
+import { useLanguage } from '@stores/LanguageStore'
 
 /**
  * Aurora 博客工作室面板（Phase 2 换芯 · 接真实 BlogStudio 数据）
@@ -67,6 +68,9 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
   const [cfg, setCfgState] = useState<BlogConfig>(DEFAULT_CONFIG)
 
   const { rootFolder, openFile } = useFileManager()
+  const { t, language } = useLanguage()
+  const isZh = language === 'zh'
+  const B = t.blog
   const { openCommandPalette } = useCommandPalette()
   // 内置《使用文档》作用域（判定单源：@core/files/usageDocs ← useUsageDocsScope）：
   // 供下面「博客入口」的清单过滤复用，避免同一判定各自手写 → 行为漂移（项目已有教训）。
@@ -118,8 +122,8 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
     clearBlogEntryFileId()
     setSingleFileId(target)
     setExcluded(new Set())
-    toast?.('已切换为单篇发布，仅发布当前笔记')
-  }, [allDocs, toast])
+    toast?.(B.switchedSingle)
+  }, [allDocs, toast, B.switchedSingle])
 
   // 单篇模式下的可见清单（标题 / 字数为真实派生，不走平行数据）
   const scopedDocs = useMemo(
@@ -153,14 +157,14 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
   const docsEmptyHint = useMemo(() => {
     // 单篇模式但目标已消失（在别处删除 / 改名）：给出可退出的指引，而不是报「文件库无文档」
     if (singleFileId && scopedDocs.length === 0) {
-      return '目标笔记不存在或已被删除，可点上方「查看全部笔记」重新选择。'
+      return B.targetMissing
     }
     if (kbId && !kbSource) {
-      return kbMissing ? '知识库不存在或已被删除，可在博客入口查看全部笔记。' : '正在加载知识库…'
+      return kbMissing ? B.kbMissing : B.loadingKb
     }
     if (kbSource) return `知识库「${kbSource.name}」暂未添加文件，请先在知识库中添加笔记。`
     return undefined
-  }, [singleFileId, scopedDocs, kbId, kbSource, kbMissing])
+  }, [singleFileId, scopedDocs, kbId, kbSource, kbMissing, B.kbMissing, B.loadingKb, B.targetMissing])
 
   // —— P0 · 1.2：挂载真实 useBlogGenerator（generateBlog 生成 + 发布留痕 + 下载），
   //    替换 ExportPanel 的 setTimeout 桩；isOpen 恒真（博客为页面非模态）——
@@ -206,14 +210,14 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
     if (included.length === 0) {
       // 知识库来源空态：库内无任何笔记（界面级引导，区别于默认全部笔记的诊断文案）
       if (kbSource) {
-        return wrap('<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/></svg>', '知识库暂未添加文件', `知识库「${kbSource.name}」内还没有任何笔记。\n请先在知识库中添加笔记，再回到此处发布博客。`)
+        return wrap('<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/></svg>', B.kbNoFilesTitle, B.kbNoFilesBody.replace('{name}', kbSource.name))
       }
       const mdTotal = docs.length
       const emptyCount = docs.filter((d) => !d.content.trim()).length
       const body = mdTotal === 0
-        ? '诊断：文件库中未发现任何 .md 文档（若编辑器侧边栏有文件，请反馈此信息）'
+        ? B.diagNoMd
         : `诊断：共发现 ${mdTotal} 篇 .md 文档，其中 ${emptyCount} 篇内容为空。请到「内容」面板确认，或反馈此信息。`
-      return wrap('<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><path d="M6 3h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 16h6"/></svg>', '暂无待预览文档', body)
+      return wrap('<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><path d="M6 3h8l4 4v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 16h6"/></svg>', B.noPreviewDoc, body)
     }
     try {
       return generateSingleFileBlog(
@@ -226,9 +230,9 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
     } catch (e) {
       // 诊断埋点（Aurora 层）：预览生成异常时如实上报，避免静默空白
       console.error('[BlogPanel] 预览生成失败:', e)
-      return wrap('<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="1.5"><path d="M12 4 4 20h16L12 4Z"/><path d="M12 10v4M12 17v1"/></svg>', '博客预览生成失败', `错误信息：${esc(String((e as Error)?.message ?? e))}<br><br><span style="font-size:12px;color:#999">请复制上方错误信息反馈</span>`)
+      return wrap('<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="1.5"><path d="M12 4 4 20h16L12 4Z"/><path d="M12 10v4M12 17v1"/></svg>', B.previewFailedTitle, `${B.previewFailedBody.replace('{msg}', esc(String((e as Error)?.message ?? e)))}<br><br><span style="font-size:12px;color:#999">${B.previewFailedHint}</span>`)
     }
-  }, [cfg, docs, friends, series, kbSource])
+  }, [cfg, docs, friends, series, kbSource, B])
 
   // 功能列表浮层：仅允许停靠在「博客界面」最左 / 最右贴边位置（2 个停靠点）。
   // 交互 = 抓住表头向左/向右「甩丢」：拖动时实时跟随指针，松手按抛掷速度吸附到对应贴边，
@@ -350,14 +354,14 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
   // 在新标签打开当前预览（真实行为：导出 iframe 当前 HTML 为 blob 并在浏览器打开）
   const handleOpenPreview = () => {
     const doc = previewIframeRef.current?.srcdoc
-    if (!doc) { toast?.('预览尚未生成'); return }
+    if (!doc) { toast?.(B.notGenerated); return }
     try {
       const blob = new Blob([doc], { type: 'text/html' })
       const url = URL.createObjectURL(blob)
       window.open(url, '_blank', 'noopener')
       setTimeout(() => URL.revokeObjectURL(url), 10000)
     } catch {
-      toast?.('打开预览失败')
+      toast?.(B.openPreviewFailed)
     }
   }
 
@@ -393,9 +397,9 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
       sidebarGroups={AURORA_SIDEBAR_GROUPS}
       sidebarActiveId="博客"
       onSidebarSelect={handleNav}
-      breadcrumbs={['博客工作室']}
-      statusLeftItems={[{ content: '博客工作室' }, { content: `${docs.filter((d) => d.included).length} 篇待发布` }]}
-      statusRightItems={[{ content: `主题 ${THEME_MARKET.find((t) => t.key === cfg.themeKey)?.nameZh ?? cfg.themeKey}` }, { content: cfg.theme === 'dark' ? '深色' : '浅色' }, { content: '⌘K 命令面板', clickable: true, onClick: () => openCommandPalette() }]}
+      breadcrumbs={[B.studio]}
+      statusLeftItems={[{ content: B.studio }, { content: B.pendingCount.replace('{n}', String(docs.filter((d) => d.included).length)) }]}
+      statusRightItems={[{ content: B.themeLabel.replace('{name}', isZh ? (THEME_MARKET.find((x) => x.key === cfg.themeKey)?.nameZh ?? cfg.themeKey) : (THEME_MARKET.find((x) => x.key === cfg.themeKey)?.nameEn ?? cfg.themeKey)) }, { content: cfg.theme === 'dark' ? B.darkMode : B.lightMode }, { content: t.welcome.cmdPalette, clickable: true, onClick: () => openCommandPalette() }]}
     >
       <div className="aurora-blog" ref={rootRef}>
         {/* 单篇发布提示条：编辑器「发布为博客」带入时显示，可一键退回全部笔记 */}
@@ -409,7 +413,7 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
               onClick={() => {
                 setSingleFileId(null)
                 setExcluded(new Set())
-                toast?.('已恢复全部笔记')
+                toast?.(B.restoredAll)
               }}
             >
               查看全部笔记
@@ -419,8 +423,8 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
         {/* 发布来源提示条：知识库跳转带来源时显示，可一键退回全部笔记 */}
         {kbSource && (
           <div className="aurora-blog-source-bar">
-            <span className="aurora-blog-source-bar__label"><Icon.book size={14} /> 发布来源：{kbSource.name}</span>
-            <button className="aurora-blog-source-bar__clear" onClick={() => nav?.('blog')}>查看全部笔记</button>
+            <span className="aurora-blog-source-bar__label"><Icon.book size={14} /> {B.sourceLabel.replace('{name}', kbSource.name)}</span>
+            <button className="aurora-blog-source-bar__clear" onClick={() => nav?.('blog')}>{B.viewAllNotes}</button>
           </div>
         )}
         {/* 顶部子栏：分组 tab（主题/数据/高级）+ 组内次级 segmented + 设备切换 */}
@@ -430,7 +434,7 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
           <div
             className="aurora-blog__tabs"
             role="tablist"
-            aria-label="功能分组切换"
+            aria-label={B.ariaGroups}
             data-swiping={groupTabs.dragging || undefined}
             {...groupTabs.bind}
           >
@@ -462,7 +466,7 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
               })}
             </div>
           </div>
-          <div className="aurora-blog__subseg" role="tablist" aria-label="子面板切换" data-swiping={blogTabs.dragging || undefined} {...blogTabs.bind}>
+          <div className="aurora-blog__subseg" role="tablist" aria-label={B.ariaSubTabs} data-swiping={blogTabs.dragging || undefined} {...blogTabs.bind}>
             {/* 轨道：滑块的定位坐标系（滑块绝对定位于其中，常驻） */}
             <div className="aurora-blog__subseg-track" ref={blogTabs.trackRef}>
               {/* 滑块：选中态的视觉承载者（选中底色已从 tab 迁到这里） */}
@@ -485,7 +489,7 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
           </div>
           <div className="aurora-blog__subbar-right">
             <div className="aurora-blog__device">
-              {([{ k: 'desktop', i: 'desktop' as IconName, l: '桌面' }, { k: 'tablet', i: 'tablet' as IconName, l: '平板' }, { k: 'mobile', i: 'mobile' as IconName, l: '手机' }] as const).map((d) => {
+              {([{ k: 'desktop', i: 'desktop' as IconName, l: B.deviceDesktop }, { k: 'tablet', i: 'tablet' as IconName, l: B.deviceTablet }, { k: 'mobile', i: 'mobile' as IconName, l: B.deviceMobile }] as const).map((d) => {
                 const DevIcon = Icon[d.i]
                 return (
                   <button key={d.k} className={`aurora-blog__device-btn ${device === d.k ? 'is-active' : ''}`} onClick={() => setDevice(d.k)} title={d.l}>
@@ -514,7 +518,7 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
           >
             <span className="aurora-blog__panel-dot" style={{ background: 'var(--mc-accent)' }} />
             <span className="aurora-blog__panelzone-title">{activePanel.label}</span>
-            <span className="aurora-blog__panel-grip" title="按住表头并向左右甩动，可切换停靠侧"><Icon.grip size={15} /></span>
+            <span className="aurora-blog__panel-grip" title={B.gripTitle}><Icon.grip size={15} /></span>
           </div>
           {panelOpen && (
             /* 内容区：完全不参与滑动（需求 N 第四轮：内容区零位移） */
@@ -529,7 +533,7 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
           <div className="aurora-blog__preview">
             <div className="aurora-blog__preview-stage">
               <div className={`aurora-blog__frame aurora-blog__frame--${device}`}>
-                <iframe ref={previewIframeRef} title="博客预览" srcDoc={previewFallback} />
+                <iframe ref={previewIframeRef} title={B.previewTitle} srcDoc={previewFallback} />
               </div>
             </div>
           </div>

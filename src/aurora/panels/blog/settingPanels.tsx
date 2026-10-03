@@ -2,6 +2,7 @@
  * 博客工作室 · 设置面板组：样式（含主题市场）/ 配色 / 内容 / 功能
  * （P2-3 从 BlogPanel.tsx 拆出，2026-09-28；纯展示组件，状态经 props 上行）
  */
+import { useLanguage } from '@stores/LanguageStore'
 
 import { useState, useRef, useEffect } from 'react'
 import { Icon } from '../../icons'
@@ -18,6 +19,10 @@ import { SectionLabel, StudioInput, StudioTextarea, StudioSelect, StudioToggle, 
  * 面板：样式（含主题市场子组件）
  * ========================================================== */
 function StylePanel({ cfg, setCfg, panelOpen }: { cfg: BlogConfig; setCfg: (p: Partial<BlogConfig>) => void; panelOpen: boolean }) {
+  const { t } = useLanguage()
+  const B = t.blog
+  // 数据层选项首项为「全部」，展示文案随界面语言（数据层不持文案）
+  const styleFilterOptions = THEME_STYLE_FILTER_OPTIONS.map((o, i) => (i === 0 ? { ...o, label: B.all } : o))
   const [query, setQuery] = useState('')
   const [cat, setCat] = useState('all')
   // 风格筛选改为滚轮鼓单选（与设置页 AuroraSelect 同一套交互）；'' = 全部
@@ -70,7 +75,7 @@ function StylePanel({ cfg, setCfg, panelOpen }: { cfg: BlogConfig; setCfg: (p: P
         <Icon.search size={14} />
         <input
           value={query}
-          placeholder="搜索主题…"
+          placeholder={B.searchTheme}
           tabIndex={searchVisible || query.trim() ? 0 : -1}
           onChange={(e) => setQuery(e.target.value)}
         />
@@ -93,14 +98,14 @@ function StylePanel({ cfg, setCfg, panelOpen }: { cfg: BlogConfig; setCfg: (p: P
           }
         }}
       >
-      <SectionLabel>主题市场</SectionLabel>
+      <SectionLabel>{B.themeMarket}</SectionLabel>
       <div className="aurora-blog-tabs">
-        <span className="aurora-blog-chipgroup__label">分类</span>
-        <AuroraSelect value={cat} options={THEME_CATEGORIES} onChange={setCat} placeholder="全部" ariaLabel="按分类筛选主题" />
+        <span className="aurora-blog-chipgroup__label">{B.catLabel}</span>
+        <AuroraSelect value={cat} options={THEME_CATEGORIES} onChange={setCat} placeholder={B.all} ariaLabel={B.ariaByCat} />
       </div>
       <div className="aurora-blog-tags">
-        <span className="aurora-blog-chipgroup__label">风格</span>
-        <AuroraSelect value={tag} options={THEME_STYLE_FILTER_OPTIONS} onChange={setTag} placeholder="全部" ariaLabel="按风格筛选主题" />
+        <span className="aurora-blog-chipgroup__label">{B.styleLabel}</span>
+        <AuroraSelect value={tag} options={styleFilterOptions} onChange={setTag} placeholder={B.all} ariaLabel={B.ariaByStyle} />
       </div>
       <div className="aurora-blog-theme-grid">
         {filtered.map((t) => (
@@ -128,17 +133,17 @@ function StylePanel({ cfg, setCfg, panelOpen }: { cfg: BlogConfig; setCfg: (p: P
             <div className="aurora-blog-theme__desc">{t.desc}</div>
             <div className="aurora-blog-theme__tags">
               {t.tags.map((tg) => <em key={tg}>{tagLabel(tg)}</em>)}
-              {t.featured && <em className="is-featured">精选</em>}
+              {t.featured && <em className="is-featured">{B.featured}</em>}
             </div>
           </div>
         ))}
       </div>
 
-      <SectionLabel>主题模式</SectionLabel>
+      <SectionLabel>{B.themeMode}</SectionLabel>
       <div className="aurora-blog-seg">
         {(['light', 'dark'] as const).map((m) => (
           <button key={m} className={`aurora-blog-seg__btn ${cfg.theme === m ? 'is-active' : ''}`} onClick={() => setCfg({ theme: m })}>
-            {m === 'light' ? '浅色' : '深色'}
+            {m === 'light' ? B.lightMode : B.darkMode}
           </button>
         ))}
       </div>
@@ -154,10 +159,12 @@ function StylePanel({ cfg, setCfg, panelOpen }: { cfg: BlogConfig; setCfg: (p: P
  * 面板：配色
  * ========================================================== */
 function ColorPanel({ cfg, setCfg }: { cfg: BlogConfig; setCfg: (p: Partial<BlogConfig>) => void }) {
+  const { t } = useLanguage()
+  const B = t.blog
   const hex = COLOR_SCHEMES.find((c) => c.key === cfg.colorScheme)?.hex ?? '#6366f1'
   return (
     <div className="aurora-blog-panel__scroll">
-      <SectionLabel>配色方案</SectionLabel>
+      <SectionLabel>{B.colorScheme}</SectionLabel>
       <div className="aurora-blog-colors">
         {COLOR_SCHEMES.map((c) => (
           <button key={c.key} className={`aurora-blog-color ${cfg.colorScheme === c.key ? 'is-active' : ''}`} onClick={() => setCfg({ colorScheme: c.key })} title={c.label}>
@@ -165,10 +172,10 @@ function ColorPanel({ cfg, setCfg }: { cfg: BlogConfig; setCfg: (p: Partial<Blog
             {cfg.colorScheme === c.key && <Icon.check size={13} />}
           </button>
         ))}
-        <button className="aurora-blog-color aurora-blog-color--custom" title="自定义"><span style={{ background: 'conic-gradient(#ef4444,#f59e0b,#22c55e,#06b6d4,#6366f1,#ef4444)' }} /></button>
+        <button className="aurora-blog-color aurora-blog-color--custom" title={B.custom}><span style={{ background: 'conic-gradient(#ef4444,#f59e0b,#22c55e,#06b6d4,#6366f1,#ef4444)' }} /></button>
       </div>
 
-      <SectionLabel>预览</SectionLabel>
+      <SectionLabel>{B.previewLabel}</SectionLabel>
       <div className="aurora-blog-color-preview" style={{ background: `linear-gradient(135deg, ${hex}, ${hex}66)` }}>
         <div className="aurora-blog-color-preview__name">{COLOR_SCHEMES.find((c) => c.key === cfg.colorScheme)?.label}</div>
         <div className="aurora-blog-color-preview__dots">
@@ -176,9 +183,9 @@ function ColorPanel({ cfg, setCfg }: { cfg: BlogConfig; setCfg: (p: Partial<Blog
         </div>
       </div>
 
-      <SectionLabel>字体</SectionLabel>
+      <SectionLabel>{B.fontLabel}</SectionLabel>
       <div className="aurora-blog-seg">
-        {([{ v: 'serif', l: '衬线' }, { v: 'sans', l: '无衬线' }, { v: 'mono', l: '等宽' }] as const).map((f) => (
+        {([{ v: 'serif', l: B.fontSerif }, { v: 'sans', l: B.fontSans }, { v: 'mono', l: B.fontMono }] as const).map((f) => (
           <button key={f.v} className={`aurora-blog-seg__btn ${cfg.font === f.v ? 'is-active' : ''}`} onClick={() => setCfg({ font: f.v })}>{f.l}</button>
         ))}
       </div>
@@ -198,22 +205,24 @@ function ContentPanel({ cfg, setCfg, docs, onToggleDoc, onSetAll, emptyHint, onO
   emptyHint?: string
   onOpenSource?: (id: string) => void
 }) {
+  const { t } = useLanguage()
+  const B = t.blog
   const allOn = docs.every((d) => d.included)
   const totalWords = docs.filter((d) => d.included).reduce((s, d) => s + d.words, 0)
 
   return (
     <div className="aurora-blog-panel__scroll">
-      <SectionLabel>站点信息</SectionLabel>
-      <label className="aurora-blog-field"><span>站点标题</span><StudioInput value={cfg.siteTitle} onChange={(v) => setCfg({ siteTitle: v })} /></label>
-      <label className="aurora-blog-field"><span>站点描述</span><StudioTextarea value={cfg.siteDescription} onChange={(v) => setCfg({ siteDescription: v })} /></label>
+      <SectionLabel>{B.siteInfoLabel}</SectionLabel>
+      <label className="aurora-blog-field"><span>{B.siteTitle}</span><StudioInput value={cfg.siteTitle} onChange={(v) => setCfg({ siteTitle: v })} /></label>
+      <label className="aurora-blog-field"><span>{B.siteDesc}</span><StudioTextarea value={cfg.siteDescription} onChange={(v) => setCfg({ siteDescription: v })} /></label>
       <div className="aurora-blog-row2">
-        <label className="aurora-blog-field"><span>作者</span><StudioInput value={cfg.author} onChange={(v) => setCfg({ author: v })} /></label>
-        <label className="aurora-blog-field"><span>语言</span>
-          <StudioSelect value={cfg.language} onChange={(v) => setCfg({ language: v })} options={[{ value: 'zh-CN', label: '简体中文' }, { value: 'en', label: 'English' }, { value: 'ja', label: '日本語' }]} />
+        <label className="aurora-blog-field"><span>{B.author}</span><StudioInput value={cfg.author} onChange={(v) => setCfg({ author: v })} /></label>
+        <label className="aurora-blog-field"><span>{B.language}</span>
+          <StudioSelect value={cfg.language} onChange={(v) => setCfg({ language: v })} options={[{ value: 'zh-CN', label: B.langZh }, { value: 'en', label: 'English' }, { value: 'ja', label: '日本語' }]} />
         </label>
       </div>
 
-      <SectionLabel>文档列表 <em>{docs.filter((d) => d.included).length}/{docs.length}</em></SectionLabel>
+      <SectionLabel>{B.docsLabel} <em>{docs.filter((d) => d.included).length}/{docs.length}</em></SectionLabel>
       <div className="aurora-blog-doc-actions">
         <StudioChip active={allOn} onClick={() => onSetAll(true)}>全选</StudioChip>
         <StudioChip active={!allOn} onClick={() => onSetAll(false)}>全不选</StudioChip>
@@ -222,17 +231,17 @@ function ContentPanel({ cfg, setCfg, docs, onToggleDoc, onSetAll, emptyHint, onO
         {docs.length === 0 && emptyHint ? (
           <div className="aurora-blog-doc-empty">{emptyHint}</div>
         ) : docs.length === 0 ? (
-          <div className="aurora-blog-doc-empty aurora-blog-doc-empty--muted">文件库中未发现任何 .md 文档</div>
+          <div className="aurora-blog-doc-empty aurora-blog-doc-empty--muted">{B.noMdDocs}</div>
         ) : docs.map((d) => (
           <label key={d.id} data-file-id={d.id} className={`aurora-blog-doc ${d.included ? 'is-on' : ''}`}>
             <input type="checkbox" checked={d.included} onChange={() => onToggleDoc(d.id)} />
             <span className="aurora-blog-doc__title">{d.title}</span>
-            <span className="aurora-blog-doc__words">{d.words} 字</span>
+            <span className="aurora-blog-doc__words">{B.wordsUnit.replace('{n}', String(d.words))}</span>
             {onOpenSource && (
               <button
                 type="button"
                 className="aurora-blog-doc__open"
-                title="在编辑器中打开源文件"
+                title={B.openInEditor}
                 onClick={(e) => { e.preventDefault(); onOpenSource(d.id) }}
               >
                 <Icon.edit size={13} />
@@ -241,7 +250,7 @@ function ContentPanel({ cfg, setCfg, docs, onToggleDoc, onSetAll, emptyHint, onO
           </label>
         ))}
       </div>
-      <div className="aurora-blog-stat-inline">将发布 <b>{totalWords.toLocaleString()}</b> 字 · {docs.filter((d) => d.included).length} 篇</div>
+      <div className="aurora-blog-stat-inline">{B.willPublish.replace('{n}', totalWords.toLocaleString()).replace('{m}', String(docs.filter((d) => d.included).length))}</div>
     </div>
   )
 }
@@ -258,28 +267,30 @@ function FeaturesPanel({ cfg, setCfg, toast, friends, setFriends, series, setSer
   series: BlogSeries[]
   setSeries: Dispatch<SetStateAction<BlogSeries[]>>
 }) {
+  const { t } = useLanguage()
+  const B = t.blog
   const setF = (p: Partial<BlogConfig>) => setCfg(p)
 
   return (
     <div className="aurora-blog-panel__scroll">
-      <SectionLabel>文章功能</SectionLabel>
+      <SectionLabel>{B.featuresLabel}</SectionLabel>
       <div className="aurora-blog-feature-chips">
-        <button className={`aurora-blog-fchip ${cfg.enableViews ? 'is-on' : ''}`} onClick={() => setF({ enableViews: !cfg.enableViews })}><Icon.eye size={15} /> 阅读量</button>
-        <button className={`aurora-blog-fchip ${cfg.enableLikes ? 'is-on' : ''}`} onClick={() => setF({ enableLikes: !cfg.enableLikes })}><Icon.heart size={15} /> 点赞</button>
+        <button className={`aurora-blog-fchip ${cfg.enableViews ? 'is-on' : ''}`} onClick={() => setF({ enableViews: !cfg.enableViews })}><Icon.eye size={15} /> {B.views}</button>
+        <button className={`aurora-blog-fchip ${cfg.enableLikes ? 'is-on' : ''}`} onClick={() => setF({ enableLikes: !cfg.enableLikes })}><Icon.heart size={15} /> {B.likes}</button>
         <button className={`aurora-blog-fchip ${cfg.enablePwa ? 'is-on' : ''}`} onClick={() => setF({ enablePwa: !cfg.enablePwa })}><Icon.mobile size={15} /> PWA</button>
       </div>
 
-      <SectionLabel>打赏 <StudioToggle checked={cfg.enableReward} onChange={(v) => setF({ enableReward: v })} /></SectionLabel>
+      <SectionLabel>{B.rewardLabel} <StudioToggle checked={cfg.enableReward} onChange={(v) => setF({ enableReward: v })} /></SectionLabel>
       {cfg.enableReward && (
         <div className="aurora-blog-row2">
-          <label className="aurora-blog-field"><span>微信二维码</span><StudioInput value={cfg.rewardWechat} onChange={(v) => setF({ rewardWechat: v })} placeholder="图片 URL" /></label>
-          <label className="aurora-blog-field"><span>支付宝二维码</span><StudioInput value={cfg.rewardAlipay} onChange={(v) => setF({ rewardAlipay: v })} placeholder="图片 URL" /></label>
+          <label className="aurora-blog-field"><span>{B.wechatQr}</span><StudioInput value={cfg.rewardWechat} onChange={(v) => setF({ rewardWechat: v })} placeholder={B.imageUrl} /></label>
+          <label className="aurora-blog-field"><span>{B.alipayQr}</span><StudioInput value={cfg.rewardAlipay} onChange={(v) => setF({ rewardAlipay: v })} placeholder={B.imageUrl} /></label>
         </div>
       )}
 
       <SectionLabel>关于页</SectionLabel>
-      <label className="aurora-blog-field"><span>简介</span><StudioTextarea value={cfg.aboutBio} onChange={(v) => setF({ aboutBio: v })} rows={2} /></label>
-      <label className="aurora-blog-field"><span>技能标签</span><StudioInput value={cfg.aboutSkills} onChange={(v) => setF({ aboutSkills: v })} placeholder="逗号分隔" /></label>
+      <label className="aurora-blog-field"><span>{B.bio}</span><StudioTextarea value={cfg.aboutBio} onChange={(v) => setF({ aboutBio: v })} rows={2} /></label>
+      <label className="aurora-blog-field"><span>{B.skills}</span><StudioInput value={cfg.aboutSkills} onChange={(v) => setF({ aboutSkills: v })} placeholder={B.commaSeparated} /></label>
 
       <SectionLabel>友链 <em>{friends.length}</em></SectionLabel>
       <div className="aurora-blog-list">
@@ -298,17 +309,17 @@ function FeaturesPanel({ cfg, setCfg, toast, friends, setFriends, series, setSer
         {series.map((s) => (
           <div key={s.id} className="aurora-blog-list-item">
             <Icon.bookmark size={14} />
-            <div className="aurora-blog-list-item__body"><b>{s.name}</b><span>{s.count} 篇</span></div>
+            <div className="aurora-blog-list-item__body"><b>{s.name}</b><span>{B.seriesCount.replace('{n}', String(s.count))}</span></div>
             <button className="aurora-blog-icon-btn" onClick={() => setSeries((p) => p.filter((x) => x.id !== s.id))}><Icon.trash size={14} /></button>
           </div>
         ))}
-        <button className="aurora-blog-add" onClick={() => { setSeries((p) => [...p, { id: `s${Date.now()}`, name: '新系列', count: 0 }]); toast?.('已添加系列') }}><Icon.plus size={14} /> 添加系列</button>
+        <button className="aurora-blog-add" onClick={() => { setSeries((p) => [...p, { id: `s${Date.now()}`, name: B.newSeries, count: 0 }]); toast?.(B.seriesAdded) }}><Icon.plus size={14} /> {B.addSeries}</button>
       </div>
 
       <SectionLabel>配置</SectionLabel>
       <div className="aurora-blog-row2">
-        <StudioButton variant="secondary" onClick={() => toast?.('已导出配置 JSON')}><Icon.download size={14} /> 导出</StudioButton>
-        <StudioButton variant="ghost" onClick={() => toast?.('已导入配置')}><Icon.upload size={14} /> 导入</StudioButton>
+        <StudioButton variant="secondary" onClick={() => toast?.(B.configExported)}><Icon.download size={14} /> {B.exportBtn}</StudioButton>
+        <StudioButton variant="ghost" onClick={() => toast?.(B.configImported)}><Icon.upload size={14} /> {B.importBtn}</StudioButton>
       </div>
     </div>
   )
