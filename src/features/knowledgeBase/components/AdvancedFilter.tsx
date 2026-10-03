@@ -206,7 +206,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({ filters, onChang
           </FilterGroup>
 
           {/* 包含标签 */}
-          <FilterGroup label={`包含标签${filters.tags?.length ? ` (${filters.tags.length})` : ''}`}>
+          <FilterGroup label={`${KF.includeTags}${filters.tags?.length ? ` (${filters.tags.length})` : ''}`}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
               {(filters.tags ?? []).map(tag => (
                 <span key={tag} style={tagChipStyle}>
@@ -241,12 +241,12 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({ filters, onChang
                 placeholder={KF.tagPlaceholder}
                 style={{ ...inputStyle, flex: 1 }}
               />
-              <button onClick={addTag} style={addBtnStyle}>添加</button>
+              <button onClick={addTag} style={addBtnStyle}>{KF.addBtn}</button>
             </div>
           </FilterGroup>
 
           {/* 排除标签 */}
-          <FilterGroup label={`排除标签${filters.tagsNot?.length ? ` (${filters.tagsNot.length})` : ''}`}>
+          <FilterGroup label={`${KF.excludeTags}${filters.tagsNot?.length ? ` (${filters.tagsNot.length})` : ''}`}>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
               {(filters.tagsNot ?? []).map(tag => (
                 <span key={tag} style={tagNotChipStyle}>
@@ -266,7 +266,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({ filters, onChang
                 placeholder={KF.excludePlaceholder}
                 style={{ ...inputStyle, flex: 1 }}
               />
-              <button onClick={addTagNot} style={addBtnStyle}>排除</button>
+              <button onClick={addTagNot} style={addBtnStyle}>{KF.excludeBtn}</button>
             </div>
           </FilterGroup>
 

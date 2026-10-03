@@ -4,6 +4,7 @@
  */
 import React, { useMemo, useState } from 'react'
 import { useLinkIndex } from '@stores/LinkIndexStore'
+import { useLanguage } from '@stores/LanguageStore'
 import { KB_COLORS } from '../kbTheme'
 import { IconLink, IconNetwork, IconClose, IconFileText, IconFolder, IconAlert, IconCheck } from './KbIcons'
 import type { LinkRecord } from '@stores/LinkIndexStore'
@@ -33,6 +34,8 @@ interface GraphEdge {
 
 export const FileDependencyPanel: React.FC<FileDependencyPanelProps> = ({ fileId, onClose }) => {
   const { getOutgoingLinks, getBacklinks, resolveTarget, getFilePath } = useLinkIndex()
+  const { t } = useLanguage()
+  const kd = t.kbDependency
   const [activeTab, setActiveTab] = useState<'outgoing' | 'backlinks' | 'impact'>('outgoing')
   const [showGraph, setShowGraph] = useState(true)
 
@@ -73,8 +76,8 @@ export const FileDependencyPanel: React.FC<FileDependencyPanelProps> = ({ fileId
 
   // 构建 1 跳邻居图数据
   const graphData = useMemo(() => {
-    return buildNeighborGraph(fileId, outgoingAnalyzed, backlinks)
-  }, [fileId, outgoingAnalyzed, backlinks])
+    return buildNeighborGraph(fileId, outgoingAnalyzed, backlinks, kd.centerNode)
+  }, [fileId, outgoingAnalyzed, backlinks, kd.centerNode])
 
   // 当前文件名
   const currentFileName = useMemo(() => {
@@ -105,7 +108,7 @@ export const FileDependencyPanel: React.FC<FileDependencyPanelProps> = ({ fileId
           <IconLink size={16} />
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: KB_COLORS.textMain }}>依赖分析</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: KB_COLORS.textMain }}>{kd.title}</div>
           <div style={{
             fontSize: 11, color: KB_COLORS.textSecondary,
             overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
@@ -114,10 +117,10 @@ export const FileDependencyPanel: React.FC<FileDependencyPanelProps> = ({ fileId
         <button
           onClick={() => setShowGraph(!showGraph)}
           style={showGraph ? activeBtnStyle : btnStyle}
-          title="切换图谱视图"
-          aria-label="切换图谱视图"
+          title={kd.toggleGraph}
+          aria-label={kd.toggleGraph}
         ><IconNetwork size={15} /></button>
-        <button onClick={onClose} style={btnStyle} title="关闭" aria-label="关闭"><IconClose size={15} /></button>
+        <button onClick={onClose} style={btnStyle} title={kd.close} aria-label={kd.close}><IconClose size={15} /></button>
       </div>
 
       {/* 小型依赖图 */}
@@ -132,13 +135,13 @@ export const FileDependencyPanel: React.FC<FileDependencyPanelProps> = ({ fileId
         borderBottom: `1px solid ${KB_COLORS.border}`,
         flexShrink: 0,
       }}>
-        <StatPill label="出链" value={outgoingLinks.length} color={KB_COLORS.primary} />
-        <StatPill label="入链" value={backlinks.length} color={KB_COLORS.success} />
+        <StatPill label={kd.statOutgoing} value={outgoingLinks.length} color={KB_COLORS.primary} />
+        <StatPill label={kd.statBacklinks} value={backlinks.length} color={KB_COLORS.success} />
         {brokenOutgoingCount > 0 && (
-          <StatPill label="断链" value={brokenOutgoingCount} color={KB_COLORS.danger} />
+          <StatPill label={kd.statBroken} value={brokenOutgoingCount} color={KB_COLORS.danger} />
         )}
         {impactCount > 0 && (
-          <StatPill label="删除影响" value={impactCount} color={KB_COLORS.warning} />
+          <StatPill label={kd.statImpact} value={impactCount} color={KB_COLORS.warning} />
         )}
       </div>
 
@@ -151,17 +154,17 @@ export const FileDependencyPanel: React.FC<FileDependencyPanelProps> = ({ fileId
         <TabButton
           active={activeTab === 'outgoing'}
           onClick={() => setActiveTab('outgoing')}
-          label={`出链 (${outgoingLinks.length})`}
+          label={kd.tabOutgoing.replace('{n}', String(outgoingLinks.length))}
         />
         <TabButton
           active={activeTab === 'backlinks'}
           onClick={() => setActiveTab('backlinks')}
-          label={`入链 (${backlinks.length})`}
+          label={kd.tabBacklinks.replace('{n}', String(backlinks.length))}
         />
         <TabButton
           active={activeTab === 'impact'}
           onClick={() => setActiveTab('impact')}
-          label={`删除影响 (${impactCount})`}
+          label={kd.tabImpact.replace('{n}', String(impactCount))}
         />
       </div>
 
@@ -179,7 +182,7 @@ export const FileDependencyPanel: React.FC<FileDependencyPanelProps> = ({ fileId
               type: item.link.type,
               relation: item.link.relation,
             }))}
-            emptyText="该文件没有出链"
+            emptyText={kd.emptyOutgoing}
             getFilePath={getFilePath}
           />
         )}
@@ -195,7 +198,7 @@ export const FileDependencyPanel: React.FC<FileDependencyPanelProps> = ({ fileId
               type: link.type,
               relation: link.relation,
             }))}
-            emptyText="没有文件引用此文件"
+            emptyText={kd.emptyBacklinks}
             getFilePath={getFilePath}
           />
         )}
@@ -219,6 +222,7 @@ export const FileDependencyPanel: React.FC<FileDependencyPanelProps> = ({ fileId
 // ─── 子组件：邻居图 ───
 
 const NeighborGraph: React.FC<{ nodes: GraphNode[]; edges: GraphEdge[] }> = ({ nodes, edges }) => {
+  const { t } = useLanguage()
   const width = 372
   const height = 160
   if (nodes.length === 0) {
@@ -227,7 +231,7 @@ const NeighborGraph: React.FC<{ nodes: GraphNode[]; edges: GraphEdge[] }> = ({ n
         height, display: 'flex', alignItems: 'center', justifyContent: 'center',
         color: KB_COLORS.textTertiary, fontSize: 12,
         borderBottom: `1px solid ${KB_COLORS.border}`,
-      }}>暂无依赖关系</div>
+      }}>{t.kbDependency.emptyGraph}</div>
     )
   }
   return (
@@ -296,7 +300,7 @@ const NeighborGraph: React.FC<{ nodes: GraphNode[]; edges: GraphEdge[] }> = ({ n
                   x={node.x} y={node.y + 3}
                   textAnchor="middle"
                   fontSize={9} fill={textColor} fontWeight="bold"
-                >本文件</text>
+                >{t.kbDependency.thisFile}</text>
               )}
             </g>
           )
@@ -354,6 +358,8 @@ const LinkList: React.FC<{
   emptyText: string
   getFilePath: (fileId: string) => string
 }> = ({ items, emptyText, getFilePath }) => {
+  const { t } = useLanguage()
+  const kd = t.kbDependency
   if (items.length === 0) {
     return <div style={emptyStyle}>{emptyText}</div>
   }
@@ -394,7 +400,7 @@ const LinkList: React.FC<{
             )}
             {item.isBroken && (
               <div style={{ fontSize: 10, color: KB_COLORS.danger, marginBottom: 2 }}>
-                断链：目标文件不存在
+                {kd.brokenTarget}
               </div>
             )}
             {item.relation && (
@@ -404,7 +410,7 @@ const LinkList: React.FC<{
                 backgroundColor: KB_COLORS.primaryLight,
                 padding: '1px 6px', borderRadius: 8,
                 marginBottom: 4, marginRight: 4,
-              }}>关系: {item.relation}</div>
+              }}>{kd.relationLabel.replace('{name}', item.relation)}</div>
             )}
             {item.context && (
               <pre style={{
@@ -439,11 +445,13 @@ const ImpactList: React.FC<{
   items: ImpactItem[]
   getFilePath: (fileId: string) => string
 }> = ({ items, getFilePath }) => {
+  const { t } = useLanguage()
+  const kd = t.kbDependency
   if (items.length === 0) {
     return (
       <div style={emptyStyle}>
         <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'center' }}><IconCheck size={22} /></div>
-        删除此文件不会产生断链
+        {kd.impactNone}
       </div>
     )
   }
@@ -454,7 +462,7 @@ const ImpactList: React.FC<{
         backgroundColor: KB_COLORS.warningBg, borderRadius: 6,
         fontSize: 12, color: KB_COLORS.warningText,
       }}>
-        <IconAlert size={12} /> 删除此文件后，以下 {items.length} 处引用将变为断链：
+        <IconAlert size={12} /> {kd.impactWarn.replace('{n}', String(items.length))}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {items.map(item => {
@@ -518,6 +526,7 @@ function buildNeighborGraph(
   currentFileId: string,
   outgoingAnalyzed: { link: LinkRecord; targetId: string | undefined; isBroken: boolean; targetName: string }[],
   backlinks: LinkRecord[],
+  centerLabel: string = '当前',
 ): { nodes: GraphNode[]; edges: GraphEdge[] } {
   const nodes: GraphNode[] = []
   const edges: GraphEdge[] = []
@@ -527,7 +536,7 @@ function buildNeighborGraph(
   const centerY = 80
   const centerNode: GraphNode = {
     id: currentFileId,
-    label: '当前',
+    label: centerLabel,
     isCurrent: true,
     isBroken: false,
     x: centerX,

@@ -19,7 +19,7 @@ import { loadKb, getKbList, getKbFiles, updateDescription, deleteKb } from '@sto
 import { calculateKbHealth } from '@features/knowledgeBase'
 import type { KnowledgeBase } from '@stores/kbTypes'
 import type { FileNode } from '@src/types/fileManager'
-import { TABS, type KbTab, type OverviewData } from './kbPanelShared'
+import { TABS, kbTabs, type KbTab, type OverviewData } from './kbPanelShared'
 import { OverviewTab } from './OverviewTab'
 import { NotesTab } from './NotesTab'
 import { DependencyTab } from './DependencyTab'
@@ -105,6 +105,8 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
   const { getBacklinks, getOutgoingLinks, getGraphData } = useLinkIndex()
   const { tagIndex, getTagsForFile } = useTagIndex()
   const { t } = useLanguage()
+  const kp = t.kbPanel
+  const tabsDefs = kbTabs(t)
   // 顶栏操作 + 覆盖层状态
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -228,7 +230,9 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
   }, [kb, nav])
 
   const handleNav = (id: string) => {
-    if (id === '图谱') {
+    // 侧栏导航项自第十七批起传稳定 id（graph）；resolveAuroraNav 兼容旧中文 label。
+    // 命中图谱时走「带本库 id」的入口，把图谱裁到本库文件节点。
+    if (resolveAuroraNav(id) === 'graph') {
       openFullGraph()
       return
     }
@@ -252,56 +256,56 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
   // 在知识库文件夹下新建一篇笔记并直接进编辑器（解决「无处添加笔记」）
   const handleCreateNote = useCallback(() => {
     if (!kb) return
-    createFile(kb.folderId, `新笔记-${Date.now()}.md`, '')
+    createFile(kb.folderId, kp.newNoteName.replace(String.raw`{ts}`, String(Date.now())), '')
     setEditorReturn({ view: 'kb', kbId: kb.id, label: kb.name })
     nav?.('editor')
-  }, [kb, createFile, nav])
+  }, [kb, createFile, nav, kp.newNoteName])
 
   return (
     <PageFrame
       sidebarGroups={buildAuroraSidebarGroups(t)}
       sidebarActiveId="knowledge"
       onSidebarSelect={handleNav}
-      breadcrumbs={['知识库', kbName || '未选择']}
+      breadcrumbs={[kp.breadcrumbRoot, kbName || kp.noSelection]}
       breadcrumbOnClick={(i) => { if (i === 0) nav?.('kb') }}
       statusLeftItems={[
-        { content: kbName || '知识库' },
-        { content: `${data.fileCount} 篇笔记` },
+        { content: kbName || kp.breadcrumbRoot },
+        { content: kp.noteCount.replace(String.raw`{n}`, String(data.fileCount)) },
       ]}
-      statusRightItems={[{ content: `双链 ${data.linkCount} · 标签 ${data.tagCount}` }, { content: '⌘K 命令面板', clickable: true, onClick: () => openCommandPalette() }]}
+      statusRightItems={[{ content: kp.linkTagStat.replace(String.raw`{links}`, String(data.linkCount)).replace(String.raw`{tags}`, String(data.tagCount)) }, { content: t.cmdPalette.aria + ' ⌘K', clickable: true, onClick: () => openCommandPalette() }]}
     >
       <div className="aurora-kb kb-shell">
         {/* 顶栏下方的子栏：库名 / 功能 Tab / 操作 */}
         <div className="aurora-kb-subbar">
           <div className="aurora-kb-subbar__left">
-            <button className="aurora-kb-subbar__back" onClick={() => nav?.('kb')} title="返回知识库列表">
+            <button className="aurora-kb-subbar__back" onClick={() => nav?.('kb')} title={kp.backToList}>
               <Icon.chevron size={16} />
             </button>
             <div className="aurora-kb-subbar__title">
-              <span className="aurora-kb-subbar__name">{kbName || '未选择知识库'}</span>
-              <span className="aurora-kb-subbar__badge">健康度 {healthTotal ?? '--'}</span>
+              <span className="aurora-kb-subbar__name">{kbName || kp.noSelectionKb}</span>
+              <span className="aurora-kb-subbar__badge">{kp.healthBadge.replace(String.raw`{n}`, String(healthTotal ?? '--'))}</span>
             </div>
           </div>
 
           <div className="aurora-kb-subbar__center">
-            <div className="aurora-kb-subbar-tabs" role="tablist" aria-label="知识库功能切换" data-swiping={tabs.dragging || undefined} {...tabs.bind}>
+            <div className="aurora-kb-subbar-tabs" role="tablist" aria-label={kp.tabsAria} data-swiping={tabs.dragging || undefined} {...tabs.bind}>
               {/* 轨道：滑块的定位坐标系（滑块绝对定位于其中） */}
               <div className="aurora-kb-subbar-track" ref={tabs.trackRef}>
                 {/* 滑块：选中态的视觉承载者（选中底色已从 tab 迁到这里） */}
                 <span className="aurora-kb-subbar-thumb" ref={tabs.thumbRef} aria-hidden="true" />
-                {TABS.map((t) => {
-                  const I = Icon[t.icon]
+                {tabsDefs.map((td) => {
+                  const I = Icon[td.icon]
                   return (
                     <button
-                      key={t.id}
+                      key={td.id}
                       role="tab"
-                      aria-selected={tab === t.id}
-                      className={`aurora-kb-subbar-tab ${tab === t.id ? 'is-active' : ''}`}
-                      onClick={() => setTab(t.id)}
-                      title={t.label}
+                      aria-selected={tab === td.id}
+                      className={`aurora-kb-subbar-tab ${tab === td.id ? 'is-active' : ''}`}
+                      onClick={() => setTab(td.id)}
+                      title={td.label}
                     >
                       <I size={15} />
-                      <span>{t.label}</span>
+                      <span>{td.label}</span>
                     </button>
                   )
                 })}
@@ -310,10 +314,10 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
           </div>
 
           <div className="aurora-kb-subbar-actions">
-            <button className="aurora-kb-btn" onClick={() => setEditOpen(true)}><Icon.edit size={14} /> 编辑</button>
-            <button className="aurora-kb-btn" onClick={() => handlePublishBlog()}><Icon.blog size={14} /> 发布博客</button>
+            <button className="aurora-kb-btn" onClick={() => setEditOpen(true)}><Icon.edit size={14} /> {kp.actionEdit}</button>
+            <button className="aurora-kb-btn" onClick={() => handlePublishBlog()}><Icon.blog size={14} /> {kp.actionPublishBlog}</button>
             <span className="aurora-kb-subbar-sep" />
-            <button className="aurora-kb-btn aurora-kb-btn--danger" onClick={() => setDeleteOpen(true)}><Icon.trash size={14} /> 删除</button>
+            <button className="aurora-kb-btn aurora-kb-btn--danger" onClick={() => setDeleteOpen(true)}><Icon.trash size={14} /> {kp.actionDelete}</button>
           </div>
         </div>
 
@@ -322,13 +326,13 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
           <div className="aurora-kb-content__body">
             {!loaded ? (
               <div className="aurora-kb-placeholder">
-                <div className="aurora-kb-placeholder__title">正在加载知识库…</div>
+                <div className="aurora-kb-placeholder__title">{kp.loading}</div>
               </div>
             ) : !kb ? (
               <div className="aurora-kb-placeholder">
                 <div className="aurora-kb-placeholder__icon"><Icon.book size={28} /></div>
-                <div className="aurora-kb-placeholder__title">尚未选择知识库</div>
-                <div className="aurora-kb-placeholder__desc">点击左侧「知识库」返回列表，选择或新建一个知识库。</div>
+                <div className="aurora-kb-placeholder__title">{kp.emptyTitle}</div>
+                <div className="aurora-kb-placeholder__desc">{kp.emptyDesc}</div>
               </div>
           ) : tab === 'overview' ? (
             <OverviewTab

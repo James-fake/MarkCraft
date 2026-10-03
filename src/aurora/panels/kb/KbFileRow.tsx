@@ -14,6 +14,7 @@
 //   · Enter 与 Space 都要能触发（桌面应用行内按钮的键盘惯例）。
 import { Icon } from '../../icons'
 import { formatKbTime } from './kbData'
+import { useLanguage } from '@stores/LanguageStore'
 import type { FileNode } from '@src/types/fileManager'
 
 export interface KbFileRowProps {
@@ -25,13 +26,14 @@ export interface KbFileRowProps {
 }
 
 export function KbFileRow({ file, onSelect, hint }: KbFileRowProps) {
+  const { t } = useLanguage()
   const interactive = !!onSelect
   return (
     <div
       className={`aurora-kb-recent__item${interactive ? ' is-interactive' : ''}`}
       role={interactive ? 'button' : undefined}
       tabIndex={interactive ? 0 : undefined}
-      title={interactive ? hint ?? `打开「${file.name}」` : undefined}
+      title={interactive ? hint ?? t.kbPanel.openFileHint.replace(String.raw`{name}`, file.name) : undefined}
       onClick={interactive ? () => onSelect?.(file.id) : undefined}
       onKeyDown={
         interactive
@@ -47,7 +49,7 @@ export function KbFileRow({ file, onSelect, hint }: KbFileRowProps) {
       <div className="aurora-kb-recent__icon"><Icon.file size={14} /></div>
       <div className="aurora-kb-recent__body">
         <div className="aurora-kb-recent__title">{file.name}</div>
-        <div className="aurora-kb-recent__sub">{formatKbTime(file.updatedAt)}</div>
+        <div className="aurora-kb-recent__sub">{formatKbTime(file.updatedAt, t)}</div>
       </div>
     </div>
   )

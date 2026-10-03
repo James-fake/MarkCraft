@@ -46,8 +46,10 @@ const rule = (selector: string) => {
 describe('知识库详情页顶部间距契约（左上角文字不贴顶）', () => {
   it('依赖 Tab 引导标题使用独立 __lead 类（不再复用 card__title）', () => {
     expect(panel).toContain('aurora-kb-notes__lead')
-    // 引导标题的文本必须挂在 __lead 上
-    expect(panel).toMatch(/aurora-kb-notes__lead[^>]*>\s*[\s\S]{0,40}?依赖分析/u)
+    // 引导标题的文本必须挂在 __lead 上。
+    // i18n 后文案改由 t.kbPanel.depLead 提供（原文「依赖分析 · 选择文件查看出链 / 入链 / 删除影响」），
+    // 故此处断言绑定表达式而非字面中文；契约「文本挂在 __lead 上」不变。
+    expect(panel).toMatch(/aurora-kb-notes__lead[^>]*>\s*[\s\S]{0,40}?\{kp\.depLead\}/u)
   })
 
   it('依赖标题不得再靠内联 marginBottom 撑间距（间距归 CSS 单源）', () => {

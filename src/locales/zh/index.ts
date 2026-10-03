@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogCss, platformPublish, blogModal } from './blog'
-import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, blog, editorPanel, diary, kbSearch, kbOverview, kbCreate, kbFilter, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
+import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, blog, editorPanel, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -1270,6 +1270,9 @@ export interface Translations {
     emptyHint: string
     collapse: string
     expand: string
+    searchFailed: string
+    noResult: string
+    invalidRegex: string
   }
   kbOverview: {
     statNotes: string
@@ -1323,6 +1326,9 @@ export interface Translations {
     webDesc: string
     zipSupport: string
     fetch: string
+    createBtn: string
+    importTab: string
+    webClipped: string
   }
   kbFilter: {
     tagLogic: string
@@ -1338,6 +1344,182 @@ export interface Translations {
     min: string
     max: string
     other: string
+    includeTags: string
+    excludeTags: string
+    addBtn: string
+    excludeBtn: string
+  }
+  kbGraph: {
+    miniAria: string
+    openInEditorHint: string
+    filteredTag: string
+  }
+  kbPanel: {
+    tabOverview: string
+    tabNotes: string
+    tabSearch: string
+    tabChat: string
+    tabDependency: string
+    tabMoc: string
+    tabExport: string
+    tabsAria: string
+    breadcrumbRoot: string
+    noSelection: string
+    noSelectionKb: string
+    backToList: string
+    healthBadge: string
+    noteCount: string
+    linkTagStat: string
+    actionEdit: string
+    actionPublishBlog: string
+    actionDelete: string
+    loading: string
+    emptyTitle: string
+    emptyDesc: string
+    newNoteName: string
+    manageTitle: string
+    newKb: string
+    emptyManageTitle: string
+    emptyManageSub: string
+    noDescription: string
+    metaFiles: string
+    metaCanvases: string
+    statusKbCount: string
+    statusTotalNotes: string
+    statusTotalCanvases: string
+    statusLocal: string
+    createdToast: string
+    createFailedToast: string
+    timeJustNow: string
+    timeHours: string
+    timeDays: string
+    openFileHint: string
+    notesEmptyTitle: string
+    notesEmptyDesc: string
+    newNote: string
+    notesHeadTitle: string
+    notesCountAria: string
+    openInEditorHint: string
+    depEmptyDesc: string
+    depLead: string
+    depRowHint: string
+    mocGenerated: string
+    mocGenerateFailed: string
+    mocCopied: string
+    mocCopyFailed: string
+    mocSaved: string
+    mocTitle: string
+    mocGenerating: string
+    mocGenerate: string
+    mocCopy: string
+    mocSaveAsNote: string
+    mocPlaceholderTitle: string
+    mocPlaceholderDesc: string
+  }
+  kbDependency: {
+    title: string
+    toggleGraph: string
+    close: string
+    statOutgoing: string
+    statBacklinks: string
+    statBroken: string
+    statImpact: string
+    tabOutgoing: string
+    tabBacklinks: string
+    tabImpact: string
+    emptyOutgoing: string
+    emptyBacklinks: string
+    emptyGraph: string
+    thisFile: string
+    centerNode: string
+    brokenTarget: string
+    relationLabel: string
+    impactNone: string
+    impactWarn: string
+  }
+  kbCrossSearch: {
+    placeholder: string
+    scopeTitle: string
+    scopeLabel: string
+    scopeChip: string
+    all: string
+    clearSelection: string
+    noKb: string
+    searching: string
+    foundSummary: string
+    kbCount: string
+    allKbCount: string
+    emptyTitle: string
+    emptySub: string
+    noResult: string
+    closeEsc: string
+    searchFailed: string
+    fileCountUnit: string
+  }
+  kbExportMenu: {
+    title: string
+    close: string
+    optShare: string
+    optShareDesc: string
+    optStaticSite: string
+    optStaticSiteDesc: string
+    optPdf: string
+    optPdfDesc: string
+    optEpub: string
+    optEpubDesc: string
+    optMarkdown: string
+    optMarkdownDesc: string
+    exportSuccess: string
+    exportFailed: string
+    exporting: string
+    fileCount: string
+  }
+  kbChat: {
+    title: string
+    meta: string
+    close: string
+    empty: string
+    sources: string
+    thinking: string
+    placeholder: string
+    send: string
+    error: string
+  }
+  kbModal: {
+    editTitle: string
+    nameEmpty: string
+    saved: string
+    saveFailed: string
+    cancel: string
+    saving: string
+    save: string
+    nameLabel: string
+    descLabel: string
+    deleteTitle: string
+    deleted: string
+    deleteFailed: string
+    deleting: string
+    delete: string
+    deleteConfirm: string
+  }
+  kbCanvas: {
+    unlinked: string
+    unlinkFailed: string
+    canvasDocName: string
+    created: string
+    createFailed: string
+    linked: string
+    linkFailed: string
+    title: string
+    newAndLink: string
+    linkExisting: string
+    collapse: string
+    emptyCandidates: string
+    elementUnit: string
+    emptyHint: string
+    unnamedCanvas: string
+    open: string
+    unlink: string
   }
   settingsUser: {
     nickname: string
@@ -2362,6 +2544,14 @@ const zh: Translations = {
   kbOverview,
   kbCreate,
   kbFilter,
+  kbPanel,
+  kbDependency,
+  kbCrossSearch,
+  kbExportMenu,
+  kbChat,
+  kbModal,
+  kbCanvas,
+  kbGraph,
   templates,
   zodiac,
   settingsAbout,

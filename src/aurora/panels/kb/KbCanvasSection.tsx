@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Icon } from '../../icons'
 import { useKbStore } from '@stores/useKbStore'
+import { useLanguage } from '@stores/LanguageStore'
 import { getCanvasList, createCanvas, type CanvasListItem } from '@features/canvas-v2'
 import type { KnowledgeBase } from '@stores/kbTypes'
 
@@ -22,6 +23,8 @@ export function KbCanvasSection({
   onKbChanged?: () => Promise<void>
 }) {
   const kbStore = useKbStore()
+  const { t } = useLanguage()
+  const kc = t.kbCanvas
   const [canvasNames, setCanvasNames] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -64,29 +67,29 @@ export function KbCanvasSection({
         return next
       })
       await onKbChanged?.()
-      toast?.('已取消关联白板')
+      toast?.(kc.unlinked)
     } catch (err) {
-      toast?.(`取消关联失败：${(err as Error).message}`)
+      toast?.(kc.unlinkFailed.replace('{msg}', (err as Error).message))
     } finally {
       setBusy(false)
     }
-  }, [kb.id, kbStore, onKbChanged, toast])
+  }, [kb.id, kbStore, onKbChanged, toast, kc])
 
   const handleCreateAndLink = useCallback(async () => {
     setBusy(true)
     try {
-      const doc = await createCanvas(`${kb.name} 白板`)
+      const doc = await createCanvas(kc.canvasDocName.replace('{name}', kb.name))
       // 乐观命名：先落到名称缓存，避免回写完成前列表闪一下「未命名白板」
       setCanvasNames((prev) => ({ ...prev, [doc.id]: doc.name }))
       await kbStore.addCanvas(kb.id, doc.id)
       await onKbChanged?.()
-      toast?.(`已新建并关联白板：${doc.name}`)
+      toast?.(kc.created.replace('{name}', doc.name))
     } catch (err) {
-      toast?.(`新建白板失败：${(err as Error).message}`)
+      toast?.(kc.createFailed.replace('{msg}', (err as Error).message))
     } finally {
       setBusy(false)
     }
-  }, [kb.id, kb.name, kbStore, onKbChanged, toast])
+  }, [kb.id, kb.name, kbStore, onKbChanged, toast, kc])
 
   // 「关联已有」选择器：展开时拉全量白板列表，排除本库已关联项；关联成功后 kb.canvasIds
   // 变化驱动本 effect 重算，刚关联的那块自动从候选里消失（可连续关联多块）。
@@ -110,28 +113,28 @@ export function KbCanvasSection({
       setCanvasNames((prev) => ({ ...prev, [c.id]: c.name }))
       await kbStore.addCanvas(kb.id, c.id)
       await onKbChanged?.()
-      toast?.(`已关联白板：${c.name}`)
+      toast?.(kc.linked.replace('{name}', c.name))
     } catch (err) {
-      toast?.(`关联失败：${(err as Error).message}`)
+      toast?.(kc.linkFailed.replace('{msg}', (err as Error).message))
     } finally {
       setBusy(false)
     }
-  }, [kb.id, kbStore, onKbChanged, toast])
+  }, [kb.id, kbStore, onKbChanged, toast, kc])
 
   return (
     <div className="aurora-kb-canvas">
       <div className="aurora-kb-canvas__head">
-        <span className="aurora-kb-canvas__title">关联白板（{kb.canvasIds.length}）</span>
+        <span className="aurora-kb-canvas__title">{kc.title.replace('{n}', String(kb.canvasIds.length))}</span>
         <div className="aurora-kb-canvas__head-actions">
           <button className="aurora-kb-btn aurora-kb-btn--sm" onClick={handleCreateAndLink} disabled={busy}>
-            <Icon.plus size={14} /> 新建并关联
+            <Icon.plus size={14} /> {kc.newAndLink}
           </button>
           <button
             className="aurora-kb-btn aurora-kb-btn--sm aurora-kb-btn--ghost"
             onClick={() => setPickerOpen((v) => !v)}
             disabled={busy}
           >
-            {pickerOpen ? '收起' : '关联已有'}
+            {pickerOpen ? kc.collapse : kc.linkExisting}
           </button>
         </div>
       </div>
@@ -139,7 +142,7 @@ export function KbCanvasSection({
         <div className="aurora-kb-canvas__picker">
           {candidates.length === 0 ? (
             <div className="aurora-kb-canvas__picker-empty">
-              没有可关联的白板——现有白板均已关联本库，或先到白板视图新建。
+              {kc.emptyCandidates}
             </div>
           ) : (
             candidates.map((c) => (
@@ -150,7 +153,7 @@ export function KbCanvasSection({
                 disabled={busy}
               >
                 <span className="aurora-kb-canvas__pick-name"><Icon.canvas size={14} /> {c.name}</span>
-                <span className="aurora-kb-canvas__pick-meta">{c.cardCount} 元素</span>
+                <span className="aurora-kb-canvas__pick-meta">{kc.elementUnit.replace('{n}', String(c.cardCount))}</span>
               </button>
             ))
           )}
@@ -158,16 +161,16 @@ export function KbCanvasSection({
       )}
       {kb.canvasIds.length === 0 ? (
         <div className="aurora-kb-canvas__empty">
-          本知识库尚未关联任何白板。可「新建并关联」创建一块专属白板，或点「关联已有」把现有白板挂入本库，用于梳理该库概念关系。
+          {kc.emptyHint}
         </div>
       ) : (
         <div className="aurora-kb-canvas__list">
           {kb.canvasIds.map((id) => (
             <div key={id} className="aurora-kb-canvas__item">
-              <span className="aurora-kb-canvas__name"><Icon.canvas size={14} /> {canvasNames[id] ?? '未命名白板'}</span>
+              <span className="aurora-kb-canvas__name"><Icon.canvas size={14} /> {canvasNames[id] ?? kc.unnamedCanvas}</span>
               <div className="aurora-kb-canvas__actions">
-                <button className="aurora-kb-btn aurora-kb-btn--sm" onClick={() => handleOpenCanvas(id)}>打开</button>
-                <button className="aurora-kb-btn aurora-kb-btn--sm aurora-kb-btn--ghost" onClick={() => handleUnlink(id)} disabled={busy}>取消关联</button>
+                <button className="aurora-kb-btn aurora-kb-btn--sm" onClick={() => handleOpenCanvas(id)}>{kc.open}</button>
+                <button className="aurora-kb-btn aurora-kb-btn--sm aurora-kb-btn--ghost" onClick={() => handleUnlink(id)} disabled={busy}>{kc.unlink}</button>
               </div>
             </div>
           ))}

@@ -102,7 +102,7 @@ export function OverviewTab({
             {data.aiSummary ?? KO.aiSummaryEmpty}
           </div>
           <button className="aurora-kb-btn" onClick={() => toast?.(KO.regenerate)}>
-            <Icon.refresh size={14} /> 重新生成
+            <Icon.refresh size={14} /> {KO.regenerate}
           </button>
         </div>
       </div>
@@ -116,7 +116,7 @@ export function OverviewTab({
               <div className="aurora-kb-recent__empty">{KO.noFiles}</div>
             ) : (
               data.recentFiles.map((f) => (
-                <KbFileRow key={f.id} file={f} onSelect={onOpenNote} hint={`在编辑器中打开「${f.name}」`} />
+                <KbFileRow key={f.id} file={f} onSelect={onOpenNote} hint={t.kbPanel.openInEditorHint.replace(String.raw`{name}`, f.name)} />
               ))
             )}
           </div>

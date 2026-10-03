@@ -33,13 +33,19 @@ function formatDate(ts: number): string {
  * @param kb 知识库
  * @param files 知识库包含的文件列表
  * @param period 周期：weekly（近 7 天）或 monthly（近 30 天）
+ * @param lang 报告语言：'zh'（默认，保持既有调用点不变）或 'en'
  * @returns Markdown 格式的回顾报告
+ *
+ * 说明：报告是一份**落盘文档**，其语言由生成时选择的语言决定（与博客模板 `bl` 同范式），
+ * 采用「标题/正文默认中文 + lang==='en' 分支」的门控方式，不做 React 语言上下文依赖。
  */
 export async function generateReview(
   kb: KnowledgeBase,
   files: FileNode[],
-  period: 'weekly' | 'monthly'
+  period: 'weekly' | 'monthly',
+  lang: 'zh' | 'en' = 'zh'
 ): Promise<string> {
+  const en = lang === 'en'
   const now = Date.now()
   const days = periodDays(period)
   const since = now - days * 24 * 60 * 60 * 1000
@@ -68,10 +74,10 @@ export async function generateReview(
     if (corpus.trim().length > 0) {
       const ai = getAiService()
       if (ai.isReady()) {
-        aiSummary = await ai.summarize(
-          `知识库「${kb.name}」在最近 ${days} 天共有 ${activeFiles.length} 个文件变动。\n\n${corpus}`,
-          300
-        )
+        const prompt = en
+          ? `Knowledge base "${kb.name}" had ${activeFiles.length} file changes in the last ${days} days.\n\n${corpus}`
+          : `知识库「${kb.name}」在最近 ${days} 天共有 ${activeFiles.length} 个文件变动。\n\n${corpus}`
+        aiSummary = await ai.summarize(prompt, 300)
       }
     }
   } catch (err) {
@@ -80,79 +86,83 @@ export async function generateReview(
   }
 
   // 组装 Markdown 报告
-  const periodLabel = period === 'weekly' ? '周报' : '月报'
+  const periodLabel = en ? (period === 'weekly' ? 'Weekly Report' : 'Monthly Report') : (period === 'weekly' ? '周报' : '月报')
   const lines: string[] = []
   lines.push(`# ${kb.name} · ${periodLabel}`)
   lines.push('')
-  lines.push(`> 统计区间：${formatDate(since)} ~ ${formatDate(now)}`)
+  lines.push(en ? `> Period: ${formatDate(since)} ~ ${formatDate(now)}` : `> 统计区间：${formatDate(since)} ~ ${formatDate(now)}`)
   lines.push('')
 
   // 统计表格
-  lines.push('## 统计概览')
+  lines.push(en ? '## Overview' : '## 统计概览')
   lines.push('')
-  lines.push('| 指标 | 数值 |')
+  lines.push(en ? '| Metric | Value |' : '| 指标 | 数值 |')
   lines.push('| --- | --- |')
-  lines.push(`| 变动文件总数 | ${activeFiles.length} |`)
-  lines.push(`| 新增文件数 | ${newFiles.length} |`)
-  lines.push(`| 修改文件数 | ${modifiedFiles.length} |`)
-  lines.push(`| 新增字数 | ${newWords.toLocaleString()} |`)
-  lines.push(`| 修改文件字数（当前） | ${modifiedWords.toLocaleString()} |`)
-  lines.push(`| 知识库总文件数 | ${files.length} |`)
+  lines.push(en ? `| Total changed files | ${activeFiles.length} |` : `| 变动文件总数 | ${activeFiles.length} |`)
+  lines.push(en ? `| New files | ${newFiles.length} |` : `| 新增文件数 | ${newFiles.length} |`)
+  lines.push(en ? `| Modified files | ${modifiedFiles.length} |` : `| 修改文件数 | ${modifiedFiles.length} |`)
+  lines.push(en ? `| New words | ${newWords.toLocaleString()} |` : `| 新增字数 | ${newWords.toLocaleString()} |`)
+  lines.push(en ? `| Modified file words (current) | ${modifiedWords.toLocaleString()} |` : `| 修改文件字数（当前） | ${modifiedWords.toLocaleString()} |`)
+  lines.push(en ? `| Total KB files | ${files.length} |` : `| 知识库总文件数 | ${files.length} |`)
   lines.push('')
 
   // 新增文件列表
   if (newFiles.length > 0) {
-    lines.push('## 新增文件')
+    lines.push(en ? '## New Files' : '## 新增文件')
     lines.push('')
     for (const f of [...newFiles].sort((a, b) => b.createdAt - a.createdAt)) {
-      lines.push(`- **${f.name}** — ${formatDate(f.createdAt)}（${countWords(f.content ?? '').toLocaleString()} 字）`)
+      const wc = countWords(f.content ?? '').toLocaleString()
+      lines.push(en ? `- **${f.name}** — ${formatDate(f.createdAt)} (${wc} words)` : `- **${f.name}** — ${formatDate(f.createdAt)}（${wc} 字）`)
     }
     lines.push('')
   }
 
   // 修改文件列表
   if (modifiedFiles.length > 0) {
-    lines.push('## 修改文件')
+    lines.push(en ? '## Modified Files' : '## 修改文件')
     lines.push('')
     for (const f of [...modifiedFiles].sort((a, b) => b.updatedAt - a.updatedAt)) {
-      lines.push(`- **${f.name}** — 最近更新 ${formatDate(f.updatedAt)}（当前 ${countWords(f.content ?? '').toLocaleString()} 字）`)
+      const wc = countWords(f.content ?? '').toLocaleString()
+      lines.push(en ? `- **${f.name}** — last updated ${formatDate(f.updatedAt)} (currently ${wc} words)` : `- **${f.name}** — 最近更新 ${formatDate(f.updatedAt)}（当前 ${wc} 字）`)
     }
     lines.push('')
   }
 
   // AI 摘要
   if (aiSummary) {
-    lines.push('## AI 摘要')
+    lines.push(en ? '## AI Summary' : '## AI 摘要')
     lines.push('')
     lines.push(aiSummary)
     lines.push('')
   } else if (activeFiles.length === 0) {
-    lines.push('## 说明')
+    lines.push(en ? '## Note' : '## 说明')
     lines.push('')
-    lines.push(`本周期内（${formatDate(since)} ~ ${formatDate(now)}）知识库没有文件变动。`)
+    lines.push(en
+      ? `No file changes in this period (${formatDate(since)} ~ ${formatDate(now)}).`
+      : `本周期内（${formatDate(since)} ~ ${formatDate(now)}）知识库没有文件变动。`)
     lines.push('')
   }
 
   // 任务进度（如果有）
   if (kb.tasks && kb.tasks.length > 0) {
     const doneCount = kb.tasks.filter(t => t.status === 'done').length
-    lines.push('## 任务进度')
+    lines.push(en ? '## Task Progress' : '## 任务进度')
     lines.push('')
-    lines.push(`已完成 ${doneCount} / ${kb.tasks.length} 项任务。`)
+    lines.push(en ? `${doneCount} / ${kb.tasks.length} tasks completed.` : `已完成 ${doneCount} / ${kb.tasks.length} 项任务。`)
     lines.push('')
   }
 
   // 学习路径进度（如果有）
   if (kb.learningPath && kb.learningPath.length > 0) {
     const completed = kb.learningPath.filter(p => p.status === 'completed').length
-    lines.push('## 学习路径')
+    lines.push(en ? '## Learning Path' : '## 学习路径')
     lines.push('')
-    lines.push(`已完成 ${completed} / ${kb.learningPath.length} 个学习节点。`)
+    lines.push(en ? `${completed} / ${kb.learningPath.length} learning nodes completed.` : `已完成 ${completed} / ${kb.learningPath.length} 个学习节点。`)
     lines.push('')
   }
 
   lines.push('---')
-  lines.push(`*生成时间：${new Date(now).toLocaleString('zh-CN')}*`)
+  lines.push(en ? `*Generated at: ${new Date(now).toLocaleString('en-US')}*` : `*生成时间：${new Date(now).toLocaleString('zh-CN')}*`)
 
   return lines.join('\n')
 }

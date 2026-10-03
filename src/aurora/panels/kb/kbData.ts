@@ -10,11 +10,13 @@
 // 视觉随真实项目色板（KB_CARD_GRADIENTS），与 KbManager 卡片一致
 export { getKbGradient as coverGradient } from '@features/knowledgeBase'
 
-export function formatKbTime(ts: number): string {
+import type { Translations } from '@locales/zh'
+
+export function formatKbTime(ts: number, t: Translations): string {
   const d = new Date(ts)
   const diff = Date.now() - ts
-  if (diff < 1000 * 60 * 60) return `${Math.floor(diff / 60000)} 分钟前`
-  if (diff < 1000 * 60 * 60 * 24) return `${Math.floor(diff / 3600000)} 小时前`
-  if (diff < 1000 * 60 * 60 * 24 * 30) return `${Math.floor(diff / 86400000)} 天前`
+  if (diff < 1000 * 60 * 60) return t.kbPanel.timeJustNow.replace(String.raw`{n}`, String(Math.floor(diff / 60000)))
+  if (diff < 1000 * 60 * 60 * 24) return t.kbPanel.timeHours.replace(String.raw`{n}`, String(Math.floor(diff / 3600000)))
+  if (diff < 1000 * 60 * 60 * 24 * 30) return t.kbPanel.timeDays.replace(String.raw`{n}`, String(Math.floor(diff / 86400000)))
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }

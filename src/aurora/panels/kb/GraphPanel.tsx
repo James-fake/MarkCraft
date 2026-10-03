@@ -334,7 +334,7 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
       openNoteInEditor(id)
     } else if (n.type === 'tag') {
       setSelectedTags((prev) => (prev.includes(n.label) ? prev : [...prev, n.label]))
-      toast?.(`已筛选标签：${n.label}`)
+      toast?.(t.kbGraph.filteredTag.replace(String.raw`{name}`, n.label))
     }
     // folder 节点：数据层当前不生成（buildGraphData 仅 file/tag），分支留空避免假功能
   }

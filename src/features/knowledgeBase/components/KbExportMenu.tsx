@@ -6,6 +6,7 @@
 import React, { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useKbStore } from '@stores/useKbStore'
+import { useLanguage } from '@stores/LanguageStore'
 import { getKbOverlayRoot } from './kbOverlayRoot'
 import { KB_COLORS } from '../kbTheme'
 import { IconExport, IconClose, IconLayers, IconNetwork, IconFileText, IconBook, IconEdit } from './KbIcons'
@@ -26,21 +27,25 @@ interface KbExportMenuProps {
 /** 导出类型 */
 type ExportType = 'share' | 'static-site' | 'pdf' | 'epub' | 'markdown'
 
+/** 导出选项文案键（展示文案由 t.kbExportMenu 解析，数据层不持文案） */
+type ExportLabelKey = 'optShare' | 'optStaticSite' | 'optPdf' | 'optEpub' | 'optMarkdown'
+type ExportDescKey = 'optShareDesc' | 'optStaticSiteDesc' | 'optPdfDesc' | 'optEpubDesc' | 'optMarkdownDesc'
+
 /** 导出选项配置 */
 interface ExportOption {
   type: ExportType
   icon: React.FC
-  label: string
-  desc: string
+  labelKey: ExportLabelKey
+  descKey: ExportDescKey
   ext: string
 }
 
 const EXPORT_OPTIONS: ExportOption[] = [
-  { type: 'share', icon: IconLayers, label: '知识库分享包', desc: '.mcshare 格式，可重新导入', ext: 'mcshare' },
-  { type: 'static-site', icon: IconNetwork, label: '静态站点导出', desc: 'ZIP 含 HTML/CSS，可部署', ext: 'zip' },
-  { type: 'pdf', icon: IconFileText, label: 'PDF 导出', desc: '通过浏览器打印为 PDF', ext: 'pdf' },
-  { type: 'epub', icon: IconBook, label: 'EPUB 导出', desc: '电子书格式，可在阅读器打开', ext: 'epub' },
-  { type: 'markdown', icon: IconEdit, label: 'Markdown 合并导出', desc: '所有文件合并为一个 .md', ext: 'md' },
+  { type: 'share', icon: IconLayers, labelKey: 'optShare', descKey: 'optShareDesc', ext: 'mcshare' },
+  { type: 'static-site', icon: IconNetwork, labelKey: 'optStaticSite', descKey: 'optStaticSiteDesc', ext: 'zip' },
+  { type: 'pdf', icon: IconFileText, labelKey: 'optPdf', descKey: 'optPdfDesc', ext: 'pdf' },
+  { type: 'epub', icon: IconBook, labelKey: 'optEpub', descKey: 'optEpubDesc', ext: 'epub' },
+  { type: 'markdown', icon: IconEdit, labelKey: 'optMarkdown', descKey: 'optMarkdownDesc', ext: 'md' },
 ]
 
 /** 格式化日期为 YYYYMMDD */
@@ -67,6 +72,8 @@ function downloadBlob(blob: Blob, filename: string): void {
 export const KbExportMenu: React.FC<KbExportMenuProps> = ({ kb, files, variant = 'dialog', onClose }) => {
   const asPage = variant === 'page'
   const { addExportRecord } = useKbStore()
+  const { t } = useLanguage()
+  const ke = t.kbExportMenu
   const [busy, setBusy] = useState<ExportType | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -94,7 +101,7 @@ export const KbExportMenu: React.FC<KbExportMenuProps> = ({ kb, files, variant =
     setMessage(null)
     try {
       const dateStr = formatDate(new Date())
-      const filename = `${kb.name}-${option.label}-${dateStr}.${option.ext}`
+      const filename = `${kb.name}-${ke[option.labelKey]}-${dateStr}.${option.ext}`
 
       switch (option.type) {
         case 'share': {
@@ -128,10 +135,10 @@ export const KbExportMenu: React.FC<KbExportMenuProps> = ({ kb, files, variant =
           break
         }
       }
-      setMessage({ type: 'success', text: `${option.label}导出成功` })
+      setMessage({ type: 'success', text: ke.exportSuccess.replace('{label}', ke[option.labelKey]) })
     } catch (err) {
       const text = err instanceof Error ? err.message : String(err)
-      setMessage({ type: 'error', text: `${option.label}导出失败：${text}` })
+      setMessage({ type: 'error', text: ke.exportFailed.replace('{label}', ke[option.labelKey]).replace('{msg}', text) })
     } finally {
       setBusy(null)
     }
@@ -157,10 +164,10 @@ export const KbExportMenu: React.FC<KbExportMenuProps> = ({ kb, files, variant =
           }}
         >
           <span className="kb-section-title" style={{ margin: 0 }}>
-            <IconExport /> 导出知识库
+            <IconExport /> {ke.title}
           </span>
           {!asPage && onClose && (
-            <button onClick={onClose} className="kb-icon-btn" aria-label="关闭">
+            <button onClick={onClose} className="kb-icon-btn" aria-label={ke.close}>
               <IconClose />
             </button>
           )}
@@ -206,10 +213,10 @@ export const KbExportMenu: React.FC<KbExportMenuProps> = ({ kb, files, variant =
                 </span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 14, fontWeight: 500, color: KB_COLORS.textMain }}>
-                    {isBusy ? `${opt.label} 导出中...` : opt.label}
+                    {isBusy ? ke.exporting.replace('{label}', ke[opt.labelKey]) : ke[opt.labelKey]}
                   </div>
                   <div style={{ fontSize: 12, color: KB_COLORS.textSecondary, marginTop: 2 }}>
-                    {opt.desc}
+                    {ke[opt.descKey]}
                   </div>
                 </div>
               </button>
@@ -241,7 +248,7 @@ export const KbExportMenu: React.FC<KbExportMenuProps> = ({ kb, files, variant =
             borderTop: `1px solid ${KB_COLORS.border}`,
           }}
         >
-          共 {files.length} 个文件
+          {ke.fileCount.replace('{n}', String(files.length))}
         </div>
     </div>
   )

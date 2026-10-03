@@ -4,6 +4,7 @@
  */
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useKbStore } from '@stores/useKbStore'
+import { useLanguage } from '@stores/LanguageStore'
 import { loadKb, getKbFiles } from '@stores/kbStore'
 import { findNode } from '@services/fileService'
 import { KB_COLORS, getKbGradient } from '../kbTheme'
@@ -50,6 +51,8 @@ interface CrossKbSearchProps {
 
 export const CrossKbSearch: React.FC<CrossKbSearchProps> = ({ onClose, onOpenFile }) => {
   const { kbList, rootFolder } = useKbStore()
+  const { t } = useLanguage()
+  const cs = t.kbCrossSearch
   const [query, setQuery] = useState('')
   const [searching, setSearching] = useState(false)
   const [results, setResults] = useState<KbResult[]>([])
@@ -135,13 +138,13 @@ export const CrossKbSearch: React.FC<CrossKbSearchProps> = ({ onClose, onOpenFil
         setResults(kbResults)
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
-        setError(`搜索失败：${message}`)
+        setError(cs.searchFailed.replace('{msg}', message))
         setResults([])
       } finally {
         setSearching(false)
       }
     }, SEARCH_DEBOUNCE_MS)
-  }, [kbList, selectedKbIds, loadKbDetails, rootFolder])
+  }, [kbList, selectedKbIds, loadKbDetails, rootFolder, cs])
 
   // 查询变化时触发搜索
   useEffect(() => {
@@ -168,8 +171,8 @@ export const CrossKbSearch: React.FC<CrossKbSearchProps> = ({ onClose, onOpenFil
 
   const totalFiles = results.reduce((sum, r) => sum + r.results.length, 0)
   const scopeText = selectedKbIds.size > 0
-    ? `${selectedKbIds.size} 个知识库`
-    : `全部 ${kbList.length} 个知识库`
+    ? cs.kbCount.replace('{n}', String(selectedKbIds.size))
+    : cs.allKbCount.replace('{n}', String(kbList.length))
 
   return (
     <div style={{
@@ -191,7 +194,7 @@ export const CrossKbSearch: React.FC<CrossKbSearchProps> = ({ onClose, onOpenFil
           value={query}
           onChange={e => setQuery(e.target.value)}
           onKeyDown={e => { if (e.key === 'Escape') onClose() }}
-          placeholder="跨知识库搜索..."
+          placeholder={cs.placeholder}
           autoFocus
           style={{
             flex: 1, maxWidth: 600,
@@ -206,11 +209,11 @@ export const CrossKbSearch: React.FC<CrossKbSearchProps> = ({ onClose, onOpenFil
         <button
           onClick={() => setShowKbFilter(!showKbFilter)}
           style={showKbFilter ? activeBtnStyle : btnStyle}
-          title="选择搜索范围"
+          title={cs.scopeTitle}
         >
-          <IconFolder size={14} /> 范围 ({selectedKbIds.size > 0 ? selectedKbIds.size : '全部'})
+          <IconFolder size={14} /> {cs.scopeChip} ({selectedKbIds.size > 0 ? selectedKbIds.size : cs.all})
         </button>
-        <button onClick={onClose} style={btnStyle} title="关闭 (Esc)"><IconClose size={14} /></button>
+        <button onClick={onClose} style={btnStyle} title={cs.closeEsc}><IconClose size={14} /></button>
       </div>
 
       {/* 知识库范围筛选器 */}
@@ -221,9 +224,9 @@ export const CrossKbSearch: React.FC<CrossKbSearchProps> = ({ onClose, onOpenFil
           borderBottom: `1px solid ${KB_COLORS.border}`,
           display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center',
         }}>
-          <span style={{ fontSize: 12, color: KB_COLORS.textSecondary }}>搜索范围：</span>
+          <span style={{ fontSize: 12, color: KB_COLORS.textSecondary }}>{cs.scopeLabel}</span>
           {kbList.length === 0 ? (
-            <span style={{ fontSize: 12, color: KB_COLORS.textTertiary }}>暂无知识库</span>
+            <span style={{ fontSize: 12, color: KB_COLORS.textTertiary }}>{cs.noKb}</span>
           ) : (
             kbList.map(kb => (
               <label
@@ -251,7 +254,7 @@ export const CrossKbSearch: React.FC<CrossKbSearchProps> = ({ onClose, onOpenFil
             <button
               onClick={() => setSelectedKbIds(new Set())}
               style={{ ...btnStyle, padding: '3px 8px', fontSize: 11 }}
-            >清除选择</button>
+            >{cs.clearSelection}</button>
           )}
         </div>
       )}
@@ -274,10 +277,10 @@ export const CrossKbSearch: React.FC<CrossKbSearchProps> = ({ onClose, onOpenFil
             marginBottom: 12, fontSize: 12, color: KB_COLORS.textSecondary,
           }}>
             {searching ? (
-              <span>搜索中...</span>
+              <span>{cs.searching}</span>
             ) : (
               <>
-                <span>在 {scopeText} 中找到 {results.length} 个库 · {totalFiles} 个文件</span>
+                <span>{cs.foundSummary.replace('{scope}', scopeText).replace('{kbCount}', String(results.length)).replace('{fileCount}', String(totalFiles))}</span>
               </>
             )}
           </div>
@@ -290,9 +293,9 @@ export const CrossKbSearch: React.FC<CrossKbSearchProps> = ({ onClose, onOpenFil
             color: KB_COLORS.textTertiary, fontSize: 14,
           }}>
             <div style={{ marginBottom: 12, color: KB_COLORS.textTertiary, display: 'inline-flex' }}><IconNetwork size={40} /></div>
-            输入关键词搜索所有知识库
+            {cs.emptyTitle}
             <div style={{ marginTop: 8, fontSize: 12 }}>
-              结果将按知识库分组展示，可直接跳转到对应文件
+              {cs.emptySub}
             </div>
           </div>
         )}
@@ -317,7 +320,7 @@ export const CrossKbSearch: React.FC<CrossKbSearchProps> = ({ onClose, onOpenFil
             textAlign: 'center', padding: '40px 20px',
             color: KB_COLORS.textTertiary, fontSize: 14,
           }}>
-            未找到匹配结果
+            {cs.noResult}
           </div>
         )}
       </div>
@@ -332,6 +335,7 @@ const KbResultGroup: React.FC<{
   query: string
   onOpenFile: (fileId: string) => void
 }> = ({ kbResult, query, onOpenFile }) => {
+  const { t } = useLanguage()
   const [expanded, setExpanded] = useState(true)
   return (
     <div style={{
@@ -373,7 +377,7 @@ const KbResultGroup: React.FC<{
           backgroundColor: KB_COLORS.primaryLight,
           padding: '2px 8px', borderRadius: 10,
         }}>
-          {kbResult.results.length} / {kbResult.totalFiles} 文件
+          {t.kbCrossSearch.fileCountUnit.replace('{matched}', String(kbResult.results.length)).replace('{total}', String(kbResult.totalFiles))}
         </span>
         <span style={{ fontSize: 12, color: KB_COLORS.textTertiary }}>
           {expanded ? '▼' : '▶'}

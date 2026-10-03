@@ -19,6 +19,7 @@
 //   · 图内坐标是 0–100 的 viewBox 空间（非像素），几何沿用原实现，不动视觉；
 //   · Enter 与 Space 都要能触发（桌面应用行内按钮的键盘惯例）。
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
+import { useLanguage } from '@stores/LanguageStore'
 
 export interface MiniGraphNode {
   id: string
@@ -38,6 +39,7 @@ export interface MiniGraphProps {
 }
 
 export function MiniGraph({ nodes, edges, currentId, onSelect }: MiniGraphProps) {
+  const { t } = useLanguage()
   const N = nodes.length || 1
   const interactive = !!onSelect
   const positioned = nodes.map((n, i) => {
@@ -51,7 +53,7 @@ export function MiniGraph({ nodes, edges, currentId, onSelect }: MiniGraphProps)
   })
   const posById = new Map(positioned.map((p) => [p.id, p]))
   return (
-    <svg className="aurora-kb-minigraph" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-label="专属知识图谱">
+    <svg className="aurora-kb-minigraph" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet" aria-label={t.kbGraph.miniAria}>
       {edges.map(([a, b], i) => {
         const na = posById.get(a)
         const nb = posById.get(b)
@@ -64,7 +66,7 @@ export function MiniGraph({ nodes, edges, currentId, onSelect }: MiniGraphProps)
           className={`aurora-kb-minigraph__g${interactive ? ' is-interactive' : ''}`}
           role={interactive ? 'button' : undefined}
           tabIndex={interactive ? 0 : undefined}
-          aria-label={interactive ? `在编辑器中打开「${n.label}」` : undefined}
+          aria-label={interactive ? t.kbGraph.openInEditorHint.replace(String.raw`{name}`, n.label) : undefined}
           onClick={interactive ? () => onSelect?.(n.id) : undefined}
           onKeyDown={
             interactive

@@ -36,6 +36,7 @@ export function KbManagePanel({ nav, toast }: KbManagePanelProps) {
   const { createFolder } = useFileManager()
   const { openCommandPalette } = useCommandPalette()
   const { t } = useLanguage()
+  const kp = t.kbPanel
   const [kbList, setKbList] = useState<KnowledgeBaseListItem[]>([])
   const [modalOpen, setModalOpen] = useState(false)
 
@@ -71,10 +72,10 @@ export function KbManagePanel({ nav, toast }: KbManagePanelProps) {
     try {
       await createKb(name.trim(), desc.trim(), createFolder)
       await refresh()
-      toast?.(`已创建知识库「${name.trim()}」`)
+      toast?.(kp.createdToast.replace(String.raw`{name}`, name.trim()))
       return true
     } catch (err) {
-      toast?.(`创建失败：${(err as Error).message}`)
+      toast?.(kp.createFailedToast.replace(String.raw`{msg}`, (err as Error).message))
       return false
     }
   }
@@ -87,13 +88,13 @@ export function KbManagePanel({ nav, toast }: KbManagePanelProps) {
       sidebarGroups={buildAuroraSidebarGroups(t)}
       sidebarActiveId="knowledge"
       onSidebarSelect={handleNav}
-      breadcrumbs={['知识库']}
+      breadcrumbs={[kp.breadcrumbRoot]}
       statusLeftItems={[
-        { content: `知识库 ${kbList.length}` },
-        { content: `总笔记 ${totalFiles}` },
-        { content: `总白板 ${totalCanvases}` },
+        { content: kp.statusKbCount.replace(String.raw`{n}`, String(kbList.length)) },
+        { content: kp.statusTotalNotes.replace(String.raw`{n}`, String(totalFiles)) },
+        { content: kp.statusTotalCanvases.replace(String.raw`{n}`, String(totalCanvases)) },
       ]}
-      statusRightItems={[{ content: '本地' }, { content: '⌘K 命令面板', clickable: true, onClick: () => openCommandPalette() }]}
+      statusRightItems={[{ content: kp.statusLocal }, { content: t.cmdPalette.aria + ' ⌘K', clickable: true, onClick: () => openCommandPalette() }]}
     >
       <div className="aurora-kb-manage">
         {/* 顶部标题行 */}
@@ -101,7 +102,7 @@ export function KbManagePanel({ nav, toast }: KbManagePanelProps) {
           <div className="aurora-kb-manage__heading">
             <div className="aurora-kb-manage__titles">
               <h1 className="aurora-kb-manage__title">
-                知识库
+                {kp.manageTitle}
                 <span className="aurora-kb-manage__count">{kbList.length}</span>
               </h1>
             </div>
@@ -110,7 +111,7 @@ export function KbManagePanel({ nav, toast }: KbManagePanelProps) {
           {kbList.length > 0 && (
             <div className="aurora-kb-manage__actions">
               <button type="button" className="aurora-kb-btn aurora-kb-btn--primary" onClick={() => setModalOpen(true)}>
-                <Icon.plus size={14} /> 新建知识库
+                <Icon.plus size={14} /> {kp.newKb}
               </button>
             </div>
           )}
@@ -120,14 +121,14 @@ export function KbManagePanel({ nav, toast }: KbManagePanelProps) {
         {kbList.length === 0 ? (
           <div className="aurora-kb-manage__empty">
             <div className="aurora-kb-manage__empty-ico"><Icon.book size={30} /></div>
-            <p className="aurora-kb-manage__empty-title">还没有知识库</p>
-            <p className="aurora-kb-manage__empty-sub">点击下方按钮，创建你的第一个知识库</p>
+            <p className="aurora-kb-manage__empty-title">{kp.emptyManageTitle}</p>
+            <p className="aurora-kb-manage__empty-sub">{kp.emptyManageSub}</p>
             <button
               type="button"
               className="aurora-kb-btn aurora-kb-btn--primary aurora-kb-manage__empty-btn"
               onClick={() => setModalOpen(true)}
             >
-              <Icon.plus size={15} /> 新建知识库
+              <Icon.plus size={15} /> {kp.newKb}
             </button>
           </div>
         ) : (
@@ -145,13 +146,13 @@ export function KbManagePanel({ nav, toast }: KbManagePanelProps) {
                 <div className="aurora-kb-kbcard__body">
                   <div className="aurora-kb-kbcard__name">{kb.name}</div>
                   <div className={`aurora-kb-kbcard__desc${kb.description ? '' : ' is-empty'}`}>
-                    {kb.description || '暂无描述'}
+                    {kb.description || kp.noDescription}
                   </div>
                 </div>
                 <div className="aurora-kb-kbcard__meta">
-                  <span><b>{kb.fileCount}</b> 文件</span>
-                  <span><b>{kb.canvasCount}</b> 白板</span>
-                  <span className="aurora-kb-kbcard__time">{formatKbTime(kb.updatedAt)}</span>
+                  <span><b>{kb.fileCount}</b> {kp.metaFiles}</span>
+                  <span><b>{kb.canvasCount}</b> {kp.metaCanvases}</span>
+                  <span className="aurora-kb-kbcard__time">{formatKbTime(kb.updatedAt, t)}</span>
                 </div>
               </article>
             ))}

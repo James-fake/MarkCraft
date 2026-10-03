@@ -5,6 +5,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import type { FileNode } from '@src/types/fileManager'
+import { useLanguage } from '@stores/LanguageStore'
 import { getKbOverlayRoot } from './kbOverlayRoot'
 import { askKb } from '../ai/kbChat'
 import { KB_COLORS } from '../kbTheme'
@@ -41,6 +42,8 @@ function collectAllFiles(nodes: FileNode[]): FileNode[] {
 
 const KbChatPanel: React.FC<KbChatPanelProps> = ({ kbId, files, variant = 'dialog', onClose }) => {
   const asPage = variant === 'page'
+  const { t } = useLanguage()
+  const kc = t.kbChat
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -93,7 +96,7 @@ const KbChatPanel: React.FC<KbChatPanelProps> = ({ kbId, files, variant = 'dialo
     } catch {
       const errorMessage: ChatMessage = {
         role: 'ai',
-        content: '抱歉，回答生成失败，请稍后重试。',
+        content: kc.error,
       }
       setMessages(prev => [...prev, errorMessage])
     } finally {
@@ -257,14 +260,14 @@ const KbChatPanel: React.FC<KbChatPanelProps> = ({ kbId, files, variant = 'dialo
               <IconChat />
             </span>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 600 }}>知识库问答</div>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>{kc.title}</div>
               <div style={{ fontSize: 12, color: KB_COLORS.textTertiary }}>
-                共 {fileNameMap.size} 个文件 · ID: {shortKbId}
+                {kc.meta.replace('{n}', String(fileNameMap.size)).replace('{id}', shortKbId)}
               </div>
             </div>
           </div>
           {!asPage && onClose && (
-            <button style={closeButtonStyle} onClick={onClose} aria-label="关闭">
+            <button style={closeButtonStyle} onClick={onClose} aria-label={kc.close}>
               <IconClose size={16} />
             </button>
           )}
@@ -281,7 +284,7 @@ const KbChatPanel: React.FC<KbChatPanelProps> = ({ kbId, files, variant = 'dialo
                 marginTop: 40,
               }}
             >
-              输入问题，将基于当前知识库内容为你作答
+              {kc.empty}
             </div>
           )}
           {messages.map((msg, idx) => (
@@ -309,7 +312,7 @@ const KbChatPanel: React.FC<KbChatPanelProps> = ({ kbId, files, variant = 'dialo
                   }}
                 >
                   <span style={{ fontSize: 12, color: KB_COLORS.textSecondary }}>
-                    引用来源：
+                    {kc.sources}
                   </span>
                   {msg.sources.map((src, sIdx) => (
                     <span key={sIdx} style={sourceTagStyle} title={src.snippet}>
@@ -323,7 +326,7 @@ const KbChatPanel: React.FC<KbChatPanelProps> = ({ kbId, files, variant = 'dialo
           {/* 加载状态提示 */}
           {loading && (
             <div style={{ ...aiBubbleStyle, color: KB_COLORS.textSecondary }}>
-              正在整理答案…
+              {kc.thinking}
             </div>
           )}
           <div ref={messagesEndRef} />
@@ -337,7 +340,7 @@ const KbChatPanel: React.FC<KbChatPanelProps> = ({ kbId, files, variant = 'dialo
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="输入问题，Enter 发送，Shift+Enter 换行"
+            placeholder={kc.placeholder}
             rows={2}
             disabled={loading}
           />
@@ -346,7 +349,7 @@ const KbChatPanel: React.FC<KbChatPanelProps> = ({ kbId, files, variant = 'dialo
             onClick={handleSend}
             disabled={loading || !input.trim()}
           >
-            发送
+            {kc.send}
           </button>
         </div>
     </div>

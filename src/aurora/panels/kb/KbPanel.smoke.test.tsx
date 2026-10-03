@@ -187,6 +187,22 @@ describe('KbPanel 接真实知识库数据（kbStore + LinkIndex + TagIndex）',
     expect(mockNav).toHaveBeenCalledWith('blog', expect.any(String))
   })
 
+  it('回归：侧栏点「双链图谱」→ nav("graph", kbId)（第十七批稳定 id 后仍限定本库范围）', async () => {
+    const mockNav = vi.fn()
+    render(
+      <RealProviders>
+        <KbPanel nav={mockNav} />
+      </RealProviders>,
+    )
+    await screen.findAllByText('测试知识库 X')
+    // 第十七批把侧栏导航改为传稳定 id（graph），而非旧中文 label（图谱）。
+    // 此处从侧栏（PageFrame 自带）进入图谱，必须仍带本库 id —— 否则图谱退化为全局图。
+    const sidebar = document.querySelector('.aurora-sidebar')
+    expect(sidebar).toBeTruthy()
+    fireEvent.click(within(sidebar as HTMLElement).getByTitle('双链图谱'))
+    expect(mockNav).toHaveBeenCalledWith('graph', 'kb-test')
+  })
+
   it('P0 闭环：笔记 Tab「新建笔记」在库文件夹下建文件并跳转编辑器（解决无处添加笔记）', async () => {
     const mockNav = vi.fn()
     render(

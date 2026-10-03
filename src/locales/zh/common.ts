@@ -1229,6 +1229,9 @@ export const kbSearch = {
   emptyHint: '输入关键词开始搜索库内文件',
   collapse: '收起',
   expand: '展开',
+  searchFailed: '搜索失败：{msg}',
+  noResult: '未找到匹配结果',
+  invalidRegex: '正则表达式无效：{msg}',
 }
 
 export const kbOverview = {
@@ -1284,6 +1287,9 @@ export const kbCreate = {
   webDesc: '输入 URL，抓取正文并转为 Markdown',
   zipSupport: '支持 .zip',
   fetch: '抓取',
+  createBtn: '创建知识库',
+  importTab: '导入',
+  webClipped: '已剪藏 {url}（示意，归档至素材库）',
 }
 
 export const kbFilter = {
@@ -1300,6 +1306,205 @@ export const kbFilter = {
   min: '最少',
   max: '最多',
   other: '其他',
+  includeTags: '包含标签',
+  excludeTags: '排除标签',
+  addBtn: '添加',
+  excludeBtn: '排除',
+}
+
+// ---- 知识库·图谱（MiniGraph / GraphPanel）----
+export const kbGraph = {
+  miniAria: '专属知识图谱',
+  openInEditorHint: '在编辑器中打开「{name}」',
+  filteredTag: '已筛选标签：{name}',
+}
+
+// ---- 知识库面板（KbPanel 详情页 + KbManagePanel 列表页 + Tab 模型）----
+export const kbPanel = {
+  // Tab 标签（kbPanelShared.TABS）
+  tabOverview: '概览',
+  tabNotes: '笔记',
+  tabSearch: '搜索',
+  tabChat: '问答',
+  tabDependency: '依赖',
+  tabMoc: 'MOC',
+  tabExport: '导出',
+  tabsAria: '知识库功能切换',
+  // 详情页 chrome
+  breadcrumbRoot: '知识库',
+  noSelection: '未选择',
+  noSelectionKb: '未选择知识库',
+  backToList: '返回知识库列表',
+  healthBadge: '健康度 {n}',
+  noteCount: '{n} 篇笔记',
+  linkTagStat: '双链 {links} · 标签 {tags}',
+  actionEdit: '编辑',
+  actionPublishBlog: '发布博客',
+  actionDelete: '删除',
+  loading: '正在加载知识库…',
+  emptyTitle: '尚未选择知识库',
+  emptyDesc: '点击左侧「知识库」返回列表，选择或新建一个知识库。',
+  newNoteName: '新笔记-{ts}.md',
+  // 列表页 chrome
+  manageTitle: '知识库',
+  newKb: '新建知识库',
+  emptyManageTitle: '还没有知识库',
+  emptyManageSub: '点击下方按钮，创建你的第一个知识库',
+  noDescription: '暂无描述',
+  metaFiles: '文件',
+  metaCanvases: '白板',
+  statusKbCount: '知识库 {n}',
+  statusTotalNotes: '总笔记 {n}',
+  statusTotalCanvases: '总白板 {n}',
+  statusLocal: '本地',
+  createdToast: '已创建知识库「{name}」',
+  createFailedToast: '创建失败：{msg}',
+  // 相对时间（formatKbTime）
+  timeJustNow: '{n} 分钟前',
+  timeHours: '{n} 小时前',
+  timeDays: '{n} 天前',
+  openFileHint: '打开「{name}」',
+  // 笔记 Tab
+  notesEmptyTitle: '暂无笔记',
+  notesEmptyDesc: '本知识库尚未收录任何文件。',
+  newNote: '新建笔记',
+  notesHeadTitle: '库内笔记',
+  notesCountAria: '共 {n} 条',
+  openInEditorHint: '在编辑器中打开「{name}」',
+  // 依赖 Tab
+  depEmptyDesc: '本知识库尚未收录任何文件，无法分析依赖关系。',
+  depLead: '依赖分析 · 选择文件查看出链 / 入链 / 删除影响',
+  depRowHint: '查看「{name}」的依赖关系',
+  // MOC Tab
+  mocGenerated: 'MOC 已生成',
+  mocGenerateFailed: '生成失败：{msg}',
+  mocCopied: '已复制到剪贴板',
+  mocCopyFailed: '复制失败',
+  mocSaved: '已保存为笔记：MOC.md',
+  mocTitle: 'MOC 目录索引',
+  mocGenerating: '生成中…',
+  mocGenerate: '生成 MOC',
+  mocCopy: '复制',
+  mocSaveAsNote: '保存为笔记',
+  mocPlaceholderTitle: '知识库目录（MOC）',
+  mocPlaceholderDesc: '点击「生成 MOC」自动汇总本库所有笔记的标题、标签与摘要，按标签分组生成目录索引。',
+}
+
+// ---- 知识库·文件依赖分析面板（FileDependencyPanel）----
+export const kbDependency = {
+  title: '依赖分析',
+  toggleGraph: '切换图谱视图',
+  close: '关闭',
+  statOutgoing: '出链',
+  statBacklinks: '入链',
+  statBroken: '断链',
+  statImpact: '删除影响',
+  tabOutgoing: '出链 ({n})',
+  tabBacklinks: '入链 ({n})',
+  tabImpact: '删除影响 ({n})',
+  emptyOutgoing: '该文件没有出链',
+  emptyBacklinks: '没有文件引用此文件',
+  emptyGraph: '暂无依赖关系',
+  thisFile: '本文件',
+  centerNode: '当前',
+  brokenTarget: '断链：目标文件不存在',
+  relationLabel: '关系: {name}',
+  impactNone: '删除此文件不会产生断链',
+  impactWarn: '删除此文件后，以下 {n} 处引用将变为断链：',
+}
+
+// ---- 知识库·跨库搜索（CrossKbSearch）----
+export const kbCrossSearch = {
+  placeholder: '跨知识库搜索...',
+  scopeTitle: '选择搜索范围',
+  scopeLabel: '搜索范围：',
+  scopeChip: '范围',
+  all: '全部',
+  clearSelection: '清除选择',
+  noKb: '暂无知识库',
+  searching: '搜索中...',
+  foundSummary: '在 {scope} 中找到 {kbCount} 个库 · {fileCount} 个文件',
+  kbCount: '{n} 个知识库',
+  allKbCount: '全部 {n} 个知识库',
+  emptyTitle: '输入关键词搜索所有知识库',
+  emptySub: '结果将按知识库分组展示，可直接跳转到对应文件',
+  noResult: '未找到匹配结果',
+  closeEsc: '关闭 (Esc)',
+  searchFailed: '搜索失败：{msg}',
+  fileCountUnit: '{matched} / {total} 文件',
+}
+
+// ---- 知识库·导出菜单（KbExportMenu）----
+export const kbExportMenu = {
+  title: '导出知识库',
+  close: '关闭',
+  optShare: '知识库分享包',
+  optShareDesc: '.mcshare 格式，可重新导入',
+  optStaticSite: '静态站点导出',
+  optStaticSiteDesc: 'ZIP 含 HTML/CSS，可部署',
+  optPdf: 'PDF 导出',
+  optPdfDesc: '通过浏览器打印为 PDF',
+  optEpub: 'EPUB 导出',
+  optEpubDesc: '电子书格式，可在阅读器打开',
+  optMarkdown: 'Markdown 合并导出',
+  optMarkdownDesc: '所有文件合并为一个 .md',
+  exportSuccess: '{label}导出成功',
+  exportFailed: '{label}导出失败：{msg}',
+  exporting: '{label} 导出中...',
+  fileCount: '共 {n} 个文件',
+}
+
+// ---- 知识库·AI 问答面板（KbChatPanel）----
+export const kbChat = {
+  title: '知识库问答',
+  meta: '共 {n} 个文件 · ID: {id}',
+  close: '关闭',
+  empty: '输入问题，将基于当前知识库内容为你作答',
+  sources: '引用来源：',
+  thinking: '正在整理答案…',
+  placeholder: '输入问题，Enter 发送，Shift+Enter 换行',
+  send: '发送',
+  error: '抱歉，回答生成失败，请稍后重试。',
+}
+
+// ---- 知识库·编辑/删除对话框（EditKbModal / DeleteKbModal）----
+export const kbModal = {
+  editTitle: '编辑知识库',
+  nameEmpty: '名称不能为空',
+  saved: '已保存知识库信息',
+  saveFailed: '保存失败：{msg}',
+  cancel: '取消',
+  saving: '保存中…',
+  save: '保存',
+  nameLabel: '名称',
+  descLabel: '描述',
+  deleteTitle: '删除知识库',
+  deleted: '已删除知识库「{name}」',
+  deleteFailed: '删除失败：{msg}',
+  deleting: '删除中…',
+  delete: '删除',
+  deleteConfirm: '确定要删除「{name}」吗？此操作将同时删除其关联文件夹与所有收录文件，且不可撤销。',
+}
+
+// ---- 知识库·关联白板区（KbCanvasSection）----
+export const kbCanvas = {
+  unlinked: '已取消关联白板',
+  unlinkFailed: '取消关联失败：{msg}',
+  canvasDocName: '{name} 白板',
+  created: '已新建并关联白板：{name}',
+  createFailed: '新建白板失败：{msg}',
+  linked: '已关联白板：{name}',
+  linkFailed: '关联失败：{msg}',
+  title: '关联白板（{n}）',
+  newAndLink: '新建并关联',
+  linkExisting: '关联已有',
+  collapse: '收起',
+  emptyCandidates: '没有可关联的白板——现有白板均已关联本库，或先到白板视图新建。',
+  elementUnit: '{n} 元素',
+  emptyHint: '本知识库尚未关联任何白板。可「新建并关联」创建一块专属白板，或点「关联已有」把现有白板挂入本库，用于梳理该库概念关系。',
+  unnamedCanvas: '未命名白板',
+  open: '打开',
+  unlink: '取消关联',
 }
 
 export const settingsUser = {

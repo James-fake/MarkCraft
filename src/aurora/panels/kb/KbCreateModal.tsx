@@ -61,7 +61,7 @@ export function KbCreateModal({ open, onClose, toast, onCreate }: KbCreateModalP
         toast?.(KC.urlRequired)
         return
       }
-      toast?.(`已剪藏 ${webUrl.trim()}（示意，归档至素材库）`)
+      toast?.(KC.webClipped.replace(String.raw`{url}`, webUrl.trim()))
     } else if (importType === 'obsidian' || importType === 'notion') {
       toast?.(KC.importDemo.replace('{kind}', importType === 'obsidian' ? 'Obsidian' : 'Notion'))
     }
@@ -77,7 +77,7 @@ export function KbCreateModal({ open, onClose, toast, onCreate }: KbCreateModalP
         disabled={!name.trim()}
         onClick={handleCreate}
       >
-        创建知识库
+        {KC.createBtn}
       </button>
     </>
   ) : (
@@ -102,7 +102,7 @@ export function KbCreateModal({ open, onClose, toast, onCreate }: KbCreateModalP
           className={`aurora-kb-modal__tab${mode === 'create' ? ' is-active' : ''}`}
           onClick={() => setMode('create')}
         >
-          <Icon.plus size={14} /> 新建知识库
+          <Icon.plus size={14} /> {KC.title}
         </button>
         <button
           type="button"
@@ -111,7 +111,7 @@ export function KbCreateModal({ open, onClose, toast, onCreate }: KbCreateModalP
           className={`aurora-kb-modal__tab${mode === 'import' ? ' is-active' : ''}`}
           onClick={() => setMode('import')}
         >
-          <Icon.download size={14} /> 导入
+          <Icon.download size={14} /> {KC.importTab}
         </button>
       </div>
 

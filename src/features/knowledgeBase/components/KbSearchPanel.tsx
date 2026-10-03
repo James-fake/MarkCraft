@@ -146,7 +146,7 @@ export const KbSearchPanel: React.FC<KbSearchPanelProps> = ({
           // 文本/正则/全词搜索
           const fileResults: FileResult[] = []
           for (const file of filteredFiles) {
-            const matches = searchInContent(file.content ?? '', q, m, caseSensitive)
+            const matches = searchInContent(file.content ?? '', q, m, caseSensitive, KS.invalidRegex)
             if (matches.length > 0) {
               fileResults.push({
                 fileId: file.id,
@@ -161,13 +161,13 @@ export const KbSearchPanel: React.FC<KbSearchPanelProps> = ({
         }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
-        setError(`搜索失败：${message}`)
+        setError(KS.searchFailed.replace(String.raw`{msg}`, message))
         setResults([])
       } finally {
         setSearching(false)
       }
     }, SEARCH_DEBOUNCE_MS)
-  }, [filteredFiles, caseSensitive])
+  }, [filteredFiles, caseSensitive, KS])
 
   // 当查询/模式/大小写变化时触发搜索
   useEffect(() => {
@@ -306,7 +306,7 @@ export const KbSearchPanel: React.FC<KbSearchPanelProps> = ({
           {query.trim() && !searching && results.length === 0 && !error && (
             <div className="kb-empty">
               <div className="kb-empty-ico"><IconSearch /></div>
-              <p>未找到匹配结果</p>
+              <p>{KS.noResult}</p>
             </div>
           )}
         </div>
@@ -413,6 +413,8 @@ function searchInContent(
   query: string,
   mode: SearchMode,
   caseSensitive: boolean,
+  /** 正则无效时的提示模板（含 {msg}）；由 UI 层按语言传入，纯函数不触达语言上下文 */
+  invalidRegexTpl: string = '正则表达式无效：{msg}',
 ): MatchLine[] {
   if (!query.trim()) return []
   const lines = content.split('\n')
@@ -467,7 +469,7 @@ function searchInContent(
       }
     }
   } catch (err) {
-    throw new Error(`正则表达式无效：${err instanceof Error ? err.message : String(err)}`)
+    throw new Error(invalidRegexTpl.replace(String.raw`{msg}`, err instanceof Error ? err.message : String(err)))
   }
 
   for (let i = 0; i < lines.length; i++) {
