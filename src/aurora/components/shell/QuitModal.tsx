@@ -1,5 +1,6 @@
 import { Modal } from '../../../components/ui/Modal'
 import { Button } from '../../../components/ui/Button'
+import { useLanguage } from '@stores/LanguageStore'
 
 export interface QuitModalProps {
   isOpen: boolean
@@ -15,20 +16,22 @@ export interface QuitModalProps {
  * 真正退出逻辑（window.close + Web 限制兜底）由 onConfirm 注入，本组件保持纯呈现。
  */
 export function QuitModal({ isOpen, onConfirm, onCancel }: QuitModalProps) {
+  const { t } = useLanguage()
+  const sh = t.shell
   return (
     <Modal
       isOpen={isOpen}
       onClose={onCancel}
       size="sm"
-      title="退出 MarkCraft"
-      description="当前为 Web 外壳运行环境，确认后将尝试关闭此标签页 / 浏览器窗口。未保存的内容已在本地自动保存，可放心退出。"
+      title={sh.quitTitle}
+      description={sh.quitDescription}
       footer={
         <>
           <Button variant="ghost" onClick={onCancel}>
-            取消
+            {sh.quitCancel}
           </Button>
           <Button variant="danger" onClick={onConfirm}>
-            退出
+            {sh.quitConfirm}
           </Button>
         </>
       }

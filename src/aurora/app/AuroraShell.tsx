@@ -140,7 +140,7 @@ function ShellInner() {
   useEffect(() => {
     document.documentElement.setAttribute('data-contrast', settings.contrast)
   }, [settings.contrast])
-  const { toggleLanguage, language } = useLanguage()
+  const { toggleLanguage, language, t } = useLanguage()
 
   // —— 内置「使用文档」知识库：一次性播种 ——
   // 用户需求（2026-09-21）：首次进入 MarkCraft，知识库界面默认已有「MarkCraft 使用文档」。
@@ -457,7 +457,7 @@ function ShellInner() {
             pointerEvents: 'none',
           }}
         >
-          拖放 .md / .markdown / .txt 文件以打开
+          {t.shell.dropToOpenHint}
         </div>
       )}
 
@@ -466,23 +466,23 @@ function ShellInner() {
         <div className="aurora-crash">
           <div className="aurora-crash__backdrop" />
           <div className="aurora-crash__panel">
-            <div className="aurora-crash__title">发现未保存的内容</div>
+            <div className="aurora-crash__title">{t.shell.crashTitle}</div>
             <div className="aurora-crash__desc">
-              检测到上次会话存在自动备份（
-              <strong>{crashBackup.fileName}</strong>，
-              {new Date(crashBackup.timestamp).toLocaleString('zh-CN')}）。
-              是否恢复？
+              {t.shell.crashDescPrefix}
+              <strong>{crashBackup.fileName}</strong>,
+              {new Date(crashBackup.timestamp).toLocaleString(language === 'zh' ? 'zh-CN' : 'en-US')}
+              {t.shell.crashDescSuffix}
             </div>
             <div className="aurora-crash__actions">
               <button type="button" className="aurora-crash__btn" onClick={handleCrashDismiss}>
-                放弃
+                {t.shell.crashDiscard}
               </button>
               <button
                 type="button"
                 className="aurora-crash__btn aurora-crash__btn--primary"
                 onClick={handleCrashRestore}
               >
-                恢复
+                {t.shell.crashRestore}
               </button>
             </div>
           </div>

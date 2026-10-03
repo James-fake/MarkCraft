@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLanguage } from '@stores/LanguageStore'
 
 /**
  * 状态栏项
@@ -37,6 +38,8 @@ export function StatusBar({
   savedState,
   savedText,
 }: StatusBarProps) {
+  const { t } = useLanguage()
+  const sh = t.shell
   const savedItem: StatusBarItem | null =
     savedState === undefined
       ? null
@@ -47,7 +50,7 @@ export function StatusBar({
                 'aurora-statusbar__dot',
                 savedState === 'unsaved' ? 'aurora-statusbar__dot--unsaved' : '',
               ].filter(Boolean).join(' ')} />
-              {savedText ?? (savedState === 'saved' ? '已保存' : savedState === 'unsaved' ? '未保存' : '保存中')}
+              {savedText ?? (savedState === 'saved' ? sh.savedStatus : savedState === 'unsaved' ? sh.unsavedStatus : sh.savingStatus)}
             </>
           ),
         }

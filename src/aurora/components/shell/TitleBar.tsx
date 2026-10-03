@@ -1,6 +1,7 @@
 import React from 'react'
 import { Icon } from '../../icons'
 import { WindowControls, WindowControlsProps } from './WindowControls'
+import { useLanguage } from '@stores/LanguageStore'
 
 /**
  * Aurora 标题栏组件
@@ -40,6 +41,7 @@ export function TitleBar({
   onMaximize,
   onClose,
 }: TitleBarProps) {
+  const { t } = useLanguage()
   return (
     <div className="aurora-titlebar" role="banner">
       <div className="aurora-titlebar__left">
@@ -70,8 +72,8 @@ export function TitleBar({
                     {isLast && modified && (
                       <span
                         className="aurora-titlebar__modified-dot"
-                        title="有未保存的更改"
-                        aria-label="有未保存的更改"
+                        title={t.shell.modifiedHint}
+                        aria-label={t.shell.modifiedHint}
                       />
                     )}
                     {isClickable ? (

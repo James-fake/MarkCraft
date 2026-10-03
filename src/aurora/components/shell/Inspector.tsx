@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Icon } from '../../icons'
+import { useLanguage } from '@stores/LanguageStore'
 
 /**
  * 右栏 Tab 项定义
@@ -47,6 +48,8 @@ export function Inspector({
   className,
   iconMode = false,
 }: InspectorProps) {
+  const { t } = useLanguage()
+  const sh = t.shell
   const [activeTab, setActiveTab] = useState(defaultTabId ?? tabs[0]?.id)
 
   if (collapsed) {
@@ -56,11 +59,11 @@ export function Inspector({
           type="button"
           className="aurora-inspector__collapsed"
           onClick={onToggle}
-          aria-label="展开大纲列表"
+          aria-label={sh.inspectorCollapsedAria}
           aria-expanded={false}
-          title="展开大纲列表"
+          title={sh.inspectorCollapsedAria}
         >
-          <span className="aurora-inspector__collapsed-label">更多</span>
+          <span className="aurora-inspector__collapsed-label">{sh.inspectorCollapsedLabel}</span>
           <Icon.chevronLeft size={14} />
         </button>
       </aside>
@@ -77,7 +80,7 @@ export function Inspector({
     <aside
       className={`aurora-inspector ${iconMode ? 'aurora-inspector--iconmode' : ''} ${className ?? ''}`}
       style={widthStyle}
-      aria-label="情境面板"
+      aria-label={sh.inspectorAria}
     >
       {/* Tab 栏 */}
       <div className="aurora-inspector__tabs" role="tablist">
@@ -104,8 +107,8 @@ export function Inspector({
           type="button"
           className="aurora-inspector__collapse-btn"
           onClick={onToggle}
-          aria-label="收起检查器"
-          title="收起检查器"
+          aria-label={sh.inspectorCollapseAria}
+          title={sh.inspectorCollapseAria}
         >
           <Icon.chevronRight size={16} />
         </button>

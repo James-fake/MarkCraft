@@ -29,6 +29,52 @@ export const nav = {
   collapseSidebar: '收起侧栏',
 }
 
+// ---- 桌面外壳 chrome（WindowControls / QuitModal / StatusBar / TitleBar / Inspector）----
+export const shell = {
+  // 窗口控制按钮
+  windowControlsAria: '窗口控制',
+  minimize: '最小化',
+  maximize: '最大化',
+  restore: '还原',
+  close: '关闭',
+  // 退出确认弹窗
+  quitTitle: '退出 MarkCraft',
+  quitDescription: '当前为 Web 外壳运行环境，确认后将尝试关闭此标签页 / 浏览器窗口。未保存的内容已在本地自动保存，可放心退出。',
+  quitCancel: '取消',
+  quitConfirm: '退出',
+  // 状态栏保存态
+  savedStatus: '已保存',
+  unsavedStatus: '未保存',
+  savingStatus: '保存中',
+  // 标题栏
+  modifiedHint: '有未保存的更改',
+  // Inspector 情境面板
+  inspectorCollapsedAria: '展开大纲列表',
+  inspectorCollapsedLabel: '更多',
+  inspectorAria: '情境面板',
+  inspectorCollapseAria: '收起检查器',
+  // 应用级外壳（拖放遮罩 / 崩溃恢复模态）
+  dropToOpenHint: '拖放 .md / .markdown / .txt 文件以打开',
+  crashTitle: '发现未保存的内容',
+  crashDescPrefix: '检测到上次会话存在自动备份（',
+  crashDescSuffix: '）。是否恢复？',
+  crashDiscard: '放弃',
+  crashRestore: '恢复',
+}
+
+// ---- 命令面板（CommandPalette）----
+export const cmdPalette = {
+  aria: '命令面板',
+  placeholder: '搜索命令…（⌘K 唤起）',
+  empty: '没有找到匹配的结果',
+  recentGroup: '最近使用',
+  fileGroup: '文件',
+  footerOpen: '唤起',
+  footerNavigate: '导航',
+  footerRun: '执行',
+  footerClose: '关闭',
+}
+
 export const welcome = {
   subtitle: '本地优先的个人知识与写作发布平台——为注重数据自主的知识型写作者，把记、连、思、发收进一个不上云的工具',
   createFile: '创建新文件',

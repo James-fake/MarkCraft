@@ -3,6 +3,7 @@ import { Icon } from '../../icons'
 import type { IconName } from '../../types'
 import { CategoryLabels, type CommandCategory } from '@services/command/commandRegistry'
 import { recordCommandUse, getRecentCommandIds } from './commandHistory'
+import { useLanguage } from '@stores/LanguageStore'
 
 /** 最近使用分组的内置标记（非真实分类，渲染时显示中文标题） */
 const RECENT_GROUP = '__recent__'
@@ -85,6 +86,8 @@ interface CommandPaletteProps {
  * - 分组显示
  */
 export function CommandPalette({ open, onClose, commands, fileItems, onOpenFile }: CommandPaletteProps) {
+  const { t, language } = useLanguage()
+  const cp = t.cmdPalette
   const [query, setQuery] = useState('')
   const [highlightedIndex, setHighlightedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -228,7 +231,7 @@ export function CommandPalette({ open, onClose, commands, fileItems, onOpenFile 
       className="aurora-command-overlay"
       onClick={onClose}
       role="dialog"
-      aria-label="命令面板"
+      aria-label={cp.aria}
     >
       <div
         className="aurora-command"
@@ -245,7 +248,7 @@ export function CommandPalette({ open, onClose, commands, fileItems, onOpenFile 
             ref={inputRef}
             type="text"
             className="aurora-command__input"
-            placeholder="搜索命令…（⌘K 唤起）"
+            placeholder={cp.placeholder}
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -258,11 +261,11 @@ export function CommandPalette({ open, onClose, commands, fileItems, onOpenFile 
         {/* 结果列表 */}
         <div className="aurora-command__list" ref={listRef}>
           {filteredGroups.length === 0 ? (
-            <div className="aurora-command__empty">没有找到匹配的结果</div>
+            <div className="aurora-command__empty">{cp.empty}</div>
           ) : (
             filteredGroups.map((group, gi) => (
               <div key={group.title} className="aurora-command__group">
-                <div className="aurora-command__group-title">{group.title === RECENT_GROUP ? '最近使用' : group.title === FILE_GROUP ? '文件' : (CategoryLabels[group.title as CommandCategory]?.zh ?? group.title)}</div>
+                <div className="aurora-command__group-title">{group.title === RECENT_GROUP ? cp.recentGroup : group.title === FILE_GROUP ? cp.fileGroup : (language === 'en' ? (CategoryLabels[group.title as CommandCategory]?.en ?? group.title) : (CategoryLabels[group.title as CommandCategory]?.zh ?? group.title))}</div>
                 {group.items.map((item, ii) => {
                   const globalIndex = groupIndexMap[gi].start + ii
                   const isHighlighted = globalIndex === highlightedIndex
@@ -308,16 +311,16 @@ export function CommandPalette({ open, onClose, commands, fileItems, onOpenFile 
         <div className="aurora-command__footer">
           <div className="aurora-command__footer-keys">
             <span className="aurora-command__footer-key">
-              <kbd>{paletteShortcut}</kbd> 唤起
+              <kbd>{paletteShortcut}</kbd> {cp.footerOpen}
             </span>
             <span className="aurora-command__footer-key">
-              <kbd>↑</kbd><kbd>↓</kbd> 导航
+              <kbd>↑</kbd><kbd>↓</kbd> {cp.footerNavigate}
             </span>
             <span className="aurora-command__footer-key">
-              <kbd>↵</kbd> 执行
+              <kbd>↵</kbd> {cp.footerRun}
             </span>
             <span className="aurora-command__footer-key">
-              <kbd>Esc</kbd> 关闭
+              <kbd>Esc</kbd> {cp.footerClose}
             </span>
           </div>
           <div>{flatItems.length} 个结果</div>

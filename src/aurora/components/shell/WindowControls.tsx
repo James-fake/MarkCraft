@@ -4,6 +4,7 @@
  * - 关闭按钮 hover 时变红（Windows 标准色 #E81123）
  */
 import { Icon } from '../../icons'
+import { useLanguage } from '@stores/LanguageStore'
 
 export interface WindowControlsProps {
   /** 最小化点击 */
@@ -22,29 +23,31 @@ export function WindowControls({
   onClose,
   maximized = false,
 }: WindowControlsProps) {
+  const { t } = useLanguage()
+  const sh = t.shell
   return (
-    <div className="aurora-wincontrols" role="group" aria-label="窗口控制">
+    <div className="aurora-wincontrols" role="group" aria-label={sh.windowControlsAria}>
       <button
         className="aurora-wincontrol aurora-wincontrol--min"
         onClick={onMinimize}
-        aria-label="最小化"
-        title="最小化"
+        aria-label={sh.minimize}
+        title={sh.minimize}
       >
         <Icon.minimize size={10} />
       </button>
       <button
         className="aurora-wincontrol aurora-wincontrol--max"
         onClick={onMaximize}
-        aria-label={maximized ? '还原' : '最大化'}
-        title={maximized ? '还原' : '最大化'}
+        aria-label={maximized ? sh.restore : sh.maximize}
+        title={maximized ? sh.restore : sh.maximize}
       >
         {maximized ? <Icon.restore size={10} /> : <Icon.maximize size={10} />}
       </button>
       <button
         className="aurora-wincontrol aurora-wincontrol--close"
         onClick={onClose}
-        aria-label="关闭"
-        title="关闭"
+        aria-label={sh.close}
+        title={sh.close}
       >
         <Icon.close size={10} />
       </button>

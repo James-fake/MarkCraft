@@ -14,16 +14,18 @@ afterEach(() => {
 })
 
 describe('Aurora StatusBar · P1-4 语义', () => {
-  it('未传 savedState 时不渲染伪「已保存」，left 空则整段隐藏', () => {
+  it('未传 savedState 时不渲染伪保存态，left 空则整段隐藏', () => {
     render(<StatusBar rightItems={[{ content: '⌘K 命令面板' }]} />)
     expect(screen.queryByText('已保存')).toBeNull()
     expect(screen.queryByText('未保存')).toBeNull()
+    expect(screen.queryByText('Saved')).toBeNull()
+    expect(screen.queryByText('Unsaved')).toBeNull()
     expect(document.querySelector('.aurora-statusbar__left')).toBeNull()
     expect(screen.getByText('⌘K 命令面板')).toBeTruthy()
   })
 
   it('savedState="saved" 时渲染保存态 + 绿点', () => {
-    render(<StatusBar savedState="saved" />)
+    render(<StatusBar savedState="saved" savedText="已保存" />)
     expect(screen.getByText('已保存')).toBeTruthy()
     const dot = document.querySelector('.aurora-statusbar__dot')
     expect(dot).toBeTruthy()
@@ -31,14 +33,14 @@ describe('Aurora StatusBar · P1-4 语义', () => {
   })
 
   it('savedState="unsaved" 时渲染未保存 + 黄点', () => {
-    render(<StatusBar savedState="unsaved" />)
+    render(<StatusBar savedState="unsaved" savedText="未保存" />)
     expect(screen.getByText('未保存')).toBeTruthy()
     const dot = document.querySelector('.aurora-statusbar__dot')
     expect(dot?.classList.contains('aurora-statusbar__dot--unsaved')).toBe(true)
   })
 
   it('保存态渲染在 leftItems 最前，且与后续项用 · 分隔', () => {
-    render(<StatusBar savedState="saved" leftItems={[{ content: '120 字' }, { content: 'UTF-8' }]} />)
+    render(<StatusBar savedState="saved" savedText="已保存" leftItems={[{ content: '120 字' }, { content: 'UTF-8' }]} />)
     const left = document.querySelector('.aurora-statusbar__left')
     expect(left?.textContent).toMatch(/已保存/)
     // 顺序：已保存 先于 字数
@@ -47,7 +49,7 @@ describe('Aurora StatusBar · P1-4 语义', () => {
   })
 
   it('right 空时不渲染右容器', () => {
-    render(<StatusBar savedState="saved" />)
+    render(<StatusBar savedState="saved" savedText="已保存" />)
     expect(document.querySelector('.aurora-statusbar__right')).toBeNull()
   })
 })
