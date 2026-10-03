@@ -28,6 +28,30 @@ export const DAILY_PROMPTS = [
   '用一句话总结今天。',
 ]
 
+/** 每日引导问题·英文（与 DAILY_PROMPTS 一一对应，消费端按界面语言取） */
+export const DAILY_PROMPTS_EN: string[] = [
+  'What made you happiest today?',
+  'If you rated today 1-10, what would you give it, and why?',
+  'What new thing did you learn today?',
+  'Who are you most grateful to right now?',
+  'Did anything today change your mind about something?',
+  'If you could redo today, what would you do differently?',
+  'What has been weighing on you lately, and how could you ease it?',
+  'Describe one small detail you noticed today.',
+  'What did you do today for your future self?',
+  'Which conversation today stayed with you the most?',
+  'How are you different from who you were a year ago?',
+  'Was there a moment today you wanted to capture?',
+  'What are you currently keeping up, and how does it feel?',
+  'If today were a color, which one, and why?',
+  'Write down three small things from today you are grateful for.',
+  'What is something you want to start but have not?',
+  'Did you rest well today? How does your body feel?',
+  'Is there something you wanted to say today but did not?',
+  'What are you most looking forward to this week?',
+  'Summarize today in one sentence.',
+]
+
 export function countWords(content: string): number {
   return content.replace(/[#>*`_~\-[\]()!|]/g, '').replace(/\s+/g, '').length
 }

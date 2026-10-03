@@ -97,7 +97,7 @@ export function moodCatCounts(
 /* ============================================================
  * 每日一问（D4 单一数据源：源自 features/diary/diaryUtils，re-export）
  * ========================================================== */
-export { DAILY_PROMPTS } from '@features/diary'
+export { DAILY_PROMPTS, DAILY_PROMPTS_EN } from '@features/diary'
 
 /* ============================================================
  * 月度复盘（D1-3 回顾工作流 · 承接知识库砍掉的「回顾」能力）

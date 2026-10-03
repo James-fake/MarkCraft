@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogModal } from './blog'
-import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, kbSearch, kbOverview, kbCreate, kbFilter, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
+import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, diary, kbSearch, kbOverview, kbCreate, kbFilter, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -831,6 +831,34 @@ export interface Translations {
     }
     sceneTemplate: string
     exampleDesc: string
+  }
+  diary: {
+    breadcrumb: string
+    countUnit: string
+    today: string
+    backToToday: string
+    dateFormat: string
+    wordsUnit: string
+    unsaved: string
+    savedAt: string
+    firstEntryHint: string
+    emptyDateHint: string
+    noMood: string
+    view: string
+    writeThis: string
+    onThisDay: string
+    dailyQ: string
+    switchOne: string
+    pickMood: string
+    weekday: {
+      sun: string
+      mon: string
+      tue: string
+      wed: string
+      thu: string
+      fri: string
+      sat: string
+    }
   }
   kbSearch: {
     modeText: string
@@ -1682,6 +1710,7 @@ const zh: Translations = {
   versionHistory,
   settingsGeneral,
   settingsUser,
+  diary,
   kbSearch,
   kbOverview,
   kbCreate,

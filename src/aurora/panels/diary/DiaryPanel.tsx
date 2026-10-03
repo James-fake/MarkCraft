@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import type { Editor as TiptapEditorType } from '@tiptap/react'
 import { Modal } from '@components/ui/Modal'
+import { useLanguage } from '@stores/LanguageStore'
 import { Button } from '@components/ui/Button'
 import { PageFrame } from '../../components/shell/PageFrame'
 import { useCommandPalette } from '../../components/command-palette/CommandPaletteContext'
@@ -22,6 +23,7 @@ import {
 import {
   MOODS,
   MOOD_CAT_LABEL,
+  MOOD_CAT_LABEL_EN,
   type MoodKey,
   type MoodCat,
   type MoodStore,
@@ -36,6 +38,7 @@ import {
   extractTags,
   makeExcerpt,
   DAILY_PROMPTS,
+  DAILY_PROMPTS_EN,
   TODAY_STR,
   pickPromptIdx,
   loadPromptIdx,
@@ -48,7 +51,7 @@ interface DiaryPanelProps {
 }
 
 const fmtHM = () => new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
-const WEEKDAYS = ['日', '一', '二', '三', '四', '五', '六']
+const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
 
 // Aurora 日记情绪语义色（B 去紫收口：mix 不再复用 features 层 violet）
 const MOOD_SEMANTIC_COLOR: Record<MoodCat, string> = {
@@ -89,6 +92,11 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
   /* ---------- 真实运行环境（Phase 2 地基：RealProviders 已注入 FileManager/Modal 等） ---------- */
   const { rootFolder, createFile, createFolder, updateFileContent } = useFileManager()
   const { openCommandPalette } = useCommandPalette()
+  const { t, language } = useLanguage()
+  const isZh = language === 'zh'
+  const D = t.diary
+  /** 情绪标签按界面语言取（数据层 label/labelEn 双语） */
+  const moodLabel = (m: { label: string; labelEn: string }) => (isZh ? m.label : m.labelEn)
 
   /* ---------- 真实日记条目：从文件树收集，回前台/聚焦时刷新避免陈旧 ---------- */
   const [refreshNonce, setRefreshNonce] = useState(0)
@@ -151,7 +159,7 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
   }, [])
   const { y: fy, m: fm, d: fd } = parseYMD(focusDate)
   const focusedEntry = entryMap.get(focusDate) ?? null
-  const weekday = WEEKDAYS[new Date(focusDate + 'T00:00:00').getDay()]
+  const weekday = t.diary.weekday[WEEKDAY_KEYS[new Date(focusDate + 'T00:00:00').getDay()]]
 
   /* ---------- 真实编辑核心接线（方案 B）：用 TiptapEditor 替换 textarea ---------- */
   const tiptapRef = useRef<TiptapEditorHandle>(null)
@@ -268,19 +276,19 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
       sidebarGroups={AURORA_SIDEBAR_GROUPS}
       sidebarActiveId="日记"
       onSidebarSelect={handleNav}
-      breadcrumbs={['日记']}
-      statusLeftItems={[{ content: '日记' }, { content: `${entries.length} 篇` }]}
-      statusRightItems={[{ content: TODAY_STR }, { content: '⌘K 命令面板', clickable: true, onClick: () => openCommandPalette() }]}
+      breadcrumbs={[D.breadcrumb]}
+      statusLeftItems={[{ content: D.breadcrumb }, { content: D.countUnit.replace('{n}', String(entries.length)) }]}
+      statusRightItems={[{ content: TODAY_STR }, { content: t.welcome.cmdPalette, clickable: true, onClick: () => openCommandPalette() }]}
     >
       <div className="dv2-root">
         {/* ============ 左栏：整屏编辑器（日期头 + 合并格式栏/编辑区） ============ */}
         <section className="dv2-editor-col">
           <div className="dv2-date-header">
-            {focusDate === TODAY_STR && <span className="dv2-today-tag">今天</span>}
-            <span className="dv2-date-main">{fm}月{fd}日 周{weekday}</span>
+            {focusDate === TODAY_STR && <span className="dv2-today-tag">{D.today}</span>}
+            <span className="dv2-date-main">{D.dateFormat.replace('{fm}', String(fm)).replace('{fd}', String(fd)).replace('{wd}', weekday)}</span>
             <span className="dv2-date-year">· {fy}</span>
             {focusDate !== TODAY_STR && (
-              <button className="dv2-link-btn" onClick={() => setFocusDate(TODAY_STR)}>回到今天</button>
+              <button className="dv2-link-btn" onClick={() => setFocusDate(TODAY_STR)}>{D.backToToday}</button>
             )}
             <button className="dv2-mood-btn" onClick={openMood}>
               <Icon.smile size={13} /> 记录心情
@@ -301,10 +309,10 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
                 showStatusBar={false}
               />
               <div className="dv2-editor-foot">
-                <span className="dv2-wordcount">{liveWords} 字</span>
+                <span className="dv2-wordcount">{D.wordsUnit.replace('{n}', String(liveWords))}</span>
                 <div className={`dv2-save${save.status === 'error' ? ' is-error' : ''}`}>
                   <span className="dot" />
-                  {save.status === 'error' ? '未保存' : `已保存 ${save.time}`}
+                  {save.status === 'error' ? D.unsaved : D.savedAt.replace('{time}', save.time)}
                 </div>
               </div>
             </div>
@@ -321,15 +329,15 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
                 showStatusBar={false}
               />
               <div className="dv2-editor-foot">
-                <span className="dv2-wordcount">{liveWords} 字</span>
+                <span className="dv2-wordcount">{D.wordsUnit.replace('{n}', String(liveWords))}</span>
                 {focusDate === TODAY_STR ? (
-                  <span className="dv2-draft-hint">开始写今天的第一篇日记</span>
+                  <span className="dv2-draft-hint">{D.firstEntryHint}</span>
                 ) : (
-                  <span className="dv2-draft-hint">{focusDate} 还没有日记，写下点什么</span>
+                  <span className="dv2-draft-hint">{D.emptyDateHint.replace('{date}', focusDate)}</span>
                 )}
                 <div className={`dv2-save${save.status === 'error' ? ' is-error' : ''}`}>
                   <span className="dot" />
-                  {save.status === 'error' ? '未保存' : `已保存 ${save.time}`}
+                  {save.status === 'error' ? D.unsaved : D.savedAt.replace('{time}', save.time)}
                 </div>
               </div>
             </div>
@@ -355,20 +363,20 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
               {hoveredEntry ? (
                 <>
                   <div className="dv2-popover__date">
-                    {parseYMD(hoveredEntry.date).m}月{parseYMD(hoveredEntry.date).d}日 周{WEEKDAYS[new Date(hoveredEntry.date + 'T00:00:00').getDay()]}
+                    {D.dateFormat.replace('{fm}', String(parseYMD(hoveredEntry.date).m)).replace('{fd}', String(parseYMD(hoveredEntry.date).d)).replace('{wd}', t.diary.weekday[WEEKDAY_KEYS[new Date(hoveredEntry.date + 'T00:00:00').getDay()]])}
                   </div>
                   <div className="dv2-popover__meta">
                     {hoveredMoodColor && <span className="dv2-dot" style={{ background: hoveredMoodColor }} />}
-                    <span>{hoveredMood?.label ?? '未记录心情'} · {hoveredEntry.words} 字</span>
+                    <span>{hoveredMood ? moodLabel(hoveredMood) : D.noMood} · {D.wordsUnit.replace('{n}', String(hoveredEntry.words))}</span>
                   </div>
                   <div className="dv2-popover__excerpt">{makeExcerpt(hoveredEntry.content)}</div>
-                  <button className="dv2-popover__view" onClick={() => viewHovered(hoveredEntry.date)}>查看 →</button>
+                  <button className="dv2-popover__view" onClick={() => viewHovered(hoveredEntry.date)}>{D.view}</button>
                 </>
               ) : (
                 <div className="dv2-popover__empty">
                   <span>这一天还没有日记</span>
                   {hoveredDate && (
-                    <button className="dv2-popover__view" onClick={() => { setFocusDate(hoveredDate); setHoveredDate(null) }}>写这篇 →</button>
+                    <button className="dv2-popover__view" onClick={() => { setFocusDate(hoveredDate); setHoveredDate(null) }}>{D.writeThis}</button>
                   )}
                 </div>
               )}
@@ -377,16 +385,16 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
 
           {onThisDayCard && (
             <div className="dv2-otd">
-              <div className="dv2-otd__title">那年今日 · {parseYMD(onThisDayCard.date).y}年</div>
+              <div className="dv2-otd__title">{D.onThisDay.replace('{y}', String(parseYMD(onThisDayCard.date).y))}</div>
               <div className="dv2-otd__excerpt">{onThisDayCard.excerpt}</div>
-              <button className="dv2-otd__view" onClick={() => setFocusDate(onThisDayCard.date)}>查看 →</button>
+              <button className="dv2-otd__view" onClick={() => setFocusDate(onThisDayCard.date)}>{D.view}</button>
             </div>
           )}
 
           <div className="dv2-daily-q">
-            <div className="dv2-daily-q__label">每日一问</div>
-            <div className="dv2-daily-q__text">{DAILY_PROMPTS[promptIdx]}</div>
-            <button className="dv2-daily-q__switch" onClick={switchPrompt}><Icon.refresh size={12} /> 换一个</button>
+            <div className="dv2-daily-q__label">{D.dailyQ}</div>
+            <div className="dv2-daily-q__text">{(isZh ? DAILY_PROMPTS : DAILY_PROMPTS_EN)[promptIdx]}</div>
+            <button className="dv2-daily-q__switch" onClick={switchPrompt}><Icon.refresh size={12} /> {D.switchOne}</button>
           </div>
         </aside>
       </div>
@@ -395,7 +403,7 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
       <Modal
         isOpen={moodOpen}
         onClose={() => setMoodOpen(false)}
-        title="选择今日心情"
+        title={D.pickMood}
         size="sm"
         footer={
           <>
@@ -411,7 +419,7 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
         {(['pos', 'neg', 'mix'] as const).map((cat) => (
           <div key={cat}>
             <div className="dv-mood-picker__category-title" style={{ color: MOOD_SEMANTIC_COLOR[cat] }}>
-              {MOOD_CAT_LABEL[cat]}
+              {(isZh ? MOOD_CAT_LABEL : MOOD_CAT_LABEL_EN)[cat]}
             </div>
             <div className="dv-mood-picker__grid">
               {MOODS.filter((mm) => mm.cat === cat).map((mm) => {
@@ -423,7 +431,7 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
                     onClick={() => toggleMoodKey(mm.key)}
                   >
                     <span className="em">{mm.emoji}</span>
-                    <span className="nm">{mm.label}</span>
+                    <span className="nm">{moodLabel(mm)}</span>
                   </div>
                 )
               })}

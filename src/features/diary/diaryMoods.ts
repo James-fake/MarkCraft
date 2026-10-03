@@ -10,35 +10,37 @@ export interface MoodDef {
   key: string
   emoji: string
   label: string
+  /** 英文标签（界面语言为 en 时展示；label 保留中文本体） */
+  labelEn: string
   color: string
   cat: MoodCat
 }
 
 export const MOODS: MoodDef[] = [
   // 正向
-  { key: 'happy', emoji: '😊', label: '开心', color: '#f59e0b', cat: 'pos' },
-  { key: 'calm', emoji: '😌', label: '平静', color: '#10b981', cat: 'pos' },
-  { key: 'fulfilled', emoji: '💪', label: '充实', color: '#3b82f6', cat: 'pos' },
-  { key: 'excited', emoji: '🤩', label: '兴奋', color: '#fb7185', cat: 'pos' },
-  { key: 'grateful', emoji: '🙏', label: '感恩', color: '#f97316', cat: 'pos' },
-  { key: 'satisfied', emoji: '🥰', label: '满足', color: '#ec4899', cat: 'pos' },
-  { key: 'hopeful', emoji: '🌟', label: '充满希望', color: '#22c55e', cat: 'pos' },
-  { key: 'proud', emoji: '🏆', label: '自豪', color: '#eab308', cat: 'pos' },
+  { key: 'happy', emoji: '😊', label: '开心', labelEn: 'Happy', color: '#f59e0b', cat: 'pos' },
+  { key: 'calm', emoji: '😌', label: '平静', labelEn: 'Calm', color: '#10b981', cat: 'pos' },
+  { key: 'fulfilled', emoji: '💪', label: '充实', labelEn: 'Fulfilled', color: '#3b82f6', cat: 'pos' },
+  { key: 'excited', emoji: '🤩', label: '兴奋', labelEn: 'Excited', color: '#fb7185', cat: 'pos' },
+  { key: 'grateful', emoji: '🙏', label: '感恩', labelEn: 'Grateful', color: '#f97316', cat: 'pos' },
+  { key: 'satisfied', emoji: '🥰', label: '满足', labelEn: 'Satisfied', color: '#ec4899', cat: 'pos' },
+  { key: 'hopeful', emoji: '🌟', label: '充满希望', labelEn: 'Hopeful', color: '#22c55e', cat: 'pos' },
+  { key: 'proud', emoji: '🏆', label: '自豪', labelEn: 'Proud', color: '#eab308', cat: 'pos' },
   // 负向
-  { key: 'anxious', emoji: '😰', label: '焦虑', color: '#ef4444', cat: 'neg' },
-  { key: 'sad', emoji: '😔', label: '低落', color: '#64748b', cat: 'neg' },
-  { key: 'tired', emoji: '😪', label: '疲惫', color: '#8b5cf6', cat: 'neg' },
-  { key: 'angry', emoji: '😠', label: '愤怒', color: '#dc2626', cat: 'neg' },
-  { key: 'lonely', emoji: '🥺', label: '孤独', color: '#6366f1', cat: 'neg' },
-  { key: 'frustrated', emoji: '😞', label: '沮丧', color: '#ea580c', cat: 'neg' },
-  { key: 'stressed', emoji: '😣', label: '压力大', color: '#e11d48', cat: 'neg' },
-  { key: 'guilty', emoji: '😖', label: '愧疚', color: '#a855f7', cat: 'neg' },
+  { key: 'anxious', emoji: '😰', label: '焦虑', labelEn: 'Anxious', color: '#ef4444', cat: 'neg' },
+  { key: 'sad', emoji: '😔', label: '低落', labelEn: 'Down', color: '#64748b', cat: 'neg' },
+  { key: 'tired', emoji: '😪', label: '疲惫', labelEn: 'Tired', color: '#8b5cf6', cat: 'neg' },
+  { key: 'angry', emoji: '😠', label: '愤怒', labelEn: 'Angry', color: '#dc2626', cat: 'neg' },
+  { key: 'lonely', emoji: '🥺', label: '孤独', labelEn: 'Lonely', color: '#6366f1', cat: 'neg' },
+  { key: 'frustrated', emoji: '😞', label: '沮丧', labelEn: 'Frustrated', color: '#ea580c', cat: 'neg' },
+  { key: 'stressed', emoji: '😣', label: '压力大', labelEn: 'Stressed', color: '#e11d48', cat: 'neg' },
+  { key: 'guilty', emoji: '😖', label: '愧疚', labelEn: 'Guilty', color: '#a855f7', cat: 'neg' },
   // 复合
-  { key: 'expectant', emoji: '🤔', label: '期待', color: '#0ea5e9', cat: 'mix' },
-  { key: 'conflicted', emoji: '😕', label: '矛盾', color: '#78716c', cat: 'mix' },
-  { key: 'relieved', emoji: '😮‍💨', label: '释然', color: '#2dd4bf', cat: 'mix' },
-  { key: 'nostalgic', emoji: '🥹', label: '怀念', color: '#d946ef', cat: 'mix' },
-  { key: 'bittersweet', emoji: '🫠', label: '五味杂陈', color: '#f43f5e', cat: 'mix' },
+  { key: 'expectant', emoji: '🤔', label: '期待', labelEn: 'Expectant', color: '#0ea5e9', cat: 'mix' },
+  { key: 'conflicted', emoji: '😕', label: '矛盾', labelEn: 'Conflicted', color: '#78716c', cat: 'mix' },
+  { key: 'relieved', emoji: '😮‍💨', label: '释然', labelEn: 'Relieved', color: '#2dd4bf', cat: 'mix' },
+  { key: 'nostalgic', emoji: '🥹', label: '怀念', labelEn: 'Nostalgic', color: '#d946ef', cat: 'mix' },
+  { key: 'bittersweet', emoji: '🫠', label: '五味杂陈', labelEn: 'Bittersweet', color: '#f43f5e', cat: 'mix' },
 ]
 
 export const MOOD_MAP: Record<string, MoodDef> = Object.fromEntries(MOODS.map(m => [m.key, m]))
@@ -54,6 +56,13 @@ export const MOOD_CAT_LABEL: Record<MoodCat, string> = {
   pos: '正向',
   neg: '负向',
   mix: '复合',
+}
+
+/** 情绪分类英文标签（与 MOOD_CAT_LABEL 对齐，消费端按界面语言取） */
+export const MOOD_CAT_LABEL_EN: Record<MoodCat, string> = {
+  pos: 'Positive',
+  neg: 'Negative',
+  mix: 'Mixed',
 }
 
 export const MOOD_CAT_COLOR: Record<MoodCat, string> = {

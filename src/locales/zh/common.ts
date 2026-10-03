@@ -738,6 +738,35 @@ export const templates = {
   exampleDesc: '可一键载入的成稿范例。',
 }
 
+export const diary = {
+  breadcrumb: '日记',
+  countUnit: '{n} 篇',
+  today: '今天',
+  backToToday: '回到今天',
+  dateFormat: '{fm}月{fd}日 周{wd}',
+  wordsUnit: '{n} 字',
+  unsaved: '未保存',
+  savedAt: '已保存 {time}',
+  firstEntryHint: '开始写今天的第一篇日记',
+  emptyDateHint: '{date} 还没有日记，写下点什么',
+  noMood: '未记录心情',
+  view: '查看 →',
+  writeThis: '写这篇 →',
+  onThisDay: '那年今日 · {y}年',
+  dailyQ: '每日一问',
+  switchOne: '换一个',
+  pickMood: '选择今日心情',
+  weekday: {
+    sun: '日',
+    mon: '一',
+    tue: '二',
+    wed: '三',
+    thu: '四',
+    fri: '五',
+    sat: '六',
+  },
+}
+
 export const kbSearch = {
   modeText: '文本',
   modeRegex: '正则',
