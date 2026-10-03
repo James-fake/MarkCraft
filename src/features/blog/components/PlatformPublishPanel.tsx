@@ -16,6 +16,7 @@ import {
 import type { BlogPost } from '../templates'
 import { SectionLabel, StudioButton, StudioChip, StudioSelect, useStudioTheme } from './StudioControls'
 import { useToast } from '@components/ui/ToastProvider'
+import { useLanguage } from '@stores/LanguageStore'
 
 export interface PlatformPublishPanelProps {
   /** 已生成站点时的文章列表（含渲染后的 HTML） */
@@ -34,12 +35,20 @@ interface Candidate {
   meta: ReturnType<typeof toPublishMeta>
 }
 
-const PLATFORMS: Array<{ key: PublishPlatform; label: string; hint: string }> = [
-  { key: 'wechat', label: '公众号', hint: '清洗后的 HTML，直接粘贴进公众号编辑器' },
-  { key: 'substack', label: 'Substack', hint: 'Markdown 原文，粘贴进 Substack 编辑器' },
-  { key: 'mdx', label: 'MDX', hint: 'MDX 兼容 Markdown，供 Next.js / Docusaurus 使用' },
-  { key: 'hugo', label: 'Hugo', hint: 'frontmatter + 正文，放入 content/posts/' },
-  { key: 'astro', label: 'Astro', hint: 'frontmatter + 正文，放入 src/content/' },
+/**
+ * 平台清单：label/hint 走语言包键，UI 侧解析；
+ * Substack/MDX/Hugo/Astro 的 label 为品牌名，中英文一致，故直接用固定 label。
+ */
+type PlatformDef =
+  | { key: PublishPlatform; brand: string; hintKey: string }
+  | { key: PublishPlatform; labelKey: string; hintKey: string }
+
+const PLATFORMS: PlatformDef[] = [
+  { key: 'wechat', labelKey: 'wechatLabel', hintKey: 'wechatHint' },
+  { key: 'substack', brand: 'Substack', hintKey: 'substackHint' },
+  { key: 'mdx', brand: 'MDX', hintKey: 'mdxHint' },
+  { key: 'hugo', brand: 'Hugo', hintKey: 'hugoHint' },
+  { key: 'astro', brand: 'Astro', hintKey: 'astroHint' },
 ]
 
 /** 由文章或源文件构造候选项（导出后供测试复用） */
@@ -48,11 +57,12 @@ export function buildCandidates(
   posts: BlogPost[] | undefined,
   selectedMdFiles: Array<{ name: string; content: string }>,
   author?: string,
+  articleFallback: (n: number) => string = n => `Article ${n}`,
 ): Candidate[] {
   if (posts && posts.length > 0) {
     return posts.map((p, i) => ({
       key: `${p.slug || 'post'}-${i}`,
-      label: p.title || p.slug || `文章 ${i + 1}`,
+      label: p.title || p.slug || articleFallback(i + 1),
       markdown: p.rawContent || '',
       html: p.content,
       meta: toPublishMeta(
@@ -99,13 +109,20 @@ export function computeExport(
 
 export default function PlatformPublishPanel({ posts, selectedMdFiles, author }: PlatformPublishPanelProps) {
   const { isDark } = useStudioTheme()
+  const { t } = useLanguage()
   const toast = useToast()
   const [platform, setPlatform] = useState<PublishPlatform>('wechat')
   const [articleKey, setArticleKey] = useState<string>('')
 
+  const pp = t.platformPublish
+
+  /** 解析平台展示名：品牌名原样，其余取语言包 */
+  const platformLabel = (p: PlatformDef): string =>
+    'brand' in p ? p.brand : (pp as unknown as Record<string, string>)[p.labelKey]
+
   const candidates = useMemo(
-    () => buildCandidates(posts, selectedMdFiles, author),
-    [posts, selectedMdFiles, author],
+    () => buildCandidates(posts, selectedMdFiles, author, n => pp.articleFallback.replace('{n}', String(n))),
+    [posts, selectedMdFiles, author, pp.articleFallback],
   )
 
   const active = candidates.find(c => c.key === articleKey) || candidates[0]
@@ -117,11 +134,12 @@ export default function PlatformPublishPanel({ posts, selectedMdFiles, author }:
 
   const handleCopy = async () => {
     if (!exported) return
+    const cur = PLATFORMS.find(p => p.key === platform)
     try {
       await navigator.clipboard.writeText(exported.content)
-      toast.show(`已复制「${PLATFORMS.find(p => p.key === platform)?.label}」格式内容`, 'success')
+      toast.show(pp.copied.replace('{platform}', cur ? platformLabel(cur) : platform), 'success')
     } catch {
-      toast.show('复制失败，请改用下载', 'error')
+      toast.show(pp.copyFailed, 'error')
     }
   }
 
@@ -138,16 +156,16 @@ export default function PlatformPublishPanel({ posts, selectedMdFiles, author }:
     a.click()
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
-    toast.show(`已下载 ${exported.filename}`, 'success')
+    toast.show(pp.downloaded.replace('{filename}', exported.filename), 'success')
   }
 
   return (
     <div>
-      <SectionLabel>平台适配导出</SectionLabel>
+      <SectionLabel>{pp.title}</SectionLabel>
 
       {candidates.length === 0 ? (
         <div style={{ fontSize: 11, color: faint, lineHeight: 1.7, padding: '8px 0' }}>
-          请先在「内容」面板中选择要发布的文档。
+          {pp.emptyHint}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -161,7 +179,7 @@ export default function PlatformPublishPanel({ posts, selectedMdFiles, author }:
             {PLATFORMS.map(p => (
               <StudioChip
                 key={p.key}
-                label={p.label}
+                label={platformLabel(p)}
                 active={platform === p.key}
                 onClick={() => setPlatform(p.key)}
               />
@@ -169,7 +187,10 @@ export default function PlatformPublishPanel({ posts, selectedMdFiles, author }:
           </div>
 
           <div style={{ fontSize: 10, color: faint, lineHeight: 1.6 }}>
-            {PLATFORMS.find(p => p.key === platform)?.hint}
+            {(() => {
+              const cur = PLATFORMS.find(p => p.key === platform)
+              return cur ? (pp as unknown as Record<string, string>)[cur.hintKey] : undefined
+            })()}
           </div>
 
           {needsHtml && (
@@ -184,7 +205,7 @@ export default function PlatformPublishPanel({ posts, selectedMdFiles, author }:
                 border: '1px solid rgba(251,191,36,0.2)',
               }}
             >
-              公众号需要渲染后的 HTML：请先点击上方「生成」，再回到这里导出。当前将退化为 Markdown 原文。
+              {pp.needHtml}
             </div>
           )}
 
@@ -204,13 +225,13 @@ export default function PlatformPublishPanel({ posts, selectedMdFiles, author }:
               border: `1px solid ${isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'}`,
             }}
           >
-            {(exported?.content || '').slice(0, 600) || '（空内容）'}
+            {(exported?.content || '').slice(0, 600) || pp.emptyContent}
             {(exported?.content.length || 0) > 600 ? '…' : ''}
           </div>
 
           <div style={{ display: 'flex', gap: 6 }}>
-            <StudioButton label="复制" onClick={handleCopy} variant="secondary" fullWidth />
-            <StudioButton label={`下载 ${exported?.filename || ''}`} onClick={handleDownload} variant="secondary" fullWidth />
+            <StudioButton label={pp.copy} onClick={handleCopy} variant="secondary" fullWidth />
+            <StudioButton label={pp.download.replace('{filename}', exported?.filename || '')} onClick={handleDownload} variant="secondary" fullWidth />
           </div>
         </div>
       )}

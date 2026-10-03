@@ -344,8 +344,8 @@ export function FeaturesPanel({ designConfig, handleDesignChange }: FeaturesPane
       {/* 系列文章 */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <SectionLabel>{t.blogStudio.seriesArticles || '系列文章'}</SectionLabel>
-          <StudioChip label={t.blogStudio.addSeries || '添加系列'} onClick={() => setAddingSeries(true)} />
+          <SectionLabel>{t.blogStudio.seriesArticles}</SectionLabel>
+          <StudioChip label={t.blogStudio.addSeries} onClick={() => setAddingSeries(true)} />
         </div>
         <div style={{ border: `1px solid ${cardBorder}`, borderRadius: 10, background: cardBg, padding: 12 }}>
           {addingSeries && (
@@ -353,17 +353,17 @@ export function FeaturesPanel({ designConfig, handleDesignChange }: FeaturesPane
               <StudioInput
                 value={newSeries.name}
                 onChange={(v) => setNewSeries(prev => ({ ...prev, name: v }))}
-                placeholder={t.blogStudio.seriesName || '系列名称'}
+                placeholder={t.blogStudio.seriesName}
               />
               <StudioInput
                 value={newSeries.slug}
                 onChange={(v) => setNewSeries(prev => ({ ...prev, slug: v }))}
-                placeholder={t.blogStudio.seriesSlug || '系列别名（可选）'}
+                placeholder={t.blogStudio.seriesSlug}
               />
               <StudioInput
                 value={newSeries.description || ''}
                 onChange={(v) => setNewSeries(prev => ({ ...prev, description: v }))}
-                placeholder={t.blogStudio.seriesDescription || '系列描述（可选）'}
+                placeholder={t.blogStudio.seriesDescription}
               />
               <div style={{ display: 'flex', gap: 6 }}>
                 <StudioChip label={t.blogStudio.confirm} onClick={addSeries} />
@@ -373,7 +373,7 @@ export function FeaturesPanel({ designConfig, handleDesignChange }: FeaturesPane
           )}
           {((designConfig.seriesConfig as SeriesConfig[] | undefined)?.length || 0) === 0 ? (
             <div style={{ textAlign: 'center', padding: '20px 0', opacity: d ? 0.3 : 0.4, fontSize: 11 }}>
-              {t.blogStudio.noSeries || '暂无系列文章'}
+              {t.blogStudio.noSeries}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -410,7 +410,7 @@ export function FeaturesPanel({ designConfig, handleDesignChange }: FeaturesPane
 
       {/* 配置导入导出 */}
       <div>
-        <SectionLabel>{t.blogStudio.configImportExport || '配置导入导出'}</SectionLabel>
+        <SectionLabel>{t.blogStudio.configImportExport}</SectionLabel>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={() => {
@@ -439,7 +439,7 @@ export function FeaturesPanel({ designConfig, handleDesignChange }: FeaturesPane
               transition: 'all 0.15s ease',
             }}
           >
-            📤 {t.blogStudio.exportConfig || '导出配置'}
+            📤 {t.blogStudio.exportConfig}
           </button>
           <button
             onClick={() => {
@@ -482,12 +482,12 @@ export function FeaturesPanel({ designConfig, handleDesignChange }: FeaturesPane
                     handleDesignChange('seriesConfig', config.seriesConfig)
                     handleDesignChange('enablePwa', config.enablePwa)
                     
-                    toast.show(t.blogStudio.importSuccess || '配置导入成功！', 'success')
+                    toast.show(t.blogStudio.importSuccess, 'success')
                   } else {
-                    toast.show(t.blogStudio.invalidConfig || '无效的配置文件', 'info')
+                    toast.show(t.blogStudio.invalidConfig, 'info')
                   }
                 } catch (err) {
-                  toast.show(t.blogStudio.importFailed || '导入失败', 'error')
+                  toast.show(t.blogStudio.importFailed, 'error')
                 }
               }
               input.click()
@@ -502,7 +502,7 @@ export function FeaturesPanel({ designConfig, handleDesignChange }: FeaturesPane
               transition: 'all 0.15s ease',
             }}
           >
-            📥 {t.blogStudio.importConfig || '导入配置'}
+            📥 {t.blogStudio.importConfig}
           </button>
         </div>
       </div>

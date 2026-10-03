@@ -3,12 +3,13 @@ import { escapeHtml, wrapHtml } from './utils'
 import type { SeoMeta } from './seoUtils'
 
 export function generatePageHtml(post: BlogPost, config: BlogConfig): string {
+  const bl: 'zh' | 'en' = config.language === 'en' ? 'en' : 'zh'
   const body = `
     <div class="post-header">
       <h1>${escapeHtml(post.title)}</h1>
     </div>
     <div class="post-content">${post.content}</div>
-    <a href="index.html" class="back-link">返回首页</a>
+    <a href="index.html" class="back-link">${bl === 'en' ? 'Back to Home' : '返回首页'}</a>
   `
   const hasMermaid = post.content.includes('mermaid-diagram')
   // P1-2: 独立页面此前只继承站点级描述，这里补齐页面自身的 SEO 元数据

@@ -9,6 +9,7 @@ import type { BlogPost } from '../templates'
 import { SectionLabel, useStudioTheme } from './StudioControls'
 import { statusLabel, type PostStatus } from '../services/postStatus'
 import { getPublishLog, clearPublishTrace, type PublishTraceEntry } from '../services/publishTrace'
+import { useLanguage } from '@stores/LanguageStore'
 
 const STATUS_ORDER: PostStatus[] = ['published', 'pending', 'draft']
 
@@ -25,6 +26,8 @@ export interface PublishStatusPanelProps {
 
 export default function PublishStatusPanel({ posts }: PublishStatusPanelProps) {
   const { isDark } = useStudioTheme()
+  const { t, language } = useLanguage()
+  const lang = language === 'zh' ? 'zh' : 'en'
   const [trace, setTrace] = useState<PublishTraceEntry[]>([])
 
   // 读取本地发布留痕
@@ -55,7 +58,7 @@ export default function PublishStatusPanel({ posts }: PublishStatusPanelProps) {
 
   return (
     <div>
-      <SectionLabel>发布状态与留痕</SectionLabel>
+      <SectionLabel>{t.blogCss.publishStatusTitle}</SectionLabel>
 
       {/* 状态分布 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 10 }}>
@@ -70,7 +73,7 @@ export default function PublishStatusPanel({ posts }: PublishStatusPanelProps) {
             <div style={{ fontSize: 16, fontWeight: 800, color: STATUS_COLOR[s], fontFamily: "'JetBrains Mono', monospace", lineHeight: 1 }}>
               {stats.counts[s]}
             </div>
-            <div style={{ fontSize: 9, color: muted }}>{statusLabel(s)}</div>
+            <div style={{ fontSize: 9, color: muted }}>{statusLabel(s, lang)}</div>
           </div>
         ))}
       </div>
@@ -78,7 +81,7 @@ export default function PublishStatusPanel({ posts }: PublishStatusPanelProps) {
       {/* 系列聚合概览 */}
       {stats.series.length > 0 && (
         <div style={{ marginBottom: 10 }}>
-          <div style={{ fontSize: 10, color: faint, marginBottom: 4 }}>系列专栏</div>
+          <div style={{ fontSize: 10, color: faint, marginBottom: 4 }}>{t.blogCss.publishSeries}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
             {stats.series.map(s => (
               <div
@@ -87,7 +90,7 @@ export default function PublishStatusPanel({ posts }: PublishStatusPanelProps) {
                   fontSize: 10, padding: '3px 8px', borderRadius: 999, background: cardBg,
                   border: `1px solid ${cardBorder}`, color: muted,
                 }}
-                title={`${s.name} · ${s.count} 篇`}
+                title={t.blogCss.publishSeriesItem.replace('{name}', s.name).replace('{count}', String(s.count))}
               >
                 📚 {s.name} · {s.count}
               </div>
@@ -99,7 +102,7 @@ export default function PublishStatusPanel({ posts }: PublishStatusPanelProps) {
       {/* 本地发布留痕 */}
       <div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-          <div style={{ fontSize: 10, color: faint }}>发布留痕（本地）</div>
+          <div style={{ fontSize: 10, color: faint }}>{t.blogCss.publishTrail}</div>
           {trace.length > 0 && (
             <button
               onClick={() => { clearPublishTrace(); setTrace([]) }}
@@ -108,13 +111,13 @@ export default function PublishStatusPanel({ posts }: PublishStatusPanelProps) {
                 cursor: 'pointer', textDecoration: 'underline', padding: 0,
               }}
             >
-              清空
+              {t.blogCss.publishClear}
             </button>
           )}
         </div>
         {trace.length === 0 ? (
           <div style={{ fontSize: 10, color: faint, lineHeight: 1.6, padding: '4px 0' }}>
-            尚未发布。生成站点后，已发布文章会留痕在本地。
+            {t.blogCss.publishEmpty}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 160, overflow: 'auto' }}>

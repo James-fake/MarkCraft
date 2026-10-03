@@ -148,7 +148,7 @@ export default function BlogConfigForm({ config, setConfig, t }: BlogConfigFormP
           value={config.language}
           onChange={(v) => setConfig(prev => ({ ...prev, language: v }))}
           options={[
-            { value: 'zh-CN', label: '中文 (zh-CN)' },
+            { value: 'zh-CN', label: t.blogCss.cfgZhLabel },
             { value: 'en', label: 'English (en)' },
           ]}
           className="aurora-select--block"
@@ -156,7 +156,7 @@ export default function BlogConfigForm({ config, setConfig, t }: BlogConfigFormP
       </div>
 
       <div style={{ ...fieldGroupStyle, marginTop: 8, paddingTop: 12, borderTop: '1px solid var(--editor-border)' }}>
-        <label style={{ ...labelStyle, fontWeight: 600 }}>扩展功能</label>
+        <label style={{ ...labelStyle, fontWeight: 600 }}>{t.blogCss.cfgExtendedFeatures}</label>
       </div>
 
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -169,7 +169,7 @@ export default function BlogConfigForm({ config, setConfig, t }: BlogConfigFormP
             backgroundColor: config.enableBusuanzi ? 'var(--mc-accent-soft)' : 'transparent',
             color: 'var(--editor-text)', fontFamily: "'Inter', sans-serif", transition: 'all 0.15s',
           }}
-        >👁️ 阅读量统计</button>
+        >👁️ {t.blogCss.cfgViewsCount}</button>
         <button
           onClick={() => setConfig(prev => ({ ...prev, enableApplause: !prev.enableApplause }))}
           style={{
@@ -179,11 +179,11 @@ export default function BlogConfigForm({ config, setConfig, t }: BlogConfigFormP
             backgroundColor: config.enableApplause ? 'var(--mc-accent-soft)' : 'transparent',
             color: 'var(--editor-text)', fontFamily: "'Inter', sans-serif", transition: 'all 0.15s',
           }}
-        >👏 文章点赞</button>
+        >👏 {t.blogCss.cfgApplause}</button>
       </div>
 
       <div style={fieldGroupStyle}>
-        <label style={labelStyle}>打赏功能</label>
+        <label style={labelStyle}>{t.blogCss.cfgReward}</label>
         <button
           onClick={() => setConfig(prev => ({ ...prev, reward: { enable: !prev.reward?.enable, wechatQrcode: prev.reward?.wechatQrcode, alipayQrcode: prev.reward?.alipayQrcode, title: prev.reward?.title } }))}
           style={{
@@ -193,11 +193,11 @@ export default function BlogConfigForm({ config, setConfig, t }: BlogConfigFormP
             backgroundColor: config.reward?.enable ? 'var(--mc-accent-soft)' : 'transparent',
             color: 'var(--editor-text)', fontFamily: "'Inter', sans-serif",
           }}
-        >{config.reward?.enable ? '✅ 已启用' : '启用打赏'}</button>
+        >{config.reward?.enable ? `✅ ${t.blogCss.cfgEnabled}` : t.blogCss.cfgEnableReward}</button>
         {config.reward?.enable && (
           <>
-            <input type="text" value={config.reward.wechatQrcode || ''} onChange={(e) => setConfig(prev => ({ ...prev, reward: { ...prev.reward!, wechatQrcode: e.target.value } }))} placeholder="微信收款码 URL" style={inputStyle} onFocus={handleFocus} onBlur={handleBlur} />
-            <input type="text" value={config.reward.alipayQrcode || ''} onChange={(e) => setConfig(prev => ({ ...prev, reward: { ...prev.reward!, alipayQrcode: e.target.value } }))} placeholder="支付宝收款码 URL" style={inputStyle} onFocus={handleFocus} onBlur={handleBlur} />
+            <input type="text" value={config.reward.wechatQrcode || ''} onChange={(e) => setConfig(prev => ({ ...prev, reward: { ...prev.reward!, wechatQrcode: e.target.value } }))} placeholder={t.blogCss.cfgWechatQrcode} style={inputStyle} onFocus={handleFocus} onBlur={handleBlur} />
+            <input type="text" value={config.reward.alipayQrcode || ''} onChange={(e) => setConfig(prev => ({ ...prev, reward: { ...prev.reward!, alipayQrcode: e.target.value } }))} placeholder={t.blogCss.cfgAlipayQrcode} style={inputStyle} onFocus={handleFocus} onBlur={handleBlur} />
           </>
         )}
       </div>

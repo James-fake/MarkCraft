@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { SectionLabel, StudioChip } from '../StudioControls'
 import { useThemeTokens } from './themeTokens'
+import { useLanguage } from '@stores/LanguageStore'
 
 const STORAGE_KEY = 'markcraft-css-snippets'
 
@@ -31,6 +32,7 @@ interface CssSnippetsProps {
 
 export function CssSnippets({ customCss, onInsertSnippet }: CssSnippetsProps) {
   const tk = useThemeTokens()
+  const { t } = useLanguage()
   const [snippets, setSnippets] = useState<CssSnippet[]>(loadSnippets)
   const [showSaveInput, setShowSaveInput] = useState(false)
   const [snippetName, setSnippetName] = useState('')
@@ -60,16 +62,16 @@ export function CssSnippets({ customCss, onInsertSnippet }: CssSnippetsProps) {
   if (snippets.length === 0 && !showSaveInput) {
     return (
       <div>
-        <SectionLabel>我的片段</SectionLabel>
+        <SectionLabel>{t.blogCss.mySnippets}</SectionLabel>
         {customCss.trim() ? (
           <StudioChip
-            label="+ 保存当前代码为片段"
+            label={t.blogCss.saveSnippet}
             onClick={() => setShowSaveInput(true)}
             variant="default"
           />
         ) : (
           <div style={{ fontSize: 10, color: tk.textMuted, fontStyle: 'italic' }}>
-            编辑 CSS 后可保存为片段
+            {t.blogCss.snippetEmptyHint}
           </div>
         )}
       </div>
@@ -78,7 +80,7 @@ export function CssSnippets({ customCss, onInsertSnippet }: CssSnippetsProps) {
 
   return (
     <div>
-      <SectionLabel>我的片段</SectionLabel>
+      <SectionLabel>{t.blogCss.mySnippets}</SectionLabel>
 
       {/* Snippet list */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginBottom: 6 }}>
@@ -104,7 +106,7 @@ export function CssSnippets({ customCss, onInsertSnippet }: CssSnippetsProps) {
             </button>
             <button
               onClick={() => handleDelete(snippet.id)}
-              title="删除片段"
+              title={t.blogCss.snippetDelete}
               style={{
                 background: 'none', border: 'none', cursor: 'pointer',
                 color: tk.textFaint, fontSize: 10, padding: 0,
@@ -124,7 +126,7 @@ export function CssSnippets({ customCss, onInsertSnippet }: CssSnippetsProps) {
             value={snippetName}
             onChange={(e) => setSnippetName(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); if (e.key === 'Escape') setShowSaveInput(false) }}
-            placeholder="片段名称..."
+            placeholder={t.blogCss.snippetNamePlaceholder}
             autoFocus
             style={{
               flex: 1, padding: '4px 8px', fontSize: 10,
@@ -133,13 +135,13 @@ export function CssSnippets({ customCss, onInsertSnippet }: CssSnippetsProps) {
               outline: 'none', fontFamily: "'Inter', sans-serif",
             }}
           />
-          <StudioChip label="保存" onClick={handleSave} variant="accent" />
-          <StudioChip label="取消" onClick={() => { setShowSaveInput(false); setSnippetName('') }} variant="default" />
+          <StudioChip label={t.blogCss.snippetSave} onClick={handleSave} variant="accent" />
+          <StudioChip label={t.blogCss.snippetCancel} onClick={() => { setShowSaveInput(false); setSnippetName('') }} variant="default" />
         </div>
       ) : (
         customCss.trim() && (
           <StudioChip
-            label="+ 保存当前代码为片段"
+            label={t.blogCss.saveSnippet}
             onClick={() => setShowSaveInput(true)}
             variant="default"
           />

@@ -1,8 +1,8 @@
 import { BlogDesignConfig, formatSize } from '../hooks/useBlogGenerator'
-import { ThemeStyle } from '../templates'
 import { BlogGenerationResult } from '../blogGenerator'
 import { useLanguage } from '@stores/LanguageStore'
 import { SectionLabel, useStudioTheme } from './StudioControls'
+import { useLabels } from './panels/shared'
 import DeployPanel from './DeployPanel'
 import PlatformPublishPanel from './PlatformPublishPanel'
 import PublishStatusPanel from './PublishStatusPanel'
@@ -43,6 +43,7 @@ export default function ExportPanel({
   selectedMdFiles, mdFiles, totalWordCount, totalSize,
 }: ExportPanelProps) {
   const { t } = useLanguage()
+  const { themeStyleLabels } = useLabels()
   const { isDark } = useStudioTheme()
   const d = isDark
   const density = useDensity()
@@ -55,30 +56,6 @@ export default function ExportPanel({
   const separatorColor = d ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.1)'
   const itemBorder = d ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.04)'
   const hoverBg = d ? 'rgba(255,255,255,0.02)' : 'rgba(0,0,0,0.02)'
-
-  const themeStyleLabels: Record<ThemeStyle, string> = {
-    magazine: t.blogStudio.magazine, minimal: t.blogStudio.minimal, classic: t.blogStudio.classic,
-    'ink-wash': t.blogStudio.inkWash, terminal: t.blogStudio.terminal, newspaper: t.blogStudio.newspaper,
-    glassmorphism: t.blogStudio.glassmorphism, bento: t.blogStudio.bento, narrative: t.blogStudio.narrative,
-    cyberpunk: '赛博朋克', aurora: '极光', academia: '学术',
-    retro: '复古', garden: '花园', midnight: '午夜',
-    custom: '自定义主题',
-    poetry: '诗歌', typewriter: '打字机', ocean: '海洋', sunset: '日落',
-    editorial: '社论', trending: '热门', dispatch: '快讯',
-    carbon: '碳黑', blueprint: '蓝图', hacker: '黑客',
-    showcase: '展示', mosaic: '马赛克', gallery: '画廊',
-    cinematic: '电影', docs: '文档', wiki: '百科',
-    neon: '霓虹', origami: '折纸',
-    swiss: '瑞士', bauhaus: '包豪斯', artdeco: '装饰艺术', zen: '禅意',
-    brutalist: '粗野', vaporwave: '蒸汽波', pixel: '像素', neumorphism: '新拟态',
-    corporate: '企业', fashion: '时尚', forest: '森林', notion: '笔记',
-    cafe: '咖啡馆', travel: '旅行', music: '音乐', sketch: '手绘',
-    cosmos: '宇宙', claymorphism: '粘土', 'ice-crystal': '冰晶',
-    rams: '拉姆斯', luxury: '奢华', comic: '漫画',
-    steampunk: '蒸汽朋克', gothic: '哥特', noir: '黑色电影',
-    recipe: '食谱', timeline: '时间线', feed: '动态流',
-    pastel: '粉彩', newsletter: '简报',
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: panelGap }}>
@@ -241,7 +218,7 @@ export default function ExportPanel({
       {/* ─── Step 2: Download — Dual Action Cards ─────────────── */}
       {result && (
         <div>
-          <SectionLabel>Step 2 · 下载</SectionLabel>
+          <SectionLabel>Step 2 · {t.blogStudio.stepDownload}</SectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
             {/* Folder Download */}
             <button

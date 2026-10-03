@@ -1,5 +1,6 @@
 import { useRef, useCallback, useEffect } from 'react'
 import { hexToRgb, rgbToHex } from '../templates/utils'
+import { useLanguage } from '@stores/LanguageStore'
 
 interface ColorPickerProps {
   color: string
@@ -301,6 +302,7 @@ export default function ColorPicker({
   color, lightness, saturation, sharpness,
   onColorChange, onLightnessChange, onSaturationChange, onSharpnessChange,
 }: ColorPickerProps) {
+  const { t } = useLanguage()
   const hsv = hexToHsv(color)
   const rgb = hexToRgb(color)
 
@@ -351,24 +353,24 @@ export default function ColorPicker({
       {/* Color Adjustment Sliders: 深浅 / 饱和 / 锐化
           Track gradients are FIXED (neutral ramps) so the menu's own slider
           backgrounds never follow the selected color — only the blog preview does. */}
-      <SectionLabel text="颜色微调" />
+      <SectionLabel text={t.blogCss.colorFineTune} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
         <SliderRow
-          label="深浅"
+          label={t.blogCss.colorLightness}
           value={lightness}
           min={0} max={100}
           onChange={onLightnessChange}
           trackGradient="linear-gradient(to right, #1a1a1a, #808080, #f5f5f5)"
         />
         <SliderRow
-          label="饱和"
+          label={t.blogCss.colorSaturation}
           value={saturation}
           min={0} max={200}
           onChange={onSaturationChange}
           trackGradient="linear-gradient(to right, #555, #d4d4d8)"
         />
         <SliderRow
-          label="锐化"
+          label={t.blogCss.colorSharpness}
           value={sharpness}
           min={0} max={200}
           onChange={onSharpnessChange}
@@ -377,7 +379,7 @@ export default function ColorPicker({
       </div>
 
       {/* RGB Channel Sliders */}
-      <SectionLabel text="RGB 通道" />
+      <SectionLabel text={t.blogCss.colorRgbChannels} />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
         <SliderRow
           label="R"

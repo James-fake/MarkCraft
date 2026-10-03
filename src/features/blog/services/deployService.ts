@@ -44,14 +44,14 @@ export async function deployToPages(
   const adapter = getGitAdapter(config.platform)
   const branch = config.branch || adapter.defaultBranch
 
-  onProgress({ stage: 'authenticating', message: `验证 ${adapter.platformName} 身份...`, progress: 5 })
+  onProgress({ stage: 'authenticating', message: `验证 ${adapter.platformName} 身份...`, messageKey: 'deployStageAuthenticating', messageParams: { platform: adapter.platformName }, progress: 5 })
   const user = await adapter.validateToken(config.token)
   config.owner = user.login
 
-  onProgress({ stage: 'creating-repo', message: '检查仓库...', progress: 10 })
+  onProgress({ stage: 'creating-repo', message: '检查仓库...', messageKey: 'deployStageCreatingRepo', progress: 10 })
   await adapter.ensureRepo(config.owner, config.repo, config.token)
 
-  onProgress({ stage: 'uploading', message: '准备上传...', progress: 20 })
+  onProgress({ stage: 'uploading', message: '准备上传...', messageKey: 'deployStagePreparing', progress: 20 })
   const baseTreeSha = await adapter.getBranchRef(config.owner, config.repo, branch, config.token)
 
   const treeItems: GitTreeItem[] = []
@@ -59,23 +59,23 @@ export async function deployToPages(
 
   for (let i = 0; i < files.length; i++) {
     const file = files[i]
-    onProgress({ stage: 'uploading', message: `上传文件 (${i + 1}/${totalFiles}): ${file.path}`, progress: 20 + Math.floor((i / totalFiles) * 50) })
+    onProgress({ stage: 'uploading', message: `上传文件 (${i + 1}/${totalFiles}): ${file.path}`, messageKey: 'deployStageUploading', messageParams: { current: String(i + 1), total: String(totalFiles), path: file.path }, progress: 20 + Math.floor((i / totalFiles) * 50) })
     const sha = await adapter.createBlob(config.owner, config.repo, file.content, config.token)
     treeItems.push({ path: file.path, sha, mode: '100644' as const, type: 'blob' as const })
   }
 
-  onProgress({ stage: 'committing', message: '创建提交...', progress: 75 })
+  onProgress({ stage: 'committing', message: '创建提交...', messageKey: 'deployStageCommitting', progress: 75 })
   const treeSha = await adapter.createTree(config.owner, config.repo, treeItems, baseTreeSha, config.token)
   const commitSha = await adapter.createCommit(config.owner, config.repo, `Deploy blog - ${new Date().toISOString()}`, treeSha, baseTreeSha, config.token)
 
-  onProgress({ stage: 'committing', message: '更新分支...', progress: 90 })
+  onProgress({ stage: 'committing', message: '更新分支...', messageKey: 'deployStageUpdatingBranch', progress: 90 })
   await adapter.updateBranchRef(config.owner, config.repo, branch, commitSha, config.token)
 
-  onProgress({ stage: 'configuring-pages', message: '配置 Pages...', progress: 95 })
+  onProgress({ stage: 'configuring-pages', message: '配置 Pages...', messageKey: 'deployStageConfiguringPages', progress: 95 })
   await adapter.configurePages(config.owner, config.repo, branch, config.token)
 
   const deployUrl = adapter.getPagesUrl(config.owner, config.repo)
-  onProgress({ stage: 'done', message: `${adapter.platformName} 部署成功！`, progress: 100, url: deployUrl })
+  onProgress({ stage: 'done', message: `${adapter.platformName} 部署成功！`, messageKey: 'deployStageDone', messageParams: { platform: adapter.platformName }, progress: 100, url: deployUrl })
   return deployUrl
 }
 

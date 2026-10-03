@@ -81,7 +81,7 @@ describe('KeyframeEditor (动画时间轴编辑器)', () => {
     expect(screen.getByText('播放次数')).toBeTruthy()
     expect(screen.getByText('实时预览（生成的 CSS 代码）')).toBeTruthy()
     // 功能说明提示存在
-    expect(screen.getByText(/为指定元素添加进入动画/)).toBeTruthy()
+    expect(screen.getByText(/可视化创建 @keyframes 动画/)).toBeTruthy()
 
     // 选项带中文注解：AuroraSelect 已由原生 <select> 换成自定义滚轮浮层
     // → 关闭态 DOM 里只有「当前值」一项，其余选项须展开滚轮后才挂载。

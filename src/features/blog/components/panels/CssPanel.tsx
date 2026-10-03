@@ -238,10 +238,10 @@ export function CssPanel({ designConfig, handleDesignChange, onHoverCss, iframeR
             <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M11.42 15.17L17.25 21A2.652 2.652 0 0021 17.25l-5.877-5.877M11.42 15.17l2.496-3.03c.317-.384.74-.626 1.208-.766M11.42 15.17l-4.655 5.653A2.652 2.652 0 013.551 16.65l5.877-5.877m11.886 0a8.532 8.532 0 01-2.375-.99l-4.5-2.598a8.532 8.532 0 01-2.375-.99m5.25 4.498a8.532 8.532 0 002.375-.99l4.5-2.598a8.532 8.532 0 012.375-.99m-1.125 1.125l-3.375 3.375M6.75 6.75l3.375 3.375" />
             </svg>
-            自定义博客主题
+            {t.blogCss.customBlogTheme}
           </span>
           <span style={{ fontSize: 9, color: tk.textMuted, lineHeight: 1.4 }}>
-            {isCustomThemeMode ? '已启用：以下 CSS 完全接管博客样式' : '启用后使用空白骨架主题，由下方 CSS 完全自定义样式'}
+            {isCustomThemeMode ? t.blogCss.cssOverrideActive : t.blogCss.cssOverrideIdle}
           </span>
         </div>
         <button
@@ -279,7 +279,7 @@ export function CssPanel({ designConfig, handleDesignChange, onHoverCss, iframeR
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
           }}
         >
-          ☀️ 亮色 CSS
+          {t.blogCss.cssLight}
         </button>
         <button
           onClick={() => setCssMode('dark')}
@@ -292,7 +292,7 @@ export function CssPanel({ designConfig, handleDesignChange, onHoverCss, iframeR
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
           }}
         >
-          🌙 暗色 CSS
+          {t.blogCss.cssDark}
         </button>
       </div>
 
@@ -304,7 +304,7 @@ export function CssPanel({ designConfig, handleDesignChange, onHoverCss, iframeR
           border: '1px solid rgba(125,211,252,0.2)',
           fontSize: 9, color: 'rgba(125,211,252,0.85)', lineHeight: 1.5,
         }}>
-          ℹ 暗色 CSS 将自动包裹在 <code style={{ fontFamily: "'Fira Code', monospace" }}>@media (prefers-color-scheme: dark)</code> 和 <code style={{ fontFamily: "'Fira Code', monospace" }}>[data-theme="dark"]</code> 中，仅在暗色模式下生效。
+          ℹ {t.blogCss.cssDarkBannerPre}<code style={{ fontFamily: "'Fira Code', monospace" }}>@media (prefers-color-scheme: dark)</code>{t.blogCss.cssDarkBannerMid}<code style={{ fontFamily: "'Fira Code', monospace" }}>[data-theme="dark"]</code>{t.blogCss.cssDarkBannerPost}
         </div>
       )}
 
@@ -322,7 +322,7 @@ export function CssPanel({ designConfig, handleDesignChange, onHoverCss, iframeR
         value={currentCss}
         onChange={pushHistory}
         placeholder={cssMode === 'dark'
-          ? '在此输入暗色模式专用 CSS...\n例如: body { background: #1a1a2e; color: #e0e0e0; }'
+          ? t.blogCss.cssDarkPlaceholder
           : t.blogStudio.customCssPlaceholder}
         canUndo={history.past.length > 0}
         canRedo={history.future.length > 0}
@@ -345,9 +345,9 @@ export function CssPanel({ designConfig, handleDesignChange, onHoverCss, iframeR
               fontSize: 10, fontWeight: 700, color: 'rgba(239,68,68,0.9)',
               marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4,
             }}>
-              ⚠ 检测到 {sanitizationResult.threats.length} 处潜在安全风险
+              {t.blogCss.cssSecurityWarnings.replace('{count}', String(sanitizationResult.threats.length))}
               <span style={{ fontWeight: 400, fontSize: 9 }}>
-                （导出时将自动过滤）
+                {t.blogCss.cssSecurityAutoFilter}
               </span>
             </div>
             {sanitizationResult.threats.slice(0, 5).map((threat: CssSanitizationThreat, i: number) => (
@@ -355,12 +355,12 @@ export function CssPanel({ designConfig, handleDesignChange, onHoverCss, iframeR
                 fontSize: 9, color: 'rgba(239,68,68,0.75)',
                 fontFamily: "'Fira Code', monospace", lineHeight: 1.6,
               }}>
-                · 第 {threat.line} 行: {threat.reason}
+                {t.blogCss.cssSecurityLine.replace('{line}', String(threat.line)).replace('{reason}', threat.reason)}
               </div>
             ))}
             {sanitizationResult.threats.length > 5 && (
               <div style={{ fontSize: 9, color: 'rgba(239,68,68,0.6)', marginTop: 2 }}>
-                ...还有 {sanitizationResult.threats.length - 5} 处
+                {t.blogCss.cssSecurityMore.replace('{count}', String(sanitizationResult.threats.length - 5))}
               </div>
             )}
           </div>
@@ -377,13 +377,13 @@ export function CssPanel({ designConfig, handleDesignChange, onHoverCss, iframeR
           />
         )}
         <StudioChip
-          label="导入 CSS"
+          label={t.blogCss.cssImport}
           onClick={handleImport}
           variant="default"
         />
         {currentCss.trim() && (
           <StudioChip
-            label={`导出${cssMode === 'dark' ? '暗色' : ''} CSS`}
+            label={t.blogCss.cssExport.replace('{scope}', cssMode === 'dark' ? t.blogCss.cssExportDark : '')}
             onClick={handleExport}
             variant="default"
           />
@@ -403,7 +403,7 @@ export function CssPanel({ designConfig, handleDesignChange, onHoverCss, iframeR
             onChange={(e) => setMinifyOnExport(e.target.checked)}
             style={{ accentColor: tk.accent, cursor: 'pointer' }}
           />
-          <span>压缩导出</span>
+          <span>{t.blogCss.cssExportMinify}</span>
           {minifyOnExport && (
             <span style={{
               color: '#34d399', fontFamily: "'Fira Code', monospace", fontSize: 9,
@@ -466,6 +466,8 @@ function ScopeSelector({ customCss, onApplyScoped, tk }: {
   onApplyScoped: (css: string) => void
   tk: ReturnType<typeof useThemeTokens>
 }) {
+  const { t, language } = useLanguage()
+  const isZh = language === 'zh'
   const [expanded, setExpanded] = useState(false)
   const [scope, setScope] = useState<CssScope>('homepage')
   const [customSelector, setCustomSelector] = useState('')
@@ -495,7 +497,7 @@ function ScopeSelector({ customCss, onApplyScoped, tk }: {
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
         </svg>
-        🎯 条件生效范围
+        {t.blogCss.scopeConditionLabel}
       </button>
 
       {expanded && (
@@ -505,7 +507,7 @@ function ScopeSelector({ customCss, onApplyScoped, tk }: {
           display: 'flex', flexDirection: 'column', gap: 6,
         }}>
           <div style={{ fontSize: 9, color: tk.textFaint, lineHeight: 1.4 }}>
-            将当前 CSS 包裹到指定页面作用域中，仅在该页面生效
+            {t.blogCss.scopeConditionDesc}
           </div>
 
           {/* 作用域选择 */}
@@ -514,7 +516,7 @@ function ScopeSelector({ customCss, onApplyScoped, tk }: {
               <button
                 key={opt.key}
                 onClick={() => setScope(opt.key)}
-                title={opt.desc}
+                title={isZh ? opt.zhDesc : opt.enDesc}
                 style={{
                   padding: '4px 8px', borderRadius: 5, border: 'none',
                   background: scope === opt.key ? tk.accentBg : 'transparent',
@@ -523,7 +525,7 @@ function ScopeSelector({ customCss, onApplyScoped, tk }: {
                   transition: 'all 0.15s ease',
                 }}
               >
-                {opt.label}
+                {isZh ? opt.zh : opt.en}
               </button>
             ))}
             <button
@@ -535,7 +537,7 @@ function ScopeSelector({ customCss, onApplyScoped, tk }: {
                 cursor: 'pointer', fontSize: 9, fontWeight: 600,
               }}
             >
-              自定义
+              {t.blogCss.scopeCustom}
             </button>
           </div>
 
@@ -544,7 +546,7 @@ function ScopeSelector({ customCss, onApplyScoped, tk }: {
             <input
               value={customSelector}
               onChange={(e) => setCustomSelector(e.target.value)}
-              placeholder="自定义 CSS 选择器，如 .my-page 或 body.special"
+              placeholder={t.blogCss.scopeCustomPlaceholder}
               style={{
                 padding: '4px 8px', fontSize: 9,
                 border: `1px solid ${tk.inputBorder}`, borderRadius: 5,
@@ -556,13 +558,13 @@ function ScopeSelector({ customCss, onApplyScoped, tk }: {
 
           {/* 当前选择的描述 */}
           <div style={{ fontSize: 8, color: tk.textFaint }}>
-            {scope === 'global' ? '全局生效（不包裹）' :
-             scope === 'custom' ? (customSelector ? `包裹到: ${customSelector}` : '请输入自定义选择器') :
-             SCOPE_OPTIONS.find(o => o.key === scope)?.desc}
+            {scope === 'global' ? t.blogCss.scopeGlobalHint :
+             scope === 'custom' ? (customSelector ? t.blogCss.scopeWrappedHint.replace('{selector}', customSelector) : t.blogCss.scopeNeedCustom) :
+             (() => { const o = SCOPE_OPTIONS.find(o => o.key === scope); return o ? (isZh ? o.zhDesc : o.enDesc) : '' })()}
           </div>
 
           <StudioChip
-            label="应用作用域包裹"
+            label={t.blogCss.scopeApplyLabel}
             onClick={handleApply}
             variant="accent"
           />

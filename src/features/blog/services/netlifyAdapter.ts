@@ -24,11 +24,11 @@ export const netlifyAdapter = {
     const siteName = config.repo || 'markcraft-blog'
 
     // 1. 验证 Token
-    onProgress({ stage: 'authenticating', message: '验证 Netlify 身份...', progress: 5 })
+    onProgress({ stage: 'authenticating', message: '验证 Netlify 身份...', messageKey: 'deployStageAuthenticating', messageParams: { platform: 'Netlify' }, progress: 5 })
     await this.validateToken(token)
 
     // 2. 创建或获取 Site
-    onProgress({ stage: 'creating-repo', message: '检查 Netlify 站点...', progress: 15 })
+    onProgress({ stage: 'creating-repo', message: '检查 Netlify 站点...', messageKey: 'deployStageCreatingRepo', progress: 15 })
     let siteId: string
     const listRes = await fetch(`${API_BASE}/sites?filter=all`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -49,15 +49,15 @@ export const netlifyAdapter = {
     }
 
     // 3. 上传文件并部署
-    onProgress({ stage: 'uploading', message: '上传文件到 Netlify...', progress: 25 })
+    onProgress({ stage: 'uploading', message: '上传文件到 Netlify...', messageKey: 'deployStagePreparing', progress: 25 })
     const formData = new FormData()
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
-      onProgress({ stage: 'uploading', message: `打包文件 (${i + 1}/${files.length}): ${file.path}`, progress: 25 + Math.floor((i / files.length) * 50) })
+      onProgress({ stage: 'uploading', message: `打包文件 (${i + 1}/${files.length}): ${file.path}`, messageKey: 'deployStagePackaging', messageParams: { current: String(i + 1), total: String(files.length), path: file.path }, progress: 25 + Math.floor((i / files.length) * 50) })
       formData.append('functions', new Blob([file.content], { type: 'application/octet-stream' }), file.path)
     }
 
-    onProgress({ stage: 'committing', message: '创建 Netlify 部署...', progress: 80 })
+    onProgress({ stage: 'committing', message: '创建 Netlify 部署...', messageKey: 'deployStageCreatingDeploy', progress: 80 })
     const deployRes = await fetch(`${API_BASE}/sites/${siteId}/deploys`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
@@ -67,7 +67,7 @@ export const netlifyAdapter = {
     await deployRes.json()
 
     const deploymentUrl = `https://${siteName}.netlify.app`
-    onProgress({ stage: 'done', message: 'Netlify 部署成功！', progress: 100, url: deploymentUrl })
+    onProgress({ stage: 'done', message: 'Netlify 部署成功！', messageKey: 'deployStageDone', messageParams: { platform: 'Netlify' }, progress: 100, url: deploymentUrl })
     return deploymentUrl
   },
 }

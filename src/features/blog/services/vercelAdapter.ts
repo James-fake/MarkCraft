@@ -24,15 +24,15 @@ export const vercelAdapter = {
     const projectName = config.repo || 'markcraft-blog'
 
     // 1. 验证 Token
-    onProgress({ stage: 'authenticating', message: '验证 Vercel 身份...', progress: 5 })
+    onProgress({ stage: 'authenticating', message: '验证 Vercel 身份...', messageKey: 'deployStageAuthenticating', messageParams: { platform: 'Vercel' }, progress: 5 })
     await this.validateToken(token)
 
     // 2. 上传文件
-    onProgress({ stage: 'uploading', message: '上传文件到 Vercel...', progress: 15 })
+    onProgress({ stage: 'uploading', message: '上传文件到 Vercel...', messageKey: 'deployStagePreparing', progress: 15 })
     const filePayloads = []
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
-      onProgress({ stage: 'uploading', message: `上传文件 (${i + 1}/${files.length}): ${file.path}`, progress: 15 + Math.floor((i / files.length) * 40) })
+      onProgress({ stage: 'uploading', message: `上传文件 (${i + 1}/${files.length}): ${file.path}`, messageKey: 'deployStageUploading', messageParams: { current: String(i + 1), total: String(files.length), path: file.path }, progress: 15 + Math.floor((i / files.length) * 40) })
 
       const res = await fetch(`${API_BASE}/v2/files`, {
         method: 'POST',
@@ -56,7 +56,7 @@ export const vercelAdapter = {
     }
 
     // 3. 创建或获取 Project
-    onProgress({ stage: 'creating-repo', message: '创建 Vercel 项目...', progress: 60 })
+    onProgress({ stage: 'creating-repo', message: '创建 Vercel 项目...', messageKey: 'deployStageCreatingProject', progress: 60 })
     let projectId: string
     const listRes = await fetch(`${API_BASE}/v9/projects?limit=100`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -77,7 +77,7 @@ export const vercelAdapter = {
     }
 
     // 4. 创建 Deployment
-    onProgress({ stage: 'committing', message: '创建部署...', progress: 75 })
+    onProgress({ stage: 'committing', message: '创建部署...', messageKey: 'deployStageCreatingDeployment', progress: 75 })
     const deployRes = await fetch(`${API_BASE}/v13/deployments`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
@@ -91,7 +91,7 @@ export const vercelAdapter = {
     const deployData = await deployRes.json()
 
     // 5. 等待部署完成
-    onProgress({ stage: 'configuring-pages', message: '等待部署完成...', progress: 90 })
+    onProgress({ stage: 'configuring-pages', message: '等待部署完成...', messageKey: 'deployStageWaiting', progress: 90 })
     let deploymentUrl = deployData.url ? `https://${deployData.url}` : ''
     for (let i = 0; i < 30; i++) {
       await new Promise(r => setTimeout(r, 2000))
@@ -108,7 +108,7 @@ export const vercelAdapter = {
       }
     }
 
-    onProgress({ stage: 'done', message: 'Vercel 部署成功！', progress: 100, url: deploymentUrl })
+    onProgress({ stage: 'done', message: 'Vercel 部署成功！', messageKey: 'deployStageDone', messageParams: { platform: 'Vercel' }, progress: 100, url: deploymentUrl })
     return deploymentUrl
   },
 }

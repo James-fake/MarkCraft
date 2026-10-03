@@ -1,11 +1,13 @@
 import { useState, useCallback } from 'react'
 import { useStudioTheme } from '../StudioControls'
 import { useThemeTokens } from './themeTokens'
+import { useLanguage } from '@stores/LanguageStore'
 
 // CSS 变量定义
 interface VarDef {
   name: string
-  label: string
+  zh: string
+  en: string
   type: 'color' | 'size' | 'time'
   min?: number
   max?: number
@@ -13,36 +15,36 @@ interface VarDef {
   unit?: string
 }
 
-const VAR_GROUPS: Array<{ label: string; icon: string; vars: VarDef[] }> = [
+const VAR_GROUPS: Array<{ zh: string; en: string; icon: string; vars: VarDef[] }> = [
   {
-    label: '配色', icon: '🎨',
+    zh: '配色', en: 'Colors', icon: '🎨',
     vars: [
-      { name: '--accent-warm', label: '主题强调色', type: 'color' },
-      { name: '--accent-cool', label: '冷调强调色', type: 'color' },
-      { name: '--accent-violet', label: '紫罗兰强调', type: 'color' },
-      { name: '--accent-rose', label: '玫瑰强调', type: 'color' },
-      { name: '--accent-emerald', label: '翡翠强调', type: 'color' },
-      { name: '--bg-primary', label: '主背景色', type: 'color' },
-      { name: '--bg-secondary', label: '次背景色', type: 'color' },
-      { name: '--bg-card', label: '卡片背景色', type: 'color' },
-      { name: '--text-primary', label: '主文字色', type: 'color' },
-      { name: '--text-secondary', label: '次文字色', type: 'color' },
-      { name: '--text-muted', label: '弱化文字色', type: 'color' },
-      { name: '--border-color', label: '边框色', type: 'color' },
+      { name: '--accent-warm', zh: '主题强调色', en: 'Theme accent', type: 'color' },
+      { name: '--accent-cool', zh: '冷调强调色', en: 'Cool accent', type: 'color' },
+      { name: '--accent-violet', zh: '紫罗兰强调', en: 'Violet accent', type: 'color' },
+      { name: '--accent-rose', zh: '玫瑰强调', en: 'Rose accent', type: 'color' },
+      { name: '--accent-emerald', zh: '翡翠强调', en: 'Emerald accent', type: 'color' },
+      { name: '--bg-primary', zh: '主背景色', en: 'Primary background', type: 'color' },
+      { name: '--bg-secondary', zh: '次背景色', en: 'Secondary background', type: 'color' },
+      { name: '--bg-card', zh: '卡片背景色', en: 'Card background', type: 'color' },
+      { name: '--text-primary', zh: '主文字色', en: 'Primary text', type: 'color' },
+      { name: '--text-secondary', zh: '次文字色', en: 'Secondary text', type: 'color' },
+      { name: '--text-muted', zh: '弱化文字色', en: 'Muted text', type: 'color' },
+      { name: '--border-color', zh: '边框色', en: 'Border color', type: 'color' },
     ],
   },
   {
-    label: '布局', icon: '📐',
+    zh: '布局', en: 'Layout', icon: '📐',
     vars: [
-      { name: '--max-width', label: '内容最大宽度', type: 'size', min: 400, max: 1400, step: 20, unit: 'px' },
-      { name: '--radius', label: '大圆角', type: 'size', min: 0, max: 32, step: 1, unit: 'px' },
-      { name: '--radius-sm', label: '小圆角', type: 'size', min: 0, max: 20, step: 1, unit: 'px' },
+      { name: '--max-width', zh: '内容最大宽度', en: 'Max content width', type: 'size', min: 400, max: 1400, step: 20, unit: 'px' },
+      { name: '--radius', zh: '大圆角', en: 'Large radius', type: 'size', min: 0, max: 32, step: 1, unit: 'px' },
+      { name: '--radius-sm', zh: '小圆角', en: 'Small radius', type: 'size', min: 0, max: 20, step: 1, unit: 'px' },
     ],
   },
   {
-    label: '效果', icon: '✨',
+    zh: '效果', en: 'Effects', icon: '✨',
     vars: [
-      { name: '--transition', label: '过渡时间', type: 'time', min: 0, max: 100, step: 5, unit: 's' },
+      { name: '--transition', zh: '过渡时间', en: 'Transition duration', type: 'time', min: 0, max: 100, step: 5, unit: 's' },
     ],
   },
 ]
@@ -90,6 +92,8 @@ interface CssVariablesPanelProps {
 export function CssVariablesPanel({ customCss, onApplyVariables }: CssVariablesPanelProps) {
   const { isDark } = useStudioTheme()
   const tk = useThemeTokens()
+  const { t, language } = useLanguage()
+  const isZh = language === 'zh'
   const [expanded, setExpanded] = useState(false)
 
   // 生成 :root { ... } 代码，合并/替换已有变量
@@ -136,7 +140,7 @@ export function CssVariablesPanel({ customCss, onApplyVariables }: CssVariablesP
         <span style={{ transform: expanded ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.2s', display: 'inline-block' }}>
           ▸
         </span>
-        变量面板
+        {t.blogCss.varPanel}
       </button>
 
       {expanded && (
@@ -145,13 +149,13 @@ export function CssVariablesPanel({ customCss, onApplyVariables }: CssVariablesP
           padding: '8px 0',
         }}>
           {VAR_GROUPS.map(group => (
-            <div key={group.label}>
+            <div key={group.zh}>
               <div style={{
                 fontSize: 9, fontWeight: 700, color: tk.textMuted,
                 letterSpacing: '0.08em', textTransform: 'uppercase',
                 marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4,
               }}>
-                <span>{group.icon}</span> {group.label}
+                <span>{group.icon}</span> {isZh ? group.zh : group.en}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {group.vars.map(v => {
@@ -166,7 +170,7 @@ export function CssVariablesPanel({ customCss, onApplyVariables }: CssVariablesP
                         width: 70, flexShrink: 0, overflow: 'hidden',
                         textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                       }}>
-                        {v.label}
+                        {isZh ? v.zh : v.en}
                       </span>
                       {v.type === 'color' ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}>
@@ -184,7 +188,7 @@ export function CssVariablesPanel({ customCss, onApplyVariables }: CssVariablesP
                             fontSize: 9, color: tk.textFaint,
                             fontFamily: "'Fira Code', monospace",
                           }}>
-                            {rawValue || '(默认)'}
+                            {rawValue || t.blogCss.varDefault}
                           </span>
                         </div>
                       ) : (
@@ -207,7 +211,7 @@ export function CssVariablesPanel({ customCss, onApplyVariables }: CssVariablesP
                             fontFamily: "'Fira Code', monospace",
                             width: 40, textAlign: 'right',
                           }}>
-                            {rawValue || '(默认)'}
+                            {rawValue || t.blogCss.varDefault}
                           </span>
                         </div>
                       )}

@@ -87,7 +87,7 @@ export function generatePostHtml(
 
   // Generate TOC
   const tocItems = generateToc(contentWithIds)
-  const tocHtml = generateTocHtml(tocItems)
+  const tocHtml = generateTocHtml(tocItems, bl)
   const tocScript = tocItems.length > 0 ? getTocScript() : ''
 
   const tagsHtml = post.tags.map(t =>
@@ -116,7 +116,7 @@ export function generatePostHtml(
   const commentHtml = generateCommentHtml(config, post.slug)
 
   // Share buttons
-  const shareHtml = generateShareButtons(post, config.siteUrl)
+  const shareHtml = generateShareButtons(post, config.siteUrl, bl)
 
   // 面包屑导航
   const breadcrumb = `<nav class="breadcrumb" aria-label="${bl === 'en' ? 'Breadcrumb' : '面包屑导航'}"><ol itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem"><a itemprop="item" href="../index.html"><span itemprop="name">${bl === 'en' ? 'Home' : '首页'}</span></a><meta itemprop="position" content="1" /></li>${post.category ? `<li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem"><a itemprop="item" href="../tags.html#${tagId(post.category)}"><span itemprop="name">${escapeHtml(post.category)}</span></a><meta itemprop="position" content="2" /></li>` : ''}<li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem" class="breadcrumb-current"><span itemprop="name">${escapeHtml(post.title)}</span><meta itemprop="position" content="${post.category ? '3' : '2'}" /></li></ol></nav>`

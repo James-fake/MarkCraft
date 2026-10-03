@@ -31,7 +31,7 @@ export function ContentPanel({ designConfig, handleDesignChange, mdFiles, select
         <div>
           <SectionLabel>{t.blogStudio.language}</SectionLabel>
           <StudioSelect value={designConfig.language} onChange={(v) => handleDesignChange('language', v)}
-            options={[{ value: 'zh-CN', label: '中文' }, { value: 'en', label: 'English' }]}
+            options={[{ value: 'zh-CN', label: t.blogStudio.languageZh }, { value: 'en', label: 'English' }]}
           />
         </div>
       </div>

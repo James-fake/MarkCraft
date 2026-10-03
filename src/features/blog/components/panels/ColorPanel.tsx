@@ -59,7 +59,7 @@ export function ColorPanel({ designConfig, handleDesignChange }: PanelProps) {
             onClick={() => {
               handleDesignChange('colorScheme', 'custom')
             }}
-            title="自定义颜色"
+            title={t.blogStudio.customColor}
             style={{
               width: '100%', aspectRatio: '1', display: 'flex', alignItems: 'center', justifyContent: 'center',
               border: '2px solid transparent',
@@ -84,7 +84,7 @@ export function ColorPanel({ designConfig, handleDesignChange }: PanelProps) {
 
       {/* Professional Color Picker */}
       <div>
-        <SectionLabel>调色盘</SectionLabel>
+        <SectionLabel>{t.blogStudio.colorPalette}</SectionLabel>
         <ColorPicker
           color={designConfig.customColor}
           lightness={designConfig.colorLightness}
@@ -118,7 +118,7 @@ export function ColorPanel({ designConfig, handleDesignChange }: PanelProps) {
                 </div>
                 <div style={{ padding: '6px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: previewBg }}>
                   <span style={{ fontSize: 10, fontWeight: 500, opacity: d ? 0.5 : 0.65 }}>
-                    {themeStyleLabels[designConfig.themeStyle]} · {designConfig.colorScheme === 'custom' ? '自定义' : colorSchemeLabels[designConfig.colorScheme]}
+                    {themeStyleLabels[designConfig.themeStyle]} · {designConfig.colorScheme === 'custom' ? t.blogStudio.customColor : colorSchemeLabels[designConfig.colorScheme]}
                   </span>
                   <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                     <div style={{ width: 10, height: 10, borderRadius: 4, background: accentColor, boxShadow: `0 0 8px ${accentColor}40` }} />

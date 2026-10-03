@@ -17,10 +17,13 @@ export function generateCommentHtml(config: BlogConfig, postSlug: string): strin
   const comment = config.comment
   if (!comment || comment.system === 'none') return ''
 
+  const bl: 'zh' | 'en' = config.language === 'en' ? 'en' : 'zh'
+  const title = bl === 'en' ? 'Comments' : '评论'
+
   switch (comment.system) {
     case 'giscus':
       return `<div class="comments-section">
-  <h3 class="comments-title">评论</h3>
+  <h3 class="comments-title">${title}</h3>
   <script src="https://giscus.app/client.js"
     data-repo="${escapeAttr(comment.repo || '')}"
     data-repo-id="${escapeAttr(comment.repoId || '')}"
@@ -33,7 +36,7 @@ export function generateCommentHtml(config: BlogConfig, postSlug: string): strin
     data-emit-metadata="0"
     data-input-position="top"
     data-theme="preferred_color_scheme"
-    data-lang="zh-CN"
+    data-lang="${bl === 'en' ? 'en' : 'zh-CN'}"
     data-loading="lazy"
     crossorigin="anonymous"
     async>
@@ -42,7 +45,7 @@ export function generateCommentHtml(config: BlogConfig, postSlug: string): strin
 
     case 'utterances':
       return `<div class="comments-section">
-  <h3 class="comments-title">评论</h3>
+  <h3 class="comments-title">${title}</h3>
   <script src="https://utteranc.es/client.js"
     repo="${escapeAttr(comment.utterancesRepo || '')}"
     issue-term="pathname"
@@ -54,7 +57,7 @@ export function generateCommentHtml(config: BlogConfig, postSlug: string): strin
 
     case 'waline':
       return `<div class="comments-section">
-  <h3 class="comments-title">评论</h3>
+  <h3 class="comments-title">${title}</h3>
   <div id="waline"></div>
   <script type="module">
     import { init } from 'https://unpkg.com/@waline/client@v3/dist/waline.js';

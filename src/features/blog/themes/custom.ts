@@ -143,6 +143,7 @@ img { max-width: 100%; height: auto; }
 }
 
 export function getCustomIndexHtml(data: ThemeIndexData): string {
+  const bl: 'zh' | 'en' = data.language === 'en' ? 'en' : 'zh'
   const posts = data.published.map(post => `
     <article class="post-item">
       <h2><a href="posts/${post.slug}/index.html">${post.title}</a></h2>
@@ -156,8 +157,8 @@ export function getCustomIndexHtml(data: ThemeIndexData): string {
       <h1><a href="index.html">${data.siteTitle}</a></h1>
       ${data.siteDescription ? `<p>${data.siteDescription}</p>` : ''}
       <nav class="nav-links">
-        <a href="archive.html">归档</a>
-        <a href="tags.html">标签</a>
+        <a href="archive.html">${bl === 'en' ? 'Archive' : '归档'}</a>
+        <a href="tags.html">${bl === 'en' ? 'Tags' : '标签'}</a>
       </nav>
     </header>
 

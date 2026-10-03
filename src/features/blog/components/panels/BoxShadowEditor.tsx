@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react'
 import { ThemeTokens } from './themeTokens'
+import { useLanguage } from '@stores/LanguageStore'
 
 interface BoxShadowValue {
   offsetX: number
@@ -72,6 +73,7 @@ interface BoxShadowEditorProps {
 }
 
 export function BoxShadowEditor({ value, onPreview, onCommit, tk }: BoxShadowEditorProps) {
+  const { t } = useLanguage()
   const parsed = parseBoxShadow(value)
   const [local, setLocal] = useState<BoxShadowValue>(parsed)
 
@@ -100,7 +102,7 @@ export function BoxShadowEditor({ value, onPreview, onCommit, tk }: BoxShadowEdi
             cursor: 'pointer', fontSize: 9,
           }}
         >
-          内阴影
+          {t.blogCss.shadowInset}
         </button>
       </div>
       {/* Offset X/Y */}
@@ -127,7 +129,7 @@ export function BoxShadowEditor({ value, onPreview, onCommit, tk }: BoxShadowEdi
       {/* Blur + Spread */}
       <div style={{ display: 'flex', gap: 4 }}>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <span style={{ fontSize: 8, color: tk.textMuted, width: 16, flexShrink: 0 }}>模糊</span>
+          <span style={{ fontSize: 8, color: tk.textMuted, width: 16, flexShrink: 0 }}>{t.blogCss.shadowBlur}</span>
           <input type="range" min={0} max={40} step={1} value={local.blur}
             onChange={(e) => handleChange('blur', parseFloat(e.target.value))}
             onPointerUp={handleCommit}
@@ -136,7 +138,7 @@ export function BoxShadowEditor({ value, onPreview, onCommit, tk }: BoxShadowEdi
           <span style={{ fontSize: 8, color: tk.textFaint, width: 24 }}>{local.blur}px</span>
         </div>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 2 }}>
-          <span style={{ fontSize: 8, color: tk.textMuted, width: 16, flexShrink: 0 }}>扩展</span>
+          <span style={{ fontSize: 8, color: tk.textMuted, width: 16, flexShrink: 0 }}>{t.blogCss.shadowSpread}</span>
           <input type="range" min={-20} max={20} step={1} value={local.spread}
             onChange={(e) => handleChange('spread', parseFloat(e.target.value))}
             onPointerUp={handleCommit}
@@ -147,7 +149,7 @@ export function BoxShadowEditor({ value, onPreview, onCommit, tk }: BoxShadowEdi
       </div>
       {/* Color */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <span style={{ fontSize: 8, color: tk.textMuted }}>颜色</span>
+        <span style={{ fontSize: 8, color: tk.textMuted }}>{t.blogCss.shadowColor}</span>
         <input type="color" value={local.color}
           onChange={(e) => handleChange('color', e.target.value)}
           onPointerUp={handleCommit}

@@ -4,6 +4,7 @@ import { BoxShadowEditor } from './BoxShadowEditor'
 import { AuroraSelect } from '@components/ui/AuroraSelect'
 import { INSPECTOR_SCRIPT } from './inspectorScript'
 import { PropertyRow, PropertyGroup } from './propertyFields'
+import { useLanguage } from '@stores/LanguageStore'
 
 interface SelectedElement {
   selector: string
@@ -60,6 +61,7 @@ const DEVICE_BREAKPOINTS: Record<'desktop' | 'tablet' | 'mobile', string | null>
 
 
 export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevice }: VisualCssEditorProps) {
+  const { t } = useLanguage()
   const [selectedElement, setSelectedElement] = useState<SelectedElement | null>(null)
   const [inspectMode, setInspectMode] = useState(false)
 
@@ -205,12 +207,13 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
 
     // 根据当前预览设备自动包裹 @media 查询
     const breakpoint = previewDevice ? DEVICE_BREAKPOINTS[previewDevice] : null
+    const deviceLabel = previewDevice === 'mobile' ? t.blogCss.deviceMobile : t.blogCss.deviceTablet
     const css = breakpoint
-      ? `/* ${previewDevice === 'mobile' ? '手机 ≤375px' : '平板 ≤768px'} */\n@media ${breakpoint} {\n  ${rule.replace(/\n/g, '\n  ')}\n}`
+      ? `/* ${deviceLabel} */\n@media ${breakpoint} {\n  ${rule.replace(/\n/g, '\n  ')}\n}`
       : rule
 
     onGenerateCss(selector, css)
-  }, [selectedElement, onGenerateCss, previewDevice, outputUnit, convertPx])
+  }, [selectedElement, onGenerateCss, previewDevice, outputUnit, convertPx, t])
 
   // Parse rgb() to hex for color input
   const rgbToHex = (rgb: string): string => {
@@ -249,7 +252,7 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
         </svg>
-        {inspectMode ? '检查模式已开启（点击预览区元素）' : '开启元素检查模式'}
+        {inspectMode ? t.blogCss.inspectOn : t.blogCss.inspectOff}
       </button>
 
       {/* Device breakpoint hint — shows when non-desktop device is active */}
@@ -263,8 +266,8 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
         }}>
           <span style={{ fontSize: 11 }}>📱</span>
           <span>
-            当前: {previewDevice === 'mobile' ? '手机 (≤375px)' : '平板 (≤768px)'} —
-            生成的 CSS 将自动包裹 <code style={{ fontFamily: "'Fira Code', monospace", color: '#fbbf24' }}>@media</code> 查询
+            {t.blogCss.deviceHint.replace('{device}', previewDevice === 'mobile' ? t.blogCss.deviceMobile : t.blogCss.deviceTablet)} —{' '}
+            <code style={{ fontFamily: "'Fira Code', monospace", color: '#fbbf24' }}>@media</code>
           </span>
         </div>
       )}
@@ -276,7 +279,7 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
           padding: '4px 10px', borderRadius: 6,
           background: tk.inputBg, border: `1px solid ${tk.border}`,
         }}>
-          <span style={{ fontSize: 9, color: tk.textMuted }}>输出单位:</span>
+          <span style={{ fontSize: 9, color: tk.textMuted }}>{t.blogCss.outputUnit}</span>
           {(['px', 'rem', 'em', 'vw'] as const).map(u => (
             <button
               key={u}
@@ -295,7 +298,7 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
           ))}
           {outputUnit !== 'px' && (
             <span style={{ fontSize: 8, color: tk.textFaint, marginLeft: 'auto' }}>
-              (px 自动转换)
+              {t.blogCss.unitAutoConvert}
             </span>
           )}
         </div>
@@ -321,8 +324,8 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
           {/* Editable properties - grouped */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {/* ─── 字体组 ─── */}
-            <PropertyGroup title="字体" icon="Aa" tk={tk}>
-              <PropertyRow label="字号" value={`${pxToNum(selectedElement.styles.fontSize).toFixed(0)}px`} tk={tk}>
+            <PropertyGroup title={t.blogCss.groupTypography} icon="Aa" tk={tk}>
+              <PropertyRow label={t.blogCss.propFontSize} value={`${pxToNum(selectedElement.styles.fontSize).toFixed(0)}px`} tk={tk}>
                 <input type="range" min={10} max={72} value={pxToNum(selectedElement.styles.fontSize)}
                   onChange={(e) => applyStylePreview('font-size', `${e.target.value}px`)}
                   onPointerUp={(e) => commitCssRule('font-size', `${(e.target as HTMLInputElement).value}px`)}
@@ -330,7 +333,7 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
                 />
               </PropertyRow>
 
-              <PropertyRow label="字重" value={selectedElement.styles.fontWeight} tk={tk}>
+              <PropertyRow label={t.blogCss.propFontWeight} value={selectedElement.styles.fontWeight} tk={tk}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <AuroraSelect
                     value={String(selectedElement.styles.fontWeight)}
@@ -341,7 +344,7 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
                 </div>
               </PropertyRow>
 
-              <PropertyRow label="字体" value={selectedElement.styles.fontFamily} tk={tk}>
+              <PropertyRow label={t.blogCss.propFontFamily} value={selectedElement.styles.fontFamily} tk={tk}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <AuroraSelect
                     value={String(selectedElement.styles.fontFamily)}
@@ -352,7 +355,7 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
                 </div>
               </PropertyRow>
 
-              <PropertyRow label="风格" value={selectedElement.styles.fontStyle} tk={tk}>
+              <PropertyRow label={t.blogCss.propFontStyle} value={selectedElement.styles.fontStyle} tk={tk}>
                 <div style={{ display: 'flex', gap: 2, flex: 1 }}>
                   {['normal', 'italic'].map(style => (
                     <button key={style} onClick={() => { applyStylePreview('font-style', style); commitCssRule('font-style', style) }}
@@ -363,12 +366,12 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
                         color: selectedElement.styles.fontStyle === style ? tk.accentText : tk.textSub,
                         cursor: 'pointer', fontSize: 9, fontStyle: style === 'italic' ? 'italic' : 'normal',
                       }}
-                    >{style === 'italic' ? '斜' : '正'}</button>
+                    >{style === 'italic' ? t.blogCss.styleItalic : t.blogCss.styleNormal}</button>
                   ))}
                 </div>
               </PropertyRow>
 
-              <PropertyRow label="装饰" value={selectedElement.styles.textDecoration} tk={tk}>
+              <PropertyRow label={t.blogCss.propTextDecoration} value={selectedElement.styles.textDecoration} tk={tk}>
                 <div style={{ display: 'flex', gap: 2, flex: 1 }}>
                   {['none', 'underline', 'line-through'].map(deco => (
                     <button key={deco} onClick={() => { applyStylePreview('text-decoration', deco); commitCssRule('text-decoration', deco) }}
@@ -379,12 +382,12 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
                         color: selectedElement.styles.textDecoration.includes(deco) ? tk.accentText : tk.textSub,
                         cursor: 'pointer', fontSize: 9,
                       }}
-                    >{deco === 'none' ? '无' : deco === 'underline' ? '下划' : '删除'}</button>
+                    >{deco === 'none' ? t.blogCss.decoNone : deco === 'underline' ? t.blogCss.decoUnderline : t.blogCss.decoLineThrough}</button>
                   ))}
                 </div>
               </PropertyRow>
 
-              <PropertyRow label="行高" value={selectedElement.styles.lineHeight} tk={tk}>
+              <PropertyRow label={t.blogCss.propLineHeight} value={selectedElement.styles.lineHeight} tk={tk}>
                 <input type="range" min={1} max={3} step={0.1}
                   value={pxToNum(selectedElement.styles.lineHeight) / pxToNum(selectedElement.styles.fontSize) || 1.6}
                   onChange={(e) => applyStylePreview('line-height', e.target.value)}
@@ -393,7 +396,7 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
                 />
               </PropertyRow>
 
-              <PropertyRow label="字距" value={selectedElement.styles.letterSpacing} tk={tk}>
+              <PropertyRow label={t.blogCss.propLetterSpacing} value={selectedElement.styles.letterSpacing} tk={tk}>
                 <input type="range" min={-2} max={8} step={0.5}
                   value={pxToNum(selectedElement.styles.letterSpacing)}
                   onChange={(e) => applyStylePreview('letter-spacing', `${e.target.value}px`)}
@@ -402,7 +405,7 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
                 />
               </PropertyRow>
 
-              <PropertyRow label="对齐" value={selectedElement.styles.textAlign} tk={tk}>
+              <PropertyRow label={t.blogCss.propTextAlign} value={selectedElement.styles.textAlign} tk={tk}>
                 <div style={{ display: 'flex', gap: 2, flex: 1 }}>
                   {['left', 'center', 'right', 'justify'].map(align => (
                     <button key={align} onClick={() => { applyStylePreview('text-align', align); commitCssRule('text-align', align) }}
@@ -413,15 +416,15 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
                         color: selectedElement.styles.textAlign === align ? tk.accentText : tk.textSub,
                         cursor: 'pointer', fontSize: 9, textTransform: 'capitalize',
                       }}
-                    >{align === 'justify' ? '两端' : align === 'left' ? '左' : align === 'center' ? '中' : '右'}</button>
+                    >{align === 'justify' ? t.blogCss.alignJustify : align === 'left' ? t.blogCss.alignLeft : align === 'center' ? t.blogCss.alignCenter : t.blogCss.alignRight}</button>
                   ))}
                 </div>
               </PropertyRow>
             </PropertyGroup>
 
             {/* ─── 色彩组 ─── */}
-            <PropertyGroup title="色彩" icon="🎨" tk={tk} defaultOpen={true}>
-              <PropertyRow label="颜色" value={rgbToHex(selectedElement.styles.color)} tk={tk}>
+            <PropertyGroup title={t.blogCss.groupColor} icon="🎨" tk={tk} defaultOpen={true}>
+              <PropertyRow label={t.blogCss.propColor} value={rgbToHex(selectedElement.styles.color)} tk={tk}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}>
                   <input type="color" value={rgbToHex(selectedElement.styles.color)}
                     onChange={(e) => applyStylePreview('color', e.target.value)}
@@ -432,7 +435,7 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
                 </div>
               </PropertyRow>
 
-              <PropertyRow label="背景色" value={rgbToHex(selectedElement.styles.backgroundColor)} tk={tk}>
+              <PropertyRow label={t.blogCss.propBackground} value={rgbToHex(selectedElement.styles.backgroundColor)} tk={tk}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1 }}>
                   <input type="color" value={rgbToHex(selectedElement.styles.backgroundColor)}
                     onChange={(e) => applyStylePreview('background-color', e.target.value)}
@@ -443,7 +446,7 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
                 </div>
               </PropertyRow>
 
-              <PropertyRow label="透明度" value={parseFloat(selectedElement.styles.opacity).toFixed(2)} tk={tk}>
+              <PropertyRow label={t.blogCss.propOpacity} value={parseFloat(selectedElement.styles.opacity).toFixed(2)} tk={tk}>
                 <input type="range" min={0} max={1} step={0.05}
                   value={parseFloat(selectedElement.styles.opacity) || 1}
                   onChange={(e) => applyStylePreview('opacity', e.target.value)}
@@ -454,8 +457,8 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
             </PropertyGroup>
 
             {/* ─── 边框组 ─── */}
-            <PropertyGroup title="边框" icon="☐" tk={tk} defaultOpen={false}>
-              <PropertyRow label="圆角" value={selectedElement.styles.borderRadius} tk={tk}>
+            <PropertyGroup title={t.blogCss.groupBorder} icon="☐" tk={tk} defaultOpen={false}>
+              <PropertyRow label={t.blogCss.propBorderRadius} value={selectedElement.styles.borderRadius} tk={tk}>
                 <input type="range" min={0} max={32} value={pxToNum(selectedElement.styles.borderRadius)}
                   onChange={(e) => applyStylePreview('border-radius', `${e.target.value}px`)}
                   onPointerUp={(e) => commitCssRule('border-radius', `${(e.target as HTMLInputElement).value}px`)}
@@ -463,7 +466,7 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
                 />
               </PropertyRow>
 
-              <PropertyRow label="边框宽" value={`${pxToNum(selectedElement.styles.borderWidth)}px`} tk={tk}>
+              <PropertyRow label={t.blogCss.propBorderWidth} value={`${pxToNum(selectedElement.styles.borderWidth)}px`} tk={tk}>
                 <input type="range" min={0} max={10} step={1} value={pxToNum(selectedElement.styles.borderWidth)}
                   onChange={(e) => applyStylePreview('border-width', `${e.target.value}px`)}
                   onPointerUp={(e) => commitCssRule('border-width', `${(e.target as HTMLInputElement).value}px`)}
@@ -471,18 +474,18 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
                 />
               </PropertyRow>
 
-              <PropertyRow label="边框式" value={selectedElement.styles.borderStyle} tk={tk}>
+              <PropertyRow label={t.blogCss.propBorderStyle} value={selectedElement.styles.borderStyle} tk={tk}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <AuroraSelect
                     value={String(selectedElement.styles.borderStyle)}
                     onChange={(v) => { applyStylePreview('border-style', v); commitCssRule('border-style', v) }}
-                    options={['none', 'solid', 'dashed', 'dotted', 'double'].map(s => ({ value: s, label: s === 'none' ? '无' : s }))}
+                    options={['none', 'solid', 'dashed', 'dotted', 'double'].map(s => ({ value: s, label: s === 'none' ? t.blogCss.borderStyleNone : s }))}
                     className="aurora-select--block"
                   />
                 </div>
               </PropertyRow>
 
-              <PropertyRow label="边框色" value={rgbToHex(selectedElement.styles.borderColor)} tk={tk}>
+              <PropertyRow label={t.blogCss.propBorderColor} value={rgbToHex(selectedElement.styles.borderColor)} tk={tk}>
                 <input type="color" value={rgbToHex(selectedElement.styles.borderColor)}
                   onChange={(e) => applyStylePreview('border-color', e.target.value)}
                   onPointerUp={(e) => commitCssRule('border-color', (e.target as HTMLInputElement).value)}
@@ -490,7 +493,7 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
                 />
               </PropertyRow>
 
-              <PropertyRow label="阴影" value={selectedElement.styles.boxShadow} tk={tk}>
+              <PropertyRow label={t.blogCss.propBoxShadow} value={selectedElement.styles.boxShadow} tk={tk}>
                 <BoxShadowEditor
                   value={selectedElement.styles.boxShadow}
                   onPreview={applyStylePreview}
@@ -501,57 +504,57 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
             </PropertyGroup>
 
             {/* ─── 间距组 ─── */}
-            <PropertyGroup title="间距" icon="↕" tk={tk} defaultOpen={false}>
-              <PropertyRow label="上内距" value={`${pxToNum(selectedElement.styles.paddingTop)}px`} tk={tk}>
+            <PropertyGroup title={t.blogCss.groupSpacing} icon="↕" tk={tk} defaultOpen={false}>
+              <PropertyRow label={t.blogCss.propPaddingTop} value={`${pxToNum(selectedElement.styles.paddingTop)}px`} tk={tk}>
                 <input type="range" min={0} max={60} value={pxToNum(selectedElement.styles.paddingTop)}
                   onChange={(e) => applyStylePreview('padding-top', `${e.target.value}px`)}
                   onPointerUp={(e) => commitCssRule('padding-top', `${(e.target as HTMLInputElement).value}px`)}
                   style={{ flex: 1, accentColor: tk.accent }}
                 />
               </PropertyRow>
-              <PropertyRow label="下内距" value={`${pxToNum(selectedElement.styles.paddingBottom)}px`} tk={tk}>
+              <PropertyRow label={t.blogCss.propPaddingBottom} value={`${pxToNum(selectedElement.styles.paddingBottom)}px`} tk={tk}>
                 <input type="range" min={0} max={60} value={pxToNum(selectedElement.styles.paddingBottom)}
                   onChange={(e) => applyStylePreview('padding-bottom', `${e.target.value}px`)}
                   onPointerUp={(e) => commitCssRule('padding-bottom', `${(e.target as HTMLInputElement).value}px`)}
                   style={{ flex: 1, accentColor: tk.accent }}
                 />
               </PropertyRow>
-              <PropertyRow label="左内距" value={`${pxToNum(selectedElement.styles.paddingLeft)}px`} tk={tk}>
+              <PropertyRow label={t.blogCss.propPaddingLeft} value={`${pxToNum(selectedElement.styles.paddingLeft)}px`} tk={tk}>
                 <input type="range" min={0} max={60} value={pxToNum(selectedElement.styles.paddingLeft)}
                   onChange={(e) => applyStylePreview('padding-left', `${e.target.value}px`)}
                   onPointerUp={(e) => commitCssRule('padding-left', `${(e.target as HTMLInputElement).value}px`)}
                   style={{ flex: 1, accentColor: tk.accent }}
                 />
               </PropertyRow>
-              <PropertyRow label="右内距" value={`${pxToNum(selectedElement.styles.paddingRight)}px`} tk={tk}>
+              <PropertyRow label={t.blogCss.propPaddingRight} value={`${pxToNum(selectedElement.styles.paddingRight)}px`} tk={tk}>
                 <input type="range" min={0} max={60} value={pxToNum(selectedElement.styles.paddingRight)}
                   onChange={(e) => applyStylePreview('padding-right', `${e.target.value}px`)}
                   onPointerUp={(e) => commitCssRule('padding-right', `${(e.target as HTMLInputElement).value}px`)}
                   style={{ flex: 1, accentColor: tk.accent }}
                 />
               </PropertyRow>
-              <PropertyRow label="上外距" value={`${pxToNum(selectedElement.styles.marginTopComputed)}px`} tk={tk}>
+              <PropertyRow label={t.blogCss.propMarginTop} value={`${pxToNum(selectedElement.styles.marginTopComputed)}px`} tk={tk}>
                 <input type="range" min={0} max={80} value={pxToNum(selectedElement.styles.marginTopComputed)}
                   onChange={(e) => applyStylePreview('margin-top', `${e.target.value}px`)}
                   onPointerUp={(e) => commitCssRule('margin-top', `${(e.target as HTMLInputElement).value}px`)}
                   style={{ flex: 1, accentColor: tk.accent }}
                 />
               </PropertyRow>
-              <PropertyRow label="下外距" value={`${pxToNum(selectedElement.styles.marginBottomComputed)}px`} tk={tk}>
+              <PropertyRow label={t.blogCss.propMarginBottom} value={`${pxToNum(selectedElement.styles.marginBottomComputed)}px`} tk={tk}>
                 <input type="range" min={0} max={80} value={pxToNum(selectedElement.styles.marginBottomComputed)}
                   onChange={(e) => applyStylePreview('margin-bottom', `${e.target.value}px`)}
                   onPointerUp={(e) => commitCssRule('margin-bottom', `${(e.target as HTMLInputElement).value}px`)}
                   style={{ flex: 1, accentColor: tk.accent }}
                 />
               </PropertyRow>
-              <PropertyRow label="左外距" value={`${pxToNum(selectedElement.styles.marginLeft)}px`} tk={tk}>
+              <PropertyRow label={t.blogCss.propMarginLeft} value={`${pxToNum(selectedElement.styles.marginLeft)}px`} tk={tk}>
                 <input type="range" min={0} max={80} value={pxToNum(selectedElement.styles.marginLeft)}
                   onChange={(e) => applyStylePreview('margin-left', `${e.target.value}px`)}
                   onPointerUp={(e) => commitCssRule('margin-left', `${(e.target as HTMLInputElement).value}px`)}
                   style={{ flex: 1, accentColor: tk.accent }}
                 />
               </PropertyRow>
-              <PropertyRow label="右外距" value={`${pxToNum(selectedElement.styles.marginRight)}px`} tk={tk}>
+              <PropertyRow label={t.blogCss.propMarginRight} value={`${pxToNum(selectedElement.styles.marginRight)}px`} tk={tk}>
                 <input type="range" min={0} max={80} value={pxToNum(selectedElement.styles.marginRight)}
                   onChange={(e) => applyStylePreview('margin-right', `${e.target.value}px`)}
                   onPointerUp={(e) => commitCssRule('margin-right', `${(e.target as HTMLInputElement).value}px`)}
@@ -561,11 +564,11 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
             </PropertyGroup>
 
             {/* ─── 尺寸组 ─── */}
-            <PropertyGroup title="尺寸" icon="📐" tk={tk} defaultOpen={false}>
-              <PropertyRow label="宽" value={selectedElement.styles.width} tk={tk}>
+            <PropertyGroup title={t.blogCss.groupSize} icon="📐" tk={tk} defaultOpen={false}>
+              <PropertyRow label={t.blogCss.propWidth} value={selectedElement.styles.width} tk={tk}>
                 <span style={{ fontSize: 9, color: tk.textSub, fontFamily: "'Fira Code', monospace" }}>{selectedElement.styles.width}</span>
               </PropertyRow>
-              <PropertyRow label="高" value={selectedElement.styles.height} tk={tk}>
+              <PropertyRow label={t.blogCss.propHeight} value={selectedElement.styles.height} tk={tk}>
                 <span style={{ fontSize: 9, color: tk.textSub, fontFamily: "'Fira Code', monospace" }}>{selectedElement.styles.height}</span>
               </PropertyRow>
             </PropertyGroup>

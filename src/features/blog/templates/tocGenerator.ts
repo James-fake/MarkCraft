@@ -41,14 +41,14 @@ function slugifyForId(text: string): string {
   return text.toLowerCase().replace(/[^\w\s\u4e00-\u9fff-]/g, '').replace(/[\s_]+/g, '-').replace(/-+/g, '-').replace(/^-+|-+$/g, '') || 'heading'
 }
 
-export function generateTocHtml(items: TocItem[]): string {
+export function generateTocHtml(items: TocItem[], bl: 'zh' | 'en' = 'zh'): string {
   if (items.length === 0) return ''
   const minLevel = Math.min(...items.map(i => i.level))
   const links = items.map(item => {
     const indent = (item.level - minLevel) * 16
     return `<a href="#${item.id}" class="toc-link" style="padding-left: ${indent + 12}px">${item.text}</a>`
   }).join('\n')
-  return `<nav class="toc"><div class="toc-title">目录</div>${links}</nav>`
+  return `<nav class="toc"><div class="toc-title">${bl === 'en' ? 'Contents' : '目录'}</div>${links}</nav>`
 }
 
 export function getTocStyles(): string {

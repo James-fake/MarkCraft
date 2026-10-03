@@ -13,6 +13,14 @@ export interface DeployProgress {
   message: string
   progress: number
   url?: string
+  /**
+   * 语言包键（t.blogCss 下的键名）。
+   * 服务层为纯函数，无法访问 React 语言上下文，故进度文案走「键 + 参数」结构，
+   * 由 UI 层（DeployPanel）用当前语言解析；`message` 保留为中文兜底/非 UI 消费方使用。
+   */
+  messageKey?: string
+  /** messageKey 文案中的占位符参数，如 { current, total, path, platform } */
+  messageParams?: Record<string, string>
 }
 
 export type DeployProgressCallback = (progress: DeployProgress) => void

@@ -18,15 +18,29 @@ const PLATFORMS: Array<{ id: DeployPlatform; label: string; icon: string; color:
   { id: 'netlify', label: 'Netlify', icon: 'M12 2l8 4.5v9L12 20l-8-4.5v-9L12 2z', color: '#00c7b7', colorLight: '#00c7b7' },
 ]
 
-const TOKEN_HINTS: Record<DeployPlatform, { placeholder: string; hint: string }> = {
-  github: { placeholder: 'ghp_xxxx...', hint: '需要 repo 权限的 GitHub PAT' },
-  gitee: { placeholder: 'gitee token...', hint: '需要 projects 权限的 Gitee 令牌' },
-  vercel: { placeholder: 'vercel token...', hint: 'Vercel Access Token (vercel.com/account/tokens)' },
-  cloudflare: { placeholder: 'cloudflare api token...', hint: 'Cloudflare API Token (需要 Pages 编辑权限)' },
-  netlify: { placeholder: 'netlify personal access token...', hint: 'Netlify Personal Access Token (app.netlify.com/user/applications)' },
+const TOKEN_HINTS: Record<DeployPlatform, { placeholder: string; hintKey: 'deployTokenHintGithub' | 'deployTokenHintGitee' | 'deployTokenHintVercel' | 'deployTokenHintCloudflare' | 'deployTokenHintNetlify' }> = {
+  github: { placeholder: 'ghp_xxxx...', hintKey: 'deployTokenHintGithub' },
+  gitee: { placeholder: 'gitee token...', hintKey: 'deployTokenHintGitee' },
+  vercel: { placeholder: 'vercel token...', hintKey: 'deployTokenHintVercel' },
+  cloudflare: { placeholder: 'cloudflare api token...', hintKey: 'deployTokenHintCloudflare' },
+  netlify: { placeholder: 'netlify personal access token...', hintKey: 'deployTokenHintNetlify' },
 }
 
-export default function DeployPanel({ result }: DeployPanelProps) {
+/**
+ * 解析部署进度文案：服务层发出的是语言无关的 `messageKey` + 参数，
+ * 此处按当前语言解析；无 messageKey（如 error 阶段的原始异常文本）时回退 message。
+ */
+function resolveProgressMessage(progress: DeployProgress, t: Translations): string {
+  if (!progress.messageKey) return progress.message
+  const template = (t.blogCss as unknown as Record<string, string>)[progress.messageKey]
+  if (!template) return progress.message
+  return Object.entries(progress.messageParams || {}).reduce(
+    (acc, [k, v]) => acc.replaceAll(`{${k}}`, v),
+    template,
+  )
+}
+
+export default function DeployPanel({ result, t }: DeployPanelProps) {
   const { isDark } = useStudioTheme()
   const d = isDark
 
@@ -54,7 +68,7 @@ export default function DeployPanel({ result }: DeployPanelProps) {
       setValidated(true)
       localStorage.setItem('deploy_token', token)
     } catch (e: unknown) {
-      setValidateError(e instanceof Error ? e.message : '验证失败')
+      setValidateError(e instanceof Error ? e.message : t.blogCss.deployValidateFailed)
       setValidated(false)
     } finally {
       setValidating(false)
@@ -63,11 +77,11 @@ export default function DeployPanel({ result }: DeployPanelProps) {
 
   const handleDeploy = async () => {
     setDeploying(true)
-    setProgress({ stage: 'authenticating', message: '开始部署...', progress: 0 })
+    setProgress({ stage: 'authenticating', message: t.blogCss.deployStart, progress: 0 })
     try {
       await deployToPages(result.files, { platform, token, owner, repo }, setProgress)
     } catch (e: unknown) {
-      setProgress({ stage: 'error', message: e instanceof Error ? e.message : '部署失败', progress: 0 })
+      setProgress({ stage: 'error', message: e instanceof Error ? e.message : t.blogCss.deployFailed, progress: 0 })
     } finally {
       setDeploying(false)
     }
@@ -78,7 +92,7 @@ export default function DeployPanel({ result }: DeployPanelProps) {
 
   return (
     <div>
-      <SectionLabel>Step 3 · 一键部署</SectionLabel>
+      <SectionLabel>Step 3 · {t.blogCss.deployStep}</SectionLabel>
 
       {/* Platform Selector */}
       <div style={{
@@ -168,7 +182,7 @@ export default function DeployPanel({ result }: DeployPanelProps) {
               transition: 'all 0.2s ease', whiteSpace: 'nowrap',
             }}
           >
-            {validating ? '...' : '验证'}
+            {validating ? '...' : t.blogCss.deployValidate}
           </button>
         </div>
         {/* Hint */}
@@ -176,7 +190,7 @@ export default function DeployPanel({ result }: DeployPanelProps) {
           fontSize: 9, color: d ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.25)', marginTop: 4,
           paddingLeft: 28,
         }}>
-          {tokenHint.hint}
+          {t.blogCss[tokenHint.hintKey]}
         </div>
         {/* Validate error */}
         {validateError && (
@@ -199,7 +213,7 @@ export default function DeployPanel({ result }: DeployPanelProps) {
             fontSize: 9, fontWeight: 600, color: d ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.4)',
             letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 5,
           }}>
-            仓库名
+            {t.blogCss.deployRepoName}
           </div>
           <div style={{
             display: 'flex', alignItems: 'center',
@@ -267,7 +281,7 @@ export default function DeployPanel({ result }: DeployPanelProps) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15.59 14.37a6 6 0 01-5.84 7.38v-4.8m5.84-2.58a14.98 14.98 0 006.16-12.12A14.98 14.98 0 009.631 8.41m5.96 5.96a14.926 14.926 0 01-5.841 2.58m-.119-8.54a6 6 0 00-7.381 5.84h4.8m2.581-5.84a14.927 14.927 0 00-2.58 5.84m2.699 2.7c-.103.021-.207.041-.311.06a15.09 15.09 0 01-2.448-2.448 14.9 14.9 0 01.06-.312m-2.24 2.39a4.493 4.493 0 00-1.757 4.306 4.493 4.493 0 004.306-1.758M16.5 9a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z" />
             </svg>
           )}
-          {deploying ? '部署中...' : '一键部署'}
+          {deploying ? t.blogCss.deployInProgress : t.blogCss.deployButton}
           <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
         </button>
       )}
@@ -299,7 +313,7 @@ export default function DeployPanel({ result }: DeployPanelProps) {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182" />
               </svg>
             )}
-            {progress.message}
+            {resolveProgressMessage(progress, t)}
           </div>
 
           {/* Progress bar */}
@@ -324,7 +338,7 @@ export default function DeployPanel({ result }: DeployPanelProps) {
               border: '1px solid rgba(52,211,153,0.12)',
             }}>
               <div style={{ fontSize: 9, color: 'rgba(52,211,153,0.5)', marginBottom: 3, fontWeight: 600, letterSpacing: '0.04em' }}>
-                部署成功
+                {t.blogCss.deploySuccess}
               </div>
               <a href={progress.url} target="_blank" rel="noopener"
                 style={{

@@ -7,19 +7,21 @@ export type CssScope = 'global' | 'homepage' | 'post' | 'archive' | 'tags' | 'cu
 
 export interface ScopeOption {
   key: CssScope
-  label: string
-  desc: string
+  zh: string
+  en: string
+  zhDesc: string
+  enDesc: string
   /** 包裹父选择器（scope 为 'custom' 时由用户输入） */
   parentSelector?: string
 }
 
 /** 预定义的作用域选项 */
 export const SCOPE_OPTIONS: ScopeOption[] = [
-  { key: 'global', label: '全局', desc: '所有页面生效', parentSelector: '' },
-  { key: 'homepage', label: '仅首页', desc: '仅在首页生效', parentSelector: '#page-index' },
-  { key: 'post', label: '文章页', desc: '仅在文章详情页生效', parentSelector: '[data-section="post"]' },
-  { key: 'archive', label: '归档页', desc: '仅在归档页生效', parentSelector: '#page-archive' },
-  { key: 'tags', label: '标签页', desc: '仅在标签页生效', parentSelector: '#page-tags' },
+  { key: 'global', zh: '全局', en: 'Global', zhDesc: '所有页面生效', enDesc: 'Applies to all pages', parentSelector: '' },
+  { key: 'homepage', zh: '仅首页', en: 'Home page', zhDesc: '仅在首页生效', enDesc: 'Applies to the home page only', parentSelector: '#page-index' },
+  { key: 'post', zh: '文章页', en: 'Post page', zhDesc: '仅在文章详情页生效', enDesc: 'Applies to post detail pages only', parentSelector: '[data-section="post"]' },
+  { key: 'archive', zh: '归档页', en: 'Archive page', zhDesc: '仅在归档页生效', enDesc: 'Applies to the archive page only', parentSelector: '#page-archive' },
+  { key: 'tags', zh: '标签页', en: 'Tags page', zhDesc: '仅在标签页生效', enDesc: 'Applies to the tags page only', parentSelector: '#page-tags' },
 ]
 
 /**

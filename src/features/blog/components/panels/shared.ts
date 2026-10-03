@@ -1,4 +1,4 @@
-import { BlogDesignConfig, COLOR_SCHEMES, FONT_OPTIONS, THEME_STYLE_OPTIONS } from '../../hooks/useBlogGenerator'
+import { BlogDesignConfig, COLOR_SCHEMES, FONT_OPTIONS, THEME_STYLE_OPTIONS, THEME_INFO_LIST } from '../../hooks/useBlogGenerator'
 import { ThemeStyle } from '../../templates'
 import { useLanguage } from '@stores/LanguageStore'
 
@@ -20,42 +20,34 @@ export interface ContentPanelProps extends PanelProps {
 // ─── Label maps ─────────────────────────────────────────────
 
 export function useLabels() {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
+  const isZh = language === 'zh'
 
-  const colorSchemeLabels: Record<BlogDesignConfig['colorScheme'], string> = {
-    red: '红', 'orange-red': '橙红', orange: '橙', 'orange-yellow': '橙黄',
-    yellow: '黄', 'yellow-green': '黄绿', green: '绿', 'blue-green': '蓝绿',
-    blue: '蓝', 'blue-purple': '蓝紫', purple: '紫', 'purple-red': '紫红',
-    custom: '自定义',
+  // 配色标签：数据层 {zh,en} 结构，UI 侧按语言解析（避免新增 13 个语言键）
+  const COLOR_SCHEME_NAMES: Record<BlogDesignConfig['colorScheme'], { zh: string; en: string }> = {
+    red: { zh: '红', en: 'Red' }, 'orange-red': { zh: '橙红', en: 'Orange-red' },
+    orange: { zh: '橙', en: 'Orange' }, 'orange-yellow': { zh: '橙黄', en: 'Orange-yellow' },
+    yellow: { zh: '黄', en: 'Yellow' }, 'yellow-green': { zh: '黄绿', en: 'Yellow-green' },
+    green: { zh: '绿', en: 'Green' }, 'blue-green': { zh: '蓝绿', en: 'Blue-green' },
+    blue: { zh: '蓝', en: 'Blue' }, 'blue-purple': { zh: '蓝紫', en: 'Blue-purple' },
+    purple: { zh: '紫', en: 'Purple' }, 'purple-red': { zh: '紫红', en: 'Purple-red' },
+    custom: { zh: '自定义', en: 'Custom' },
   }
+  const colorSchemeLabels = Object.fromEntries(
+    Object.entries(COLOR_SCHEME_NAMES).map(([k, v]) => [k, isZh ? v.zh : v.en]),
+  ) as Record<BlogDesignConfig['colorScheme'], string>
 
   const fontLabels: Record<BlogDesignConfig['font'], string> = {
     serif: t.blogStudio.serif, sans: t.blogStudio.sansSerif, mono: t.blogStudio.monospace,
   }
 
-  const themeStyleLabels: Record<ThemeStyle, string> = {
-    magazine: t.blogStudio.magazine, minimal: t.blogStudio.minimal, classic: t.blogStudio.classic,
-    'ink-wash': t.blogStudio.inkWash, terminal: t.blogStudio.terminal, newspaper: t.blogStudio.newspaper,
-    glassmorphism: t.blogStudio.glassmorphism, bento: t.blogStudio.bento, narrative: t.blogStudio.narrative,
-    cyberpunk: '赛博朋克', aurora: '极光', academia: '学术',
-    retro: '复古', garden: '花园', midnight: '午夜',
-    custom: '自定义主题',
-    poetry: '诗歌', typewriter: '打字机', ocean: '海洋', sunset: '日落',
-    editorial: '社论', trending: '热门', dispatch: '快讯',
-    carbon: '碳黑', blueprint: '蓝图', hacker: '黑客',
-    showcase: '展示', mosaic: '马赛克', gallery: '画廊',
-    cinematic: '电影', docs: '文档', wiki: '百科',
-    neon: '霓虹', origami: '折纸',
-    swiss: '瑞士', bauhaus: '包豪斯', artdeco: '装饰艺术', zen: '禅意',
-    brutalist: '粗野', vaporwave: '蒸汽波', pixel: '像素', neumorphism: '新拟态',
-    corporate: '企业', fashion: '时尚', forest: '森林', notion: '笔记',
-    cafe: '咖啡馆', travel: '旅行', music: '音乐', sketch: '手绘',
-    cosmos: '宇宙', claymorphism: '粘土', 'ice-crystal': '冰晶',
-    rams: '拉姆斯', luxury: '奢华', comic: '漫画',
-    steampunk: '蒸汽朋克', gothic: '哥特', noir: '黑色电影',
-    recipe: '食谱', timeline: '时间线', feed: '动态流',
-    pastel: '粉彩', newsletter: '简报',
-  }
+  // 主题名统一取 THEME_INFO_LIST 的单一权威双语数据源（name: {zh,en}）。
+  // 此前此处 + RightPanel 各自硬编码 ~51 条中文映射，与 THEME_INFO_LIST 三处重复。
+  const themeStyleLabels = Object.fromEntries(
+    THEME_INFO_LIST.map(info => [info.key, isZh ? info.name.zh : info.name.en]),
+  ) as Record<ThemeStyle, string>
+  // 'custom' 主题不在 THEME_INFO_LIST 中，单独兜底
+  if (!themeStyleLabels.custom) themeStyleLabels.custom = t.blogStudio.customTheme
 
   return { colorSchemeLabels, fontLabels, themeStyleLabels, t }
 }

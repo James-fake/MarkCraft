@@ -9,6 +9,8 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirro
 import { tags } from '@lezer/highlight'
 import { getTokensForMode } from './themeTokens'
 import { checkCssCompat } from '../../utils/cssCompatChecker'
+import { useLanguage } from '@stores/LanguageStore'
+import type { Translations } from '@locales/zh'
 
 // CSS Syntax validation with severity levels
 type Severity = 'error' | 'warning' | 'info'
@@ -60,7 +62,7 @@ const KNOWN_PROPERTIES = new Set([
   '-webkit-background-clip', '-moz-background-clip',
 ])
 
-function validateCss(css: string): CssIssue[] {
+function validateCss(css: string, t: Translations): CssIssue[] {
   const issues: CssIssue[] = []
   if (!css.trim()) return issues
   const lines = css.split('\n')
@@ -73,13 +75,13 @@ function validateCss(css: string): CssIssue[] {
       if (ch === '{') braceCount++
       if (ch === '}') braceCount--
       if (braceCount < 0) {
-        issues.push({ line: i + 1, message: '多余的闭合括号', severity: 'error' })
+        issues.push({ line: i + 1, message: t.blogCss.cssExtraCloseBrace, severity: 'error' })
         braceCount = 0
       }
     }
   }
   if (braceCount > 0) {
-    issues.push({ line: lines.length, message: `存在 ${braceCount} 个未闭合的大括号`, severity: 'error' })
+    issues.push({ line: lines.length, message: t.blogCss.cssUnclosedBraces.replace('{count}', String(braceCount)), severity: 'error' })
   }
 
   // 2. Unclosed comments
@@ -100,7 +102,7 @@ function validateCss(css: string): CssIssue[] {
     }
   }
   if (inComment) {
-    issues.push({ line: lines.length, message: '存在未闭合的注释 /*', severity: 'error' })
+    issues.push({ line: lines.length, message: t.blogCss.cssUnclosedComment, severity: 'error' })
   }
 
   // 3. Per-line checks (skip comment-only lines)
@@ -137,13 +139,13 @@ function validateCss(css: string): CssIssue[] {
 
     // 4. Empty rule block
     if (/^[.#[\w:*][^{]*\{\s*\}$/.test(trimmed)) {
-      issues.push({ line: i + 1, message: '空规则块', severity: 'warning' })
+      issues.push({ line: i + 1, message: t.blogCss.cssEmptyRule, severity: 'warning' })
     }
 
     // 5. Missing semicolon
     if (trimmed.includes(':') && !trimmed.includes('{') && !trimmed.includes('}') && !trimmed.startsWith('@')) {
       if (!trimmed.endsWith(';') && !trimmed.endsWith(',')) {
-        issues.push({ line: i + 1, message: '声明末尾可能缺少分号', severity: 'warning' })
+        issues.push({ line: i + 1, message: t.blogCss.cssMissingSemicolon, severity: 'warning' })
       }
 
       // 6. Unknown property name check
@@ -163,9 +165,9 @@ function validateCss(css: string): CssIssue[] {
               return diff === 1
             })
             if (similar) {
-              issues.push({ line: i + 1, message: `属性名 "${propName}" 可能拼写错误，是否为 "${similar}"？`, severity: 'warning' })
+              issues.push({ line: i + 1, message: t.blogCss.cssTypoProperty.replace('{name}', propName).replace('{similar}', similar), severity: 'warning' })
             } else {
-              issues.push({ line: i + 1, message: `未知属性名 "${propName}"`, severity: 'info' })
+              issues.push({ line: i + 1, message: t.blogCss.cssUnknownProperty.replace('{name}', propName), severity: 'info' })
             }
           }
         }
@@ -313,6 +315,7 @@ interface CssEditorProps {
 }
 
 export function CssEditor({ value, onChange, placeholder, canUndo, canRedo, onUndo, onRedo, isDark = true }: CssEditorProps) {
+  const { t } = useLanguage()
   const tk = getTokensForMode(isDark)
   const editorRef = useRef<HTMLDivElement>(null)
   const viewRef = useRef<EditorView | null>(null)
@@ -412,7 +415,7 @@ export function CssEditor({ value, onChange, placeholder, canUndo, canRedo, onUn
     }
   }, [value])
 
-  const syntaxIssues = validateCss(value)
+  const syntaxIssues = validateCss(value, t)
   const hasErrors = syntaxIssues.some(i => i.severity === 'error')
   const hasWarnings = syntaxIssues.some(i => i.severity === 'warning')
 
@@ -459,19 +462,19 @@ export function CssEditor({ value, onChange, placeholder, canUndo, canRedo, onUn
             boxShadow: value.trim() ? `0 0 6px ${hasErrors ? 'rgba(239,68,68,0.3)' : hasWarnings ? 'rgba(245,158,11,0.3)' : `rgba(${isDark ? '52,211,153' : '5,150,105'},0.3)`}` : 'none',
           }} />
           <span style={{ fontSize: 10, fontWeight: 700, color: tk.textSub, letterSpacing: '0.08em', textTransform: 'uppercase', flexShrink: 0 }}>
-            自定义代码
+            {t.blogCss.customCode}
           </span>
           {/* 摘要信息 */}
           {value.trim() ? (
             <span style={{ fontSize: 9, color: tk.textMuted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              · {lineCount} 行 · {charCount} 字符
-              {errorCount > 0 && <span style={{ color: 'rgba(239,68,68,0.85)', marginLeft: 4 }}>· {errorCount} 错误</span>}
-              {warningCount > 0 && <span style={{ color: 'rgba(245,158,11,0.85)', marginLeft: 4 }}>· {warningCount} 警告</span>}
-              {infoCount > 0 && <span style={{ color: 'rgba(96,165,250,0.85)', marginLeft: 4 }}>· {infoCount} 提示</span>}
+              · {t.blogCss.editorMetaLines.replace('{lines}', String(lineCount)).replace('{chars}', String(charCount))}
+              {errorCount > 0 && <span style={{ color: 'rgba(239,68,68,0.85)', marginLeft: 4 }}>· {t.blogCss.editorMetaErrors.replace('{count}', String(errorCount))}</span>}
+              {warningCount > 0 && <span style={{ color: 'rgba(245,158,11,0.85)', marginLeft: 4 }}>· {t.blogCss.editorMetaWarnings.replace('{count}', String(warningCount))}</span>}
+              {infoCount > 0 && <span style={{ color: 'rgba(96,165,250,0.85)', marginLeft: 4 }}>· {t.blogCss.editorMetaHints.replace('{count}', String(infoCount))}</span>}
             </span>
           ) : (
             <span style={{ fontSize: 9, color: tk.textFaint, fontStyle: 'italic' }}>
-              · 空
+              · {t.blogCss.editorMetaEmpty}
             </span>
           )}
         </div>
@@ -479,7 +482,7 @@ export function CssEditor({ value, onChange, placeholder, canUndo, canRedo, onUn
         {/* 右侧：撤销/重做按钮（阻止冒泡，不触发折叠） */}
         <div style={{ display: 'flex', gap: 2, flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
           <button onClick={onUndo} disabled={!canUndo}
-            title="撤销 (Ctrl+Z)"
+            title={t.blogCss.undoTitle}
             style={{
               padding: '3px 8px', borderRadius: 5, border: `1px solid ${tk.border}`,
               background: !canUndo ? 'transparent' : tk.inputBg,
@@ -491,7 +494,7 @@ export function CssEditor({ value, onChange, placeholder, canUndo, canRedo, onUn
             ↶
           </button>
           <button onClick={onRedo} disabled={!canRedo}
-            title="重做 (Ctrl+Y)"
+            title={t.blogCss.redoTitle}
             style={{
               padding: '3px 8px', borderRadius: 5, border: `1px solid ${tk.border}`,
               background: !canRedo ? 'transparent' : tk.inputBg,
@@ -539,7 +542,7 @@ export function CssEditor({ value, onChange, placeholder, canUndo, canRedo, onUn
               onMouseEnter={(e) => { e.currentTarget.style.color = tk.textSub; e.currentTarget.style.background = tk.inputBg }}
               onMouseLeave={(e) => { e.currentTarget.style.color = tk.textMuted; e.currentTarget.style.background = 'transparent' }}
             >
-              ▴ 收起编辑器
+              {t.blogCss.collapseEditor}
             </button>
           </div>
 
@@ -560,7 +563,7 @@ export function CssEditor({ value, onChange, placeholder, canUndo, canRedo, onUn
                     fontFamily: "'Fira Code', monospace",
                     lineHeight: 1.5,
                   }}>
-                    {iconMap[issue.severity]} 第 {issue.line} 行: {issue.message}
+                    {iconMap[issue.severity]} {t.blogCss.issueLine.replace('{line}', String(issue.line)).replace('{message}', issue.message)}
                   </div>
                 )
               })}
@@ -582,17 +585,17 @@ export function CssEditor({ value, onChange, placeholder, canUndo, canRedo, onUn
                   fontSize: 9, fontWeight: 700, color: 'rgba(96,165,250,0.85)',
                   marginBottom: 3, letterSpacing: '0.04em',
                 }}>
-                  🌐 浏览器兼容性提示 ({compatIssues.length})
+                  {t.blogCss.compatTitle.replace('{count}', String(compatIssues.length))}
                 </div>
                 {compatIssues.map((issue, i) => {
                   const iconMap = { prefix_needed: '🔧', low_support: '⚠', experimental: '🧪' }
-                  const labelMap = { prefix_needed: '需前缀', low_support: '兼容有限', experimental: '实验性' }
+                  const labelMap = { prefix_needed: t.blogCss.compatPrefixNeeded, low_support: t.blogCss.compatLowSupport, experimental: t.blogCss.compatExperimental }
                   return (
                     <div key={i} style={{
                       fontSize: 9, color: 'rgba(96,165,250,0.75)',
                       fontFamily: "'Fira Code', monospace", lineHeight: 1.5,
                     }}>
-                      {iconMap[issue.type]} 第 {issue.line} 行 [{labelMap[issue.type]}] {issue.property}: {issue.detail}
+                      {iconMap[issue.type]} {t.blogCss.compatIssueLine.replace('{line}', String(issue.line)).replace('{label}', labelMap[issue.type]).replace('{property}', issue.property).replace('{detail}', issue.detail)}
                       {issue.browsers && (
                         <span style={{ color: 'rgba(96,165,250,0.5)' }}>
                           {' '}— IE:{issue.browsers.ie} FF:{issue.browsers.firefox} Chrome:{issue.browsers.chrome} Safari:{issue.browsers.safari}

@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { StudioChip } from '../StudioControls'
 import { useThemeTokens } from './themeTokens'
 import { AuroraSelect } from '@components/ui/AuroraSelect'
+import { useLanguage } from '@stores/LanguageStore'
 
 /** 关键帧定义 */
 interface Keyframe {
@@ -32,25 +33,25 @@ const DEFAULT_ANIMATION: AnimationDef = {
   targetSelector: '.post-content img',
 }
 
-// 缓动曲线选项：value 为 CSS 标准写法（不可翻译），label 为中文说明
-const TIMING_FUNCTIONS: Array<{ value: string; label: string }> = [
-  { value: 'ease', label: '平滑（ease）' },
-  { value: 'ease-in', label: '渐入（ease-in）' },
-  { value: 'ease-out', label: '渐出（ease-out）' },
-  { value: 'ease-in-out', label: '渐入渐出（ease-in-out）' },
-  { value: 'linear', label: '匀速（linear）' },
-  { value: 'cubic-bezier(0.4, 0, 0.2, 1)', label: '平滑曲线' },
+// 缓动曲线选项：value 为 CSS 标准写法（不可翻译），label 为展示文案
+const TIMING_FUNCTIONS: Array<{ value: string; zh: string; en: string }> = [
+  { value: 'ease', zh: '平滑（ease）', en: 'Smooth (ease)' },
+  { value: 'ease-in', zh: '渐入（ease-in）', en: 'Ease in' },
+  { value: 'ease-out', zh: '渐出（ease-out）', en: 'Ease out' },
+  { value: 'ease-in-out', zh: '渐入渐出（ease-in-out）', en: 'Ease in-out' },
+  { value: 'linear', zh: '匀速（linear）', en: 'Linear' },
+  { value: 'cubic-bezier(0.4, 0, 0.2, 1)', zh: '平滑曲线', en: 'Smooth curve' },
 ]
 
 // 动画时长选项（值为 CSS 时间，不可翻译）
 const DURATION_OPTIONS = ['0.3s', '0.5s', '0.6s', '1s', '1.5s', '2s', '3s', '5s']
 
 // 播放次数选项
-const ITERATION_OPTIONS: Array<{ value: string; label: string }> = [
-  { value: '1', label: '1 次（播放一次）' },
-  { value: '2', label: '2 次' },
-  { value: '3', label: '3 次' },
-  { value: 'infinite', label: '无限循环（infinite）' },
+const ITERATION_OPTIONS: Array<{ value: string; zh: string; en: string }> = [
+  { value: '1', zh: '1 次（播放一次）', en: '1 (play once)' },
+  { value: '2', zh: '2 次', en: '2 times' },
+  { value: '3', zh: '3 次', en: '3 times' },
+  { value: 'infinite', zh: '无限循环（infinite）', en: 'Infinite loop' },
 ]
 
 const COMMON_SELECTORS = ['.post-content img', '.featured-card', '.grid-card', '.post-header h1', '.tag', 'a']
@@ -61,6 +62,8 @@ interface KeyframeEditorProps {
 
 export function KeyframeEditor({ onInsertCss }: KeyframeEditorProps) {
   const tk = useThemeTokens()
+  const { t, language } = useLanguage()
+  const isZh = language === 'zh'
   const [expanded, setExpanded] = useState(false)
   const [anim, setAnim] = useState<AnimationDef>(DEFAULT_ANIMATION)
   const [selectedKfId, setSelectedKfId] = useState<string | null>('k1')
@@ -173,7 +176,7 @@ ${anim.targetSelector} {
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
         </svg>
-        🎬 动画时间轴编辑器
+        {t.blogCss.kfTitle}
       </button>
 
       {expanded && (
@@ -188,17 +191,17 @@ ${anim.targetSelector} {
             background: tk.surface, border: `1px dashed ${tk.border}`,
             borderRadius: 6, padding: '6px 8px',
           }}>
-            为指定元素添加进入动画（如淡入、上移）。时间轴上的每个节点是一个「关键帧」，拖动滑块调整它在动画中的时间点，并为其填写 CSS 属性。完成后点击「插入到编辑器」即可生成 <code>@keyframes</code> 代码。
+            {t.blogCss.kfIntro}
           </div>
 
           {/* 动画名称 + 目标选择器 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div>
-              <div style={fieldLabelStyle}>动画名称</div>
+              <div style={fieldLabelStyle}>{t.blogCss.kfName}</div>
               <input
                 value={anim.name}
                 onChange={(e) => setAnim(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="动画名称，如 fadeInUp"
+                placeholder={t.blogCss.kfNamePlaceholder}
                 style={{
                   width: '100%', padding: '4px 8px', fontSize: 10,
                   border: `1px solid ${tk.inputBorder}`, borderRadius: 6,
@@ -208,7 +211,7 @@ ${anim.targetSelector} {
               />
             </div>
             <div>
-              <div style={fieldLabelStyle}>作用元素（目标选择器）</div>
+              <div style={fieldLabelStyle}>{t.blogCss.kfTarget}</div>
               <AuroraSelect
                 value={anim.targetSelector}
                 onChange={(v) => setAnim(prev => ({ ...prev, targetSelector: v }))}
@@ -220,7 +223,7 @@ ${anim.targetSelector} {
 
           {/* 时间轴 */}
           <div>
-            <div style={{ fontSize: 9, color: tk.textMuted, marginBottom: 4 }}>时间轴（0% 开始 → 100% 结束）</div>
+            <div style={{ fontSize: 9, color: tk.textMuted, marginBottom: 4 }}>{t.blogCss.kfTimeline}</div>
             <div style={{
               position: 'relative', height: 36,
               background: tk.surface, borderRadius: 6,
@@ -247,14 +250,14 @@ ${anim.targetSelector} {
                 />
               ))}
             </div>
-            <div style={{ fontSize: 8, color: tk.textFaint, marginTop: 2 }}>提示：点击时间轴上的节点可选中并编辑该关键帧。</div>
+            <div style={{ fontSize: 8, color: tk.textFaint, marginTop: 2 }}>{t.blogCss.kfTimelineHint}</div>
           </div>
 
           {/* 关键帧操作 */}
           <div style={{ display: 'flex', gap: 4 }}>
-            <StudioChip label="+ 添加关键帧" onClick={addKeyframe} variant="default" />
+            <StudioChip label={t.blogCss.kfAddFrame} onClick={addKeyframe} variant="default" />
             {selectedKfId && anim.keyframes.length > 1 && (
-              <StudioChip label="删除选中关键帧" onClick={() => deleteKeyframe(selectedKfId)} variant="danger" />
+              <StudioChip label={t.blogCss.kfDeleteFrame} onClick={() => deleteKeyframe(selectedKfId)} variant="danger" />
             )}
           </div>
 
@@ -266,7 +269,7 @@ ${anim.targetSelector} {
             }}>
               {/* offset 滑块 */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
-                <span style={{ fontSize: 9, color: tk.textMuted, width: 56, flexShrink: 0 }}>位置（0–100%）</span>
+                <span style={{ fontSize: 9, color: tk.textMuted, width: 56, flexShrink: 0 }}>{t.blogCss.kfPosition}</span>
                 <input
                   type="range" min={0} max={100} value={selectedKf.offset}
                   onChange={(e) => updateOffset(selectedKf.id, parseInt(e.target.value))}
@@ -278,13 +281,13 @@ ${anim.targetSelector} {
               </div>
 
               {/* 属性列表 */}
-              <div style={{ fontSize: 9, color: tk.textMuted, marginBottom: 4 }}>该关键帧的 CSS 属性</div>
+              <div style={{ fontSize: 9, color: tk.textMuted, marginBottom: 4 }}>{t.blogCss.kfProps}</div>
               {selectedKf.properties.map((p, idx) => (
                 <div key={idx} style={{ display: 'flex', gap: 4, marginBottom: 3 }}>
                   <input
                     value={p.prop}
                     onChange={(e) => updateProperty(selectedKf.id, idx, 'prop', e.target.value)}
-                    placeholder="CSS 属性，如 opacity"
+                    placeholder={t.blogCss.kfPropPlaceholder}
                     style={{
                       flex: 1, padding: '3px 6px', fontSize: 9,
                       border: `1px solid ${tk.inputBorder}`, borderRadius: 4,
@@ -295,7 +298,7 @@ ${anim.targetSelector} {
                   <input
                     value={p.value}
                     onChange={(e) => updateProperty(selectedKf.id, idx, 'value', e.target.value)}
-                    placeholder="属性值，如 1"
+                    placeholder={t.blogCss.kfValuePlaceholder}
                     style={{
                       flex: 1, padding: '3px 6px', fontSize: 9,
                       border: `1px solid ${tk.inputBorder}`, borderRadius: 4,
@@ -309,7 +312,7 @@ ${anim.targetSelector} {
                       padding: '2px 6px', fontSize: 9, border: 'none',
                       background: 'transparent', color: 'rgba(239,68,68,0.6)', cursor: 'pointer',
                     }}
-                    title="删除该属性"
+                    title={t.blogCss.kfDeleteProp}
                   >✕</button>
                 </div>
               ))}
@@ -319,39 +322,39 @@ ${anim.targetSelector} {
                   fontSize: 9, color: tk.textMuted, cursor: 'pointer',
                   border: 'none', background: 'transparent', padding: '2px 0',
                 }}
-              >+ 添加属性</button>
+              >{t.blogCss.kfAddProp}</button>
             </div>
           )}
 
           {/* 动画参数 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             <div>
-              <div style={fieldLabelStyle}>动画时长</div>
+              <div style={fieldLabelStyle}>{t.blogCss.kfDuration}</div>
               <AuroraSelect
                 value={anim.duration}
                 onChange={(v) => setAnim(prev => ({ ...prev, duration: v }))}
                 options={DURATION_OPTIONS.map(d => ({ value: d, label: d }))}
-                ariaLabel="动画时长"
+                ariaLabel={t.blogCss.kfDurationAria}
                 className="aurora-select--block"
               />
             </div>
             <div>
-              <div style={fieldLabelStyle}>缓动方式（速度曲线）</div>
+              <div style={fieldLabelStyle}>{t.blogCss.kfTiming}</div>
               <AuroraSelect
                 value={anim.timingFunction}
                 onChange={(v) => setAnim(prev => ({ ...prev, timingFunction: v }))}
-                options={TIMING_FUNCTIONS}
-                ariaLabel="缓动方式"
+                options={TIMING_FUNCTIONS.map(o => ({ value: o.value, label: isZh ? o.zh : o.en }))}
+                ariaLabel={t.blogCss.kfTimingLabel}
                 className="aurora-select--block"
               />
             </div>
             <div>
-              <div style={fieldLabelStyle}>播放次数</div>
+              <div style={fieldLabelStyle}>{t.blogCss.kfIteration}</div>
               <AuroraSelect
                 value={anim.iterationCount}
                 onChange={(v) => setAnim(prev => ({ ...prev, iterationCount: v }))}
-                options={ITERATION_OPTIONS}
-                ariaLabel="播放次数"
+                options={ITERATION_OPTIONS.map(o => ({ value: o.value, label: isZh ? o.zh : o.en }))}
+                ariaLabel={t.blogCss.kfIteration}
                 className="aurora-select--block"
               />
             </div>
@@ -359,7 +362,7 @@ ${anim.targetSelector} {
 
           {/* 预览 + 插入 */}
           <div>
-            <div style={fieldLabelStyle}>实时预览（生成的 CSS 代码）</div>
+            <div style={fieldLabelStyle}>{t.blogCss.kfPreview}</div>
             <div style={{
               padding: 8, borderRadius: 6, maxHeight: 100, overflowY: 'auto',
               background: tk.surface, border: `1px solid ${tk.border}`,
@@ -369,7 +372,7 @@ ${anim.targetSelector} {
               </pre>
             </div>
           </div>
-          <StudioChip label="插入到编辑器" onClick={handleInsert} variant="accent" />
+          <StudioChip label={t.blogCss.kfInsert} onClick={handleInsert} variant="accent" />
         </div>
       )}
     </div>
