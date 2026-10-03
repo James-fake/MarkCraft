@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogCss, platformPublish, blogModal } from './blog'
-import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, blog, editorPanel, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels } from './common'
+import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, blog, editorPanel, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels, writingAid } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -1646,6 +1646,59 @@ export interface Translations {
     exportLog: string
     techDetails: string
   }
+  writingAid: {
+    title: string
+    toggleAria: string
+    localOnly: string
+    localOnlyTip: string
+    copy: string
+    copied: string
+    titleSection: string
+    apply: string
+    applyAria: string
+    copyTitleAria: string
+    titleEmpty: string
+    outlineAria: string
+    outline: string
+    outlineEmpty: string
+    lineNum: string
+    polishAria: string
+    polish: string
+    copyPolishAria: string
+    polishEmpty: string
+    removed: string
+    keywordAria: string
+    keyword: string
+    copyKeywordAria: string
+    keywordEmpty: string
+    weight: string
+    reasonFillerWord: string
+    reasonFillerPhrase: string
+    reasonSpaceBeforePunct: string
+    reasonRepeatPunct: string
+    reasonExtraSpace: string
+    reasonDoubledChar: string
+    draftTitle: string
+    draftToggleAria: string
+    draftLocalTip: string
+    draftLocalBadge: string
+    draftEmpty: string
+    typeSource: string
+    typeClaim: string
+    typeBalance: string
+    msgNoSource: string
+    msgAbsolute: string
+    msgUnbalanced: string
+    contextTitle: string
+    contextToggleAria: string
+    backlinks: string
+    backlinksEmpty: string
+    openNote: string
+    miniGraph: string
+    miniGraphEmpty: string
+    miniGraphAria: string
+    miniGraphNoRelated: string
+  }
   settingsPanel: {
     catUser: string
     catGeneral: string
@@ -2584,6 +2637,7 @@ const zh: Translations = {
   settingsData,
   settingsExport,
   uiLabels,
+  writingAid,
   settingsPanel,
   settingsAppearance,
   settingsEditor,

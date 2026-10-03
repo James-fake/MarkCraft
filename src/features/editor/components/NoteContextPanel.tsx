@@ -9,6 +9,7 @@
 import { useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useLinkIndex } from '@stores/LinkIndexStore'
+import { useLanguage } from '@stores/LanguageStore'
 import NoteHoverCard from './NoteHoverCard'
 import {
   extractNeighborhood,
@@ -32,6 +33,8 @@ export interface NoteContextPanelProps {
 
 export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteContextPanelProps) {
   const { getBacklinks, getGraphData, indexVersion } = useLinkIndex()
+  const { t } = useLanguage()
+  const wa = t.writingAid
   const [expanded, setExpanded] = useState(true)
   // 反链条目悬浮预览（对标 Obsidian hover preview）
   const [hover, setHover] = useState<{ fileId: string; x: number; y: number } | null>(null)
@@ -89,7 +92,7 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
       <button
         onClick={() => setExpanded(v => !v)}
         aria-expanded={expanded}
-        aria-label="切换关联面板"
+        aria-label={wa.contextToggleAria}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           width: '100%', padding: '8px 12px', background: 'transparent', border: 'none',
@@ -97,7 +100,7 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
           letterSpacing: '0.04em', textTransform: 'uppercase', opacity: 0.7,
         }}
       >
-        <span>关联</span>
+        <span>{wa.contextTitle}</span>
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {backlinkGroups.length > 0 && (
             <span style={{
@@ -116,11 +119,11 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
           {/* 反链 */}
           <div>
             <div style={{ fontSize: 'var(--mc-font-xs)', color: 'var(--mc-text-primary)', opacity: 0.5, marginBottom: 6 }}>
-              反链 · {backlinkGroups.length}
+              {wa.backlinks.replace(String.raw`{n}`, String(backlinkGroups.length))}
             </div>
             {backlinkGroups.length === 0 ? (
               <div style={{ fontSize: 'var(--mc-font-xs)', color: 'var(--mc-text-primary)', opacity: 0.4, lineHeight: 1.6 }}>
-                暂无其他笔记链接到此。
+                {wa.backlinksEmpty}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -136,7 +139,7 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
                   >
                     <button
                       onClick={() => onOpenNote(b.id)}
-                      title={`打开「${b.title}」`}
+                      title={wa.openNote.replace(String.raw`{name}`, b.title)}
                       style={{
                         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                         width: '100%', textAlign: 'left', padding: '6px 8px', border: 'none',
@@ -181,18 +184,18 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
           {/* 迷你图谱 */}
           <div>
             <div style={{ fontSize: 'var(--mc-font-xs)', color: 'var(--mc-text-primary)', opacity: 0.5, marginBottom: 6 }}>
-              迷你图谱
+              {wa.miniGraph}
             </div>
             {!activeFileId ? (
               <div style={{ fontSize: 'var(--mc-font-xs)', color: 'var(--mc-text-primary)', opacity: 0.4 }}>
-                打开笔记后显示关联图谱。
+                {wa.miniGraphEmpty}
               </div>
             ) : (
               <svg
                 width="100%"
                 viewBox={`0 0 ${GRAPH_W} ${GRAPH_H}`}
                 role="img"
-                aria-label="当前笔记关联图谱"
+                aria-label={wa.miniGraphAria}
                 style={{
                   // 「凹陷画布」语义：两主题下都比周边表面更深一档，保证迷你图谱底板可见
                   background: 'var(--mc-bg-window)', borderRadius: 'var(--mc-radius-lg)',
@@ -236,7 +239,7 @@ export default function NoteContextPanel({ activeFileId, onOpenNote }: NoteConte
                 ))}
                 {!hasGraph && (
                   <text x={GRAPH_W / 2} y={GRAPH_H / 2 + 26} textAnchor="middle" fontSize={9} fill="var(--mc-text-primary)" opacity={0.35}>
-                    暂无关联笔记
+                    {wa.miniGraphNoRelated}
                   </text>
                 )}
               </svg>

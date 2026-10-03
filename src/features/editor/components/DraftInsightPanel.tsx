@@ -4,22 +4,36 @@
  * UI 顶部标注「本地启发式 · 不上云」，遵守诚实本地处理原则。
  */
 import { useMemo, useState } from 'react'
+import { useLanguage } from '@stores/LanguageStore'
 import { analyzeDraft, type DraftHint } from '../draftBlindSpot'
-
-const TYPE_LABEL: Record<DraftHint['type'], string> = {
-  source: '信源',
-  claim: '表述',
-  balance: '视角',
-}
+import type { DraftMessages } from '../draftBlindSpot'
 
 export interface DraftInsightPanelProps {
   content: string
 }
 
 export default function DraftInsightPanel({ content }: DraftInsightPanelProps) {
+  const { t } = useLanguage()
+  const wa = t.writingAid
   const [expanded, setExpanded] = useState(true)
 
-  const hints = useMemo(() => analyzeDraft(content), [content])
+  // 类型徽标 + 提示文案：后者是纯函数的形参（draftBlindSpot.ts 不触达 React 语言上下文）
+  const TYPE_LABEL: Record<DraftHint['type'], string> = {
+    source: wa.typeSource,
+    claim: wa.typeClaim,
+    balance: wa.typeBalance,
+  }
+  const draftMessages: DraftMessages = {
+    noSource: wa.msgNoSource,
+    absoluteCount: wa.msgAbsolute,
+    unbalanced: wa.msgUnbalanced,
+  }
+
+  const hints = useMemo(
+    () => analyzeDraft(content, draftMessages),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- draftMessages 由 wa 三键拼成，逐键列入即可稳定
+    [content, wa.msgNoSource, wa.msgAbsolute, wa.msgUnbalanced],
+  )
 
   return (
     <div
@@ -29,7 +43,7 @@ export default function DraftInsightPanel({ content }: DraftInsightPanelProps) {
       <button
         onClick={() => setExpanded(v => !v)}
         aria-expanded={expanded}
-        aria-label="切换成稿核查面板"
+        aria-label={wa.draftToggleAria}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           width: '100%', padding: '8px 12px', background: 'transparent', border: 'none',
@@ -38,9 +52,9 @@ export default function DraftInsightPanel({ content }: DraftInsightPanelProps) {
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          成稿核查
+          {wa.draftTitle}
           <span
-            title="本地启发式分析，不上传任何内容"
+            title={wa.draftLocalTip}
             style={{
               fontSize: 9, fontWeight: 700, letterSpacing: 0,
               color: '#34d399', background: 'rgba(52,211,153,0.12)',
@@ -48,7 +62,7 @@ export default function DraftInsightPanel({ content }: DraftInsightPanelProps) {
               textTransform: 'none',
             }}
           >
-            本地启发式 · 不上云
+            {wa.draftLocalBadge}
           </span>
         </span>
         <span style={{ fontSize: 10, opacity: 0.6 }}>{expanded ? '▾' : '▸'}</span>
@@ -58,7 +72,7 @@ export default function DraftInsightPanel({ content }: DraftInsightPanelProps) {
         <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 280, overflow: 'auto' }}>
           {hints.length === 0 ? (
             <div style={{ fontSize: 11, color: 'var(--editor-text)', opacity: 0.4, lineHeight: 1.6 }}>
-              内容过短或未发现问题，继续保持。
+              {wa.draftEmpty}
             </div>
           ) : (
             hints.map((h, i) => (

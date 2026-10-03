@@ -204,14 +204,14 @@ export default function FrontMatterPanel({ isOpen, onClose, content, onContentCh
 
           <Input
             type="text"
-            label={t.frontMatter.coverImage || '封面图片'}
+            label={t.frontMatter.coverImage}
             value={coverImageValue}
             onChange={(e) => setCoverImageValue(e.target.value)}
             placeholder="https://example.com/image.jpg"
           />
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span className="aurora-field__label">{t.frontMatter.draft || '草稿'}</span>
+            <span className="aurora-field__label">{t.frontMatter.draft}</span>
             <Switch checked={draftValue} onChange={setDraftValue} />
           </div>
 
@@ -236,7 +236,7 @@ export default function FrontMatterPanel({ isOpen, onClose, content, onContentCh
               >
                 <path d="M9 18l6-6-6-6" />
               </svg>
-              {t.frontMatter.advancedSettings || '高级设置'}
+              {t.frontMatter.advancedSettings}
             </button>
           </div>
 
@@ -244,20 +244,20 @@ export default function FrontMatterPanel({ isOpen, onClose, content, onContentCh
             <>
               <Input
                 type="text"
-                label={t.frontMatter.slug || 'URL 路径 (slug)'}
+                label={t.frontMatter.slug}
                 value={slugValue}
                 onChange={(e) => setSlugValue(e.target.value)}
-                placeholder={t.frontMatter.slugPlaceholder || '留空则自动从标题生成'}
+                placeholder={t.frontMatter.slugPlaceholder}
               />
 
               <div className="aurora-field">
-                <span className="aurora-field__label">{t.frontMatter.layout || '布局'}</span>
+                <span className="aurora-field__label">{t.frontMatter.layout}</span>
                 <AuroraSelect
                   value={layoutValue}
                   onChange={(v) => setLayoutValue(v)}
                   options={[
-                    { value: 'post', label: t.frontMatter.layoutPost || '文章 (post)' },
-                    { value: 'page', label: t.frontMatter.layoutPage || '页面 (page)' },
+                    { value: 'post', label: t.frontMatter.layoutPost },
+                    { value: 'page', label: t.frontMatter.layoutPage },
                   ]}
                   className="aurora-select--block"
                 />
@@ -265,28 +265,28 @@ export default function FrontMatterPanel({ isOpen, onClose, content, onContentCh
 
               <Input
                 type="text"
-                label={t.frontMatter.permalink || '永久链接'}
+                label={t.frontMatter.permalink}
                 value={permalinkValue}
                 onChange={(e) => setPermalinkValue(e.target.value)}
-                placeholder={t.frontMatter.permalinkPlaceholder || '留空则自动生成'}
+                placeholder={t.frontMatter.permalinkPlaceholder}
               />
 
               <Input
                 type="text"
-                label={t.frontMatter.updated || '更新日期'}
+                label={t.frontMatter.updated}
                 value={updatedValue}
                 onChange={(e) => setUpdatedValue(e.target.value)}
                 placeholder="YYYY-MM-DD"
               />
 
               <div className="aurora-field">
-                <label className="aurora-field__label" htmlFor="fm-excerpt">{t.frontMatter.excerpt || '自定义摘要'}</label>
+                <label className="aurora-field__label" htmlFor="fm-excerpt">{t.frontMatter.excerpt}</label>
                 <textarea
                   id="fm-excerpt"
                   className={textareaClass}
                   value={excerptValue}
                   onChange={(e) => setExcerptValue(e.target.value)}
-                  placeholder={t.frontMatter.excerptPlaceholder || '留空则自动截取正文前200字'}
+                  placeholder={t.frontMatter.excerptPlaceholder}
                   rows={2}
                 />
               </div>

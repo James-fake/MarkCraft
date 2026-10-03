@@ -12,12 +12,14 @@
  * 不使用任何远程 / AI / 云端服务（符合 MEMORY.md 模块坑约束）。
  */
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useLanguage } from '@stores/LanguageStore'
 import {
   extractKeywords,
   extractOutline,
   polishText,
   suggestTitleAndSlug,
 } from '../writingAid'
+import type { PolishReasons } from '../writingAid'
 
 function truncate(s: string, n: number): string {
   return s && s.length > n ? `${s.slice(0, n)}…` : s || ''
@@ -31,18 +33,31 @@ export interface WritingAidPanelProps {
 }
 
 export default function WritingAidPanel({ content, onApplyTitle }: WritingAidPanelProps) {
+  const { t } = useLanguage()
+  const wa = t.writingAid
   const [expanded, setExpanded] = useState(true)
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // 润色理由是纯函数的形参（writingAid.ts 不触达 React 语言上下文），按语言拼好后传入
+  const polishReasons: PolishReasons = {
+    fillerWord: wa.reasonFillerWord,
+    fillerPhrase: wa.reasonFillerPhrase,
+    spaceBeforePunct: wa.reasonSpaceBeforePunct,
+    repeatPunct: wa.reasonRepeatPunct,
+    extraSpace: wa.reasonExtraSpace,
+    doubledChar: wa.reasonDoubledChar,
+  }
 
   const data = useMemo(() => {
     const body = content || ''
     const title = suggestTitleAndSlug(body)
     const outline = extractOutline(body)
-    const polish = polishText(body)
+    const polish = polishText(body, polishReasons)
     const keywords = extractKeywords(body)
     return { title, outline, polish, keywords }
-  }, [content])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- polishReasons 由 wa 六键拼成，逐键列入即可稳定
+  }, [content, wa.reasonFillerWord, wa.reasonFillerPhrase, wa.reasonSpaceBeforePunct, wa.reasonRepeatPunct, wa.reasonExtraSpace, wa.reasonDoubledChar])
 
   useEffect(() => () => {
     if (timerRef.current) clearTimeout(timerRef.current)
@@ -62,7 +77,7 @@ export default function WritingAidPanel({ content, onApplyTitle }: WritingAidPan
     }
   }
 
-  const copyLabel = (key: string) => (copiedKey === key ? '已复制✓' : '复制')
+  const copyLabel = (key: string) => (copiedKey === key ? wa.copied : wa.copy)
 
   return (
     <div
@@ -73,7 +88,7 @@ export default function WritingAidPanel({ content, onApplyTitle }: WritingAidPan
       <button
         onClick={() => setExpanded(v => !v)}
         aria-expanded={expanded}
-        aria-label="切换写作辅助面板"
+        aria-label={wa.toggleAria}
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           width: '100%', padding: '8px 12px', background: 'transparent', border: 'none',
@@ -82,9 +97,9 @@ export default function WritingAidPanel({ content, onApplyTitle }: WritingAidPan
         }}
       >
         <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          写作辅助
+          {wa.title}
           <span
-            title="所有分析均在前端本地完成，不上传任何内容"
+            title={wa.localOnlyTip}
             style={{
               fontSize: 9, fontWeight: 700, letterSpacing: 0,
               color: '#34d399', background: 'rgba(52,211,153,0.12)',
@@ -92,7 +107,7 @@ export default function WritingAidPanel({ content, onApplyTitle }: WritingAidPan
               textTransform: 'none',
             }}
           >
-            本地处理 · 不上云
+            {wa.localOnly}
           </span>
         </span>
         <span style={{ fontSize: 10, opacity: 0.6 }}>{expanded ? '▾' : '▸'}</span>
@@ -102,9 +117,9 @@ export default function WritingAidPanel({ content, onApplyTitle }: WritingAidPan
         <div style={{ padding: '0 12px 12px', display: 'flex', flexDirection: 'column', gap: 12, maxHeight: 320, overflow: 'auto' }}>
 
           {/* 区块 1 · 标题建议 */}
-          <section aria-label="标题建议">
+          <section aria-label={wa.titleSection}>
             <div style={{ fontSize: 10, color: 'var(--editor-text)', opacity: 0.5, marginBottom: 6 }}>
-              标题建议
+              {wa.titleSection}
             </div>
             {data.title ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -114,15 +129,15 @@ export default function WritingAidPanel({ content, onApplyTitle }: WritingAidPan
                   {onApplyTitle && (
                     <button
                       onClick={() => onApplyTitle(data.title!.title)}
-                      aria-label="应用建议标题"
+                      aria-label={wa.applyAria}
                       style={btnStyle}
                     >
-                      应用
+                      {wa.apply}
                     </button>
                   )}
                   <button
                     onClick={() => copy('title', data.title!.slug)}
-                    aria-label="复制标题"
+                    aria-label={wa.copyTitleAria}
                     style={btnStyle}
                   >
                     {copyLabel('title')}
@@ -131,19 +146,19 @@ export default function WritingAidPanel({ content, onApplyTitle }: WritingAidPan
               </div>
             ) : (
               <div style={{ fontSize: 11, color: 'var(--editor-text)', opacity: 0.4, lineHeight: 1.6 }}>
-                开始写作后将自动建议标题。
+                {wa.titleEmpty}
               </div>
             )}
           </section>
 
           {/* 区块 2 · 大纲 */}
-          <section aria-label="大纲">
+          <section aria-label={wa.outlineAria}>
             <div style={{ fontSize: 10, color: 'var(--editor-text)', opacity: 0.5, marginBottom: 6 }}>
-              大纲 · {data.outline.length}
+              {wa.outline.replace(String.raw`{n}`, String(data.outline.length))}
             </div>
             {data.outline.length === 0 ? (
               <div style={{ fontSize: 11, color: 'var(--editor-text)', opacity: 0.4 }}>
-                暂无标题结构。
+                {wa.outlineEmpty}
               </div>
             ) : (
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -153,7 +168,7 @@ export default function WritingAidPanel({ content, onApplyTitle }: WritingAidPan
                     style={{ display: 'flex', alignItems: 'baseline', gap: 6, paddingLeft: (it.level - 1) * 12 }}
                   >
                     <span style={{ fontSize: 9, color: 'var(--editor-text)', opacity: 0.35, minWidth: 28 }}>
-                      行 {it.line}
+                      {wa.lineNum.replace(String.raw`{n}`, String(it.line))}
                     </span>
                     <span style={{ fontSize: 11, color: 'var(--editor-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {truncate(it.text, 22)}
@@ -165,15 +180,15 @@ export default function WritingAidPanel({ content, onApplyTitle }: WritingAidPan
           </section>
 
           {/* 区块 3 · 润色建议 */}
-          <section aria-label="润色建议">
+          <section aria-label={wa.polishAria}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: 10, color: 'var(--editor-text)', opacity: 0.5 }}>
-                润色建议 · {data.polish.suggestions.length}
+                {wa.polish.replace(String.raw`{n}`, String(data.polish.suggestions.length))}
               </span>
               {data.polish.changed && (
                 <button
                   onClick={() => copy('polish', data.polish.polished)}
-                  aria-label="复制润色后全文"
+                  aria-label={wa.copyPolishAria}
                   style={{ ...btnStyle, fontSize: 10, padding: '2px 8px' }}
                 >
                   {copyLabel('polish')}
@@ -182,14 +197,14 @@ export default function WritingAidPanel({ content, onApplyTitle }: WritingAidPan
             </div>
             {!data.polish.changed ? (
               <div style={{ fontSize: 11, color: 'var(--editor-text)', opacity: 0.4 }}>
-                暂无明显可优化项。
+                {wa.polishEmpty}
               </div>
             ) : (
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {data.polish.suggestions.map((s, i) => (
                   <li key={i} style={{ fontSize: 10, lineHeight: 1.5 }}>
                     <span style={{ color: 'var(--editor-text)', opacity: 0.55 }}>
-                      {truncate(s.from, 18)} → {truncate(s.to, 18) || '（删除）'}
+                      {truncate(s.from, 18)} → {truncate(s.to, 18) || wa.removed}
                     </span>
                     <div style={{ color: 'var(--editor-text)', opacity: 0.4 }}>{s.reason}</div>
                   </li>
@@ -199,15 +214,15 @@ export default function WritingAidPanel({ content, onApplyTitle }: WritingAidPan
           </section>
 
           {/* 区块 4 · 焦点关键词 */}
-          <section aria-label="焦点关键词">
+          <section aria-label={wa.keywordAria}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
               <span style={{ fontSize: 10, color: 'var(--editor-text)', opacity: 0.5 }}>
-                焦点关键词 · {data.keywords.length}
+                {wa.keyword.replace(String.raw`{n}`, String(data.keywords.length))}
               </span>
               {data.keywords.length > 0 && (
                 <button
                   onClick={() => copy('keywords', data.keywords.map(k => k.term).join(', '))}
-                  aria-label="复制关键词"
+                  aria-label={wa.copyKeywordAria}
                   style={{ ...btnStyle, fontSize: 10, padding: '2px 8px' }}
                 >
                   {copyLabel('keywords')}
@@ -216,14 +231,14 @@ export default function WritingAidPanel({ content, onApplyTitle }: WritingAidPan
             </div>
             {data.keywords.length === 0 ? (
               <div style={{ fontSize: 11, color: 'var(--editor-text)', opacity: 0.4 }}>
-                暂无可提取关键词。
+                {wa.keywordEmpty}
               </div>
             ) : (
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {data.keywords.map(k => (
                   <span
                     key={k.term}
-                    title={`权重 ${k.score}`}
+                    title={wa.weight.replace(String.raw`{n}`, String(k.score))}
                     style={{
                       fontSize: 10, color: 'var(--editor-text)', opacity: 0.8,
                       border: '1px solid var(--mc-border-subtle)', borderRadius: 999,

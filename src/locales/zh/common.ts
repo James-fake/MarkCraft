@@ -1641,3 +1641,65 @@ export const uiLabels = {
   exportLog: '导出日志',
   techDetails: '技术详情',
 }
+
+// ---- 编辑器辅助面板（写作辅助 / 成稿核查 / 关联侧栏）----
+// 说明：writingAid.ts 的中文冗余词表、draftBlindSpot.ts 的中文检测正则属**分析数据**，
+// 不是 UI 文案，不在此处翻译（英文正文另有 EN_FILLERS 等既有规则）。
+export const writingAid = {
+  // 写作辅助面板
+  title: '写作辅助',
+  toggleAria: '切换写作辅助面板',
+  localOnly: '本地处理 · 不上云',
+  localOnlyTip: '所有分析均在前端本地完成，不上传任何内容',
+  copy: '复制',
+  copied: '已复制✓',
+  titleSection: '标题建议',
+  apply: '应用',
+  applyAria: '应用建议标题',
+  copyTitleAria: '复制标题',
+  titleEmpty: '开始写作后将自动建议标题。',
+  outlineAria: '大纲',
+  outline: '大纲 · {n}',
+  outlineEmpty: '暂无标题结构。',
+  lineNum: '行 {n}',
+  polishAria: '润色建议',
+  polish: '润色建议 · {n}',
+  copyPolishAria: '复制润色后全文',
+  polishEmpty: '暂无明显可优化项。',
+  removed: '（删除）',
+  keywordAria: '焦点关键词',
+  keyword: '焦点关键词 · {n}',
+  copyKeywordAria: '复制关键词',
+  keywordEmpty: '暂无可提取关键词。',
+  weight: '权重 {n}',
+  // writingAid.ts 的润色理由（纯函数形参注入）
+  reasonFillerWord: '冗余词：{w}',
+  reasonFillerPhrase: '冗余表达：{phrase}',
+  reasonSpaceBeforePunct: '标点前多余空格',
+  reasonRepeatPunct: '重复标点',
+  reasonExtraSpace: '多余空格',
+  reasonDoubledChar: '重复字',
+  // 成稿核查面板
+  draftTitle: '成稿核查',
+  draftToggleAria: '切换成稿核查面板',
+  draftLocalTip: '本地启发式分析，不上传任何内容',
+  draftLocalBadge: '本地启发式 · 不上云',
+  draftEmpty: '内容过短或未发现问题，继续保持。',
+  typeSource: '信源',
+  typeClaim: '表述',
+  typeBalance: '视角',
+  // draftBlindSpot.ts 的提示文案（纯函数形参注入）
+  msgNoSource: '未检测到引用来源，长文建议为关键论点标注出处。',
+  msgAbsolute: '存在 {n} 处绝对化表述，可考虑补充限定或依据。',
+  msgUnbalanced: '观点较单一，可补充不同视角或反面论证以增强严谨性。',
+  // 关联侧栏
+  contextTitle: '关联',
+  contextToggleAria: '切换关联面板',
+  backlinks: '反链 · {n}',
+  backlinksEmpty: '暂无其他笔记链接到此。',
+  openNote: '打开「{name}」',
+  miniGraph: '迷你图谱',
+  miniGraphEmpty: '打开笔记后显示关联图谱。',
+  miniGraphAria: '当前笔记关联图谱',
+  miniGraphNoRelated: '暂无关联笔记',
+}

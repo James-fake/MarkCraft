@@ -155,6 +155,31 @@ interface PolishRule {
   reason: string
 }
 
+/**
+ * 润色建议的「理由」文案（纯函数不触达 React 语言上下文，故按形参传入）。
+ * 带 {x} 的项由本模块填充具体词/短语；默认值与 locales/zh 的 writingAid 段同值。
+ */
+export interface PolishReasons {
+  /** {w} = 命中的冗余词 */
+  fillerWord: string
+  /** {phrase} = 命中的冗余表达 */
+  fillerPhrase: string
+  spaceBeforePunct: string
+  repeatPunct: string
+  extraSpace: string
+  doubledChar: string
+}
+
+/** 中文默认理由（未显式传入时使用，保持既有调用点行为不变） */
+export const DEFAULT_POLISH_REASONS: PolishReasons = {
+  fillerWord: '冗余词：{w}',
+  fillerPhrase: '冗余表达：{phrase}',
+  spaceBeforePunct: '标点前多余空格',
+  repeatPunct: '重复标点',
+  extraSpace: '多余空格',
+  doubledChar: '重复字',
+}
+
 /** 中文冗余话语标记：仅当其后紧跟标点或空白时才移除，避免误删词义中的字 */
 const ZH_FILLERS = [
   '其实', '基本上', '也就是说', '事实上', '应该说', '众所周知',
@@ -180,26 +205,28 @@ const EXTRA_SPACE = /[ \t]{2,}/g
 /** 中文常见叠字（的的→的、了了→了 等） */
 const DOUBLE_CHAR = /(的|了|吗|呢|吧|啊|呀|哦|嗯|嘛|咯)\1/g
 
-function buildRules(): PolishRule[] {
+function buildRules(reasons: PolishReasons): PolishRule[] {
   const rules: PolishRule[] = []
   for (const w of ZH_FILLERS) {
     rules.push({
       re: new RegExp(`${w}(?=[，。、；：！？\\s])`, 'g'),
       replace: '',
-      reason: `冗余词：${w}`,
+      reason: reasons.fillerWord.replace(String.raw`{w}`, w),
     })
   }
   for (const [from, to] of EN_FILLERS) {
-    rules.push({ re: new RegExp(from, 'gi'), replace: to, reason: `冗余表达：${from.trim()}` })
+    rules.push({
+      re: new RegExp(from, 'gi'),
+      replace: to,
+      reason: reasons.fillerPhrase.replace(String.raw`{phrase}`, from.trim()),
+    })
   }
-  rules.push({ re: SPACE_BEFORE_PUNCT, replace: '$1', reason: '标点前多余空格' })
-  rules.push({ re: REPEAT_PUNCT, replace: '$1', reason: '重复标点' })
-  rules.push({ re: EXTRA_SPACE, replace: ' ', reason: '多余空格' })
-  rules.push({ re: DOUBLE_CHAR, replace: '$1', reason: '重复字' })
+  rules.push({ re: SPACE_BEFORE_PUNCT, replace: '$1', reason: reasons.spaceBeforePunct })
+  rules.push({ re: REPEAT_PUNCT, replace: '$1', reason: reasons.repeatPunct })
+  rules.push({ re: EXTRA_SPACE, replace: ' ', reason: reasons.extraSpace })
+  rules.push({ re: DOUBLE_CHAR, replace: '$1', reason: reasons.doubledChar })
   return rules
 }
-
-const POLISH_RULES = buildRules()
 
 /** 将内容按围栏代码块切分为 {text, isCode} 片段（代码块原样保留，不参与润色） */
 function splitPreservingFences(content: string): Array<{ text: string; isCode: boolean }> {
@@ -223,9 +250,9 @@ function applyReplacement(template: string, groups: string[]): string {
   return template.replace(/\$(\d+)/g, (_, n) => groups[Number(n) - 1] ?? '')
 }
 
-function polishSegment(text: string, sink: PolishSuggestion[]): string {
+function polishSegment(text: string, sink: PolishSuggestion[], rules: PolishRule[]): string {
   let out = text
-  for (const rule of POLISH_RULES) {
+  for (const rule of rules) {
     out = out.replace(rule.re, (...args: string[]) => {
       const match = args[0]
       // 捕获组位于 (match, g1, g2, ..., offset, string) 之间
@@ -244,11 +271,15 @@ function polishSegment(text: string, sink: PolishSuggestion[]): string {
  * 启发式润色：基于本地规则清理冗余词、标点与空格，返回润色后全文与逐条建议。
  * 代码块内容原样保留，避免改动程序代码。
  */
-export function polishText(content: string): PolishResult {
+export function polishText(
+  content: string,
+  reasons: PolishReasons = DEFAULT_POLISH_REASONS,
+): PolishResult {
+  const rules = buildRules(reasons)
   const segments = splitPreservingFences(content)
   const suggestions: PolishSuggestion[] = []
   const out = segments
-    .map(seg => (seg.isCode ? seg.text : polishSegment(seg.text, suggestions)))
+    .map(seg => (seg.isCode ? seg.text : polishSegment(seg.text, suggestions, rules)))
     .join('')
   return { polished: out, suggestions, changed: suggestions.length > 0 }
 }
