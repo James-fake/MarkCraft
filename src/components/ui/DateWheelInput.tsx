@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { DateWheelPicker } from './DateWheelPicker'
 import { usePresence, POPOVER_EXIT_MS } from './usePresence'
+import { useUiLabels } from './UiLabels'
+import type { UiLabels } from './UiLabels'
 
 export interface DateWheelInputProps {
   /** 当前日期，ISO 短格式 'YYYY-MM-DD'（空 → 未设置） */
@@ -15,10 +17,13 @@ export interface DateWheelInputProps {
   id?: string
 }
 
-function formatDate(v: string): string {
+function formatDate(v: string, ui: UiLabels): string {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v)
-  if (!m) return '未设置'
-  return `${m[1]} 年 ${+m[2]} 月 ${+m[3]} 日`
+  if (!m) return ui.unset
+  return ui.dateYmd
+    .replace(String.raw`{y}`, m[1])
+    .replace(String.raw`{m}`, String(+m[2]))
+    .replace(String.raw`{d}`, String(+m[3]))
 }
 
 /**
@@ -34,6 +39,7 @@ export function DateWheelInput({
   disabled,
   id,
 }: DateWheelInputProps) {
+  const ui = useUiLabels()
   const innerRef = useRef<HTMLButtonElement | null>(null)
   const popoverRef = useRef<HTMLDivElement | null>(null)
   const [open, setOpen] = useState(false)
@@ -69,7 +75,7 @@ export function DateWheelInput({
           data-exiting={exiting || undefined}
           style={{ position: 'fixed', top, left, width }}
           role="dialog"
-          aria-label="选择生日"
+          aria-label={ui.birthdaySelect}
         >
           <DateWheelPicker
             value={value}
@@ -96,7 +102,7 @@ export function DateWheelInput({
         disabled={disabled}
         onClick={() => setOpen((o) => !o)}
       >
-        <span className={value ? '' : 'is-placeholder'}>{formatDate(value)}</span>
+        <span className={value ? '' : 'is-placeholder'}>{formatDate(value, ui)}</span>
         <svg className="aurora-datewheel-trigger__chev" viewBox="0 0 16 16" width="12" height="12" aria-hidden="true">
           <path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
         </svg>

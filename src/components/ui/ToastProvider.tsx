@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { useUiLabels } from './UiLabels'
 
 export type ToastKind = 'info' | 'success' | 'error' | 'warning'
 
@@ -85,6 +86,7 @@ function KindIcon({ kind }: { kind: ToastKind }) {
  * 原壳是同一 Context 的第二导入源（维护隐患）；AuroraShell 现直引本模块，全站仍同一 Context、同一视觉。
  */
 export function ToastProvider({ children }: { children: ReactNode }) {
+  const ui = useUiLabels()
   const [toasts, setToasts] = useState<ToastItem[]>([])
   const idRef = useRef(0)
   const timers = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map())
@@ -157,7 +159,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         ref={containerRef}
         className="aurora-toast-container"
         role="region"
-        aria-label="通知"
+        aria-label={ui.notify}
         aria-live="polite"
       >
         {toasts.map((t) => (

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useUiLabels } from './UiLabels'
 
 /**
  * 苹果风格日期滚轮鼓（年 / 月 / 日 三列，参考 iOS 日期选择器）
@@ -126,6 +127,7 @@ export function DateWheelPicker({
   maxYear = new Date().getFullYear(),
   onClose,
 }: DateWheelPickerProps) {
+  const ui = useUiLabels()
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
   const onCloseRef = useRef(onClose)
@@ -198,9 +200,9 @@ export function DateWheelPicker({
 
   return (
     <div className="aurora-datewheel">
-      <DrumColumn items={years} selectedIndex={yIdx} onChange={(i) => setPart('y', i)} ariaLabel="年" />
-      <DrumColumn items={months} selectedIndex={mIdx} onChange={(i) => setPart('m', i)} ariaLabel="月" />
-      <DrumColumn items={days} selectedIndex={dIdx} onChange={(i) => setPart('d', i)} ariaLabel="日" />
+      <DrumColumn items={years} selectedIndex={yIdx} onChange={(i) => setPart('y', i)} ariaLabel={ui.wheelYear} />
+      <DrumColumn items={months} selectedIndex={mIdx} onChange={(i) => setPart('m', i)} ariaLabel={ui.wheelMonth} />
+      <DrumColumn items={days} selectedIndex={dIdx} onChange={(i) => setPart('d', i)} ariaLabel={ui.wheelDay} />
     </div>
   )
 }

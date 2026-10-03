@@ -21,6 +21,9 @@ import { NoteVersionProvider } from '../../stores/NoteVersionStore'
 // 真实项目的 Toast / Confirm（真实 feature 组件依赖其 context；Aurora 外壳命令面板仍用 Aurora 原生 toast，两套 context 互不干扰）
 import { ToastProvider } from '../../components/ui/ToastProvider'
 import { ConfirmProvider } from '../../components/ui/ConfirmProvider'
+// 共享 UI 基元文案注入：components/ui 属 L2，禁止 import stores/locales，
+// 故由本装配层读取语言包并注入（与下方 ModalProvider createFileTitle 同范式）。
+import { UiLabelsProvider } from '../../components/ui/UiLabels'
 
 // 模块级副作用：markdown 渲染配置 + katex 样式（原 App.tsx 顶部引入，真实 feature 渲染所必需）
 import '../../services/markedConfig'
@@ -46,6 +49,15 @@ function ModalProviderWrapper({ children }: { children: ReactNode }) {
   return <ModalProvider createFileTitle={t.createFileExtra.title}>{children}</ModalProvider>
 }
 
+/**
+ * 把语言包里的 UI 基元文案注入 components/ui 自持的 UiLabelsContext。
+ * 结构化赋值：`t.uiLabels` 键集若与 `UiLabels` 接口漂移，此处 tsc 直接报错。
+ */
+function UiLabelsWrapper({ children }: { children: ReactNode }) {
+  const { t } = useLanguage()
+  return <UiLabelsProvider value={t.uiLabels}>{children}</UiLabelsProvider>
+}
+
 function LinkIndexProviderWrapper({ children }: { children: ReactNode }) {
   const { rootFolder } = useFileManager()
   return (
@@ -61,21 +73,23 @@ export function RealProviders({ children }: { children: ReactNode }) {
   return (
     <LanguageProvider>
       <ModalProviderWrapper>
-        <UndoRedoProvider>
-          <SettingsProvider>
-            <FileManagerProvider>
-              <LinkIndexProviderWrapper>
-                <BookmarkProvider>
-                  <NoteVersionProvider>
-                    <ToastProvider>
-                      <ConfirmProvider>{children}</ConfirmProvider>
-                    </ToastProvider>
-                  </NoteVersionProvider>
-                </BookmarkProvider>
-              </LinkIndexProviderWrapper>
-            </FileManagerProvider>
-          </SettingsProvider>
-        </UndoRedoProvider>
+        <UiLabelsWrapper>
+          <UndoRedoProvider>
+            <SettingsProvider>
+              <FileManagerProvider>
+                <LinkIndexProviderWrapper>
+                  <BookmarkProvider>
+                    <NoteVersionProvider>
+                      <ToastProvider>
+                        <ConfirmProvider>{children}</ConfirmProvider>
+                      </ToastProvider>
+                    </NoteVersionProvider>
+                  </BookmarkProvider>
+                </LinkIndexProviderWrapper>
+              </FileManagerProvider>
+            </SettingsProvider>
+          </UndoRedoProvider>
+        </UiLabelsWrapper>
       </ModalProviderWrapper>
     </LanguageProvider>
   )

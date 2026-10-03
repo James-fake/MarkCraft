@@ -1,6 +1,8 @@
 import React from 'react'
 import { logger } from '@utils/logger'
 import { Button } from '@components/ui'
+import { UiLabelsContext } from './UiLabels'
+import type { UiLabels } from './UiLabels'
 
 interface Props {
   children: React.ReactNode
@@ -40,18 +42,18 @@ export default class ErrorBoundary extends React.Component<Props, State> {
     this.setState({ hasError: false, error: null, componentStack: undefined })
   }
 
-  private handleExportLog = () => {
+  private handleExportLog = (ui: UiLabels) => {
     const lines = [
-      'MarkCraft 错误报告',
-      `模块：${this.props.name}`,
-      `时间：${new Date().toISOString()}`,
+      ui.errReportTitle,
+      ui.errModule.replace(String.raw`{name}`, this.props.name),
+      ui.errTime.replace(String.raw`{t}`, new Date().toISOString()),
       '',
-      `错误信息：${this.state.error?.message ?? ''}`,
+      ui.errMessage.replace(String.raw`{msg}`, this.state.error?.message ?? ''),
       '',
-      '错误堆栈：',
+      ui.errStack,
       this.state.error?.stack ?? '',
       '',
-      '组件堆栈：',
+      ui.errComponentStack,
       this.state.componentStack ?? '',
     ]
     try {
@@ -68,9 +70,18 @@ export default class ErrorBoundary extends React.Component<Props, State> {
   }
 
   render() {
+    // 类组件不能用 hook：经 Consumer 读取 components/ui 自持文案（未注入时回落中文默认值）
+    return (
+      <UiLabelsContext.Consumer>
+        {(ui) => this.renderWithLabels(ui)}
+      </UiLabelsContext.Consumer>
+    )
+  }
+
+  private renderWithLabels(ui: UiLabels) {
     if (this.state.hasError) {
-      const title = this.props.errorTitle || `${this.props.name} 运行出错`
-      const retry = this.props.retryText || '重试'
+      const title = this.props.errorTitle || ui.errTitle.replace(String.raw`{name}`, this.props.name)
+      const retry = this.props.retryText || ui.retry
       return (
         <div
           role="alert"
@@ -115,14 +126,14 @@ export default class ErrorBoundary extends React.Component<Props, State> {
               lineHeight: 1.5,
             }}
           >
-            该模块出现异常，但不会影响其它功能。你可以重试恢复，或导出错误日志反馈给开发者。
+            {ui.errDesc}
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <Button variant="primary" onClick={this.handleReset}>
               {retry}
             </Button>
-            <Button variant="secondary" onClick={this.handleExportLog}>
-              导出日志
+            <Button variant="secondary" onClick={() => this.handleExportLog(ui)}>
+              {ui.exportLog}
             </Button>
           </div>
           {this.state.error?.message && (
@@ -135,7 +146,7 @@ export default class ErrorBoundary extends React.Component<Props, State> {
                 color: 'var(--text-secondary, #94a3b8)',
               }}
             >
-              <summary style={{ cursor: 'pointer' }}>技术详情</summary>
+              <summary style={{ cursor: 'pointer' }}>{ui.techDetails}</summary>
               <pre style={{ whiteSpace: 'pre-wrap', marginTop: 6, margin: 0 }}>
                 {this.state.error.message}
                 {'\n'}

@@ -2497,6 +2497,35 @@ export const en: Translations = {
     defaultExportFormat: 'Default Export Format',
     defaultExportStyle: 'Default Export Style',
   },
+  // ---- Shared UI primitives (injected into components/ui via UiLabelsProvider) ----
+  // components/ui may not import locales (L2 layering rule); the assembly layer
+  // (aurora/providers/RealProviders) reads this segment and injects it.
+  uiLabels: {
+    close: 'Close',
+    notify: 'Notifications',
+    cancel: 'Cancel',
+    confirm: 'OK',
+    selectPlaceholder: 'Please select',
+    wheelSelect: 'Wheel selector',
+    numberWheel: 'Number wheel selector',
+    unset: 'Not set',
+    dateYmd: '{m}/{d}/{y}',
+    birthdaySelect: 'Select birthday',
+    wheelYear: 'Year',
+    wheelMonth: 'Month',
+    wheelDay: 'Day',
+    errReportTitle: 'MarkCraft Error Report',
+    errModule: 'Module: {name}',
+    errTime: 'Time: {t}',
+    errMessage: 'Error: {msg}',
+    errStack: 'Error stack:',
+    errComponentStack: 'Component stack:',
+    errTitle: '{name} crashed',
+    retry: 'Retry',
+    errDesc: 'This module hit an error, but other features are unaffected. Retry to recover, or export the error log to report it.',
+    exportLog: 'Export log',
+    techDetails: 'Technical details',
+  },
 }
 
 export default en

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { NumberWheelPicker } from './NumberWheelPicker'
 import { usePresence, POPOVER_EXIT_MS } from './usePresence'
+import { useUiLabels } from './UiLabels'
 
 export interface ScrollNumberInputProps {
   /** 当前数值（数字或字符串；空字符串表示未填写） */
@@ -51,6 +52,7 @@ export function ScrollNumberInput({
   placeholder,
   ...rest
 }: ScrollNumberInputProps & NativeButtonProps) {
+  const ui = useUiLabels()
   const anchorRef = useRef<HTMLButtonElement | null>(null)
   const popoverRef = useRef<HTMLDivElement | null>(null)
   const closeTimer = useRef<number | null>(null)
@@ -128,7 +130,7 @@ export function ScrollNumberInput({
         data-exiting={exiting || undefined}
         style={{ position: 'fixed', top, left, width }}
         role="dialog"
-        aria-label="数字滚轮选择"
+        aria-label={ui.numberWheel}
         onMouseEnter={cancelClose}
         onMouseLeave={scheduleClose}
       >
@@ -160,7 +162,7 @@ export function ScrollNumberInput({
         disabled={disabled}
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label="数字滚轮选择"
+        aria-label={ui.numberWheel}
         onClick={() => setOpen((o) => !o)}
         {...rest}
       >

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { OptionWheelPicker } from './OptionWheelPicker'
 import { usePresence, POPOVER_EXIT_MS } from './usePresence'
+import { useUiLabels } from './UiLabels'
 
 /**
  * AuroraSelect —— 统一下拉选择器（替代原生 <select>），现已升级为苹果风格滚轮鼓。
@@ -37,12 +38,13 @@ export function AuroraSelect({
   value,
   options,
   onChange,
-  placeholder = '请选择',
+  placeholder,
   ariaLabel,
   id,
   className = '',
   minWidth,
 }: AuroraSelectProps) {
+  const ui = useUiLabels()
   const [open, setOpen] = useState(false)
   const [rect, setRect] = useState<DOMRect | null>(null)
   // 关闭时先播 100ms 退场再卸载（动效审计 P0-4）；rect 是 state，退场窗口内定位不丢
@@ -175,7 +177,7 @@ export function AuroraSelect({
         data-exiting={exiting || undefined}
         style={{ position: 'fixed', top, left, width }}
         role="dialog"
-        aria-label={ariaLabel ?? '滚轮选择'}
+        aria-label={ariaLabel ?? ui.wheelSelect}
         onMouseEnter={cancelClose}
         onMouseLeave={scheduleClose}
       >
@@ -208,7 +210,7 @@ export function AuroraSelect({
         aria-expanded={open}
         aria-label={ariaLabel}
       >
-        <span className="aurora-select__value">{selected ? selected.label : placeholder}</span>
+        <span className="aurora-select__value">{selected ? selected.label : (placeholder ?? ui.selectPlaceholder)}</span>
         <svg
           className="aurora-select__chevron"
           width={14}

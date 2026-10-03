@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useUiLabels } from './UiLabels'
 
 export type ModalSize = 'sm' | 'md' | 'lg'
 
@@ -58,6 +59,7 @@ export const Modal: React.FC<ModalProps> = ({
   className,
   contentClassName,
 }) => {
+  const ui = useUiLabels()
   const overlayRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const prevFocus = useRef<HTMLElement | null>(null)
@@ -164,7 +166,7 @@ export const Modal: React.FC<ModalProps> = ({
                 {title}
               </h2>
             )}
-            <button type="button" className="aurora-modal__close" onClick={onClose} aria-label="关闭">
+            <button type="button" className="aurora-modal__close" onClick={onClose} aria-label={ui.close}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M6 6l12 12M18 6L6 18" />
               </svg>

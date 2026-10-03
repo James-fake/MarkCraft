@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react'
 import { Modal } from './Modal'
 import { Button } from './Button'
+import { useUiLabels } from './UiLabels'
 
 export interface ConfirmOptions {
   /** 标题；省略时仅展示 message */
@@ -27,6 +28,7 @@ const ConfirmContext = createContext<ConfirmContextValue | null>(null)
  * 用于逐步替换原生 window.confirm，避免暗黑模式下样式割裂与焦点管理缺失。
  */
 export function ConfirmProvider({ children }: { children: React.ReactNode }) {
+  const ui = useUiLabels()
   const [state, setState] = useState<{ open: boolean; opts: ConfirmOptions }>({
     open: false,
     opts: { message: '' },
@@ -58,13 +60,13 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
         footer={
           <>
             <Button variant="ghost" onClick={() => settle(false)}>
-              {state.opts.cancelText ?? '取消'}
+              {state.opts.cancelText ?? ui.cancel}
             </Button>
             <Button
               variant={state.opts.variant === 'danger' ? 'danger' : 'primary'}
               onClick={() => settle(true)}
             >
-              {state.opts.confirmText ?? '确定'}
+              {state.opts.confirmText ?? ui.confirm}
             </Button>
           </>
         }

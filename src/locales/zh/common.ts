@@ -1610,3 +1610,34 @@ export const settingsExport = {
   plantuml: 'PlantUML 渲染端点',
   plantumlDesc: '远程 SVG 渲染地址',
 }
+
+// ---- 共享 UI 基元（components/ui/UiLabels.tsx 的注入源）----
+// 分层说明：components/ui 不可 import locales，故该段由装配层
+// （aurora/providers/RealProviders）读取并注入 UiLabelsProvider。
+// 键集合必须与 UiLabels 接口逐一同名同形，否则装配处 tsc 报错。
+export const uiLabels = {
+  close: '关闭',
+  notify: '通知',
+  cancel: '取消',
+  confirm: '确定',
+  selectPlaceholder: '请选择',
+  wheelSelect: '滚轮选择',
+  numberWheel: '数字滚轮选择',
+  unset: '未设置',
+  dateYmd: '{y} 年 {m} 月 {d} 日',
+  birthdaySelect: '选择生日',
+  wheelYear: '年',
+  wheelMonth: '月',
+  wheelDay: '日',
+  errReportTitle: 'MarkCraft 错误报告',
+  errModule: '模块：{name}',
+  errTime: '时间：{t}',
+  errMessage: '错误信息：{msg}',
+  errStack: '错误堆栈：',
+  errComponentStack: '组件堆栈：',
+  errTitle: '{name} 运行出错',
+  retry: '重试',
+  errDesc: '该模块出现异常，但不会影响其它功能。你可以重试恢复，或导出错误日志反馈给开发者。',
+  exportLog: '导出日志',
+  techDetails: '技术详情',
+}

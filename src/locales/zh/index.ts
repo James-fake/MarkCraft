@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogCss, platformPublish, blogModal } from './blog'
-import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, blog, editorPanel, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
+import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, blog, editorPanel, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -1620,6 +1620,32 @@ export interface Translations {
     plantuml: string
     plantumlDesc: string
   }
+  uiLabels: {
+    close: string
+    notify: string
+    cancel: string
+    confirm: string
+    selectPlaceholder: string
+    wheelSelect: string
+    numberWheel: string
+    unset: string
+    dateYmd: string
+    birthdaySelect: string
+    wheelYear: string
+    wheelMonth: string
+    wheelDay: string
+    errReportTitle: string
+    errModule: string
+    errTime: string
+    errMessage: string
+    errStack: string
+    errComponentStack: string
+    errTitle: string
+    retry: string
+    errDesc: string
+    exportLog: string
+    techDetails: string
+  }
   settingsPanel: {
     catUser: string
     catGeneral: string
@@ -2557,6 +2583,7 @@ const zh: Translations = {
   settingsAbout,
   settingsData,
   settingsExport,
+  uiLabels,
   settingsPanel,
   settingsAppearance,
   settingsEditor,
