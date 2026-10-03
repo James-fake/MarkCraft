@@ -120,4 +120,43 @@ window.addEventListener('unhandledrejection', (e) => {
   console.error('[Aurora] 未处理的 Promise 拒绝:', e.reason)
 })
 
+/**
+ * 启动失败兜底：白屏诊断。
+ *
+ * React 的 ErrorBoundary 只能捕获「子树渲染期」错误；若失败发生在模块求值、
+ * 动态 import 或 bootstrap 之前（例如 chunk 加载失败 / 依赖顶层抛错），
+ * 页面会停在纯空白，用户无从判断原因。
+ * 这里在启动后延迟检查挂载点：若仍是空的，则渲染一段可读的诊断信息，
+ * 把真实错误（首个 window error / unhandledrejection）呈现出来，避免「白屏无解」。
+ */
+function installBlankScreenGuard() {
+  const seen: string[] = []
+  const record = (msg: unknown) => {
+    const text = msg instanceof Error ? (msg.stack || msg.message) : String(msg)
+    if (text && !seen.includes(text)) seen.push(text)
+  }
+  window.addEventListener('error', e => record(e.error || e.message))
+  window.addEventListener('unhandledrejection', e => record(e.reason))
+
+  setTimeout(() => {
+    const el = document.getElementById('aurora-root')
+    if (el && el.childElementCount === 0) {
+      const detail = seen.length
+        ? seen.slice(0, 3).join('\n\n')
+        : '未捕获到具体错误。可能是资源加载失败（请检查网络/静态资源路径），或浏览器扩展拦截。'
+      el.innerHTML =
+        '<div style="padding:28px;font-family:system-ui,-apple-system,sans-serif;color:#cf222e;line-height:1.7">' +
+        '<h2 style="margin:0 0 12px;font-size:18px">界面启动失败</h2>' +
+        '<p style="margin:0 0 12px;color:#57606a">应用未能完成挂载。以下是捕获到的错误信息，可据此定位原因：</p>' +
+        '<pre style="white-space:pre-wrap;background:rgba(207,34,46,.08);padding:14px;border-radius:8px;font-size:12px;overflow:auto;max-height:60vh">' +
+        detail.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] as string)) +
+        '</pre>' +
+        '<button onclick="location.reload()" style="margin-top:8px;padding:8px 16px;border:1px solid #d0d7de;border-radius:6px;background:#fff;cursor:pointer;font-size:13px">重新加载</button>' +
+        '</div>'
+    }
+  }, 4000)
+}
+
+installBlankScreenGuard()
+
 bootstrap()
