@@ -101,21 +101,26 @@ export function getUserAge(birthday: string): number | null {
   return age >= 0 && age < 150 ? age : null
 }
 
-/** 由生日推导十二星座；无效返回 ''。 */
-export function getConstellation(birthday: string): string {
+/** 十二星座键（展示文案走语言包 t.zodiac，此处只产出键） */
+export type ZodiacKey =
+  | 'capricorn' | 'aquarius' | 'pisces' | 'aries' | 'taurus' | 'gemini'
+  | 'cancer' | 'leo' | 'virgo' | 'libra' | 'scorpio' | 'sagittarius'
+
+/** 由生日推导十二星座键；无效返回 ''。文案请经 t.zodiac[键] 本地化。 */
+export function getConstellationKey(birthday: string): ZodiacKey | '' {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthday)
   if (!m) return ''
   const month = Number(m[2])
   const day = Number(m[3])
-  const table: [number, number, string][] = [
-    [1, 19, '摩羯座'], [2, 18, '水瓶座'], [3, 20, '双鱼座'],
-    [4, 19, '白羊座'], [5, 20, '金牛座'], [6, 21, '双子座'],
-    [7, 22, '巨蟹座'], [8, 22, '狮子座'], [9, 22, '处女座'],
-    [10, 23, '天秤座'], [11, 22, '天蝎座'], [12, 21, '射手座'],
-    [12, 31, '摩羯座'],
+  const table: [number, number, ZodiacKey][] = [
+    [1, 19, 'capricorn'], [2, 18, 'aquarius'], [3, 20, 'pisces'],
+    [4, 19, 'aries'], [5, 20, 'taurus'], [6, 21, 'gemini'],
+    [7, 22, 'cancer'], [8, 22, 'leo'], [9, 22, 'virgo'],
+    [10, 23, 'libra'], [11, 22, 'scorpio'], [12, 21, 'sagittarius'],
+    [12, 31, 'capricorn'],
   ]
-  for (const [mm, dd, name] of table) {
-    if (month < mm || (month === mm && day <= dd)) return name
+  for (const [mm, dd, key] of table) {
+    if (month < mm || (month === mm && day <= dd)) return key
   }
   return ''
 }

@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogModal } from './blog'
-import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral } from './common'
+import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -782,6 +782,105 @@ export interface Translations {
     showSidebar: string
     showSidebarDesc: string
   }
+  settingsUser: {
+    nickname: string
+    nicknameDesc: string
+    nicknamePlaceholder: string
+    avatar: string
+    avatarSearchDesc: string
+    avatarDesc: string
+    birthday: string
+    birthdayDesc: string
+    ageYears: string
+    birthdayFallback: string
+    pickImage: string
+    imageTooLarge: string
+    avatarUpdated: string
+    avatarFailed: string
+    avatarRemoved: string
+    uploadAvatar: string
+    removeAvatar: string
+  }
+  zodiac: {
+    capricorn: string
+    aquarius: string
+    pisces: string
+    aries: string
+    taurus: string
+    gemini: string
+    cancer: string
+    leo: string
+    virgo: string
+    libra: string
+    scorpio: string
+    sagittarius: string
+  }
+  settingsAbout: {
+    matchTitle: string
+    matchKeywords: string
+    versionText: string
+    noUpdateBackend: string
+    noChangelogBackend: string
+    soon: string
+    recentUpdates: string
+    thanks: string
+    links: string
+    chg200Title: string
+    chg200_1: string
+    chg200_2: string
+    chg200_3: string
+    chg200_4: string
+    chg200_5: string
+    chg200_6: string
+    chg180Title: string
+    chg180_1: string
+    chg180_2: string
+    chg180_3: string
+    thanksIntro: string
+    official: string
+    feedback: string
+    privacy: string
+    terms: string
+    license: string
+    openNewWindow: string
+    openKbTitle: string
+    docDeleted: string
+    checkUpdate: string
+    changelogBtn: string
+    usageDocs: string
+    openDocsFailed: string
+  }
+  settingsData: {
+    outlineSection: string
+    outline: string
+    outlineDesc: string
+    dataSection: string
+    exportMd: string
+    exportMdDesc: string
+    exporting: string
+    oneClickExport: string
+    exportFailed: string
+    exportDone: string
+    exportMissing: string
+    exportMdLongDesc: string
+    resetLongDesc: string
+    resetDefaults: string
+    resetDesc: string
+    resetTitle: string
+    resetMessage: string
+    resetConfirm: string
+  }
+  settingsExport: {
+    sectionTitle: string
+    defaultFormat: string
+    defaultFormatDesc: string
+    defaultStyle: string
+    defaultStyleSearchDesc: string
+    defaultStyleDesc: string
+    chartSection: string
+    plantuml: string
+    plantumlDesc: string
+  }
   settingsPanel: {
     catUser: string
     catGeneral: string
@@ -1433,6 +1532,11 @@ const zh: Translations = {
   canvasPanel,
   versionHistory,
   settingsGeneral,
+  settingsUser,
+  zodiac,
+  settingsAbout,
+  settingsData,
+  settingsExport,
   settingsPanel,
   settingsAppearance,
   settingsEditor,

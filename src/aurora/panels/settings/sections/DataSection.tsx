@@ -5,6 +5,7 @@ import { exportWorkspaceZip } from '@features/export/backupService'
 import { Switch } from '@components/ui/Switch'
 import { useConfirm } from '@components/ui/ConfirmProvider'
 import { useSettingsQuery } from '../settingsSearch'
+import { useLanguage } from '@stores/LanguageStore'
 
 /**
  * 数据设置分组 —— 接真实 useSettings()
@@ -15,6 +16,8 @@ import { useSettingsQuery } from '../settingsSearch'
  */
 export function DataSection({ query, toast }: { query?: string; toast?: (msg: string) => void }) {
   const { settings, updateSetting, resetSettings } = useSettings()
+  const { t } = useLanguage()
+  const D = t.settingsData
   const { rootFolder } = useFileManager()
   const [exporting, setExporting] = useState(false)
   const { confirm } = useConfirm()
@@ -22,9 +25,9 @@ export function DataSection({ query, toast }: { query?: string; toast?: (msg: st
   const toastFn = toast
 
   const hasAny = !q || [
-    ['显示大纲', '开启后，编辑器右侧检查器展示当前文档的标题大纲'],
-    ['导出为 .md 目录备份', '将全部笔记导出为真实 Markdown 目录'],
-    ['恢复默认设置', '将所有设置项重置为出厂默认值'],
+    [D.outline, D.outlineDesc],
+    [D.exportMd, D.exportMdDesc],
+    [D.resetDefaults, D.resetDesc],
   ].some(([l, d]) => match(l, d))
   if (!hasAny) return null
 
@@ -33,9 +36,9 @@ export function DataSection({ query, toast }: { query?: string; toast?: (msg: st
     setExporting(true)
     try {
       const result = await exportWorkspaceZip(rootFolder)
-      toastFn?.(`已导出 ${result.fileCount} 个文件 · ${result.assetCount} 张图片` + (result.missingImages.length ? ` · ${result.missingImages.length} 张缺失` : ''))
+      toastFn?.(D.exportDone.replace('{files}', String(result.fileCount)).replace('{assets}', String(result.assetCount)) + (result.missingImages.length ? D.exportMissing.replace('{n}', String(result.missingImages.length)) : ''))
     } catch {
-      toastFn?.('导出失败，请稍后重试')
+      toastFn?.(D.exportFailed)
     } finally {
       setExporting(false)
     }
@@ -43,10 +46,10 @@ export function DataSection({ query, toast }: { query?: string; toast?: (msg: st
 
   const handleReset = async () => {
     const ok = await confirm({
-      title: '恢复默认设置',
-      message: '确定将所有设置恢复为默认值？此操作不可撤销，且不影响笔记内容。',
+      title: D.resetTitle,
+      message: D.resetMessage,
       variant: 'danger',
-      confirmText: '恢复默认',
+      confirmText: D.resetConfirm,
     })
     if (ok) resetSettings()
   }
@@ -54,11 +57,11 @@ export function DataSection({ query, toast }: { query?: string; toast?: (msg: st
   return (
     <div>
       <div className="aurora-settings__section">
-        <div className="aurora-settings__section-title">视图与大纲</div>
-        {match('显示大纲', '开启后，编辑器右侧检查器展示当前文档的标题大纲') && (
+        <div className="aurora-settings__section-title">{D.outlineSection}</div>
+        {match(D.outline, D.outlineDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">显示大纲</div>
+              <div className="aurora-settings__item-label">{D.outline}</div>
               <div className="aurora-settings__item-desc">
                 开启后，编辑器右侧检查器展示当前文档的标题大纲
               </div>
@@ -74,13 +77,13 @@ export function DataSection({ query, toast }: { query?: string; toast?: (msg: st
       </div>
 
       <div className="aurora-settings__section">
-        <div className="aurora-settings__section-title">数据管理</div>
-        {match('导出为 .md 目录备份', '将全部笔记导出为真实 Markdown 目录') && (
+        <div className="aurora-settings__section-title">{D.dataSection}</div>
+        {match(D.exportMd, D.exportMdDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">导出为 .md 目录备份</div>
+              <div className="aurora-settings__item-label">{D.exportMd}</div>
               <div className="aurora-settings__item-desc">
-                将全部笔记导出为真实 Markdown 目录（ZIP），图片放入 assets/ 并以相对路径引用，可用任意编辑器打开；含 README 说明与 manifest 元数据
+                {D.exportMdLongDesc}
               </div>
             </div>
             <div className="aurora-settings__item-control">
@@ -90,17 +93,17 @@ export function DataSection({ query, toast }: { query?: string; toast?: (msg: st
                 disabled={exporting}
                 onClick={handleExport}
               >
-                {exporting ? '导出中…' : '一键导出'}
+                {exporting ? D.exporting : D.oneClickExport}
               </button>
             </div>
           </div>
         )}
-        {match('恢复默认设置', '将所有设置项重置为出厂默认值') && (
+        {match(D.resetDefaults, D.resetDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">恢复默认设置</div>
+              <div className="aurora-settings__item-label">{D.resetDefaults}</div>
               <div className="aurora-settings__item-desc">
-                将所有设置项重置为出厂默认值（不影响笔记内容）
+                {D.resetLongDesc}
               </div>
             </div>
             <div className="aurora-settings__item-control">

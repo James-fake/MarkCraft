@@ -2,6 +2,7 @@
 import { getExportStylePresets } from '@features/export/exportStyleManager'
 import { AuroraSelect } from '@components/ui/AuroraSelect'
 import { useSettingsQuery } from '../settingsSearch'
+import { useLanguage } from '@stores/LanguageStore'
 
 /**
  * 导出设置分组 —— 接真实 useSettings()
@@ -12,29 +13,31 @@ import { useSettingsQuery } from '../settingsSearch'
  */
 export function ExportSection({ query }: { query?: string; toast?: (msg: string) => void }) {
   const { settings, updateSetting } = useSettings()
+  const { t } = useLanguage()
+  const X = t.settingsExport
   const { q, match } = useSettingsQuery(query)
   const stylePresets = getExportStylePresets()
 
   const hasAny = !q || [
-    ['默认导出格式', '导出笔记时使用的默认文件格式'],
-    ['默认导出样式', '导出时套用的外观主题标识'],
-    ['PlantUML 渲染端点', '远程 SVG 渲染地址'],
+    [X.defaultFormat, X.defaultFormatDesc],
+    [X.defaultStyle, X.defaultStyleSearchDesc],
+    [X.plantuml, X.plantumlDesc],
   ].some(([l, d]) => match(l, d))
   if (!hasAny) return null
 
   return (
     <div>
       <div className="aurora-settings__section">
-        <div className="aurora-settings__section-title">导出</div>
-        {match('默认导出格式', '导出笔记时使用的默认文件格式') && (
+        <div className="aurora-settings__section-title">{X.sectionTitle}</div>
+        {match(X.defaultFormat, X.defaultFormatDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">默认导出格式</div>
-              <div className="aurora-settings__item-desc">导出笔记时使用的默认文件格式</div>
+              <div className="aurora-settings__item-label">{X.defaultFormat}</div>
+              <div className="aurora-settings__item-desc">{X.defaultFormatDesc}</div>
             </div>
             <div className="aurora-settings__item-control">
               <AuroraSelect
-                ariaLabel="默认导出格式"
+                ariaLabel={X.defaultFormat}
                 value={settings.defaultExportFormat}
                 onChange={(v) => updateSetting('defaultExportFormat', v)}
                 options={[
@@ -47,15 +50,15 @@ export function ExportSection({ query }: { query?: string; toast?: (msg: string)
             </div>
           </div>
         )}
-        {match('默认导出样式', '导出时套用的外观主题标识') && (
+        {match(X.defaultStyle, X.defaultStyleSearchDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">默认导出样式</div>
-              <div className="aurora-settings__item-desc">导出时套用的外观主题（与导出对话框样式列表一致）</div>
+              <div className="aurora-settings__item-label">{X.defaultStyle}</div>
+              <div className="aurora-settings__item-desc">{X.defaultStyleDesc}</div>
             </div>
             <div className="aurora-settings__item-control">
               <AuroraSelect
-                ariaLabel="默认导出样式"
+                ariaLabel={X.defaultStyle}
                 value={settings.defaultExportStyle}
                 onChange={(v) => updateSetting('defaultExportStyle', v)}
                 options={stylePresets.map(p => ({ value: p.id, label: p.name }))}
@@ -66,11 +69,11 @@ export function ExportSection({ query }: { query?: string; toast?: (msg: string)
       </div>
 
       <div className="aurora-settings__section">
-        <div className="aurora-settings__section-title">图表渲染</div>
-        {match('PlantUML 渲染端点', '远程 SVG 渲染地址') && (
+        <div className="aurora-settings__section-title">{X.chartSection}</div>
+        {match(X.plantuml, X.plantumlDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
-              <div className="aurora-settings__item-label">PlantUML 渲染端点</div>
+              <div className="aurora-settings__item-label">{X.plantuml}</div>
               <div className="aurora-settings__item-desc">
                 远程 SVG 渲染地址；留空则禁用远程渲染，图表降级为代码块
               </div>
