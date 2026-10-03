@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogModal } from './blog'
-import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
+import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, kbSearch, kbOverview, kbCreate, kbFilter, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -832,6 +832,105 @@ export interface Translations {
     sceneTemplate: string
     exampleDesc: string
   }
+  kbSearch: {
+    modeText: string
+    modeRegex: string
+    modeWord: string
+    modeSemantic: string
+    searchPlaceholder: string
+    modesAria: string
+    caseTitle: string
+    advancedFilter: string
+    saveQuery: string
+    advancedFilterTitle: string
+    matchesSuffix: string
+    semanticNote: string
+    emptySupport: string
+    saveDialogTitle: string
+    namePlaceholder: string
+    contentLabel: string
+    contentEmpty: string
+    hasFilters: string
+    cancel: string
+    similarity: string
+    matchesCount: string
+    filterBtn: string
+    saveBtn: string
+    searching: string
+    foundFiles: string
+    filteredFiles: string
+    emptyHint: string
+    collapse: string
+    expand: string
+  }
+  kbOverview: {
+    statNotes: string
+    statNotesSub: string
+    statCanvas: string
+    statCanvasSub: string
+    statTags: string
+    statTagsSub: string
+    statWords: string
+    statWordsSub: string
+    statLinks: string
+    statLinksSub: string
+    healthLinkDensity: string
+    healthNonOrphan: string
+    healthTagCoverage: string
+    healthActive: string
+    healthTitle: string
+    aiSummary: string
+    localBadge: string
+    aiSummaryEmpty: string
+    regenerate: string
+    recentActivity: string
+    noFiles: string
+    tagSystem: string
+    noTags: string
+    graphTitle: string
+    graphHint: string
+    graphOpenTitle: string
+    noRelations: string
+  }
+  kbCreate: {
+    nameRequired: string
+    urlRequired: string
+    importDemo: string
+    cancel: string
+    close: string
+    title: string
+    tabsAria: string
+    nameLabel: string
+    namePlaceholder: string
+    descLabel: string
+    descPlaceholder: string
+    importTitle: string
+    zipTitle: string
+    zipDesc: string
+    obsidianTitle: string
+    obsidianDesc: string
+    notionTitle: string
+    notionDesc: string
+    webTitle: string
+    webDesc: string
+    zipSupport: string
+    fetch: string
+  }
+  kbFilter: {
+    tagLogic: string
+    logicAnd: string
+    logicOr: string
+    tagPlaceholder: string
+    excludePlaceholder: string
+    pathPattern: string
+    pathPlaceholder: string
+    dateRange: string
+    wordRange: string
+    linkRange: string
+    min: string
+    max: string
+    other: string
+  }
   settingsUser: {
     nickname: string
     nicknameDesc: string
@@ -1583,6 +1682,10 @@ const zh: Translations = {
   versionHistory,
   settingsGeneral,
   settingsUser,
+  kbSearch,
+  kbOverview,
+  kbCreate,
+  kbFilter,
   templates,
   zodiac,
   settingsAbout,

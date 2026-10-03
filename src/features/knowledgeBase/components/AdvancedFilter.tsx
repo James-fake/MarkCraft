@@ -7,6 +7,7 @@ import React, { useState, useCallback } from 'react'
 import { KB_COLORS } from '../kbTheme'
 import { ScrollNumberInput } from '@components/ui/ScrollNumberInput'
 import type { QueryFilters } from '@stores/kbTypes'
+import { useLanguage } from '../../../stores/LanguageStore'
 
 interface AdvancedFilterProps {
   /** 当前筛选器状态 */
@@ -18,6 +19,8 @@ interface AdvancedFilterProps {
 }
 
 export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({ filters, onChange, availableTags }) => {
+  const { t } = useLanguage()
+  const KF = t.kbFilter
   const [expanded, setExpanded] = useState(false)
   const [tagInput, setTagInput] = useState('')
   const [tagNotInput, setTagNotInput] = useState('')
@@ -182,7 +185,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({ filters, onChang
           borderTop: `1px solid ${KB_COLORS.border}`,
         }}>
           {/* 标签逻辑切换 */}
-          <FilterGroup label="标签逻辑">
+          <FilterGroup label={KF.tagLogic}>
             <div style={{ display: 'flex', gap: 8 }}>
               {(['and', 'or'] as const).map(logic => (
                 <label key={logic} style={{
@@ -196,7 +199,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({ filters, onChang
                     onChange={() => update({ tagLogic: logic })}
                     style={{ cursor: 'pointer' }}
                   />
-                  {logic === 'and' ? '全部包含 (AND)' : '任一包含 (OR)'}
+                  {logic === 'and' ? KF.logicAnd : KF.logicOr}
                 </label>
               ))}
             </div>
@@ -235,7 +238,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({ filters, onChang
                 value={tagInput}
                 onChange={e => setTagInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') addTag() }}
-                placeholder="输入标签名（不含#）"
+                placeholder={KF.tagPlaceholder}
                 style={{ ...inputStyle, flex: 1 }}
               />
               <button onClick={addTag} style={addBtnStyle}>添加</button>
@@ -260,7 +263,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({ filters, onChang
                 value={tagNotInput}
                 onChange={e => setTagNotInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter') addTagNot() }}
-                placeholder="输入要排除的标签"
+                placeholder={KF.excludePlaceholder}
                 style={{ ...inputStyle, flex: 1 }}
               />
               <button onClick={addTagNot} style={addBtnStyle}>排除</button>
@@ -268,17 +271,17 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({ filters, onChang
           </FilterGroup>
 
           {/* 路径模式 */}
-          <FilterGroup label="路径模式">
+          <FilterGroup label={KF.pathPattern}>
             <input
               value={filters.pathPattern ?? ''}
               onChange={e => update({ pathPattern: e.target.value || undefined })}
-              placeholder="例如：notes/ 或 /draft"
+              placeholder={KF.pathPlaceholder}
               style={inputStyle}
             />
           </FilterGroup>
 
           {/* 日期范围 */}
-          <FilterGroup label="日期范围">
+          <FilterGroup label={KF.dateRange}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <input
                 type="date"
@@ -303,7 +306,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({ filters, onChang
           </FilterGroup>
 
           {/* 字数范围 */}
-          <FilterGroup label="字数范围">
+          <FilterGroup label={KF.wordRange}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <ScrollNumberInput
                 min={0}
@@ -312,7 +315,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({ filters, onChang
                   Number.isNaN(n) ? undefined : n,
                   filters.wordCountRange?.max
                 )}
-                placeholder="最少"
+                placeholder={KF.min}
                 style={inputStyle}
               />
               <span style={{ color: KB_COLORS.textTertiary, fontSize: 12 }}>~</span>
@@ -323,14 +326,14 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({ filters, onChang
                   filters.wordCountRange?.min,
                   Number.isNaN(n) ? undefined : n
                 )}
-                placeholder="最多"
+                placeholder={KF.max}
                 style={inputStyle}
               />
             </div>
           </FilterGroup>
 
           {/* 链接数范围 */}
-          <FilterGroup label="链接数范围">
+          <FilterGroup label={KF.linkRange}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
               <ScrollNumberInput
                 min={0}
@@ -339,7 +342,7 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({ filters, onChang
                   Number.isNaN(n) ? undefined : n,
                   filters.linkCountRange?.max
                 )}
-                placeholder="最少"
+                placeholder={KF.min}
                 style={inputStyle}
               />
               <span style={{ color: KB_COLORS.textTertiary, fontSize: 12 }}>~</span>
@@ -350,14 +353,14 @@ export const AdvancedFilter: React.FC<AdvancedFilterProps> = ({ filters, onChang
                   filters.linkCountRange?.min,
                   Number.isNaN(n) ? undefined : n
                 )}
-                placeholder="最多"
+                placeholder={KF.max}
                 style={inputStyle}
               />
             </div>
           </FilterGroup>
 
           {/* 是否关联画布 */}
-          <FilterGroup label="其他">
+          <FilterGroup label={KF.other}>
             <label style={{
               display: 'inline-flex', alignItems: 'center', gap: 6,
               fontSize: 12, color: KB_COLORS.textMain, cursor: 'pointer',

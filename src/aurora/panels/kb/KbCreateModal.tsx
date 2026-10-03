@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Modal } from '@components/ui/Modal'
+import { useLanguage } from '@stores/LanguageStore'
 import { Icon } from '../../icons'
 
 export type KbImportType = 'obsidian' | 'notion' | 'web'
@@ -25,6 +26,8 @@ export interface KbCreateModalProps {
  * 复用全局 Modal 组件（Esc / 遮罩 / 关闭按钮）与 aurora-kb-* 既有表单/选项样式。
  */
 export function KbCreateModal({ open, onClose, toast, onCreate }: KbCreateModalProps) {
+  const { t } = useLanguage()
+  const KC = t.kbCreate
   const [mode, setMode] = useState<'create' | 'import'>('create')
   const [importType, setImportType] = useState<KbImportType | null>(null)
   const [webUrl, setWebUrl] = useState('')
@@ -45,7 +48,7 @@ export function KbCreateModal({ open, onClose, toast, onCreate }: KbCreateModalP
 
   const handleCreate = async () => {
     if (!name.trim()) {
-      toast?.('请输入知识库名称')
+      toast?.(KC.nameRequired)
       return
     }
     const ok = await onCreate(name.trim(), desc.trim())
@@ -55,19 +58,19 @@ export function KbCreateModal({ open, onClose, toast, onCreate }: KbCreateModalP
   const handleImport = () => {
     if (importType === 'web') {
       if (!webUrl.trim()) {
-        toast?.('请输入网页 URL')
+        toast?.(KC.urlRequired)
         return
       }
       toast?.(`已剪藏 ${webUrl.trim()}（示意，归档至素材库）`)
     } else if (importType === 'obsidian' || importType === 'notion') {
-      toast?.(`导入 ${importType === 'obsidian' ? 'Obsidian' : 'Notion'} 压缩包（示意）`)
+      toast?.(KC.importDemo.replace('{kind}', importType === 'obsidian' ? 'Obsidian' : 'Notion'))
     }
     close()
   }
 
   const footer = mode === 'create' ? (
     <>
-      <button type="button" className="aurora-kb-btn" onClick={close}>取消</button>
+      <button type="button" className="aurora-kb-btn" onClick={close}>{KC.cancel}</button>
       <button
         type="button"
         className="aurora-kb-btn aurora-kb-btn--primary"
@@ -78,20 +81,20 @@ export function KbCreateModal({ open, onClose, toast, onCreate }: KbCreateModalP
       </button>
     </>
   ) : (
-    <button type="button" className="aurora-kb-btn" onClick={close}>关闭</button>
+    <button type="button" className="aurora-kb-btn" onClick={close}>{KC.close}</button>
   )
 
   return (
     <Modal
       isOpen={open}
       onClose={onClose}
-      title="新建知识库"
+      title={KC.title}
       size="md"
       contentClassName="aurora-kb-modal"
       footer={footer}
     >
       {/* 模式分段：新建知识库 / 导入 */}
-      <div className="aurora-kb-modal__tabs" role="tablist" aria-label="新建或导入">
+      <div className="aurora-kb-modal__tabs" role="tablist" aria-label={KC.tabsAria}>
         <button
           type="button"
           role="tab"
@@ -115,31 +118,31 @@ export function KbCreateModal({ open, onClose, toast, onCreate }: KbCreateModalP
       {mode === 'create' ? (
         <div className="aurora-kb-modal__form">
           <div className="aurora-kb-manage__field">
-            <label className="aurora-kb-label" htmlFor="kb-create-name">名称 *</label>
+            <label className="aurora-kb-label" htmlFor="kb-create-name">{KC.nameLabel}</label>
             <input
               id="kb-create-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') handleCreate() }}
-              placeholder="例如：机器学习笔记"
+              placeholder={KC.namePlaceholder}
               className="aurora-kb-input"
               autoFocus
             />
           </div>
           <div className="aurora-kb-manage__field">
-            <label className="aurora-kb-label" htmlFor="kb-create-desc">描述</label>
+            <label className="aurora-kb-label" htmlFor="kb-create-desc">{KC.descLabel}</label>
             <textarea
               id="kb-create-desc"
               value={desc}
               onChange={(e) => setDesc(e.target.value)}
-              placeholder="知识库简介…"
+              placeholder={KC.descPlaceholder}
               className="aurora-kb-input aurora-kb-textarea"
             />
           </div>
         </div>
       ) : (
         <div className="aurora-kb-modal__import">
-          <div className="aurora-kb-modal__import-title">从外部导入</div>
+          <div className="aurora-kb-modal__import-title">{KC.importTitle}</div>
           <button
             type="button"
             className={`aurora-kb-opt${importType === 'obsidian' ? ' is-active' : ''}`}
@@ -148,7 +151,7 @@ export function KbCreateModal({ open, onClose, toast, onCreate }: KbCreateModalP
             <span className="aurora-kb-opt__ico"><Icon.layers size={16} /></span>
             <span>
               <div className="aurora-kb-opt__t">Obsidian Vault</div>
-              <div className="aurora-kb-opt__d">导入 .zip 导出包，保留双链与 frontmatter</div>
+              <div className="aurora-kb-opt__d">{KC.zipDesc}</div>
             </span>
           </button>
           <button
@@ -158,8 +161,8 @@ export function KbCreateModal({ open, onClose, toast, onCreate }: KbCreateModalP
           >
             <span className="aurora-kb-opt__ico"><Icon.book size={16} /></span>
             <span>
-              <div className="aurora-kb-opt__t">Notion 导出</div>
-              <div className="aurora-kb-opt__d">导入 ZIP 包，自动转换为 Markdown</div>
+              <div className="aurora-kb-opt__t">{KC.notionTitle}</div>
+              <div className="aurora-kb-opt__d">{KC.notionDesc}</div>
             </span>
           </button>
           <button
@@ -169,8 +172,8 @@ export function KbCreateModal({ open, onClose, toast, onCreate }: KbCreateModalP
           >
             <span className="aurora-kb-opt__ico"><Icon.globe size={16} /></span>
             <span>
-              <div className="aurora-kb-opt__t">网页剪藏</div>
-              <div className="aurora-kb-opt__d">输入 URL，抓取正文并转为 Markdown</div>
+              <div className="aurora-kb-opt__t">{KC.webTitle}</div>
+              <div className="aurora-kb-opt__d">{KC.webDesc}</div>
             </span>
           </button>
 
@@ -179,7 +182,7 @@ export function KbCreateModal({ open, onClose, toast, onCreate }: KbCreateModalP
               <button type="button" className="aurora-kb-btn aurora-kb-btn--primary" onClick={handleImport}>
                 选择 {importType === 'obsidian' ? 'Obsidian' : 'Notion'} ZIP
               </button>
-              <span className="aurora-kb-faint">支持 .zip</span>
+              <span className="aurora-kb-faint">{KC.zipSupport}</span>
             </div>
           )}
 
@@ -193,7 +196,7 @@ export function KbCreateModal({ open, onClose, toast, onCreate }: KbCreateModalP
                 className="aurora-kb-input"
                 autoFocus
               />
-              <button type="button" className="aurora-kb-btn aurora-kb-btn--primary" onClick={handleImport}>抓取</button>
+              <button type="button" className="aurora-kb-btn aurora-kb-btn--primary" onClick={handleImport}>{KC.fetch}</button>
             </div>
           )}
         </div>

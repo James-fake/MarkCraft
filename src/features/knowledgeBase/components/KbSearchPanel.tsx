@@ -11,6 +11,7 @@ import { useLinkIndex } from '@stores/LinkIndexStore'
 import { getSemanticSearch } from '../ai/semanticSearch'
 import { IconSearch, IconTag, IconFileText } from './KbIcons'
 import { AdvancedFilter } from './AdvancedFilter'
+import { useLanguage } from '../../../stores/LanguageStore'
 import type { FileNode } from '@src/types/fileManager'
 import type { QueryFilters, SavedQuery } from '@stores/kbTypes'
 
@@ -47,12 +48,12 @@ const SEARCH_DEBOUNCE_MS = 250
 /** 每个文件最多显示的匹配行数 */
 const MAX_MATCHES_PER_FILE = 20
 
-/** 搜索模式（顶栏分段控件） */
-const SEARCH_MODES: { id: SearchMode; label: string }[] = [
-  { id: 'text', label: '文本' },
-  { id: 'regex', label: '正则' },
-  { id: 'word', label: '全词' },
-  { id: 'semantic', label: '语义' },
+/** 搜索模式（顶栏分段控件）—— labelKey 经 t.kbSearch 解析 */
+const SEARCH_MODES: { id: SearchMode; labelKey: 'modeText' | 'modeRegex' | 'modeWord' | 'modeSemantic' }[] = [
+  { id: 'text', labelKey: 'modeText' },
+  { id: 'regex', labelKey: 'modeRegex' },
+  { id: 'word', labelKey: 'modeWord' },
+  { id: 'semantic', labelKey: 'modeSemantic' },
 ]
 
 export const KbSearchPanel: React.FC<KbSearchPanelProps> = ({
@@ -65,6 +66,8 @@ export const KbSearchPanel: React.FC<KbSearchPanelProps> = ({
   const { activeKb, loadActiveKb, updateSavedQueries } = useKbStore()
   const { getAllTags } = useTagIndex()
   const { getOutgoingLinks, getBacklinks } = useLinkIndex()
+  const { t } = useLanguage()
+  const KS = t.kbSearch
 
   const [query, setQuery] = useState('')
   const [mode, setMode] = useState<SearchMode>('text')
@@ -210,13 +213,13 @@ export const KbSearchPanel: React.FC<KbSearchPanelProps> = ({
             value={query}
             onChange={e => setQuery(e.target.value)}
             onKeyDown={e => { if (e.key === 'Escape') onClose() }}
-            placeholder="搜索库内文件内容..."
+            placeholder={KS.searchPlaceholder}
             autoFocus
           />
         </div>
 
         <div className="kb-searchpanel-match">
-          <div className="kb-searchpanel-modes" role="tablist" aria-label="搜索模式">
+          <div className="kb-searchpanel-modes" role="tablist" aria-label={KS.modesAria}>
             {SEARCH_MODES.map(m => (
               <button
                 key={m.id}
@@ -225,11 +228,11 @@ export const KbSearchPanel: React.FC<KbSearchPanelProps> = ({
                 aria-selected={mode === m.id}
                 className={`kb-searchpanel-mode ${mode === m.id ? 'is-active' : ''}`}
                 onClick={() => setMode(m.id)}
-                title={m.label}
-              >{m.label}</button>
+                title={KS[m.labelKey]}
+              >{KS[m.labelKey]}</button>
             ))}
           </div>
-          <label className="kb-searchpanel-case" title="区分大小写">
+          <label className="kb-searchpanel-case" title={KS.caseTitle}>
             <input
               type="checkbox"
               checked={caseSensitive}
@@ -245,15 +248,15 @@ export const KbSearchPanel: React.FC<KbSearchPanelProps> = ({
               type="button"
               className={'kb-btn' + (filterVisible ? ' kb-btn-active' : '')}
               onClick={() => setFilterVisible(!filterVisible)}
-              title="高级筛选"
-            >筛选</button>
+              title={KS.advancedFilter}
+            >{KS.filterBtn}</button>
             <button
               type="button"
               className="kb-btn"
               onClick={() => setShowSaveDialog(true)}
               disabled={!query.trim()}
-              title="保存当前查询"
-            >保存</button>
+              title={KS.saveQuery}
+            >{KS.saveBtn}</button>
           </div>
         </div>
       </div>
@@ -263,7 +266,7 @@ export const KbSearchPanel: React.FC<KbSearchPanelProps> = ({
       <div className="kb-searchpanel-body">
         {filterVisible && (
           <aside className="kb-searchpanel-filter">
-            <div className="kb-section-title" style={{ marginBottom: 12 }}><IconTag /> 高级筛选</div>
+            <div className="kb-section-title" style={{ marginBottom: 12 }}><IconTag /> {KS.advancedFilterTitle}</div>
             <AdvancedFilter filters={filters} onChange={setFilters} availableTags={availableTags} />
           </aside>
         )}
@@ -271,24 +274,24 @@ export const KbSearchPanel: React.FC<KbSearchPanelProps> = ({
         <div className="kb-searchpanel-results">
           {query.trim() && (
             <div className="kb-searchpanel-summary">
-              {searching ? <span>搜索中…</span> : (
+              {searching ? <span>{KS.searching}</span> : (
                 <>
-                  <span>找到 {results.length} 个文件</span>
-                  {mode !== 'semantic' && <span>· {totalMatches} 处匹配</span>}
-                  <span>· 筛选后共 {filteredFiles.length} 个文件</span>
+                  <span>{KS.foundFiles.replace('{n}', String(results.length))}</span>
+                  {mode !== 'semantic' && <span>{KS.matchesSuffix.replace('{n}', String(totalMatches))}</span>}
+                  <span>{KS.filteredFiles.replace('{n}', String(filteredFiles.length))}</span>
                 </>
               )}
             </div>
           )}
           {mode === 'semantic' && query.trim() && !searching && (
-            <p className="kb-searchpanel-note">本地统计检索：按词频相似度排序，并非云端 AI 向量</p>
+            <p className="kb-searchpanel-note">{KS.semanticNote}</p>
           )}
 
           {!query.trim() && (
             <div className="kb-empty">
               <div className="kb-empty-ico"><IconSearch /></div>
-              <p>输入关键词开始搜索库内文件</p>
-              <p className="kb-empty-sub">支持：普通文本、正则表达式、全词匹配、语义检索（本地统计）</p>
+              <p>{KS.emptyHint}</p>
+              <p className="kb-empty-sub">{KS.emptySupport}</p>
             </div>
           )}
 
@@ -313,27 +316,27 @@ export const KbSearchPanel: React.FC<KbSearchPanelProps> = ({
       {showSaveDialog && createPortal(
         <div className="kb-modal-mask" onClick={() => setShowSaveDialog(false)}>
           <div className="kb-modal" onClick={e => e.stopPropagation()} role="dialog" aria-modal="true">
-            <div className="kb-section-title" style={{ margin: '0 0 12px' }}>保存查询</div>
+            <div className="kb-section-title" style={{ margin: '0 0 12px' }}>{KS.saveDialogTitle}</div>
             <input
               className="kb-input"
               value={saveName}
               onChange={e => setSaveName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleSaveQuery() }}
-              placeholder="查询名称（如：未完成的想法）"
+              placeholder={KS.namePlaceholder}
               autoFocus
             />
             <div className="kb-faint" style={{ marginTop: 8, fontSize: 12 }}>
-              查询内容：{query || '(空)'}
-              {Object.keys(filters).length > 0 && ' · 含筛选条件'}
+              {KS.contentLabel.replace('{q}', query || KS.contentEmpty)}
+              {Object.keys(filters).length > 0 && KS.hasFilters}
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 16, justifyContent: 'flex-end' }}>
-              <button type="button" className="kb-btn" onClick={() => setShowSaveDialog(false)}>取消</button>
+              <button type="button" className="kb-btn" onClick={() => setShowSaveDialog(false)}>{KS.cancel}</button>
               <button
                 type="button"
                 className="kb-btn kb-btn-primary"
                 onClick={handleSaveQuery}
                 disabled={!saveName.trim()}
-              >保存</button>
+              >{KS.saveBtn}</button>
             </div>
           </div>
         </div>,
@@ -349,6 +352,8 @@ const FileResultCard: React.FC<{
   result: FileResult
   onOpen: () => void
 }> = ({ result, onOpen }) => {
+  const { t } = useLanguage()
+  const KS = t.kbSearch
   const [expanded, setExpanded] = useState(true)
   return (
     <div className="kb-result">
@@ -356,16 +361,16 @@ const FileResultCard: React.FC<{
         <IconFileText size={14} className="kb-result-ico" />
         <span className="kb-result-name">{result.fileName}</span>
         {result.semanticScore !== undefined && (
-          <span className="kb-result-badge">相似度 {(result.semanticScore * 100).toFixed(0)}%</span>
+          <span className="kb-result-badge">{KS.similarity.replace('{n}', (result.semanticScore * 100).toFixed(0))}</span>
         )}
         {result.matches.length > 0 && (
-          <span className="kb-result-count">{result.matches.length} 处匹配</span>
+          <span className="kb-result-count">{KS.matchesCount.replace('{n}', String(result.matches.length))}</span>
         )}
         <button
           type="button"
           className="kb-result-toggle"
           onClick={e => { e.stopPropagation(); setExpanded(!expanded) }}
-          aria-label={expanded ? '收起' : '展开'}
+          aria-label={expanded ? KS.collapse : KS.expand}
         >{expanded ? '▼' : '▶'}</button>
       </div>
       {expanded && result.matches.length > 0 && (
