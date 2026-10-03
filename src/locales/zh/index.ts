@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogModal } from './blog'
-import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, diary, kbSearch, kbOverview, kbCreate, kbFilter, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
+import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, editorPanel, diary, kbSearch, kbOverview, kbCreate, kbFilter, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -831,6 +831,73 @@ export interface Translations {
     }
     sceneTemplate: string
     exampleDesc: string
+  }
+  editorToolbar: {
+    openFileFirst: string
+    alreadyInKb: string
+    addedToKb: string
+    addFailed: string
+    backToDiary: string
+    dailyNote: string
+    addToKbTitle: string
+    addToKb: string
+    selectKb: string
+    noKbYet: string
+    added: string
+    versionHistory: string
+    historyShort: string
+    langSwitch: string
+  }
+  editorPanel: {
+    pin: string
+    unpin: string
+    collapse: string
+    relNow: string
+    relMin: string
+    relHour: string
+    relDay: string
+    untitled: string
+    newFolder: string
+    collapseTree: string
+    searchPh: string
+    newFile: string
+    searchResults: string
+    recentFiles: string
+    fileTree: string
+    deleteFile: string
+    deleteFolder: string
+    folderDeleteHint: string
+    opFailed: string
+    newKbFailed: string
+    newKbName: string
+    joinedCount: string
+    notCollected: string
+    noNoteOpen: string
+    publishLabel: string
+    publishOneTitle: string
+    publishRow: string
+    onlyThis: string
+    collectLabel: string
+    collectTitle: string
+    addToKb: string
+    kbListAria: string
+    kbEmpty: string
+    memberTitle: string
+    addTitle: string
+    newKbAndLink: string
+    modeIntro: string
+    modeWysiwyg: string
+    modePreview: string
+    modeSource: string
+    fileOverlay: string
+    pinFile: string
+    unpinFile: string
+    collapseFile: string
+    usageDocFallback: string
+    collapseInspector: string
+    pinInspector: string
+    unpinInspector: string
+    inspectorOverlay: string
   }
   diary: {
     breadcrumb: string
@@ -1710,6 +1777,8 @@ const zh: Translations = {
   versionHistory,
   settingsGeneral,
   settingsUser,
+  editorToolbar,
+  editorPanel,
   diary,
   kbSearch,
   kbOverview,

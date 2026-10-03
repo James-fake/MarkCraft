@@ -63,7 +63,8 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   // 它自己从 FileStore 取脏标记（视图无关）。
   const { rootFolder, getActiveFileId, getActiveFileContent, updateFileContent, createFile, openFile, activeTabId, tabs, markTabDirty, closeTransientTabs } = useFileManager()
   const { settings, updateSetting } = useSettings()
-  const { language, toggleLanguage } = useLanguage()
+  const { t, language, toggleLanguage } = useLanguage()
+  const EP = t.editorPanel
   // 知识库列表（辅助 Tab · 就地展开）的展开态与目标文件：受控持有，使 ⌘K 命令
   // 与标签右键菜单都能远程召唤同一个列表（数据与归集动作在 AuroraPublish 内闭环）。
   const [kbMenuOpen, setKbMenuOpen] = useState(false)
@@ -277,12 +278,12 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
 
   const statusModeLabel = useMemo(() => {
     // 只读简介页不呈现编辑内核状态（此时编辑模式选择框已不存在，状态栏也不该声称「所见即所得」）
-    if (isUsageDoc) return '简介'
-    if (editorMode === 'wysiwyg') return '所见即所得'
-    if (sourceVisible && previewVisible) return '预览'
-    if (previewVisible) return '预览'
-    return '源码'
-  }, [editorMode, sourceVisible, previewVisible, isUsageDoc])
+    if (isUsageDoc) return EP.modeIntro
+    if (editorMode === 'wysiwyg') return EP.modeWysiwyg
+    if (sourceVisible && previewVisible) return EP.modePreview
+    if (previewVisible) return EP.modePreview
+    return EP.modeSource
+  }, [editorMode, sourceVisible, previewVisible, isUsageDoc, EP])
 
   // 键盘快捷键：Ctrl/Cmd+G 跳转到行；Ctrl/Cmd+B 切换文件树（编辑器交互，非工具栏按钮）
   const handleEditorKeyDown = (e: React.KeyboardEvent) => {
@@ -428,7 +429,7 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
         statusRightItems={[
           { content: statusModeLabel },
           { content: 'Markdown' },
-          { content: '⌘K 命令面板', clickable: true, onClick: () => onOpenCommandPalette?.() },
+          { content: t.welcome.cmdPalette, clickable: true, onClick: () => onOpenCommandPalette?.() },
         ]}
       >
         {/* 空态引导界面不渲染编辑器工具栏：未打开文档时「编辑模式切换框 / 多文件标签栏」均无意义，
@@ -485,14 +486,14 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
                 onMouseLeave={leftIntent.scheduleClose}
               >
                 <div className="aurora-editor__overlay-head">
-                  <span className="aurora-editor__overlay-title">文件</span>
+                  <span className="aurora-editor__overlay-title">{EP.fileOverlay}</span>
                   <div className="aurora-editor__overlay-actions">
                     <button
                       type="button"
                       className={`aurora-editor__pin ${leftPinned ? 'is-on' : ''}`}
                       onClick={() => setLeftPinned((p) => !p)}
-                      aria-label={leftPinned ? '取消钉住文件栏' : '钉住文件栏'}
-                      title={leftPinned ? '取消钉住' : '钉住常驻'}
+                      aria-label={leftPinned ? EP.unpinFile : EP.pinFile}
+                      title={leftPinned ? EP.unpin : EP.pin}
                     >
                       <svg width="13" height="13" viewBox="0 0 13 13"><path d="M8 2l3 3-5 5-1-1 1-3-3-3 2-2z" fill="none" stroke="currentColor" strokeWidth="1.1" /></svg>
                     </button>
@@ -500,7 +501,7 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
                       type="button"
                       className="aurora-editor__overlay-close"
                       onClick={closeLeft}
-                      aria-label="收起文件栏"
+                      aria-label={EP.collapseFile}
                       title="收起"
                     >
                       <Icon.chevronLeft size={14} />
@@ -558,7 +559,7 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
                       type="button"
                       className="aurora-editor__overlay-close"
                       onClick={closeRight}
-                      aria-label="收起检查器"
+                      aria-label={EP.collapseInspector}
                       title="收起"
                     >
                       <Icon.chevronRight size={14} />
@@ -567,13 +568,13 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
                       type="button"
                       className={`aurora-editor__pin ${rightPinned ? 'is-on' : ''}`}
                       onClick={() => setRightPinned((p) => !p)}
-                      aria-label={rightPinned ? '取消钉住检查器' : '钉住检查器'}
+                      aria-label={rightPinned ? EP.unpinInspector : EP.pinInspector}
                       title={rightPinned ? '取消钉住' : '钉住常驻'}
                     >
                       <svg width="13" height="13" viewBox="0 0 13 13"><path d="M8 2l3 3-5 5-1-1 1-3-3-3 2-2z" fill="none" stroke="currentColor" strokeWidth="1.1" /></svg>
                     </button>
                   </div>
-                  <span className="aurora-editor__overlay-title">检查器</span>
+                  <span className="aurora-editor__overlay-title">{EP.inspectorOverlay}</span>
                 </div>
                 <div className="aurora-editor__overlay-body">
                   <RightSidebar

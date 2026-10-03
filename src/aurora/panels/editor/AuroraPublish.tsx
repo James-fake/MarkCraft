@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Icon } from '../../icons'
 import { useKbStore } from '@stores/useKbStore'
 import { useToast } from '@components/ui/ToastProvider'
+import { useLanguage } from '@stores/LanguageStore'
 
 /**
  * Aurora 辅助 Tab（发布 / 归集）
@@ -32,6 +33,8 @@ export interface AuroraPublishProps {
 export function AuroraPublish({ fileId, fileName, open, onOpenChange, onPublish }: AuroraPublishProps) {
   const kbStore = useKbStore()
   const toast = useToast()
+  const { t } = useLanguage()
+  const EP = t.editorPanel
   const [memberKbs, setMemberKbs] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
 
@@ -68,7 +71,7 @@ export function AuroraPublish({ fileId, fileName, open, onOpenChange, onPublish 
       }
     } catch (err) {
       console.error('[AuroraPublish] 归集失败:', err)
-      toast.show('操作失败，请重试', 'error')
+      toast.show(EP.opFailed, 'error')
     } finally {
       setBusy(false)
     }
@@ -78,10 +81,10 @@ export function AuroraPublish({ fileId, fileName, open, onOpenChange, onPublish 
     if (!fileId || busy) return
     setBusy(true)
     try {
-      const name = (fileName || '').replace(/\.md$/i, '').trim() || '新关联知识库'
+      const name = (fileName || '').replace(/\.md$/i, '').trim() || EP.newKbName
       const created = await kbStore.createKb(name, '')
       if (!created) {
-        toast.show('新建知识库失败', 'error')
+        toast.show(EP.newKbFailed, 'error')
         return
       }
       await kbStore.addFile(created.id, fileId)
@@ -89,41 +92,41 @@ export function AuroraPublish({ fileId, fileName, open, onOpenChange, onPublish 
       toast.show(`已新建「${created.name}」并归入`)
     } catch (err) {
       console.error('[AuroraPublish] 新建知识库失败:', err)
-      toast.show('新建知识库失败', 'error')
+      toast.show(EP.newKbFailed, 'error')
     } finally {
       setBusy(false)
     }
   }
 
-  const memberHint = memberKbs.length > 0 ? `已加入 ${memberKbs.length}` : '未归集'
+  const memberHint = memberKbs.length > 0 ? EP.joinedCount.replace('{n}', String(memberKbs.length)) : EP.notCollected
 
   return (
     <div className="aurora-aidpanel">
       {/* 目标笔记上下文：让「发布 / 归集」作用于谁一目了然 */}
       <div className="aurora-aidpanel__file" title={fileName || undefined}>
         <Icon.fileText size={13} />
-        <span className="aurora-aidpanel__file-name">{fileName || '未打开笔记'}</span>
+        <span className="aurora-aidpanel__file-name">{fileName || EP.noNoteOpen}</span>
       </div>
 
       {/* 分区 1 · 发布 */}
       <div className="aurora-aidpanel__group">
-        <div className="aurora-aidpanel__label">发布</div>
+        <div className="aurora-aidpanel__label">{EP.publishLabel}</div>
         <button
           type="button"
           className="aurora-aidpanel__row"
           disabled={!fileId}
           onClick={() => { if (fileId) onPublish?.(fileId) }}
-          title="在博客工作室中只发布这一篇笔记"
+          title={EP.publishOneTitle}
         >
           <Icon.blog size={14} />
-          <span className="aurora-aidpanel__row-title">发布为博客</span>
-          <span className="aurora-aidpanel__row-hint">仅此一篇</span>
+          <span className="aurora-aidpanel__row-title">{EP.publishRow}</span>
+          <span className="aurora-aidpanel__row-hint">{EP.onlyThis}</span>
         </button>
       </div>
 
       {/* 分区 2 · 归集 */}
       <div className="aurora-aidpanel__group">
-        <div className="aurora-aidpanel__label">归集</div>
+        <div className="aurora-aidpanel__label">{EP.collectLabel}</div>
         <button
           type="button"
           className="aurora-aidpanel__row"
@@ -131,10 +134,10 @@ export function AuroraPublish({ fileId, fileName, open, onOpenChange, onPublish 
           aria-expanded={open}
           aria-controls="aurora-aidpanel-kblist"
           onClick={() => onOpenChange(!open)}
-          title="选择要归入的知识库"
+          title={EP.collectTitle}
         >
           <Icon.knowledge size={14} />
-          <span className="aurora-aidpanel__row-title">添加到知识库</span>
+          <span className="aurora-aidpanel__row-title">{EP.addToKb}</span>
           <span className="aurora-aidpanel__row-hint">{memberHint}</span>
           <Icon.chevronDown size={13} className={`aurora-aidpanel__caret ${open ? 'is-open' : ''}`} />
         </button>
@@ -147,10 +150,10 @@ export function AuroraPublish({ fileId, fileName, open, onOpenChange, onPublish 
               id="aurora-aidpanel-kblist"
               role="listbox"
               aria-multiselectable="true"
-              aria-label="知识库列表"
+              aria-label={EP.kbListAria}
             >
               {kbStore.kbList.length === 0 ? (
-                <div className="aurora-aidpanel__kbempty">还没有知识库，可在下方直接新建</div>
+                <div className="aurora-aidpanel__kbempty">{EP.kbEmpty}</div>
               ) : (
                 kbStore.kbList.map((kb) => {
                   const isMember = memberKbs.includes(kb.id)
@@ -163,7 +166,7 @@ export function AuroraPublish({ fileId, fileName, open, onOpenChange, onPublish 
                       className={`aurora-aidpanel__kb ${isMember ? 'is-on' : ''}`}
                       disabled={!canAct}
                       onClick={() => void selectKb(kb.id, kb.name)}
-                      title={isMember ? '已归入，点击移出' : '点击归入该知识库'}
+                      title={isMember ? EP.memberTitle : EP.addTitle}
                     >
                       <span className="aurora-aidpanel__kb-check">
                         {isMember ? <Icon.check size={12} /> : null}
@@ -182,7 +185,7 @@ export function AuroraPublish({ fileId, fileName, open, onOpenChange, onPublish 
               onClick={() => void createAndLink()}
             >
               <span className="aurora-aidpanel__kb-check"><Icon.plus size={12} /></span>
-              <span className="aurora-aidpanel__kb-name">新建知识库并关联</span>
+              <span className="aurora-aidpanel__kb-name">{EP.newKbAndLink}</span>
             </button>
           </>
         )}

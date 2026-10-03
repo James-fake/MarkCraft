@@ -53,6 +53,7 @@ export function EditorModeToolbar({
   onToggleLanguage,
 }: EditorModeToolbarProps) {
   const { t } = useLanguage()
+  const TB = t.editorToolbar
   const { kbList, activeKb, addFile, loadActiveKb } = useKbStore()
 
   // 「加入知识库」下拉菜单
@@ -82,25 +83,25 @@ export function EditorModeToolbar({
   // 加入知识库处理
   const handleAddToKb = useCallback(async (kbId: string, kbName: string) => {
     if (!activeFileId) {
-      setKbPickerStatus({ type: 'error', msg: language === 'zh' ? '请先打开一个文件' : 'Open a file first' })
+      setKbPickerStatus({ type: 'error', msg: TB.openFileFirst })
       return
     }
     // 检查是否已在当前库
     const kb = activeKb
     if (kb && kb.id === kbId && kb.fileIds.includes(activeFileId)) {
-      setKbPickerStatus({ type: 'info', msg: language === 'zh' ? `该文件已在「${kbName}」中` : `Already in ${kbName}` })
+      setKbPickerStatus({ type: 'info', msg: TB.alreadyInKb.replace('{name}', kbName) })
       setShowKbPicker(false)
       return
     }
     try {
       await addFile(kbId, activeFileId)
-      setKbPickerStatus({ type: 'success', msg: language === 'zh' ? `已加入「${kbName}」` : `Added to ${kbName}` })
+      setKbPickerStatus({ type: 'success', msg: TB.addedToKb.replace('{name}', kbName) })
     } catch (err) {
       console.error('[EditorLayout] 加入知识库失败:', err)
-      setKbPickerStatus({ type: 'error', msg: language === 'zh' ? '加入失败，请重试' : 'Failed, try again' })
+      setKbPickerStatus({ type: 'error', msg: TB.addFailed })
     }
     setShowKbPicker(false)
-  }, [activeFileId, activeKb, addFile, language])
+  }, [activeFileId, activeKb, addFile, TB])
 
   // 切换下拉菜单时重新加载 activeKb（避免过期判断）
   const handleToggleKbPicker = useCallback(() => {
@@ -199,8 +200,8 @@ export function EditorModeToolbar({
               }
             })}
             <div style={{ flex: 1 }} />
-            {isDiary && onBackToDiary && renderBtn('backToDiary', language === 'zh' ? '返回日记' : 'Back to Diary', 'arrowLeft', false, false, onBackToDiary)}
-            {onOpenDailyNote && renderBtn('dailyNote', language === 'zh' ? '今日笔记' : 'Daily Note', 'calendar', false, false, onOpenDailyNote)}
+            {isDiary && onBackToDiary && renderBtn('backToDiary', TB.backToDiary, 'arrowLeft', false, false, onBackToDiary)}
+            {onOpenDailyNote && renderBtn('dailyNote', TB.dailyNote, 'calendar', false, false, onOpenDailyNote)}
             {/* 加入知识库按钮 + 下拉选择菜单 */}
             <div ref={kbPickerRef} style={{ position: 'relative' }}>
               <button
@@ -228,10 +229,10 @@ export function EditorModeToolbar({
                 }}
                 onMouseEnter={(e) => { if (!showKbPicker) { e.currentTarget.style.opacity = '0.9' } }}
                 onMouseLeave={(e) => { if (!showKbPicker) { e.currentTarget.style.opacity = '0.6' } }}
-                title={language === 'zh' ? '将当前文档加入知识库' : 'Add to Knowledge Base'}
+                title={TB.addToKbTitle}
               >
                 <Icon name="library" size={14} />
-                {language === 'zh' ? '加入知识库' : 'Add to KB'}
+                {TB.addToKb}
               </button>
               {showKbPicker && (
                 <div
@@ -261,7 +262,7 @@ export function EditorModeToolbar({
                       letterSpacing: '0.5px',
                     }}
                   >
-                    {language === 'zh' ? '选择知识库' : 'Select KB'}
+                    {TB.selectKb}
                   </div>
                   <div style={{ maxHeight: '240px', overflowY: 'auto' }}>
                     {kbList.length === 0 ? (
@@ -274,7 +275,7 @@ export function EditorModeToolbar({
                           textAlign: 'center',
                         }}
                       >
-                        {language === 'zh' ? '暂无知识库，请先创建' : 'No KB yet, create one first'}
+                        {TB.noKbYet}
                       </div>
                     ) : (
                       kbList.map(kb => {
@@ -307,7 +308,7 @@ export function EditorModeToolbar({
                             </span>
                             {isAlreadyIn && (
                               <span style={{ fontSize: '10px', opacity: 0.6, marginLeft: 8, flexShrink: 0 }}>
-                                {language === 'zh' ? '已加入' : 'Added'}
+                                {TB.added}
                               </span>
                             )}
                           </button>
@@ -341,11 +342,11 @@ export function EditorModeToolbar({
                 }}
                 onMouseEnter={(e) => { if (!isVersionHistoryOpen) e.currentTarget.style.opacity = '1' }}
                 onMouseLeave={(e) => { if (!isVersionHistoryOpen) e.currentTarget.style.opacity = '0.85' }}
-                title={language === 'zh' ? '版本历史' : 'Version History'}
-                aria-label={language === 'zh' ? '版本历史' : 'Version History'}
+                title={TB.versionHistory}
+                aria-label={TB.versionHistory}
               >
                 <HistoryIcon size={14} />
-                {language === 'zh' ? '版本历史' : 'History'}
+                {TB.historyShort}
               </button>
             )}
             {/* 操作状态提示 */}
@@ -424,7 +425,7 @@ export function EditorModeToolbar({
               onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.opacity = '0.6' }}
               title={language === 'zh' ? t.app.switchToEnDesc : t.app.switchToZhDesc}
             >
-              {language === 'zh' ? 'EN' : '中'}
+              {TB.langSwitch}
             </button>
           </>
         )

@@ -12,6 +12,8 @@ import {
 import { collectFolderIds, flattenFileTree } from '@core/files/fileTree'
 import { useUsageDocsScope } from '@hooks/useUsageDocsScope'
 import type { FileNode } from '@src/types/fileManager'
+import { useLanguage } from '@stores/LanguageStore'
+import type { Translations } from '../../../locales/zh'
 
 /**
  * Aurora 文件管理器（编辑器左侧文件树）—— 视觉 = Aurora、数据 = 真实
@@ -50,15 +52,15 @@ function findAncestorFolderIds(node: FileNode, targetId: string, acc: string[] =
   return null
 }
 
-function formatRelative(ts: number): string {
+function formatRelative(ts: number, EP: Translations['editorPanel']): string {
   const diff = Date.now() - ts
   const min = Math.floor(diff / 60000)
-  if (min < 1) return '刚刚'
-  if (min < 60) return `${min}分钟前`
+  if (min < 1) return EP.relNow
+  if (min < 60) return EP.relMin.replace('{n}', String(min))
   const hr = Math.floor(min / 60)
-  if (hr < 24) return `${hr}小时前`
+  if (hr < 24) return EP.relHour.replace('{n}', String(hr))
   const day = Math.floor(hr / 24)
-  return `${day}天前`
+  return EP.relDay.replace('{n}', String(day))
 }
 
 interface FileTreeProps {
@@ -70,6 +72,8 @@ interface FileTreeProps {
 
 export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
   const { rootFolder, openFile, createFile, createFolder, renameNode, deleteNode, getActiveFileId } = useFileManager()
+  const { t } = useLanguage()
+  const EP = t.editorPanel
   // 内置「使用文档」不在编辑器的文件列表中呈现（判定单源：core/files/usageDocs + hooks/useUsageDocsScope）
   const usageDocs = useUsageDocsScope()
   const [expanded, setExpanded] = useState<Set<string>>(
@@ -291,13 +295,13 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
 
   const handleNewFile = () => {
     // openAfterCreate=false：命名期间不自动打开/收起侧栏，避免打断输入
-    const id = createFile(rootFolder.id, '未命名.md', '', false)
-    startEditing(id, 'file', '未命名')
+    const id = createFile(rootFolder.id, `${EP.untitled}.md`, '', false)
+    startEditing(id, 'file', EP.untitled)
   }
 
   const handleNewFolder = () => {
-    const id = createFolder(rootFolder.id, '新建文件夹')
-    startEditing(id, 'folder', '新建文件夹')
+    const id = createFolder(rootFolder.id, EP.newFolder)
+    startEditing(id, 'folder', EP.newFolder)
   }
 
   // 搜索框显隐完全交给滚动方向状态机（上滑展开/下滑收起；onScroll 内处理），无需图标入口
@@ -330,8 +334,8 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
             type="button"
             className="aurora-filetree__collapse-btn"
             onClick={onCollapse}
-            aria-label="收起文件列表"
-            title="收起文件列表"
+            aria-label={EP.collapseTree}
+            title={EP.collapseTree}
           >
             <Icon.chevronLeft size={16} />
           </button>
@@ -343,7 +347,7 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
         <Icon.search size={14} />
         <input
           className="aurora-filetree__search-input"
-          placeholder="搜索文件..."
+          placeholder={EP.searchPh}
           value={search}
           tabIndex={treeSearchOpen || search.trim() ? 0 : -1}
           onChange={(e) => setSearch(e.target.value)}
@@ -355,20 +359,20 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
         <button
           type="button"
           className="aurora-filetree__action aurora-filetree__action--wide"
-          title="新建文件"
+          title={EP.newFile}
           onClick={handleNewFile}
         >
           <Icon.filePlus size={16} />
-          <span className="aurora-filetree__action-label">新建文件</span>
+          <span className="aurora-filetree__action-label">{EP.newFile}</span>
         </button>
         <button
           type="button"
           className="aurora-filetree__action aurora-filetree__action--wide"
-          title="新建文件夹"
+          title={EP.newFolder}
           onClick={handleNewFolder}
         >
           <Icon.folderPlus size={16} />
-          <span className="aurora-filetree__action-label">新建文件夹</span>
+          <span className="aurora-filetree__action-label">{EP.newFolder}</span>
         </button>
       </div>
 
@@ -408,7 +412,7 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
         {/* 搜索时仅显示结果，不做区块折叠 */}
         {search.trim() ? (
           <>
-            <div className="aurora-filetree__section-title">搜索结果 ({filtered.length})</div>
+            <div className="aurora-filetree__section-title">{EP.searchResults.replace('{n}', String(filtered.length))}</div>
             {filtered.length === 0 && (
               <div className="aurora-filetree__section-title" style={{ opacity: 0.5 }}>
                 无匹配文件
@@ -477,7 +481,7 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
                   <span className="aurora-filetree__section-caret">
                     {recentOpen ? <Icon.chevronDown size={12} /> : <Icon.chevronRight size={12} />}
                   </span>
-                  <span className="aurora-filetree__section-label">最近打开</span>
+                  <span className="aurora-filetree__section-label">{EP.recentFiles}</span>
                 </button>
                 {recentOpen &&
                   visibleRecent.map((f) => (
@@ -488,7 +492,7 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
                     >
                       <Icon.clock size={13} />
                       <span className="aurora-filetree__recent-name">{f.fileName}</span>
-                      <span className="aurora-filetree__recent-time">{formatRelative(f.lastOpened)}</span>
+                      <span className="aurora-filetree__recent-time">{formatRelative(f.lastOpened, EP)}</span>
                     </div>
                   ))}
               </>
@@ -504,7 +508,7 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
               <span className="aurora-filetree__section-caret">
                 {treeOpen ? <Icon.chevronDown size={12} /> : <Icon.chevronRight size={12} />}
               </span>
-              <span className="aurora-filetree__section-label">文件树</span>
+              <span className="aurora-filetree__section-label">{EP.fileTree}</span>
             </button>
             {treeOpen &&
               filtered.map(({ node, depth }) => {
@@ -606,11 +610,11 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
           >
             <div className="aurora-filetree__confirm" onMouseDown={(e) => e.stopPropagation()}>
               <div className="aurora-filetree__confirm-title">
-                删除{confirming.type === 'folder' ? '文件夹' : '文件'}
+                {confirming.type === 'folder' ? EP.deleteFolder : EP.deleteFile}
               </div>
               <div className="aurora-filetree__confirm-text">
                 确定要删除 <b>{confirming.name}</b> 吗？
-                {confirming.type === 'folder' && '该文件夹内的所有内容也会被一并删除。'}
+                {confirming.type === 'folder' && EP.folderDeleteHint}
               </div>
               <div className="aurora-filetree__confirm-actions">
                 <button type="button" className="aurora-filetree__confirm-btn" onClick={cancelDelete}>
