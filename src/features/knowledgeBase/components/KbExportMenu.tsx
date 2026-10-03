@@ -105,20 +105,20 @@ export const KbExportMenu: React.FC<KbExportMenuProps> = ({ kb, files, variant =
 
       switch (option.type) {
         case 'share': {
-          const blob = await exportKbPackage(kb, files)
+          const blob = await exportKbPackage(kb, files, undefined, t.exportKit)
           downloadBlob(blob, filename)
           await recordHistory(option.type, filename, blob.size)
           break
         }
         case 'static-site': {
-          const blob = await exportStaticSite(kb, files, kb.blogConfig)
+          const blob = await exportStaticSite(kb, files, kb.blogConfig, t.exportKit)
           downloadBlob(blob, filename)
           await recordHistory(option.type, filename, blob.size)
           break
         }
         case 'pdf': {
           // PDF 通过浏览器打印生成，无 Blob 体积
-          await exportPdf(kb, files)
+          await exportPdf(kb, files, t.exportKit)
           await recordHistory(option.type, filename, 0)
           break
         }
@@ -129,7 +129,7 @@ export const KbExportMenu: React.FC<KbExportMenuProps> = ({ kb, files, variant =
           break
         }
         case 'markdown': {
-          const blob = await exportMarkdown(kb, files)
+          const blob = await exportMarkdown(kb, files, t.exportKit)
           downloadBlob(blob, filename)
           // markdown 类型不在 ExportRecord 支持范围，不记录历史
           break

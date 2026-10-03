@@ -1703,3 +1703,58 @@ export const writingAid = {
   miniGraphAria: '当前笔记关联图谱',
   miniGraphNoRelated: '暂无关联笔记',
 }
+
+// 导出 / 备份服务文案（非 React 模块：纯函数形参注入 messages，中文 DEFAULT_* 兜底）
+// 说明：services / features/export 等层无 React Context，无法读取运行时语言；
+// 故由 React 调用方传入 t.exportKit.*，模块内以中文 DEFAULT_* 兜底，保留既有测试通过。
+export const exportKit = {
+  // vault 备份（services/backupService.ts）
+  vaultInvalidFormat: '无效的备份文件格式',
+  vaultConflictDetected: '检测到 {n} 个同名文件冲突',
+  vaultNoConflict: '未检测到冲突，可以安全导入',
+  vaultDetectFailed: '检测失败: {err}',
+  vaultImportFailed: '导入失败: {err}',
+  vaultImportSuccess: '备份导入成功{summary}，请刷新页面以加载恢复的数据',
+  vaultBackupNotFound: '备份不存在',
+  vaultImportedPart: '导入 {n} 个文件',
+  vaultSkippedPart: '跳过 {n} 个冲突文件',
+  vaultRenamedPart: '重命名 {n} 个冲突文件',
+  // 工作区一键导出（features/export/backupService.ts）
+  wsDefaultFileName: '未命名',
+  wsReadmeEmpty: '# MarkCraft 导出\n\n工作区为空，没有可导出的内容。\n',
+  wsReadmeTitle: '# MarkCraft 导出备份',
+  wsReadmeDate: '> 导出日期：{date} ｜ 由 MarkCraft 生成',
+  wsReadmeFileCount: '- 文件数：{n}',
+  wsReadmeFolderCount: '- 目录数：{n}',
+  wsReadmeImageCount: '- 图片：{n} 张（assets/ 目录，Markdown 以相对路径引用）',
+  wsReadmeMissingImages: '- ⚠️ 缺失图片 {n} 张（原始 base64 不在内存中，引用已保留为 image: 占位符）',
+  wsReadmeImagesComplete: '- 图片完整',
+  wsReadmeFooter: '该目录为纯 Markdown + 相对路径图片，可用任意 Markdown 编辑器（Typora / Obsidian / VS Code 等）直接打开。',
+  // 导出样式（exportStyleManager.ts）
+  styleDefaultName: '默认样式',
+  styleDefaultDesc: 'MarkCraft 默认导出样式',
+  styleAcademicName: '学术论文',
+  styleAcademicDesc: '适合学术论文的排版样式',
+  styleTechName: '技术文档',
+  styleTechDesc: '适合技术文档的样式',
+  styleMinimalName: '简约风格',
+  styleMinimalDesc: '极简排版样式',
+  styleImportedDesc: '导入的自定义样式',
+  // PDF 导出（exportPdf.ts）
+  pdfEnvUnavailable: 'PDF 渲染环境不可用',
+  pdfContentEmpty: 'PDF 内容为空，请检查文档内容',
+  pdfEmpty: 'PDF 生成为空，请重试',
+  // 知识库导出（documentExporter / sharePackager / staticSiteExporter）
+  kbPdfWindowBlocked: '无法打开打印窗口，请检查浏览器是否拦截了弹窗',
+  kbPdfFailed: '导出 PDF 失败：',
+  kbMdFailed: '导出 Markdown 失败：',
+  shareCreateFilesDirFailed: '创建 files 目录失败',
+  shareCreateCanvasesDirFailed: '创建 canvases 目录失败',
+  shareExportFailed: '导出分享包失败：',
+  shareMissingManifest: '分享包中缺少 manifest.json，可能不是有效的 .mcshare 文件',
+  shareManifestParseFailed: 'manifest.json 解析失败，文件可能已损坏',
+  shareUnsupportedFormat: '不支持的分享包格式：',
+  shareImportFailed: '导入分享包失败：',
+  siteBackToHome: '← 返回首页',
+  siteTagLabel: '标签：',
+}

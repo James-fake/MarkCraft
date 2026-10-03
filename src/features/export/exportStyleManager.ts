@@ -1,5 +1,31 @@
 import { EXPORT_CSS } from './utils/exportHtml'
 
+// i18n：非 React 模块，由调用方注入 messages（UI 侧传 t.exportKit 映射后的对象）。
+// 中文 DEFAULT_* 兜底，保证既有断言（中文）测试零改动通过。
+export interface ExportStyleMessages {
+  defaultName: string
+  defaultDesc: string
+  academicName: string
+  academicDesc: string
+  technicalName: string
+  technicalDesc: string
+  minimalName: string
+  minimalDesc: string
+  importedDesc: string
+}
+
+export const DEFAULT_EXPORT_STYLE_MESSAGES: ExportStyleMessages = {
+  defaultName: '默认样式',
+  defaultDesc: 'MarkCraft 默认导出样式',
+  academicName: '学术论文',
+  academicDesc: '适合学术论文的排版样式',
+  technicalName: '技术文档',
+  technicalDesc: '适合技术文档的样式',
+  minimalName: '简约风格',
+  minimalDesc: '极简排版样式',
+  importedDesc: '导入的自定义样式',
+}
+
 export interface ExportStylePreset {
   id: string
   name: string
@@ -41,8 +67,20 @@ const BUILT_IN_PRESETS: ExportStylePreset[] = [
   },
 ]
 
-export function getExportStylePresets(): ExportStylePreset[] {
-  return [...BUILT_IN_PRESETS, ...getCustomStyles()]
+export function getExportStylePresets(
+  messages: ExportStyleMessages = DEFAULT_EXPORT_STYLE_MESSAGES
+): ExportStylePreset[] {
+  const builtIns = BUILT_IN_PRESETS.map((p) => {
+    const labels: Record<string, { name: string; description: string }> = {
+      default: { name: messages.defaultName, description: messages.defaultDesc },
+      academic: { name: messages.academicName, description: messages.academicDesc },
+      technical: { name: messages.technicalName, description: messages.technicalDesc },
+      minimal: { name: messages.minimalName, description: messages.minimalDesc },
+    }
+    const lbl = labels[p.id] ?? { name: p.name, description: p.description }
+    return { ...p, ...lbl }
+  })
+  return [...builtIns, ...getCustomStyles()]
 }
 
 export function getCustomStyles(): ExportStylePreset[] {
@@ -83,11 +121,15 @@ export function getStyleCss(presetId: string): string {
   return custom?.css || EXPORT_CSS
 }
 
-export function importCssFile(cssText: string, name: string): ExportStylePreset {
+export function importCssFile(
+  cssText: string,
+  name: string,
+  messages: ExportStyleMessages = DEFAULT_EXPORT_STYLE_MESSAGES
+): ExportStylePreset {
   return {
     id: `custom_${Date.now()}`,
     name,
-    description: '导入的自定义样式',
+    description: messages.importedDesc,
     css: cssText,
     isBuiltIn: false,
   }

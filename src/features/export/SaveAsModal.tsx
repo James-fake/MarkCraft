@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useConfirm } from '../../components/ui/ConfirmProvider'
 import {
   generateMarkdownBlob,
@@ -21,8 +21,8 @@ import {
   deleteCustomStyle,
   importCssFile,
 } from './exportUtils'
-import type { PdfExportOptions } from './exportUtils'
-import type { ExportStylePreset } from './exportStyleManager'
+import type { PdfExportOptions, PdfExportMessages } from './exportUtils'
+import type { ExportStylePreset, ExportStyleMessages } from './exportStyleManager'
 import { useLanguage } from '../../stores/LanguageStore'
 import { AuroraSelect } from '@components/ui/AuroraSelect'
 // —— P5-4 拆分：常量/类型下沉 saveAsShared，样式编辑器对话框拆 StyleEditorDialog ——
@@ -59,6 +59,22 @@ export default function SaveAsModal({
   const [htmlIncludeToc, setHtmlIncludeToc] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const { t } = useLanguage()
+  const styleMessages = useMemo<ExportStyleMessages>(() => ({
+    defaultName: t.exportKit.styleDefaultName,
+    defaultDesc: t.exportKit.styleDefaultDesc,
+    academicName: t.exportKit.styleAcademicName,
+    academicDesc: t.exportKit.styleAcademicDesc,
+    technicalName: t.exportKit.styleTechName,
+    technicalDesc: t.exportKit.styleTechDesc,
+    minimalName: t.exportKit.styleMinimalName,
+    minimalDesc: t.exportKit.styleMinimalDesc,
+    importedDesc: t.exportKit.styleImportedDesc,
+  }), [t])
+  const pdfMessages = useMemo<PdfExportMessages>(() => ({
+    envUnavailable: t.exportKit.pdfEnvUnavailable,
+    contentEmpty: t.exportKit.pdfContentEmpty,
+    empty: t.exportKit.pdfEmpty,
+  }), [t])
 
   const fsAccessSupported = isFileSystemAccessSupported()
 
@@ -79,10 +95,10 @@ export default function SaveAsModal({
       setHtmlAuthor('')
       setHtmlDate('')
       setHtmlIncludeToc(false)
-      setStylePresets(getExportStylePresets())
+      setStylePresets(getExportStylePresets(styleMessages))
       setTimeout(() => inputRef.current?.focus(), 100)
     }
-  }, [isOpen, defaultFileName])
+  }, [isOpen, defaultFileName, styleMessages])
 
   const fullFileName = `${fileName.replace(/\.(md|html|pdf|docx|tex|epub|rst|wiki|opml|txt|png|jpg|jpeg)$/i, '')}${FORMAT_EXTENSIONS[format]}`
 
@@ -198,7 +214,7 @@ export default function SaveAsModal({
       // 统一生成真实文件 Blob：PDF 现在也返回真实 PDF Blob（而非仅弹打印框），
       // 因此所有格式都走同一落盘/下载路径，避免 File System Access 模式下写入 0KB 占位文件。
       const blob = format === 'pdf'
-        ? await generatePdf(content, fullOutputName, t.saveAs.popupBlocked, customCss, pdfOptions)
+        ? await generatePdf(content, fullOutputName, t.saveAs.popupBlocked, customCss, pdfOptions, pdfMessages)
         : await generateBlob(format, content)
 
       if (saveLocation.type === 'file') {
@@ -232,7 +248,7 @@ export default function SaveAsModal({
     } finally {
       setIsSaving(false)
     }
-  }, [fileName, format, content, saveLocation, onSuccess, onError, onClose, generateBlob, getCustomCss, getPdfOptions, t])
+  }, [fileName, format, content, saveLocation, onSuccess, onError, onClose, generateBlob, getCustomCss, getPdfOptions, t, pdfMessages])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -258,19 +274,19 @@ export default function SaveAsModal({
   const handleDeleteStyle = useCallback(async (id: string) => {
     if (await confirm({ message: t.saveAs.deleteStyleConfirm, variant: 'danger' })) {
       deleteCustomStyle(id)
-      setStylePresets(getExportStylePresets())
+      setStylePresets(getExportStylePresets(styleMessages))
       if (exportStyleId === id) {
         setExportStyleId('default')
       }
     }
-  }, [exportStyleId, confirm, t])
+  }, [exportStyleId, confirm, t, styleMessages])
 
   const handleSaveStyle = useCallback((style: ExportStylePreset) => {
     saveCustomStyle(style)
-    setStylePresets(getExportStylePresets())
+    setStylePresets(getExportStylePresets(styleMessages))
     setIsStyleEditorOpen(false)
     setEditingStyle(null)
-  }, [])
+  }, [styleMessages])
 
   const handleImportCss = useCallback(() => {
     const input = document.createElement('input')
@@ -282,15 +298,15 @@ export default function SaveAsModal({
         const reader = new FileReader()
         reader.onload = () => {
           const cssText = reader.result as string
-          const newStyle = importCssFile(cssText, file.name.replace(/\.css$/i, ''))
+          const newStyle = importCssFile(cssText, file.name.replace(/\.css$/i, ''), styleMessages)
           saveCustomStyle(newStyle)
-          setStylePresets(getExportStylePresets())
+          setStylePresets(getExportStylePresets(styleMessages))
         }
         reader.readAsText(file)
       }
     }
     input.click()
-  }, [])
+  }, [styleMessages])
 
   if (!isOpen) return null
 

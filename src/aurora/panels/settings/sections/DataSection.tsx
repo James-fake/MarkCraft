@@ -35,7 +35,18 @@ export function DataSection({ query, toast }: { query?: string; toast?: (msg: st
     if (exporting) return
     setExporting(true)
     try {
-      const result = await exportWorkspaceZip(rootFolder)
+      const result = await exportWorkspaceZip(rootFolder, {
+        defaultFileName: t.exportKit.wsDefaultFileName,
+        readmeEmpty: t.exportKit.wsReadmeEmpty,
+        readmeTitle: t.exportKit.wsReadmeTitle,
+        readmeDate: t.exportKit.wsReadmeDate,
+        readmeFileCount: t.exportKit.wsReadmeFileCount,
+        readmeFolderCount: t.exportKit.wsReadmeFolderCount,
+        readmeImageCount: t.exportKit.wsReadmeImageCount,
+        readmeMissingImages: t.exportKit.wsReadmeMissingImages,
+        readmeImagesComplete: t.exportKit.wsReadmeImagesComplete,
+        readmeFooter: t.exportKit.wsReadmeFooter,
+      })
       toastFn?.(D.exportDone.replace('{files}', String(result.fileCount)).replace('{assets}', String(result.assetCount)) + (result.missingImages.length ? D.exportMissing.replace('{n}', String(result.missingImages.length)) : ''))
     } catch {
       toastFn?.(D.exportFailed)

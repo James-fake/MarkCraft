@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogCss, platformPublish, blogModal } from './blog'
-import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, blog, editorPanel, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels, writingAid } from './common'
+import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, blog, editorPanel, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels, writingAid, exportKit } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -1699,6 +1699,52 @@ export interface Translations {
     miniGraphAria: string
     miniGraphNoRelated: string
   }
+  exportKit: {
+    vaultInvalidFormat: string
+    vaultConflictDetected: string
+    vaultNoConflict: string
+    vaultDetectFailed: string
+    vaultImportFailed: string
+    vaultImportSuccess: string
+    vaultBackupNotFound: string
+    vaultImportedPart: string
+    vaultSkippedPart: string
+    vaultRenamedPart: string
+    wsDefaultFileName: string
+    wsReadmeEmpty: string
+    wsReadmeTitle: string
+    wsReadmeDate: string
+    wsReadmeFileCount: string
+    wsReadmeFolderCount: string
+    wsReadmeImageCount: string
+    wsReadmeMissingImages: string
+    wsReadmeImagesComplete: string
+    wsReadmeFooter: string
+    styleDefaultName: string
+    styleDefaultDesc: string
+    styleAcademicName: string
+    styleAcademicDesc: string
+    styleTechName: string
+    styleTechDesc: string
+    styleMinimalName: string
+    styleMinimalDesc: string
+    styleImportedDesc: string
+    pdfEnvUnavailable: string
+    pdfContentEmpty: string
+    pdfEmpty: string
+    kbPdfWindowBlocked: string
+    kbPdfFailed: string
+    kbMdFailed: string
+    shareCreateFilesDirFailed: string
+    shareCreateCanvasesDirFailed: string
+    shareExportFailed: string
+    shareMissingManifest: string
+    shareManifestParseFailed: string
+    shareUnsupportedFormat: string
+    shareImportFailed: string
+    siteBackToHome: string
+    siteTagLabel: string
+  }
   settingsPanel: {
     catUser: string
     catGeneral: string
@@ -2638,6 +2684,7 @@ const zh: Translations = {
   settingsExport,
   uiLabels,
   writingAid,
+  exportKit,
   settingsPanel,
   settingsAppearance,
   settingsEditor,

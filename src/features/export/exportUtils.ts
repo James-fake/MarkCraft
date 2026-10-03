@@ -2,7 +2,7 @@
 export { generateMarkdownBlob } from './utils/exportMarkdown'
 export { generateHtmlBlob, EXPORT_CSS } from './utils/exportHtml'
 export { generatePdf } from './utils/exportPdf'
-export type { PdfExportOptions } from './utils/exportPdf'
+export type { PdfExportOptions, PdfExportMessages } from './utils/exportPdf'
 export { generateDocxBlob } from './utils/exportDocx'
 export { generateLatexBlob } from './utils/exportLatex'
 export { generateEpubBlob } from './utils/exportEpub'

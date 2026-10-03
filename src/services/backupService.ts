@@ -36,6 +36,34 @@ export interface ImportResult {
   renamedCount?: number
 }
 
+// i18n：非 React 模块无法读取运行时语言，由调用方注入 messages（React 侧传 t.exportKit）。
+// 中文 DEFAULT_* 兜底，保证既有断言（中文）测试零改动通过。
+export interface VaultBackupMessages {
+  vaultInvalidFormat: string
+  vaultConflictDetected: string
+  vaultNoConflict: string
+  vaultDetectFailed: string
+  vaultImportFailed: string
+  vaultImportSuccess: string
+  vaultBackupNotFound: string
+  vaultImportedPart: string
+  vaultSkippedPart: string
+  vaultRenamedPart: string
+}
+
+export const DEFAULT_VAULT_BACKUP_MESSAGES: VaultBackupMessages = {
+  vaultInvalidFormat: '无效的备份文件格式',
+  vaultConflictDetected: '检测到 {n} 个同名文件冲突',
+  vaultNoConflict: '未检测到冲突，可以安全导入',
+  vaultDetectFailed: '检测失败: {err}',
+  vaultImportFailed: '导入失败: {err}',
+  vaultImportSuccess: '备份导入成功{summary}，请刷新页面以加载恢复的数据',
+  vaultBackupNotFound: '备份不存在',
+  vaultImportedPart: '导入 {n} 个文件',
+  vaultSkippedPart: '跳过 {n} 个冲突文件',
+  vaultRenamedPart: '重命名 {n} 个冲突文件',
+}
+
 const KEYS_TO_BACKUP = [
   'markcraft_settings',
   'markcraft-bookmarks',
@@ -136,11 +164,14 @@ export async function exportVault(files: FileManagerState): Promise<string> {
 }
 
 /** 导入 vault 备份（仅检测冲突，不执行导入） */
-export async function importVault(jsonStr: string): Promise<ImportResult> {
+export async function importVault(
+  jsonStr: string,
+  messages: VaultBackupMessages = DEFAULT_VAULT_BACKUP_MESSAGES
+): Promise<ImportResult> {
   try {
     const backup = safeJsonParseOrNull<BackupData>(jsonStr)
     if (!backup || backup.type !== 'markcraft-vault-backup' || !isRecord(backup.data)) {
-      return { success: false, message: '无效的备份文件格式' }
+      return { success: false, message: messages.vaultInvalidFormat }
     }
 
     // 检测同名文件冲突
@@ -161,24 +192,25 @@ export async function importVault(jsonStr: string): Promise<ImportResult> {
     return {
       success: true,
       message: conflicts.length > 0
-        ? `检测到 ${conflicts.length} 个同名文件冲突`
-        : '未检测到冲突，可以安全导入',
+        ? messages.vaultConflictDetected.replace(String.raw`{n}`, String(conflicts.length))
+        : messages.vaultNoConflict,
       conflicts,
     }
   } catch (e) {
-    return { success: false, message: `检测失败: ${e instanceof Error ? e.message : String(e)}` }
+    return { success: false, message: messages.vaultDetectFailed.replace(String.raw`{err}`, e instanceof Error ? e.message : String(e)) }
   }
 }
 
 /** 按策略导入 vault 备份 */
 export async function importVaultWithStrategy(
   jsonStr: string,
-  strategy: 'overwrite' | 'skip' | 'rename'
+  strategy: 'overwrite' | 'skip' | 'rename',
+  messages: VaultBackupMessages = DEFAULT_VAULT_BACKUP_MESSAGES
 ): Promise<ImportResult> {
   try {
     const backup = safeJsonParseOrNull<BackupData>(jsonStr)
     if (!backup || backup.type !== 'markcraft-vault-backup' || !isRecord(backup.data)) {
-      return { success: false, message: '无效的备份文件格式' }
+      return { success: false, message: messages.vaultInvalidFormat }
     }
 
     // 导入前自动备份当前数据
@@ -286,20 +318,20 @@ export async function importVaultWithStrategy(
     }
 
     const parts: string[] = []
-    if (importedCount > 0) parts.push(`导入 ${importedCount} 个文件`)
-    if (skippedCount > 0) parts.push(`跳过 ${skippedCount} 个冲突文件`)
-    if (renamedCount > 0) parts.push(`重命名 ${renamedCount} 个冲突文件`)
+    if (importedCount > 0) parts.push(messages.vaultImportedPart.replace(String.raw`{n}`, String(importedCount)))
+    if (skippedCount > 0) parts.push(messages.vaultSkippedPart.replace(String.raw`{n}`, String(skippedCount)))
+    if (renamedCount > 0) parts.push(messages.vaultRenamedPart.replace(String.raw`{n}`, String(renamedCount)))
     const summary = parts.length > 0 ? `（${parts.join('，')}）` : ''
 
     return {
       success: true,
-      message: `备份导入成功${summary}，请刷新页面以加载恢复的数据`,
+      message: messages.vaultImportSuccess.replace(String.raw`{summary}`, summary),
       importedCount,
       skippedCount,
       renamedCount,
     }
   } catch (e) {
-    return { success: false, message: `导入失败: ${e instanceof Error ? e.message : String(e)}` }
+    return { success: false, message: messages.vaultImportFailed.replace(String.raw`{err}`, e instanceof Error ? e.message : String(e)) }
   }
 }
 
@@ -331,10 +363,13 @@ export async function listBackups(): Promise<{ id: number; createdAt: number; ty
 }
 
 /** 恢复备份 */
-export async function restoreBackup(backupId: number): Promise<ImportResult> {
+export async function restoreBackup(
+  backupId: number,
+  messages: VaultBackupMessages = DEFAULT_VAULT_BACKUP_MESSAGES
+): Promise<ImportResult> {
   const backup = await db.backups.get(backupId)
-  if (!backup) return { success: false, message: '备份不存在' }
-  return importVaultWithStrategy(backup.data, 'overwrite')
+  if (!backup) return { success: false, message: messages.vaultBackupNotFound }
+  return importVaultWithStrategy(backup.data, 'overwrite', messages)
 }
 
 /** 删除备份 */

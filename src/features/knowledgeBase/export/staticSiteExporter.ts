@@ -6,6 +6,7 @@
 import JSZip from 'jszip'
 import type { KnowledgeBase, KnowledgeBaseBlogConfig } from '@stores/kbTypes'
 import type { FileNode } from '@src/types/fileManager'
+import { KbExportMessages, DEFAULT_KB_EXPORT_MESSAGES } from './sharePackager'
 
 /** 转义 HTML 特殊字符 */
 function escapeHtml(text: string): string {
@@ -232,6 +233,7 @@ export async function exportStaticSite(
   kb: KnowledgeBase,
   files: FileNode[],
   blogConfig?: KnowledgeBaseBlogConfig,
+  messages: KbExportMessages = DEFAULT_KB_EXPORT_MESSAGES,
 ): Promise<Blob> {
   try {
     const zip = new JSZip()
@@ -256,10 +258,10 @@ export async function exportStaticSite(
         .join('')
       const articleHtml = wrapPage(
         fm.title,
-        `<a class="back-link" href="index.html">← 返回首页</a>
+        `<a class="back-link" href="index.html">${messages.siteBackToHome}</a>
 <h1>${escapeHtml(fm.title)}</h1>
 ${bodyHtml}
-${tagLinks ? `<div class="meta">标签：${tagLinks}</div>` : ''}`,
+${tagLinks ? `<div class="meta">${messages.siteTagLabel}${tagLinks}</div>` : ''}`,
       )
       zip.file(`${fm.slug}.html`, articleHtml)
     }
@@ -280,9 +282,9 @@ ${tagLinks ? `<div class="meta">标签：${tagLinks}</div>` : ''}`,
         .map(a => `<li><a href="${a.slug}.html">${escapeHtml(a.title)}</a></li>`)
         .join('')
       const tagHtml = wrapPage(
-        `标签：${tag}`,
-        `<a class="back-link" href="index.html">← 返回首页</a>
-<h1>标签：${escapeHtml(tag)}</h1>
+        `${messages.siteTagLabel}${tag}`,
+        `<a class="back-link" href="index.html">${messages.siteBackToHome}</a>
+<h1>${messages.siteTagLabel}${escapeHtml(tag)}</h1>
 <ul class="post-list">${list}</ul>`,
       )
       zip.file(`${tagSlug}.html`, tagHtml)

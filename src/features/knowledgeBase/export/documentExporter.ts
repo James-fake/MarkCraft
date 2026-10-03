@@ -5,6 +5,7 @@
 import JSZip from 'jszip'
 import type { KnowledgeBase } from '@stores/kbTypes'
 import type { FileNode } from '@src/types/fileManager'
+import { KbExportMessages, DEFAULT_KB_EXPORT_MESSAGES } from './sharePackager'
 
 /** 转义 HTML 特殊字符 */
 function escapeHtml(text: string): string {
@@ -149,7 +150,11 @@ function markdownToHtml(md: string): string {
  * @param kb 知识库
  * @param files 文件列表
  */
-export async function exportPdf(kb: KnowledgeBase, files: FileNode[]): Promise<void> {
+export async function exportPdf(
+  kb: KnowledgeBase,
+  files: FileNode[],
+  messages: KbExportMessages = DEFAULT_KB_EXPORT_MESSAGES,
+): Promise<void> {
   try {
     const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name))
 
@@ -203,7 +208,7 @@ ${chapters}
 
     const printWindow = window.open('', '_blank')
     if (!printWindow) {
-      throw new Error('无法打开打印窗口，请检查浏览器是否拦截了弹窗')
+      throw new Error(messages.kbPdfWindowBlocked)
     }
     printWindow.document.write(html)
     printWindow.document.close()
@@ -214,7 +219,7 @@ ${chapters}
     }, 300)
   } catch (err) {
     console.error('[KB] 导出 PDF 失败:', err)
-    throw new Error(`导出 PDF 失败：${err instanceof Error ? err.message : String(err)}`)
+    throw new Error(`${messages.kbPdfFailed}${err instanceof Error ? err.message : String(err)}`)
   }
 }
 
@@ -225,7 +230,11 @@ ${chapters}
  * @param files 文件列表
  * @returns Markdown 格式的 Blob
  */
-export async function exportMarkdown(kb: KnowledgeBase, files: FileNode[]): Promise<Blob> {
+export async function exportMarkdown(
+  kb: KnowledgeBase,
+  files: FileNode[],
+  messages: KbExportMessages = DEFAULT_KB_EXPORT_MESSAGES,
+): Promise<Blob> {
   try {
     const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name))
     const parts: string[] = []
@@ -239,7 +248,7 @@ export async function exportMarkdown(kb: KnowledgeBase, files: FileNode[]): Prom
     return new Blob([text], { type: 'text/markdown;charset=utf-8' })
   } catch (err) {
     console.error('[KB] 导出 Markdown 失败:', err)
-    throw new Error(`导出 Markdown 失败：${err instanceof Error ? err.message : String(err)}`)
+    throw new Error(`${messages.kbMdFailed}${err instanceof Error ? err.message : String(err)}`)
   }
 }
 

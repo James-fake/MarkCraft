@@ -14,6 +14,34 @@ import type { FileNode } from '../../types/fileManager'
 import { getBase64Image } from '@core/storage/imageStore'
 import { downloadBlob } from './exportUtils'
 
+// i18n：非 React 模块，由调用方注入 messages（UI 侧传 t.exportKit 映射后的对象）。
+// 中文 DEFAULT_* 兜底，保证既有断言（中文）测试零改动通过。
+export interface WorkspaceExportMessages {
+  defaultFileName: string
+  readmeEmpty: string
+  readmeTitle: string
+  readmeDate: string
+  readmeFileCount: string
+  readmeFolderCount: string
+  readmeImageCount: string
+  readmeMissingImages: string
+  readmeImagesComplete: string
+  readmeFooter: string
+}
+
+export const DEFAULT_WORKSPACE_EXPORT_MESSAGES: WorkspaceExportMessages = {
+  defaultFileName: '未命名',
+  readmeEmpty: '# MarkCraft 导出\n\n工作区为空，没有可导出的内容。\n',
+  readmeTitle: '# MarkCraft 导出备份',
+  readmeDate: '> 导出日期：{date} ｜ 由 MarkCraft 生成',
+  readmeFileCount: '- 文件数：{n}',
+  readmeFolderCount: '- 目录数：{n}',
+  readmeImageCount: '- 图片：{n} 张（assets/ 目录，Markdown 以相对路径引用）',
+  readmeMissingImages: '- ⚠️ 缺失图片 {n} 张（原始 base64 不在内存中，引用已保留为 image: 占位符）',
+  readmeImagesComplete: '- 图片完整',
+  readmeFooter: '该目录为纯 Markdown + 相对路径图片，可用任意 Markdown 编辑器（Typora / Obsidian / VS Code 等）直接打开。',
+}
+
 /** 图片引用解析结果 */
 export interface ExportAsset {
   /** 图片 id（占位符中的 image:<id>） */
@@ -48,9 +76,12 @@ function splitDataUrl(dataUrl: string): { ext: string; base64: string } | null {
 }
 
 /** 转义为合法文件名（去非法字符） */
-function safeFileName(name: string): string {
+function safeFileName(
+  name: string,
+  defaultName: string = DEFAULT_WORKSPACE_EXPORT_MESSAGES.defaultFileName
+): string {
   const cleaned = name.replace(/[\\/:*?"<>|]/g, '_').trim()
-  return cleaned || '未命名'
+  return cleaned || defaultName
 }
 
 /**
@@ -136,12 +167,15 @@ function findById(root: FileNode, id: string): FileNode | null {
  * 一键导出：把整棵文件树打包为真实 .md 目录 ZIP。
  * 返回 Blob（可直接 downloadBlob）。
  */
-export async function buildWorkspaceZip(root: FileNode | null): Promise<Blob> {
+export async function buildWorkspaceZip(
+  root: FileNode | null,
+  messages: WorkspaceExportMessages = DEFAULT_WORKSPACE_EXPORT_MESSAGES
+): Promise<Blob> {
   const zip = new JSZip()
   const result: ExportResult = { fileCount: 0, folderCount: 0, assetCount: 0, missingImages: [], warnings: [] }
 
   if (!root) {
-    zip.file('README.md', '# MarkCraft 导出\n\n工作区为空，没有可导出的内容。\n')
+    zip.file('README.md', messages.readmeEmpty)
     return zip.generateAsync({ type: 'blob' })
   }
 
@@ -182,18 +216,18 @@ export async function buildWorkspaceZip(root: FileNode | null): Promise<Blob> {
   // README 说明
   const now = new Date().toISOString().slice(0, 10)
   const readme = [
-    `# MarkCraft 导出备份`,
+    messages.readmeTitle,
     '',
-    `> 导出日期：${now} ｜ 由 MarkCraft 生成`,
+    messages.readmeDate.replace(String.raw`{date}`, now),
     '',
-    `- 文件数：${result.fileCount}`,
-    `- 目录数：${result.folderCount}`,
-    `- 图片：${result.assetCount} 张（assets/ 目录，Markdown 以相对路径引用）`,
+    messages.readmeFileCount.replace(String.raw`{n}`, String(result.fileCount)),
+    messages.readmeFolderCount.replace(String.raw`{n}`, String(result.folderCount)),
+    messages.readmeImageCount.replace(String.raw`{n}`, String(result.assetCount)),
     result.missingImages.length
-      ? `- ⚠️ 缺失图片 ${result.missingImages.length} 张（原始 base64 不在内存中，引用已保留为 image: 占位符）`
-      : `- 图片完整`,
+      ? messages.readmeMissingImages.replace(String.raw`{n}`, String(result.missingImages.length))
+      : messages.readmeImagesComplete,
     '',
-    '该目录为纯 Markdown + 相对路径图片，可用任意 Markdown 编辑器（Typora / Obsidian / VS Code 等）直接打开。',
+    messages.readmeFooter,
     '',
   ].join('\n')
   zip.file('README.md', readme)
@@ -221,8 +255,11 @@ export async function buildWorkspaceZip(root: FileNode | null): Promise<Blob> {
 }
 
 /** 一键导出并触发下载（UI 入口调用） */
-export async function exportWorkspaceZip(root: FileNode | null): Promise<ExportResult> {
-  const blob = await buildWorkspaceZip(root)
+export async function exportWorkspaceZip(
+  root: FileNode | null,
+  messages: WorkspaceExportMessages = DEFAULT_WORKSPACE_EXPORT_MESSAGES
+): Promise<ExportResult> {
+  const blob = await buildWorkspaceZip(root, messages)
   const stamp = new Date().toISOString().slice(0, 10)
   downloadBlob(blob, `markcraft-export-${stamp}.zip`)
   // 轻量统计（blob 已产出，这里重新走一遍纯逻辑拿统计）

@@ -318,12 +318,28 @@ function waitForImages(doc: Document): Promise<void> {
  * 可视区域之外 → 生成"白板"PDF。改用 iframe 后，html2canvas 截取的是 iframe 内部 body，
  * 其内部坐标恒为 (0,0)，与外框位置无关，从而稳定渲染出完整内容。
  */
+
+// i18n：非 React 模块，由调用方注入 messages（UI 侧传 t.exportKit 映射后的对象）。
+// 中文 DEFAULT_* 兜底，保证既有断言（中文）测试零改动通过。
+export interface PdfExportMessages {
+  envUnavailable: string
+  contentEmpty: string
+  empty: string
+}
+
+export const DEFAULT_PDF_EXPORT_MESSAGES: PdfExportMessages = {
+  envUnavailable: 'PDF 渲染环境不可用',
+  contentEmpty: 'PDF 内容为空，请检查文档内容',
+  empty: 'PDF 生成为空，请重试',
+}
+
 export async function generatePdf(
   content: string,
   fileName: string,
   errorMessage?: string,
   customCss?: string,
   options?: PdfExportOptions,
+  messages: PdfExportMessages = DEFAULT_PDF_EXPORT_MESSAGES,
 ): Promise<Blob> {
   const safeTitle = escapeHtml((fileName || 'document').replace(/\.pdf$/i, ''))
   const html = buildPdfHtml(content, customCss, options, safeTitle)
@@ -344,7 +360,7 @@ export async function generatePdf(
   try {
     const idoc = iframe.contentDocument
     if (!idoc) {
-      throw new Error(errorMessage || 'PDF 渲染环境不可用')
+      throw new Error(errorMessage || messages.envUnavailable)
     }
     idoc.open()
     idoc.write(html)
@@ -354,7 +370,7 @@ export async function generatePdf(
 
     const target = idoc.body
     if (!target || target.innerHTML.trim().length === 0) {
-      throw new Error(errorMessage || 'PDF 内容为空，请检查文档内容')
+      throw new Error(errorMessage || messages.contentEmpty)
     }
 
     const opt = {
@@ -368,7 +384,7 @@ export async function generatePdf(
     }
     const blob = (await html2pdf().set(opt).from(target).outputPdf('blob')) as Blob
     if (!blob || blob.size === 0) {
-      throw new Error(errorMessage || 'PDF 生成为空，请重试')
+      throw new Error(errorMessage || messages.empty)
     }
     return blob
   } finally {

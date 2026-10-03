@@ -6,6 +6,39 @@ import JSZip from 'jszip'
 import type { KnowledgeBase } from '@stores/kbTypes'
 import type { FileNode } from '@src/types/fileManager'
 
+// i18n：非 React 模块，由调用方注入 messages（UI 侧传 t.exportKit）。
+// 接口 key 与 locale 段 exportKit 对齐，调用方可直接传 t.exportKit。
+// 中文 DEFAULT_* 兜底，保证既有断言（中文）测试零改动通过。
+export interface KbExportMessages {
+  kbPdfWindowBlocked: string
+  kbPdfFailed: string
+  kbMdFailed: string
+  shareCreateFilesDirFailed: string
+  shareCreateCanvasesDirFailed: string
+  shareExportFailed: string
+  shareMissingManifest: string
+  shareManifestParseFailed: string
+  shareUnsupportedFormat: string
+  shareImportFailed: string
+  siteBackToHome: string
+  siteTagLabel: string
+}
+
+export const DEFAULT_KB_EXPORT_MESSAGES: KbExportMessages = {
+  kbPdfWindowBlocked: '无法打开打印窗口，请检查浏览器是否拦截了弹窗',
+  kbPdfFailed: '导出 PDF 失败：',
+  kbMdFailed: '导出 Markdown 失败：',
+  shareCreateFilesDirFailed: '创建 files 目录失败',
+  shareCreateCanvasesDirFailed: '创建 canvases 目录失败',
+  shareExportFailed: '导出分享包失败：',
+  shareMissingManifest: '分享包中缺少 manifest.json，可能不是有效的 .mcshare 文件',
+  shareManifestParseFailed: 'manifest.json 解析失败，文件可能已损坏',
+  shareUnsupportedFormat: '不支持的分享包格式：',
+  shareImportFailed: '导入分享包失败：',
+  siteBackToHome: '← 返回首页',
+  siteTagLabel: '标签：',
+}
+
 /** 分享包清单文件结构 */
 interface ShareManifest {
   format: 'mcshare'
@@ -46,6 +79,7 @@ export async function exportKbPackage(
   kb: KnowledgeBase,
   files: FileNode[],
   canvases?: { id: string; name: string; data: unknown }[],
+  messages: KbExportMessages = DEFAULT_KB_EXPORT_MESSAGES,
 ): Promise<Blob> {
   try {
     const zip = new JSZip()
@@ -55,7 +89,7 @@ export async function exportKbPackage(
     // 1. 收集文件内容并写入 files/
     const filesFolder = zip.folder('files')
     if (!filesFolder) {
-      throw new Error('创建 files 目录失败')
+      throw new Error(messages.shareCreateFilesDirFailed)
     }
     for (const file of files) {
       const content = file.content ?? ''
@@ -69,7 +103,7 @@ export async function exportKbPackage(
     if (canvasList.length > 0) {
       const canvasesFolder = zip.folder('canvases')
       if (!canvasesFolder) {
-        throw new Error('创建 canvases 目录失败')
+        throw new Error(messages.shareCreateCanvasesDirFailed)
       }
       for (const cv of canvasList) {
         const safeName = (cv.name.split(/[\\/]/).pop() || cv.name).replace(/\.json$/i, '')
@@ -101,7 +135,7 @@ export async function exportKbPackage(
     return blob
   } catch (err) {
     console.error('[KB] 导出分享包失败:', err)
-    throw new Error(`导出分享包失败：${err instanceof Error ? err.message : String(err)}`)
+    throw new Error(`${messages.shareExportFailed}${err instanceof Error ? err.message : String(err)}`)
   }
 }
 
@@ -121,6 +155,7 @@ export async function importKbPackage(
   createFolder: (parentId: string, name: string) => string,
   createFile: (parentId: string, name: string) => void,
   updateFileContent: (id: string, content: string) => void,
+  messages: KbExportMessages = DEFAULT_KB_EXPORT_MESSAGES,
 ): Promise<{
   name: string
   description: string
@@ -139,18 +174,18 @@ export async function importKbPackage(
     // 2. 读取 manifest.json
     const manifestFile = zip.file('manifest.json')
     if (!manifestFile) {
-      throw new Error('分享包中缺少 manifest.json，可能不是有效的 .mcshare 文件')
+      throw new Error(messages.shareMissingManifest)
     }
     const manifestText = await manifestFile.async('string')
     let manifest: ShareManifest
     try {
       manifest = JSON.parse(manifestText) as ShareManifest
     } catch {
-      throw new Error('manifest.json 解析失败，文件可能已损坏')
+      throw new Error(messages.shareManifestParseFailed)
     }
 
     if (manifest.format !== 'mcshare') {
-      throw new Error(`不支持的分享包格式：${manifest.format}`)
+      throw new Error(`${messages.shareUnsupportedFormat}${manifest.format}`)
     }
 
     // 3. 读取 files/ 目录下所有文件
@@ -173,6 +208,6 @@ export async function importKbPackage(
     }
   } catch (err) {
     console.error('[KB] 导入分享包失败:', err)
-    throw new Error(`导入分享包失败：${err instanceof Error ? err.message : String(err)}`)
+    throw new Error(`${messages.shareImportFailed}${err instanceof Error ? err.message : String(err)}`)
   }
 }

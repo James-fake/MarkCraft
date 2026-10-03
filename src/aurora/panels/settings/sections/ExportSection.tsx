@@ -16,7 +16,17 @@ export function ExportSection({ query }: { query?: string; toast?: (msg: string)
   const { t } = useLanguage()
   const X = t.settingsExport
   const { q, match } = useSettingsQuery(query)
-  const stylePresets = getExportStylePresets()
+  const stylePresets = getExportStylePresets({
+    defaultName: t.exportKit.styleDefaultName,
+    defaultDesc: t.exportKit.styleDefaultDesc,
+    academicName: t.exportKit.styleAcademicName,
+    academicDesc: t.exportKit.styleAcademicDesc,
+    technicalName: t.exportKit.styleTechName,
+    technicalDesc: t.exportKit.styleTechDesc,
+    minimalName: t.exportKit.styleMinimalName,
+    minimalDesc: t.exportKit.styleMinimalDesc,
+    importedDesc: t.exportKit.styleImportedDesc,
+  })
 
   const hasAny = !q || [
     [X.defaultFormat, X.defaultFormatDesc],
