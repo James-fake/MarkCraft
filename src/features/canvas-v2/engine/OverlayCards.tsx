@@ -13,6 +13,7 @@ import type { CanvasEngine } from './CanvasEngine'
 import type { ShapeLike, PropsBag } from './engineTypes'
 import { getColorDef, parseTags, renderNoteCardContent, formatRelativeTime, getCardTitle, syncCardTitleToNote } from './cardHelpers'
 import { useFileManager } from '@stores/FileStore'
+import { useLanguage } from '@stores/LanguageStore'
 import { CanvasIcon } from '../components/CanvasIcon'
 
 const headerBtnStyle: React.CSSProperties = {
@@ -94,6 +95,8 @@ export function OverlayNoteCard({ shape, engine, zoom }: { shape: ShapeLike; eng
   const isEditing = useValue('isEditing', () => engine.getEditingShapeId() === shape.id, [engine, shape.id])
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [isHovered, setIsHovered] = useState(false)
+  const { t, language } = useLanguage()
+  const cc = t.canvasCard
 
   const { w, h, text, color, collapsed, syncEnabled, fileId, tags, pinned, updatedAt, placeholder } = shape.props
   const colorDef = getColorDef(color)
@@ -146,8 +149,10 @@ export function OverlayNoteCard({ shape, engine, zoom }: { shape: ShapeLike; eng
     e.stopPropagation(); engine.setCurrentTool('arrow')
   }, [engine])
 
-  const html = text?.trim() ? renderNoteCardContent(text) : ''
-  const title = (text || '').split('\n')[0]?.replace(/^#+\s*/, '').slice(0, 40) || '空笔记'
+  const html = text?.trim() ? renderNoteCardContent(text, language) : ''
+  const rawTitle = (text || '').split('\n')[0]?.replace(/^#+\s*/, '').slice(0, 40) || ''
+  // 空标题用 localized 占位展示（哨兵 '空笔记' 仅用于 cardHelpers.isValidTitle 判定，不出现在界面）
+  const title = rawTitle || cc.emptyNote
   const lineCount = (text || '').split('\n').length
   const displayH = collapsed ? 44 : (h ?? 200)
   const gradient = `linear-gradient(135deg, ${colorDef.from} 0%, ${colorDef.to} 100%)`
@@ -185,16 +190,16 @@ export function OverlayNoteCard({ shape, engine, zoom }: { shape: ShapeLike; eng
         height: 40, minHeight: 40, display: 'flex', alignItems: 'center', padding: '0 10px', gap: 6,
         fontSize: 13, fontWeight: 600, color: 'var(--cv-text-main)', userSelect: 'none', flexShrink: 0,
       }}>
-        <button data-no-drag onPointerDown={toggleCollapse} style={headerBtnStyle} title={collapsed ? '展开' : '折叠'}>
+        <button data-no-drag onPointerDown={toggleCollapse} style={headerBtnStyle} title={collapsed ? cc.expand : cc.collapse}>
           {collapsed ? <CanvasIcon name="chevronRight" size={12} /> : <CanvasIcon name="chevronDown" size={12} />}
         </button>
-        {pinned && <span style={{ fontSize: 11, display: 'inlineFlex', alignItems: 'center' }} title="已置顶"><CanvasIcon name="pinFill" size={11} /></span>}
+        {pinned && <span style={{ fontSize: 11, display: 'inlineFlex', alignItems: 'center' }} title={cc.pinned}><CanvasIcon name="pinFill" size={11} /></span>}
         <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title}</span>
         {collapsed && (
           <span style={{
             fontSize: 10, padding: '1px 6px', borderRadius: 8, backgroundColor: 'var(--cv-accent-soft)',
             color: 'var(--cv-accent)', fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0,
-          }} title="已折叠，点击左侧箭头展开">{lineCount} 行</span>
+          }} title={cc.collapsedHint}>{cc.lineUnit.replace(String.raw`{n}`, String(lineCount))}</span>
         )}
         {tagList.slice(0, 2).map((tag) => (
           <span key={tag} style={{
@@ -203,12 +208,12 @@ export function OverlayNoteCard({ shape, engine, zoom }: { shape: ShapeLike; eng
             textOverflow: 'ellipsis', whiteSpace: 'nowrap',
           }} title={`#${tag}`}>#{tag}</span>
         ))}
-        {fileId && <button data-no-drag onPointerDown={openFile} style={headerBtnStyle} title="打开文件">↗</button>}
+        {fileId && <button data-no-drag onPointerDown={openFile} style={headerBtnStyle} title={cc.openFile}>↗</button>}
         <button data-no-drag onPointerDown={toggleSync} style={{
           ...headerBtnStyle,
           backgroundColor: syncEnabled ? 'var(--cv-accent-soft)' : 'transparent',
           color: syncEnabled ? 'var(--cv-accent)' : 'var(--cv-text-tertiary)',
-        }} title={syncEnabled ? '同步已开启' : '同步已关闭'}>{syncEnabled ? '⟳' : '⟲'}</button>
+        }} title={syncEnabled ? cc.syncOn : cc.syncOff}>{syncEnabled ? '⟳' : '⟲'}</button>
       </div>
 
       {!collapsed && (
@@ -228,14 +233,14 @@ export function OverlayNoteCard({ shape, engine, zoom }: { shape: ShapeLike; eng
                 fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 13, lineHeight: 1.6,
                 backgroundColor: 'transparent', color: 'var(--cv-text-main)', padding: 0,
               }}
-              placeholder={placeholder || '输入 markdown 内容...'}
+              placeholder={placeholder || cc.editPlaceholder}
               autoFocus
             />
           ) : html ? (
             <div className="note-card-md" dangerouslySetInnerHTML={{ __html: html }} style={{ wordBreak: 'break-word' }} />
           ) : (
             <div style={{ color: 'var(--cv-text-tertiary)', fontStyle: 'italic', fontSize: 12 }}>
-              {placeholder || '双击编辑内容...'}
+              {placeholder || cc.editHint}
             </div>
           )}
         </div>
@@ -247,12 +252,12 @@ export function OverlayNoteCard({ shape, engine, zoom }: { shape: ShapeLike; eng
           fontSize: 10, color: 'var(--cv-text-tertiary)', backgroundColor: 'var(--cv-meta-bg)',
           borderTop: '1px solid var(--cv-card-border)', userSelect: 'none', flexShrink: 0,
         }}>
-          {syncEnabled && <span title="同步已开启">⟳ 同步</span>}
-          {fileId && <span title="关联文件" style={{ display: 'inlineFlex', alignItems: 'center', gap: 3 }}><CanvasIcon name="link" size={10} /> 关联</span>}
-          {pinned && <span title="已置顶" style={{ display: 'inlineFlex', alignItems: 'center', gap: 3 }}><CanvasIcon name="pinFill" size={10} /> 置顶</span>}
+          {syncEnabled && <span title={cc.syncOn}>⟳ {cc.syncShort}</span>}
+          {fileId && <span title={cc.linkedFile} style={{ display: 'inlineFlex', alignItems: 'center', gap: 3 }}><CanvasIcon name="link" size={10} /> {cc.linkShort}</span>}
+          {pinned && <span title={cc.pinned} style={{ display: 'inlineFlex', alignItems: 'center', gap: 3 }}><CanvasIcon name="pinFill" size={10} /> {cc.pinShort}</span>}
           {updatedAt && (
             <span style={{ marginLeft: 'auto' }} title={new Date(updatedAt).toLocaleString()}>
-              {formatRelativeTime(updatedAt)}
+              {formatRelativeTime(updatedAt, language)}
             </span>
           )}
         </div>
@@ -260,10 +265,10 @@ export function OverlayNoteCard({ shape, engine, zoom }: { shape: ShapeLike; eng
 
       {isHovered && !isEditing && interactive && (
         <>
-          <div data-no-drag onPointerDown={startArrow} style={{ ...anchorStyle, right: -5, top: '50%', transform: 'translateY(-50%)' }} title="拖拽创建连线" />
-          <div data-no-drag onPointerDown={startArrow} style={{ ...anchorStyle, left: -5, top: '50%', transform: 'translateY(-50%)' }} title="拖拽创建连线" />
-          <div data-no-drag onPointerDown={startArrow} style={{ ...anchorStyle, top: -5, left: '50%', transform: 'translateX(-50%)' }} title="拖拽创建连线" />
-          <div data-no-drag onPointerDown={startArrow} style={{ ...anchorStyle, bottom: -5, left: '50%', transform: 'translateX(-50%)' }} title="拖拽创建连线" />
+          <div data-no-drag onPointerDown={startArrow} style={{ ...anchorStyle, right: -5, top: '50%', transform: 'translateY(-50%)' }} title={cc.dragToLink} />
+          <div data-no-drag onPointerDown={startArrow} style={{ ...anchorStyle, left: -5, top: '50%', transform: 'translateY(-50%)' }} title={cc.dragToLink} />
+          <div data-no-drag onPointerDown={startArrow} style={{ ...anchorStyle, top: -5, left: '50%', transform: 'translateX(-50%)' }} title={cc.dragToLink} />
+          <div data-no-drag onPointerDown={startArrow} style={{ ...anchorStyle, bottom: -5, left: '50%', transform: 'translateX(-50%)' }} title={cc.dragToLink} />
         </>
       )}
     </div>
@@ -302,6 +307,7 @@ export function OverlayLabelCard({ shape, engine, zoom }: { shape: ShapeLike; en
     useCardInteraction(engine, shape, zoom)
   const isEditing = useValue('isEditingLabel', () => engine.getEditingShapeId() === shape.id, [engine, shape.id])
   const [isHovered, setIsHovered] = useState(false)
+  const cc = useLanguage().t.canvasCard
 
   const {
     w, h, text,
@@ -376,7 +382,7 @@ export function OverlayLabelCard({ shape, engine, zoom }: { shape: ShapeLike; en
             onKeyDown={handleKeyDown}
             onBlur={endEditing}
             autoFocus
-            placeholder="输入标签…"
+            placeholder={cc.tagPlaceholder}
             style={{
               width: '100%', border: 'none', outline: 'none', background: 'transparent',
               color: resolvedTextColor, fontSize, fontWeight: 600, textAlign: 'center',
@@ -385,7 +391,7 @@ export function OverlayLabelCard({ shape, engine, zoom }: { shape: ShapeLike; en
           />
         ) : (
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {resolvedText || <span style={{ opacity: 0.55, fontStyle: 'italic' }}>双击编辑</span>}
+            {resolvedText || <span style={{ opacity: 0.55, fontStyle: 'italic' }}>{cc.doubleClickEdit}</span>}
           </span>
         )}
       </div>
@@ -396,6 +402,7 @@ export function OverlayLabelCard({ shape, engine, zoom }: { shape: ShapeLike; en
 // ─── 通用卡片（image/file/embed/canvas-ref）：占位式富框，支持拖拽/选中/删除 ───
 export function OverlayGenericCard({ shape, engine, zoom }: { shape: ShapeLike; engine: CanvasEngine; zoom: number }) {
   const { isSelected, interactive, onPointerDown, onPointerMove, onPointerUp } = useCardInteraction(engine, shape, zoom)
+  const cc = useLanguage().t.canvasCard
 
   // 分组框（P2-1 最小可用）：虚线框 + 标题 + 成员数 + 加入分组
   if (shape.type === 'group-card') {
@@ -415,7 +422,7 @@ export function OverlayGenericCard({ shape, engine, zoom }: { shape: ShapeLike; 
       e.stopPropagation()
       for (const m of members) engine.updateShape({ id: m.id, props: { groupId: undefined } })
     }
-    const gTitle = String(shape.props.title || '分组').slice(0, 30)
+    const gTitle = String(shape.props.title || cc.groupDefault).slice(0, 30)
     return (
       <div
         style={{
@@ -440,15 +447,15 @@ export function OverlayGenericCard({ shape, engine, zoom }: { shape: ShapeLike; 
           borderBottom: '1px dashed rgba(124,140,255,0.25)', userSelect: 'none',
         }}>
           <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{gTitle}</span>
-          <span style={{ fontSize: 10, opacity: 0.7, whiteSpace: 'nowrap' }}>{members.length} 成员</span>
+          <span style={{ fontSize: 10, opacity: 0.7, whiteSpace: 'nowrap' }}>{cc.memberUnit.replace(String.raw`{n}`, String(members.length))}</span>
           <button
             data-no-drag
             onPointerDown={addSelected}
-            title="将选中卡片加入该分组"
+            title={cc.addToGroup}
             style={{ ...headerBtnStyle, color: 'var(--cv-accent)', fontWeight: 700 }}
           >＋</button>
           {members.length > 0 && (
-            <button data-no-drag onPointerDown={ungroupAll} title="移出全部成员" style={headerBtnStyle}>✕</button>
+            <button data-no-drag onPointerDown={ungroupAll} title={cc.removeAllMembers} style={headerBtnStyle}>✕</button>
           )}
         </div>
       </div>

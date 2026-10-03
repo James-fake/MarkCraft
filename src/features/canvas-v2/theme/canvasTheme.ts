@@ -121,19 +121,21 @@ html[data-density="comfortable"] .canvas-v2-root {
 /** 卡片色板（语义化颜色，用于标题渐变色带） */
 export interface CardColorDef {
   name: string
+  /** 英文名（双语数据伴生字段；UI 按语言取值，未门控时回退 name） */
+  nameEn?: string
   from: string  // 渐变起点
   to: string    // 渐变终点
 }
 
 export const CARD_COLORS_V2: CardColorDef[] = [
-  { name: '靛蓝', from: '#6366F1', to: '#6366F1' },
-  { name: '翠绿', from: '#10B981', to: '#10B981' },
-  { name: '琥珀', from: '#F59E0B', to: '#F59E0B' },
-  { name: '玫红', from: '#EC4899', to: '#EC4899' },
-  { name: '青蓝', from: '#06B6D4', to: '#06B6D4' },
-  { name: '紫罗兰', from: '#8B5CF6', to: '#8B5CF6' },
-  { name: '石板', from: '#64748B', to: '#64748B' },
-  { name: '橙红', from: '#F97316', to: '#F97316' },
+  { name: '靛蓝', nameEn: 'Indigo', from: '#6366F1', to: '#6366F1' },
+  { name: '翠绿', nameEn: 'Emerald', from: '#10B981', to: '#10B981' },
+  { name: '琥珀', nameEn: 'Amber', from: '#F59E0B', to: '#F59E0B' },
+  { name: '玫红', nameEn: 'Rose', from: '#EC4899', to: '#EC4899' },
+  { name: '青蓝', nameEn: 'Cyan', from: '#06B6D4', to: '#06B6D4' },
+  { name: '紫罗兰', nameEn: 'Violet', from: '#8B5CF6', to: '#8B5CF6' },
+  { name: '石板', nameEn: 'Slate', from: '#64748B', to: '#64748B' },
+  { name: '橙红', nameEn: 'Orange', from: '#F97316', to: '#F97316' },
 ]
 
 /** 兼容 v1 的 hex 色板 */
@@ -143,27 +145,42 @@ export const CARD_COLORS_LEGACY = CARD_COLORS_V2.map(c => c.from)
 export interface RelationType {
   id: string
   name: string
+  /** 英文名（双语数据伴生字段；关系推断匹配用 id，UI 展示按语言取值） */
+  nameEn?: string
   color: string
   dash: 'solid' | 'dashed'
 }
 
 export const RELATION_TYPES: RelationType[] = [
-  { id: 'ref', name: '引用', color: '#6B7280', dash: 'solid' },
-  { id: 'support', name: '支撑', color: '#10B981', dash: 'solid' },
-  { id: 'refute', name: '反驳', color: '#EF4444', dash: 'solid' },
-  { id: 'derive', name: '衍生', color: '#8B5CF6', dash: 'solid' },
-  { id: 'relate', name: '关联', color: '#06B6D4', dash: 'dashed' },
-  { id: 'example', name: '示例', color: '#F59E0B', dash: 'dashed' },
+  { id: 'ref', name: '引用', nameEn: 'Reference', color: '#6B7280', dash: 'solid' },
+  { id: 'support', name: '支撑', nameEn: 'Support', color: '#10B981', dash: 'solid' },
+  { id: 'refute', name: '反驳', nameEn: 'Refute', color: '#EF4444', dash: 'solid' },
+  { id: 'derive', name: '衍生', nameEn: 'Derive', color: '#8B5CF6', dash: 'solid' },
+  { id: 'relate', name: '关联', nameEn: 'Relate', color: '#06B6D4', dash: 'dashed' },
+  { id: 'example', name: '示例', nameEn: 'Example', color: '#F59E0B', dash: 'dashed' },
 ]
 
-/** 相对时间格式化 */
-export function formatRelativeTime(timestamp: number): string {
+/**
+ * 相对时间格式化。
+ *
+ * 语言开关（与博客模板 `bl` 形参同范式）：默认中文（保持既有调用点不变），
+ * 传 'en' 时输出英文。纯函数、无 React 依赖 —— 供引擎/HTML 字符串等非组件上下文复用。
+ */
+export function formatRelativeTime(timestamp: number, lang: 'zh' | 'en' = 'zh'): string {
   const now = Date.now()
   const diff = now - timestamp
   const seconds = Math.floor(diff / 1000)
   const minutes = Math.floor(seconds / 60)
   const hours = Math.floor(minutes / 60)
   const days = Math.floor(hours / 24)
+
+  if (lang === 'en') {
+    if (seconds < 60) return 'just now'
+    if (minutes < 60) return `${minutes} min ago`
+    if (hours < 24) return `${hours} h ago`
+    if (days < 30) return `${days} d ago`
+    return new Date(timestamp).toLocaleDateString()
+  }
 
   if (seconds < 60) return '刚刚'
   if (minutes < 60) return `${minutes}分钟前`

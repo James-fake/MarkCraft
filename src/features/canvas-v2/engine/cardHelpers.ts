@@ -17,10 +17,16 @@ export function parseTags(tags?: string): string[] {
   return tags.split(/[,，]/).map((t) => t.trim()).filter(Boolean).slice(0, 4)
 }
 
-export function renderNoteCardContent(text: string): string {
+/**
+ * 卡片正文渲染（markdown → html）。
+ * lang: 门控「渲染中…」占位文案；默认中文（保持既有调用点不变），'en' 时英文。
+ * 与 useMarkdownRenderer（主渲染器）已用英文 Rendering… 对齐。
+ */
+export function renderNoteCardContent(text: string, lang: 'zh' | 'en' = 'zh'): string {
   try {
     const raw = marked.parse(text, { async: false }) as string
     const withMath = renderMathInHtml(raw)
+    const mermaidText = lang === 'en' ? 'Rendering…' : '渲染中...'
     const withMermaid = withMath.replace(
       /<pre><code class="hljs language-mermaid">([\s\S]*?)<\/code><\/pre>/g,
       (_m: string, code: string) => {
@@ -30,7 +36,7 @@ export function renderNoteCardContent(text: string): string {
           .replace(/&amp;/g, '&')
           .replace(/&quot;/g, '"')
           .replace(/&#039;/g, "'")
-        return `<div class="mermaid-diagram mermaid-loading" data-mermaid="${encodeURIComponent(decoded)}" style="min-height:24px;padding:4px;font-size:10px;opacity:0.5">📊 渲染中...</div>`
+        return `<div class="mermaid-diagram mermaid-loading" data-mermaid="${encodeURIComponent(decoded)}" style="min-height:24px;padding:4px;font-size:10px;opacity:0.5">📊 ${mermaidText}</div>`
       },
     )
     return sanitizeHtml(withMermaid)
@@ -39,6 +45,7 @@ export function renderNoteCardContent(text: string): string {
   }
 }
 
+// formatRelativeTime 现支持第二参 lang（'zh' | 'en'）；此处透传，调用方按语言传入。
 export { formatRelativeTime }
 
 /* ============================================================
@@ -61,13 +68,23 @@ export function getCardTitle(text: string): string {
     .slice(0, 40)
 }
 
-/** 标题 → 合法文件名（去非法字符；空则回退「未命名笔记」） */
+/**
+ * 标题 → 合法文件名（去非法字符；空则回退「未命名笔记」）。
+ *
+ * ⚠️ 「未命名笔记」是**文件名兜底**，会真实落盘为 `.md` 文件名，**刻意不做语言化** ——
+ * 见 syncCardTitleToNote。UI 展示层的「空笔记」占位另见 OverlayCards 的 t.canvasCard.emptyNote。
+ */
 export function safeNoteName(title: string): string {
   const cleaned = title.replace(/[\\/:*?"<>|]/g, '_').trim()
   return cleaned || '未命名笔记'
 }
 
-/** 标题是否有效（非空且非「空笔记」占位） */
+/**
+ * 标题是否有效（非空且非「空笔记」占位）。
+ *
+ * ⚠️ '空笔记' 是**哨兵值**：与 OverlayCards 卡片标题渲染的 `text || '空笔记'` 占位同源，
+ * 用于判定「用户是否真的写过标题」——属跨模块契约，不随界面语言变化（否则判定失效）。
+ */
 export function isValidTitle(title: string): boolean {
   return !!title && title !== '空笔记'
 }

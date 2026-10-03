@@ -457,6 +457,38 @@ export const canvasTab = {
   engineLoading: '正在加载白板引擎…',
 }
 
+// ---- 白板卡片浮层（OverlayCards / cardHelpers / canvasTheme）----
+export const canvasCard = {
+  emptyNote: '空笔记',
+  expand: '展开',
+  collapse: '折叠',
+  pinned: '已置顶',
+  collapsedHint: '已折叠，点击左侧箭头展开',
+  lineUnit: '{n} 行',
+  openFile: '打开文件',
+  syncOn: '同步已开启',
+  syncOff: '同步已关闭',
+  syncShort: '同步',
+  linkedFile: '关联文件',
+  linkShort: '关联',
+  pinShort: '置顶',
+  editPlaceholder: '输入 markdown 内容...',
+  editHint: '双击编辑内容...',
+  dragToLink: '拖拽创建连线',
+  tagPlaceholder: '输入标签…',
+  doubleClickEdit: '双击编辑',
+  groupDefault: '分组',
+  memberUnit: '{n} 成员',
+  addToGroup: '将选中卡片加入该分组',
+  removeAllMembers: '移出全部成员',
+  mermaidRendering: '渲染中...',
+  // 相对时间（canvasTheme.formatRelativeTime）
+  timeJustNow: '刚刚',
+  timeMinutes: '{n} 分钟前',
+  timeHours: '{n} 小时前',
+  timeDays: '{n} 天前',
+}
+
 export const canvasList = {
   title: '白板管理',
   close: '关闭',
