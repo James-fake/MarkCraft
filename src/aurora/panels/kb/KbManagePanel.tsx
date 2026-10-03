@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react'
 import { PageFrame } from '../../components/shell/PageFrame'
 import { useCommandPalette } from '../../components/command-palette/CommandPaletteContext'
 import { Icon } from '../../icons'
-import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
+import { resolveAuroraNav, buildAuroraSidebarGroups } from '../aurora-nav'
 import { formatKbTime } from './kbData'
 import { useFileManager } from '@stores/FileStore'
+import { useLanguage } from '@stores/LanguageStore'
 import { getKbList, createKb } from '@stores/kbStore'
 import { KbCreateModal } from './KbCreateModal'
 import type { KnowledgeBaseListItem } from '@stores/kbTypes'
@@ -34,6 +35,7 @@ export interface KbManagePanelProps {
 export function KbManagePanel({ nav, toast }: KbManagePanelProps) {
   const { createFolder } = useFileManager()
   const { openCommandPalette } = useCommandPalette()
+  const { t } = useLanguage()
   const [kbList, setKbList] = useState<KnowledgeBaseListItem[]>([])
   const [modalOpen, setModalOpen] = useState(false)
 
@@ -82,8 +84,8 @@ export function KbManagePanel({ nav, toast }: KbManagePanelProps) {
 
   return (
     <PageFrame
-      sidebarGroups={AURORA_SIDEBAR_GROUPS}
-      sidebarActiveId="知识库"
+      sidebarGroups={buildAuroraSidebarGroups(t)}
+      sidebarActiveId="knowledge"
       onSidebarSelect={handleNav}
       breadcrumbs={['知识库']}
       statusLeftItems={[

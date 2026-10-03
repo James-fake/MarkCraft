@@ -5,6 +5,30 @@ export const app = {
   switchToZhDesc: '切换到中文界面',
 }
 
+// ---- 书脊侧边栏导航（Sidebar / aurora-nav）----
+// key 为稳定的导航 id（不随语言变化）；显示文案在此按语言解析。
+export const nav = {
+  // 分组标题
+  groupWorkspace: '工作区',
+  groupPublish: '发布',
+  groupMore: '更多',
+  // 导航项
+  welcome: '欢迎页',
+  editor: '编辑器',
+  diary: '日记',
+  blog: '博客',
+  canvas: '白板',
+  graph: '双链图谱',
+  knowledge: '知识库',
+  settings: '设置',
+  // 侧栏自身
+  mainNavAria: '主导航',
+  manageAccount: '管理账户设置',
+  accountHint: '{name} · 点击管理账户',
+  expandSidebar: '展开侧栏',
+  collapseSidebar: '收起侧栏',
+}
+
 export const welcome = {
   subtitle: '本地优先的个人知识与写作发布平台——为注重数据自主的知识型写作者，把记、连、思、发收进一个不上云的工具',
   createFile: '创建新文件',

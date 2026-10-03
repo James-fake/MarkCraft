@@ -3,7 +3,7 @@ import { PageFrame } from '../../components/shell/PageFrame'
 import { useCommandPalette } from '../../components/command-palette/CommandPaletteContext'
 import { usePresence, usePresenceValue, POPOVER_EXIT_MS, OVERLAY_EXIT_MS } from '@components/ui/usePresence'
 import { GROUP_COLORS } from '../../themes/categoricalColors'
-import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
+import { resolveAuroraNav, buildAuroraSidebarGroups } from '../aurora-nav'
 import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useTagIndex } from '@stores/TagIndexStore'
 import { useFileManager } from '@stores/FileStore'
@@ -455,8 +455,8 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
 
   return (
     <PageFrame
-      sidebarGroups={AURORA_SIDEBAR_GROUPS}
-      sidebarActiveId="双链图谱"
+      sidebarGroups={buildAuroraSidebarGroups(t)}
+      sidebarActiveId="graph"
       onSidebarSelect={handleNav}
       // 范围明示：非默认档把范围名接到面包屑上（「双链图谱 › 甲库 / 全部文件」）；
       // 点首段 = 退出范围、回到默认档（文件列表）。默认档不标注（它就是默认，加了反而啰嗦）

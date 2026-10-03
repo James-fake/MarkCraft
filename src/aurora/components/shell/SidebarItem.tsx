@@ -10,8 +10,10 @@ import type { IconName } from '../../types'
 export interface SidebarItemProps {
   /** 图标名称 */
   icon: IconName
-  /** 标签文字 */
+  /** 标签文字（展示用；已由调用方按语言解析） */
   label: string
+  /** 稳定标识（用于激活匹配与路由解析；缺省时回退 label） */
+  id?: string
   /** 是否激活/选中 */
   active?: boolean
   /** 右侧计数 */

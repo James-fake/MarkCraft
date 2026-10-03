@@ -2,9 +2,10 @@ import { useMemo, useState, useEffect, useCallback } from 'react'
 import { PageFrame } from '../../components/shell/PageFrame'
 import { useCommandPalette } from '../../components/command-palette/CommandPaletteContext'
 import { Icon } from '../../icons'
-import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
+import { resolveAuroraNav, buildAuroraSidebarGroups } from '../aurora-nav'
 import { useTabStripThumb } from '../../hooks/useTabStripThumb'
 import { useFileManager } from '@stores/FileStore'
+import { useLanguage } from '@stores/LanguageStore'
 import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useTagIndex } from '@stores/TagIndexStore'
 import { KbSearchPanel } from '@features/knowledgeBase/components/KbSearchPanel'
@@ -103,6 +104,7 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
   const { openCommandPalette } = useCommandPalette()
   const { getBacklinks, getOutgoingLinks, getGraphData } = useLinkIndex()
   const { tagIndex, getTagsForFile } = useTagIndex()
+  const { t } = useLanguage()
   // 顶栏操作 + 覆盖层状态
   const [editOpen, setEditOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -257,8 +259,8 @@ export function KbPanel({ kbId, nav, toast }: KbPanelProps) {
 
   return (
     <PageFrame
-      sidebarGroups={AURORA_SIDEBAR_GROUPS}
-      sidebarActiveId="知识库"
+      sidebarGroups={buildAuroraSidebarGroups(t)}
+      sidebarActiveId="knowledge"
       onSidebarSelect={handleNav}
       breadcrumbs={['知识库', kbName || '未选择']}
       breadcrumbOnClick={(i) => { if (i === 0) nav?.('kb') }}

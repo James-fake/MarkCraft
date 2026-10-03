@@ -3,7 +3,7 @@ import { PageFrame } from '../../components/shell/PageFrame'
 import { useCommandPalette } from '../../components/command-palette/CommandPaletteContext'
 import { Icon } from '../../icons'
 import type { IconName } from '../../types'
-import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
+import { resolveAuroraNav, buildAuroraSidebarGroups } from '../aurora-nav'
 import { useTabStripThumb } from '../../hooks/useTabStripThumb'
 import { useUsageDocsScope } from '@hooks/useUsageDocsScope'
 import { useFileManager } from '@stores/FileStore'
@@ -394,8 +394,8 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
 
   return (
     <PageFrame
-      sidebarGroups={AURORA_SIDEBAR_GROUPS}
-      sidebarActiveId="博客"
+      sidebarGroups={buildAuroraSidebarGroups(t)}
+      sidebarActiveId="blog"
       onSidebarSelect={handleNav}
       breadcrumbs={[B.studio]}
       statusLeftItems={[{ content: B.studio }, { content: B.pendingCount.replace('{n}', String(docs.filter((d) => d.included).length)) }]}

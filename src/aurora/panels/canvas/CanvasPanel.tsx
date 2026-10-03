@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect, useMemo, type DragEvent as ReactDragEvent } from 'react'
 import { PageFrame } from '../../components/shell/PageFrame'
-import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
+import { resolveAuroraNav, buildAuroraSidebarGroups } from '../aurora-nav'
 import { ExcalidrawCanvas } from '@features/canvas-v2/engine/ExcalidrawCanvas'
 import { CanvasEngineContext } from '@features/canvas-v2/engine/useCanvasEngine'
 import type { CanvasEngine } from '@features/canvas-v2/engine/CanvasEngine'
@@ -437,8 +437,8 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
 
   return (
     <PageFrame
-      sidebarGroups={AURORA_SIDEBAR_GROUPS}
-      sidebarActiveId="白板"
+      sidebarGroups={buildAuroraSidebarGroups(t)}
+      sidebarActiveId="canvas"
       onSidebarSelect={(id) => nav?.(resolveAuroraNav(id))}
       breadcrumbs={owningKb ? [CP.canvasWord, owningKb.name, doc?.name ?? CP.canvasWord] : [CP.canvasWord, doc?.name ?? CP.canvasWord]}
     >

@@ -1,79 +1,133 @@
 /**
  * Aurora 面板导航映射
  *
- * 把侧边栏的中文 label 映射到路由 id。
+ * 把侧边栏导航项的稳定 id 映射到路由 id。
  * 用于 Aurora 面板之间的互相跳转。
+ *
+ * 语言无关：id 恒定（不随界面语言变化），显示文案由语言包按 id 解析。
  */
 
 import type { SidebarGroup } from '../components/shell/Sidebar'
+import type { Translations } from '@locales/zh'
 
 export const AURORA_NAV_MAP: Record<string, string> = {
   // 欢迎页
-  '欢迎页': 'welcome',
+  welcome: 'welcome',
   // 编辑器 / 笔记
-  '笔记': 'editor',
-  '编辑器': 'editor',
+  editor: 'editor',
   // 白板
-  '白板': 'canvas',
+  canvas: 'canvas',
   // 设置
-  '设置': 'settings',
-  // 知识库
-  '知识库': 'kb',
-  '双链图谱': 'graph',
-  '知识图谱': 'graph', // 旧名兼容别名（使用优化⑦ 改名「双链图谱」，防历史入口/搜索命中失效）
-  '图谱': 'graph',
+  settings: 'settings',
+  // 知识库（导航 id = knowledge，路由 id = kb）
+  knowledge: 'kb',
+  kb: 'kb',
+  // 双链图谱
+  graph: 'graph',
   // 博客
-  '博客': 'blog',
+  blog: 'blog',
   // 日记
-  '日记': 'diary',
+  diary: 'diary',
 }
 
 /**
- * 全局共享的书脊侧边栏导航（导航分层：核心 → 高频 → 差异化 → 辅助折叠）
+ * 兼容旧的中文 label → 路由 id 映射（历史入口/搜索可能仍传中文 label）。
+ * 新代码请统一传稳定 id。
+ */
+const LEGACY_LABEL_MAP: Record<string, string> = {
+  欢迎页: 'welcome',
+  笔记: 'editor',
+  编辑器: 'editor',
+  白板: 'canvas',
+  设置: 'settings',
+  知识库: 'kb',
+  双链图谱: 'graph',
+  知识图谱: 'graph',
+  图谱: 'graph',
+  博客: 'blog',
+  日记: 'diary',
+}
+
+/**
+ * 根据侧边栏 id（或历史中文 label）获取路由 id。
+ * 找不到映射时返回原值（交由上层处理）。
+ */
+export function resolveAuroraNav(idOrLabel: string): string {
+  return AURORA_NAV_MAP[idOrLabel] ?? LEGACY_LABEL_MAP[idOrLabel] ?? idOrLabel
+}
+
+/**
+ * 书脊侧边栏导航结构（id 恒定，label 缺省为中文兜底）。
  *
- * 所有功能界面统一使用这一份，确保：
- * 1. 项集一致 —— 任意面板都能切换到全部 10 个功能（不再有"缺失功能/进不去"）；
- * 2. 分层一致 —— 核心(编辑器)/高频(日记)常驻，差异化(博客)独立分组，辅助(白板/图谱/知识库)收进可折叠"更多"组；
- * 3. 标签/图标统一 —— 不再出现 笔记/编辑器、book/knowledge、globe/blog 等混乱。
+ * ⚠️ 展示层请优先使用 `buildAuroraSidebarGroups(t)`（按语言解析 label / title）。
+ * 本静态常量仅用于：无 Provider 的测试渲染、以及需要稳定 id 结构的场景。
  *
- * 每个面板只通过 `sidebarActiveId` 标记自己对应的项（由 PageFrame 透传给 Sidebar 高亮），
- * 点击由 `onSidebarSelect` 配合 `resolveAuroraNav(label)` 解析到路由 id。
+ * 分层：核心(编辑器)/高频(日记)常驻，差异化(博客)独立分组，辅助(白板/图谱/知识库)收进可折叠"更多"组。
  */
 export const AURORA_SIDEBAR_GROUPS: SidebarGroup[] = [
   {
-    // 核心层（默认落地） + 高频层（日记）
+    id: 'workspace',
     title: '工作区',
     items: [
-      { icon: 'welcome', label: '欢迎页' },
-      { icon: 'edit', label: '编辑器', count: 256 },
-      { icon: 'calendar', label: '日记', count: 365 },
+      { id: 'welcome', icon: 'welcome', label: '欢迎页' },
+      { id: 'editor', icon: 'edit', label: '编辑器', count: 256 },
+      { id: 'diary', icon: 'calendar', label: '日记', count: 365 },
     ],
   },
   {
-    // 差异化层：博客发布
+    id: 'publish',
     title: '发布',
     items: [
-      { icon: 'blog', label: '博客' },
+      { id: 'blog', icon: 'blog', label: '博客' },
     ],
   },
   {
-    // 辅助层：可折叠，默认收起；激活项所在组自动展开
+    id: 'more',
     title: '更多',
     collapsible: true,
     defaultCollapsed: true,
     items: [
-      { icon: 'square', label: '白板', count: 12 },
-      { icon: 'graph', label: '双链图谱' },
-      { icon: 'knowledge', label: '知识库' },
-      { icon: 'settings', label: '设置' },
+      { id: 'canvas', icon: 'square', label: '白板', count: 12 },
+      { id: 'graph', icon: 'graph', label: '双链图谱' },
+      { id: 'knowledge', icon: 'knowledge', label: '知识库' },
+      { id: 'settings', icon: 'settings', label: '设置' },
     ],
   },
 ]
 
 /**
- * 根据侧边栏 label 获取路由 id
- * 如果找不到映射，返回原 label（交由上层处理）
+ * 按当前语言构建侧边栏导航分组（推荐展示层使用）。
+ * id 恒定，label / title 走语言包。
  */
-export function resolveAuroraNav(label: string): string {
-  return AURORA_NAV_MAP[label] ?? label
+export function buildAuroraSidebarGroups(t: Translations): SidebarGroup[] {
+  return [
+    {
+      id: 'workspace',
+      title: t.nav.groupWorkspace,
+      items: [
+        { id: 'welcome', icon: 'welcome', label: t.nav.welcome },
+        { id: 'editor', icon: 'edit', label: t.nav.editor, count: 256 },
+        { id: 'diary', icon: 'calendar', label: t.nav.diary, count: 365 },
+      ],
+    },
+    {
+      id: 'publish',
+      title: t.nav.groupPublish,
+      items: [
+        { id: 'blog', icon: 'blog', label: t.nav.blog },
+      ],
+    },
+    {
+      id: 'more',
+      title: t.nav.groupMore,
+      collapsible: true,
+      defaultCollapsed: true,
+      items: [
+        { id: 'canvas', icon: 'square', label: t.nav.canvas, count: 12 },
+        { id: 'graph', icon: 'graph', label: t.nav.graph },
+        { id: 'knowledge', icon: 'knowledge', label: t.nav.knowledge },
+        { id: 'settings', icon: 'settings', label: t.nav.settings },
+      ],
+    },
+  ]
 }

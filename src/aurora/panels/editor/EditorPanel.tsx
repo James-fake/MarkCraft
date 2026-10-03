@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { PageFrame } from '../../components/shell/PageFrame'
-import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
+import { resolveAuroraNav, buildAuroraSidebarGroups } from '../aurora-nav'
 import { setBlogEntryFileId } from '@services/blogEntry'
 import { getEditorReturn, clearEditorReturn } from '../../navigation/navReturn'
 import type { EditorReturnContext } from '../../navigation/navReturn'
@@ -384,14 +384,14 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   return (
     <div className="aurora-editor">
       <PageFrame
-        sidebarGroups={AURORA_SIDEBAR_GROUPS}
+        sidebarGroups={buildAuroraSidebarGroups(t)}
         // 🚨 使用文档简介页：侧栏点亮**「知识库」**（2026-09-22 用户需求，两轮收敛）：
         //    ① 首轮报障「不要显示跳转至编辑器功能的图标」——点亮「编辑器」会让用户以为
         //       自己已被带走进编辑器；简介页是只读参考页，不属于编辑器工作区。
         //    ② 次轮报障「点击进入笔记，左侧知识库的图标就不亮了」——把激活态整个置空
         //       （undefined）是过度修正：使用文档的用户语义是「只能从知识库点进去看」，
         //       故它属于**知识库语境**，应点亮「知识库」。
-        sidebarActiveId={isUsageDoc ? '知识库' : '编辑器'}
+        sidebarActiveId={isUsageDoc ? 'knowledge' : 'editor'}
         onSidebarSelect={(id) => {
           // 视图内显式导航 = 离开只读参考页：先回收瞬态标签再跳。
           // ⚠️ 这一步不能只靠 AuroraShell 的「路由离开编辑器」——

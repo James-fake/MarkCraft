@@ -4,7 +4,7 @@ import { useLanguage } from '@stores/LanguageStore'
 import { useCommandPalette } from '../../components/command-palette/CommandPaletteContext'
 import { Icon } from '../../icons'
 import type { IconName } from '../../types'
-import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
+import { resolveAuroraNav, buildAuroraSidebarGroups } from '../aurora-nav'
 import { useTabStripThumb } from '../../hooks/useTabStripThumb'
 import { GeneralSection } from './sections/GeneralSection'
 import { AppearanceSection } from './sections/AppearanceSection'
@@ -135,8 +135,8 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
 
   return (
     <PageFrame
-      sidebarGroups={AURORA_SIDEBAR_GROUPS}
-      sidebarActiveId="设置"
+      sidebarGroups={buildAuroraSidebarGroups(t)}
+      sidebarActiveId="settings"
       onSidebarSelect={handleNav}
       breadcrumbs={[SP.breadcrumb, categoryInfo.title]}
       statusRightItems={[

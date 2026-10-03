@@ -1,6 +1,24 @@
 import { Translations } from './zh'
 
 export const en: Translations = {
+  nav: {
+    groupWorkspace: 'Workspace',
+    groupPublish: 'Publish',
+    groupMore: 'More',
+    welcome: 'Welcome',
+    editor: 'Editor',
+    diary: 'Diary',
+    blog: 'Blog',
+    canvas: 'Canvas',
+    graph: 'Graph',
+    knowledge: 'Knowledge Base',
+    settings: 'Settings',
+    mainNavAria: 'Main navigation',
+    manageAccount: 'Manage account settings',
+    accountHint: '{name} · Click to manage account',
+    expandSidebar: 'Expand sidebar',
+    collapseSidebar: 'Collapse sidebar',
+  },
   toolbar: {
     undo: 'Undo (Ctrl+Z)',
     redo: 'Redo (Ctrl+Y)',

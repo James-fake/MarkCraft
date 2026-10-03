@@ -53,7 +53,7 @@ describe('Sidebar · 导航分层（更多组折叠）', () => {
   })
 
   it('激活项所在折叠组自动展开（如当前在白板视图）', () => {
-    render(<Sidebar groups={AURORA_SIDEBAR_GROUPS} activeId="白板" />)
+    render(<Sidebar groups={AURORA_SIDEBAR_GROUPS} activeId="canvas" />)
     const moreBtn = screen.getByRole('button', { name: /更多/ })
     expect(moreBtn.getAttribute('aria-expanded')).toBe('true')
     expect(screen.getByText('白板')).toBeTruthy()

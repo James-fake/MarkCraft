@@ -3,12 +3,15 @@ import { SidebarItem, SidebarItemProps } from './SidebarItem'
 import type { IconName } from '../../types'
 import { useUserProfile, userDisplayName, userInitial } from '@stores/UserProfileStore'
 import { useUserAccountNav } from './UserAccountNav'
+import { useLanguage } from '@stores/LanguageStore'
 
 /**
  * 侧栏导航分组
  */
 export interface SidebarGroup {
-  /** 分组标题（可选） */
+  /** 稳定标识（用于折叠状态记忆；缺省回退 title） */
+  id?: string
+  /** 分组标题（可选，展示用；已由调用方按语言解析） */
   title?: string
   /** 导航项列表 */
   items: SidebarItemProps[]
@@ -55,15 +58,18 @@ export function Sidebar({
   const userNav = useUserAccountNav()
   const displayName = userDisplayName(profile)
   const avatarInitial = userInitial(profile)
+  const { t } = useLanguage()
 
-  // 折叠组开合状态（按分组标题记忆；未显式切换的组跟随 defaultCollapsed）
+  // 折叠组开合状态（按分组 id 记忆；未显式切换的组跟随 defaultCollapsed）
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({})
 
+  const groupKey = (group: SidebarGroup) => group.id ?? group.title ?? ''
+
   const toggleGroup = (group: SidebarGroup) => {
-    const title = group.title ?? ''
+    const key = groupKey(group)
     setCollapsedGroups((prev) => {
-      const current = title in prev ? prev[title] : !!group.defaultCollapsed
-      return { ...prev, [title]: !current }
+      const current = key in prev ? prev[key] : !!group.defaultCollapsed
+      return { ...prev, [key]: !current }
     })
   }
 
@@ -75,10 +81,10 @@ export function Sidebar({
    */
   const isGroupCollapsed = (group: SidebarGroup): boolean => {
     if (collapsed) return false
-    if (group.items.some((it) => it.label === activeId)) return false
+    if (group.items.some((it) => (it.id ?? it.label) === activeId || it.label === activeId)) return false
     if (!group.collapsible) return false
-    const title = group.title ?? ''
-    if (title in collapsedGroups) return collapsedGroups[title]
+    const key = groupKey(group)
+    if (key in collapsedGroups) return collapsedGroups[key]
     return !!group.defaultCollapsed
   }
 
@@ -88,7 +94,7 @@ export function Sidebar({
         'aurora-sidebar',
         collapsed ? 'aurora-sidebar--collapsed' : 'aurora-sidebar--expanded',
       ].filter(Boolean).join(' ')}
-      aria-label="主导航"
+      aria-label={t.nav.mainNavAria}
     >
       {/* 导航区 */}
       <nav className="aurora-sidebar__nav">
@@ -98,7 +104,7 @@ export function Sidebar({
           (groups ?? []).map((group, gi) => {
             const groupCollapsed = isGroupCollapsed(group)
             return (
-              <div className="aurora-sidebar__group" key={gi}>
+              <div className="aurora-sidebar__group" key={group.id ?? gi}>
                 {group.title &&
                   (group.collapsible ? (
                     <button
@@ -137,12 +143,13 @@ export function Sidebar({
                   <div className="aurora-sidebar__group-inner">
                     {group.items.map((item, ii) => (
                       <SidebarItem
-                        key={`${gi}-${ii}`}
+                        key={item.id ?? `${gi}-${ii}`}
                         icon={item.icon as IconName}
                         label={item.label}
-                        active={item.active ?? item.label === activeId}
+                        id={item.id}
+                        active={item.active ?? ((item.id ?? item.label) === activeId)}
                         count={item.count}
-                        onClick={() => onSelect?.(item.label)}
+                        onClick={() => onSelect?.(item.id ?? item.label)}
                       />
                     ))}
                   </div>
@@ -161,9 +168,9 @@ export function Sidebar({
         <button
           type="button"
           className="aurora-sidebar__user"
-          title={`${displayName} · 点击管理账户`}
+          title={t.nav.accountHint.replace(String.raw`{name}`, displayName)}
           onClick={() => userNav.open()}
-          aria-label="管理账户设置"
+          aria-label={t.nav.manageAccount}
         >
           <div className="aurora-sidebar__user-avatar">
             {profile.avatarUrl ? (
@@ -181,8 +188,8 @@ export function Sidebar({
             type="button"
             className="aurora-sidebar__toggle"
             onClick={onToggleCollapse}
-            aria-label={collapsed ? '展开侧栏' : '收起侧栏'}
-            title={collapsed ? '展开侧栏' : '收起侧栏'}
+            aria-label={collapsed ? t.nav.expandSidebar : t.nav.collapseSidebar}
+            title={collapsed ? t.nav.expandSidebar : t.nav.collapseSidebar}
           >
             <svg width="18" height="18" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
               {collapsed ? (

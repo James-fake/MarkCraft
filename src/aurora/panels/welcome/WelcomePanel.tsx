@@ -2,7 +2,7 @@ import { useCallback, useState, useEffect, useMemo, type CSSProperties } from 'r
 import { PageFrame } from '../../components/shell/PageFrame'
 import { useCommandPalette } from '../../components/command-palette/CommandPaletteContext'
 import { Icon } from '../../icons'
-import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
+import { resolveAuroraNav, buildAuroraSidebarGroups } from '../aurora-nav'
 import { useFileManager } from '@stores/FileStore'
 import { useLanguage } from '@stores/LanguageStore'
 import { useUserProfile, userDisplayName } from '@stores/UserProfileStore'
@@ -165,8 +165,8 @@ export function WelcomePanel({ nav }: WelcomePanelProps) {
 
   return (
     <PageFrame
-      sidebarGroups={AURORA_SIDEBAR_GROUPS}
-      sidebarActiveId="欢迎页"
+      sidebarGroups={buildAuroraSidebarGroups(t)}
+      sidebarActiveId="welcome"
       onSidebarSelect={handleNav}
       statusRightItems={[
         { content: t.welcome.cmdPalette, clickable: true, onClick: () => openCommandPalette() },

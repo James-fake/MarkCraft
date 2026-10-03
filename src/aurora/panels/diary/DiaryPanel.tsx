@@ -6,7 +6,7 @@ import { Button } from '@components/ui/Button'
 import { PageFrame } from '../../components/shell/PageFrame'
 import { useCommandPalette } from '../../components/command-palette/CommandPaletteContext'
 import { Icon } from '../../icons'
-import { resolveAuroraNav, AURORA_SIDEBAR_GROUPS } from '../aurora-nav'
+import { resolveAuroraNav, buildAuroraSidebarGroups } from '../aurora-nav'
 import { DiaryFormatToolbar } from './DiaryFormatToolbar'
 import { DiaryMiniCalendar } from './DiaryMiniCalendar'
 // —— 日记换芯（方案 B）：接入真实 TipTap 编辑核心，统一富文本能力 ——
@@ -273,8 +273,8 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
 
   return (
     <PageFrame
-      sidebarGroups={AURORA_SIDEBAR_GROUPS}
-      sidebarActiveId="日记"
+      sidebarGroups={buildAuroraSidebarGroups(t)}
+      sidebarActiveId="diary"
       onSidebarSelect={handleNav}
       breadcrumbs={[D.breadcrumb]}
       statusLeftItems={[{ content: D.breadcrumb }, { content: D.countUnit.replace('{n}', String(entries.length)) }]}
