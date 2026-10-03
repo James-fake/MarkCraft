@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogModal } from './blog'
-import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
+import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -782,6 +782,56 @@ export interface Translations {
     showSidebar: string
     showSidebarDesc: string
   }
+  templates: {
+    discoveryTitle: string
+    discoverySubtitle: string
+    localBadge: string
+    searchPhDiscovery: string
+    searchPhInsert: string
+    tabAll: string
+    tabTemplate: string
+    tabExample: string
+    tabCommunity: string
+    tabCustom: string
+    acquire: string
+    acquired: string
+    load: string
+    builtinBadge: string
+    share: string
+    importShared: string
+    noResult: string
+    close: string
+    cancel: string
+    insert: string
+    insertTitle: string
+    insertSubtitle: string
+    builtin: string
+    custom: string
+    preview: string
+    noTemplate: string
+    noSelection: string
+    variables: string
+    example: string
+    discover: string
+    shareTemplate: string
+    importSuccess: string
+    importFailed: string
+    acquireSuccess: string
+    shareDone: string
+    badge: {
+      'builtin-template': string
+      example: string
+      community: string
+    }
+    acquireMsg: {
+      notFound: string
+      acquired: string
+      builtinReady: string
+      loadReady: string
+    }
+    sceneTemplate: string
+    exampleDesc: string
+  }
   settingsUser: {
     nickname: string
     nicknameDesc: string
@@ -1533,6 +1583,7 @@ const zh: Translations = {
   versionHistory,
   settingsGeneral,
   settingsUser,
+  templates,
   zodiac,
   settingsAbout,
   settingsData,

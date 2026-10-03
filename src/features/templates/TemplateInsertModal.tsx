@@ -18,8 +18,9 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
   onInsert,
   onOpenDiscovery
 }) => {
-  const { language } = useLanguage()
+  const { t, language } = useLanguage()
   const isZh = language === 'zh'
+  const TP = t.templates
 
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string>('')
@@ -105,27 +106,27 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
   }, [current])
 
   const texts = useMemo(() => ({
-    title: isZh ? '插入模板' : 'Insert Template',
-    subtitle: isZh ? '选择一个模板快速开始你的文档' : 'Choose a template to start your document',
-    searchPlaceholder: isZh ? '搜索模板...' : 'Search templates...',
-    builtin: isZh ? '内置' : 'Built-in',
-    custom: isZh ? '自定义' : 'Custom',
-    preview: isZh ? '预览' : 'Preview',
-    noTemplate: isZh ? '暂无模板' : 'No templates',
-    noSelection: isZh ? '请在左侧选择一个模板' : 'Please select a template on the left',
-    cancel: isZh ? '取消' : 'Cancel',
-    insert: isZh ? '插入' : 'Insert',
-    variables: isZh ? '支持变量: {{date}} {{time}} {{title}}' : 'Variables: {{date}} {{time}} {{title}}',
-    tabTemplate: isZh ? '模板' : 'Templates',
-    tabExample: isZh ? '范例' : 'Examples',
-    example: isZh ? '范例' : 'Example',
-    importShared: isZh ? '导入共享模板' : 'Import shared',
-    discover: isZh ? '发现社区模板' : 'Discover',
-    shareTemplate: isZh ? '分享此模板' : 'Share template',
-    importSuccess: isZh ? '已导入共享模板' : 'Shared template imported',
-    importFailed: isZh ? '导入失败：' : 'Import failed: ',
-    shareDone: isZh ? '已导出模板文件' : 'Template exported',
-  }), [isZh])
+    title: TP.insertTitle,
+    subtitle: TP.insertSubtitle,
+    searchPlaceholder: TP.searchPhInsert,
+    builtin: TP.builtin,
+    custom: TP.custom,
+    preview: TP.preview,
+    noTemplate: TP.noTemplate,
+    noSelection: TP.noSelection,
+    cancel: TP.cancel,
+    insert: TP.insert,
+    variables: TP.variables,
+    tabTemplate: TP.tabTemplate,
+    tabExample: TP.tabExample,
+    example: TP.example,
+    importShared: TP.importShared,
+    discover: TP.discover,
+    shareTemplate: TP.shareTemplate,
+    importSuccess: TP.importSuccess,
+    importFailed: TP.importFailed,
+    shareDone: TP.shareDone,
+  }), [TP])
 
   // 导入共享/社区模板（UGC：用户从文件导入他人分享的模板）
   const handleImportShared = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {

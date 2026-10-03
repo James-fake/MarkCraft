@@ -32,9 +32,11 @@ describe('templateDiscovery', () => {
     const c = discoverEntryById('community-weekly-review')
     expect(c).toBeDefined()
     expect(c!.kind).toBe('community')
-    expect(c!.badge).toBe('社区')
+    // badge 已由 kind 派生（展示文案走 t.templates.badge），数据层不再持文案
     expect(c!.scene).toBeTruthy()
+    expect(c!.sceneEn).toBeTruthy()
     expect(c!.description).toBeTruthy()
+    expect(c!.descriptionEn).toBeTruthy()
   })
 
   it('acquireEntry 一键获取社区模板：落盘到用户模板', () => {
@@ -63,7 +65,8 @@ describe('templateDiscovery', () => {
     const res = acquireEntry('ex-blog-local-first')
     expect(res.ok).toBe(true)
     expect(res.kind).toBe('example')
-    expect(res.message).toContain('载入')
+    // 文案键：'loadReady' → 展示由 t.templates.acquireMsg 解析
+    expect(res.messageKey).toBe('loadReady')
   })
 
   it('acquireEntry 未知 id 返回失败', () => {

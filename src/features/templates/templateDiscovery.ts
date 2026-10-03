@@ -24,19 +24,21 @@ export interface DiscoveryEntry {
   name: string
   nameEn: string
   icon: string
-  /** 适用场景，用于卡片副标题 */
+  /** 适用场景，用于卡片副标题（双语，消费端按界面语言取） */
   scene: string
-  /** 一句话介绍 */
+  sceneEn: string
+  /** 一句话介绍（双语） */
   description: string
+  descriptionEn: string
   kind: DiscoveryKind
-  /** 标签文案：内置 / 范例 / 社区 */
-  badge: string
 }
 
 /** 社区模板：本地内置的"社区共享"样例（离线可用，一键获取即落盘） */
 export interface CommunityTemplate extends Omit<Template, 'isBuiltIn'> {
   scene: string
+  sceneEn: string
   description: string
+  descriptionEn: string
 }
 
 export const COMMUNITY_TEMPLATES: CommunityTemplate[] = [
@@ -46,7 +48,9 @@ export const COMMUNITY_TEMPLATES: CommunityTemplate[] = [
     nameEn: 'Weekly Review',
     icon: '🔁',
     scene: '复盘',
+    sceneEn: 'Review',
     description: '回顾本周高光与卡点，聚焦下周最重要的一件事。',
+    descriptionEn: 'Review this week’s wins and blockers, and focus on the single most important thing for next week.',
     content: `# 周复盘（{{date}}）
 
 ## 本周高光
@@ -68,7 +72,9 @@ export const COMMUNITY_TEMPLATES: CommunityTemplate[] = [
     nameEn: 'Reading Club Plan',
     icon: '📚',
     scene: '共读',
+    sceneEn: 'Reading group',
     description: '为一次共读活动准备议程、讨论点与招募文案。',
+    descriptionEn: 'Prepare the agenda, discussion points and promo copy for a group reading event.',
     content: `# 读书会：{{title}}
 
 **时间**：{{date}}
@@ -94,7 +100,9 @@ export const COMMUNITY_TEMPLATES: CommunityTemplate[] = [
     nameEn: 'Product Launch',
     icon: '🚀',
     scene: '发布',
+    sceneEn: 'Launch',
     description: '面向用户的发布长文：痛点、方案、行动召唤。',
+    descriptionEn: 'A user-facing launch article: the pain point, the solution, and the call to action.',
     content: `# 我们发布了 {{title}}
 
 **日期**：{{date}}
@@ -119,7 +127,9 @@ export const COMMUNITY_TEMPLATES: CommunityTemplate[] = [
     nameEn: 'Content Calendar',
     icon: '🗓️',
     scene: '运营',
+    sceneEn: 'Marketing',
     description: '把一周的内容主题排进日历，保持节奏不空窗。',
+    descriptionEn: 'Lay a week of content topics into the calendar to keep a steady rhythm.',
     content: `# 内容日历（{{date}} 起）
 
 ## 周一
@@ -157,6 +167,22 @@ const BUILTIN_DESCRIPTIONS: Record<string, string> = {
   series: '系列专栏的发布地图。',
 }
 
+const BUILTIN_DESCRIPTIONS_EN: Record<string, string> = {
+  meeting: 'Structured agenda, discussion and action items.',
+  'book-notes': 'One framework for excerpts, opinions and reading notes.',
+  'project-plan': 'Goals, milestones and risks at a glance.',
+  'daily-journal': 'Three daily questions to capture the moment.',
+  'task-list': 'To-do / in progress / done columns.',
+  'weekly-report': 'This week’s completions and next week’s plan.',
+  okr: 'Track objectives and key results.',
+  retro: 'Project retro: what went well and what to improve.',
+  idea: 'Quick capture for a fleeting spark.',
+  travel: 'Itinerary and checklists in one place.',
+  'blog-post': 'A post skeleton from hook to call to action.',
+  newsletter: 'Newsletter skeleton: editorial note, picks, thoughts.',
+  series: 'A publishing map for a series of columns.',
+}
+
 function mapBuiltin(t: Template): DiscoveryEntry {
   return {
     id: t.id,
@@ -164,9 +190,10 @@ function mapBuiltin(t: Template): DiscoveryEntry {
     nameEn: t.nameEn,
     icon: t.icon,
     scene: '模板',
+    sceneEn: 'Template',
     description: BUILTIN_DESCRIPTIONS[t.id] ?? '',
+    descriptionEn: BUILTIN_DESCRIPTIONS_EN[t.id] ?? '',
     kind: 'builtin-template',
-    badge: '内置',
   }
 }
 
@@ -177,9 +204,11 @@ function mapExample(e: ExampleDoc): DiscoveryEntry {
     nameEn: e.nameEn,
     icon: e.icon,
     scene: e.scene,
+    // ExampleDoc.scene 为英文标签（blog / newsletter / series），中英同值
+    sceneEn: e.scene,
     description: '可一键载入的成稿范例。',
+    descriptionEn: 'One-click loadable finished examples.',
     kind: 'example',
-    badge: '范例',
   }
 }
 
@@ -190,9 +219,10 @@ function mapCommunity(c: CommunityTemplate): DiscoveryEntry {
     nameEn: c.nameEn,
     icon: c.icon,
     scene: c.scene,
+    sceneEn: c.sceneEn,
     description: c.description,
+    descriptionEn: c.descriptionEn,
     kind: 'community',
-    badge: '社区',
   }
 }
 
@@ -212,7 +242,8 @@ export function discoverEntryById(id: string): DiscoveryEntry | undefined {
 export interface AcquireResult {
   ok: boolean
   kind: DiscoveryKind | null
-  message: string
+  /** 结果文案键（展示文案由 UI 经 t.templates.acquireMsg 解析，数据层不持文案） */
+  messageKey: 'notFound' | 'acquired' | 'builtinReady' | 'loadReady'
   template?: Template
 }
 
@@ -224,11 +255,11 @@ export interface AcquireResult {
 export function acquireEntry(id: string): AcquireResult {
   const entry = discoverEntryById(id)
   if (!entry) {
-    return { ok: false, kind: null, message: '未找到该模板' }
+    return { ok: false, kind: null, messageKey: 'notFound' }
   }
   if (entry.kind === 'community') {
     const src = COMMUNITY_TEMPLATES.find(c => c.id === id)
-    if (!src) return { ok: false, kind: 'community', message: '未找到社区模板' }
+    if (!src) return { ok: false, kind: 'community', messageKey: 'notFound' }
     const tmpl: Template = {
       id: src.id,
       name: src.name,
@@ -238,13 +269,13 @@ export function acquireEntry(id: string): AcquireResult {
       isBuiltIn: false,
     }
     saveUserTemplate(tmpl)
-    return { ok: true, kind: 'community', message: '已加入我的模板', template: tmpl }
+    return { ok: true, kind: 'community', messageKey: 'acquired', template: tmpl }
   }
   if (entry.kind === 'builtin-template') {
     const t = BUILTIN_TEMPLATES.find(t => t.id === id)
-    if (t) return { ok: true, kind: 'builtin-template', message: '已内置，可直接使用', template: t }
+    if (t) return { ok: true, kind: 'builtin-template', messageKey: 'builtinReady', template: t }
   }
-  return { ok: true, kind: entry.kind, message: '已内置，可直接载入' }
+  return { ok: true, kind: entry.kind, messageKey: 'loadReady' }
 }
 
 /** 重新导出：导入共享/社区模板文件（读取本地文件，不上云） */

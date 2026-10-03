@@ -24,8 +24,9 @@ const TemplateDiscoveryModal: React.FC<TemplateDiscoveryModalProps> = ({
   onClose,
   onAcquire,
 }) => {
-  const { language } = useLanguage()
+  const { t, language } = useLanguage()
   const isZh = language === 'zh'
+  const TP = t.templates
   const toast = useToast()
 
   const [searchQuery, setSearchQuery] = useState('')
@@ -47,7 +48,8 @@ const TemplateDiscoveryModal: React.FC<TemplateDiscoveryModalProps> = ({
       e.name.toLowerCase().includes(q) ||
       e.nameEn.toLowerCase().includes(q) ||
       e.id.toLowerCase().includes(q) ||
-      e.scene.toLowerCase().includes(q)
+      e.scene.toLowerCase().includes(q) ||
+      e.sceneEn.toLowerCase().includes(q)
     )
   }, [entries, tab, searchQuery])
 
@@ -76,27 +78,27 @@ const TemplateDiscoveryModal: React.FC<TemplateDiscoveryModalProps> = ({
   }, [])
 
   const texts = useMemo(() => ({
-    title: isZh ? '模板发现 · 本地社区' : 'Template Discovery · Local Community',
-    subtitle: isZh ? '发现内置模板、范例与社区共享模板，一键获取，全部离线可用' : 'Discover built-in templates, examples and community templates — all offline',
-    localBadge: isZh ? '本地 · 非强制云' : 'Local · No Cloud',
-    searchPlaceholder: isZh ? '搜索模板 / 场景...' : 'Search templates / scenes...',
-    tabAll: isZh ? '全部' : 'All',
-    tabTemplate: isZh ? '模板' : 'Templates',
-    tabExample: isZh ? '范例' : 'Examples',
-    tabCommunity: isZh ? '社区' : 'Community',
-    acquire: isZh ? '获取' : 'Get',
-    acquired: isZh ? '已获取' : 'Got',
-    load: isZh ? '载入' : 'Load',
-    builtin: isZh ? '已内置' : 'Built-in',
-    share: isZh ? '分享' : 'Share',
-    importShared: isZh ? '导入共享模板' : 'Import shared',
-    noResult: isZh ? '没有匹配的模板' : 'No matching templates',
-    cancel: isZh ? '关闭' : 'Close',
-    importSuccess: isZh ? '已导入共享模板' : 'Shared template imported',
-    importFailed: isZh ? '导入失败：' : 'Import failed: ',
-    acquireSuccess: isZh ? '已加入我的模板' : 'Added to my templates',
-    shareDone: isZh ? '已导出模板文件' : 'Template exported',
-  }), [isZh])
+    title: TP.discoveryTitle,
+    subtitle: TP.discoverySubtitle,
+    localBadge: TP.localBadge,
+    searchPlaceholder: TP.searchPhDiscovery,
+    tabAll: TP.tabAll,
+    tabTemplate: TP.tabTemplate,
+    tabExample: TP.tabExample,
+    tabCommunity: TP.tabCommunity,
+    acquire: TP.acquire,
+    acquired: TP.acquired,
+    load: TP.load,
+    builtin: TP.builtinBadge,
+    share: TP.share,
+    importShared: TP.importShared,
+    noResult: TP.noResult,
+    cancel: TP.close,
+    importSuccess: TP.importSuccess,
+    importFailed: TP.importFailed,
+    acquireSuccess: TP.acquireSuccess,
+    shareDone: TP.shareDone,
+  }), [TP])
 
   const handleAcquire = useCallback((entry: DiscoveryEntry) => {
     if (entry.kind === 'example') {
@@ -110,15 +112,11 @@ const TemplateDiscoveryModal: React.FC<TemplateDiscoveryModalProps> = ({
     const res = acquireEntry(entry.id)
     if (res.ok) {
       setAcquired(prev => ({ ...prev, [entry.id]: true }))
-      if (entry.kind === 'community') {
-        toast.show(texts.acquireSuccess, 'success')
-      } else {
-        toast.show(res.message, 'success')
-      }
+      toast.show(TP.acquireMsg[res.messageKey], 'success')
     } else {
-      toast.show(res.message, 'error')
+      toast.show(TP.acquireMsg[res.messageKey], 'error')
     }
-  }, [texts, toast])
+  }, [TP, toast])
 
   const handleShare = useCallback((entry: DiscoveryEntry) => {
     const tmpl = getShareTemplate(entry.id)
@@ -305,13 +303,13 @@ const TemplateDiscoveryModal: React.FC<TemplateDiscoveryModalProps> = ({
                           {isZh ? entry.name : entry.nameEn}
                         </div>
                         <div style={{ fontSize: 10, opacity: 0.4, marginTop: 1 }}>
-                          {entry.badge} · {entry.scene}
+                          {TP.badge[entry.kind]} · {isZh ? entry.scene : entry.sceneEn}
                         </div>
                       </div>
                     </div>
                     {entry.description && (
                       <div style={{ fontSize: 11, opacity: 0.6, color: 'var(--mc-text-primary)', lineHeight: 1.5 }}>
-                        {entry.description}
+                        {isZh ? entry.description : entry.descriptionEn}
                       </div>
                     )}
                     <div style={{ display: 'flex', gap: 6, marginTop: 'auto' }}>
