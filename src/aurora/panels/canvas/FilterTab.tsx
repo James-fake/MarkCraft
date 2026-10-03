@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import type { ParsedShape } from './inspectorPanelShared'
+import { useLanguage } from '@stores/LanguageStore'
 
 // ───────────── 筛选 ─────────────
 export function FilterTab({
@@ -27,6 +28,9 @@ export function FilterTab({
   setFilterStatus: (v: 'all' | 'locked' | 'unlocked') => void
   onPick: (id: string) => void
 }) {
+  // 注意：本组件内多处用 t 作 map 变量（标签/类型），故语言对象解构为 lang
+  const { t: lang } = useLanguage()
+  const cf = lang.canvasTab
   const typeSet = useMemo(() => {
     const t = new Set<string>()
     for (const s of shapes) {
@@ -73,12 +77,12 @@ export function FilterTab({
       onClick={clearAll}
       disabled={filterTags.size === 0 && filterTypes.size === 0 && filterStatus === 'all'}
     >
-      清除全部
+      {cf.filterClearAll}
     </button>
   )
   return (
     <div className="aurora-cip__section" style={{ padding: 'var(--mc-space-5)' }}>
-      <div className="aurora-cip__section-title">标签</div>
+      <div className="aurora-cip__section-title">{cf.filterTagsTitle}</div>
       <div className="aurora-cip__seg" style={{ marginBottom: 8 }}>
         <button
           type="button"
@@ -107,7 +111,7 @@ export function FilterTab({
           </button>
         ))}
       </div>
-      <div className="aurora-cip__section-title">类型</div>
+      <div className="aurora-cip__section-title">{cf.filterTypesTitle}</div>
       <div className="aurora-cip__types">
         {typeSet.map((t) => (
           <label key={t} className="aurora-cip__type">
@@ -116,9 +120,9 @@ export function FilterTab({
           </label>
         ))}
       </div>
-      <div className="aurora-cip__section-title">状态</div>
+      <div className="aurora-cip__section-title">{cf.filterStatusTitle}</div>
       <div className="aurora-cip__radio">
-        {([['all', '全部'], ['locked', '已锁定'], ['unlocked', '未锁定']] as const).map(([v, label]) => (
+        {([['all', cf.filterAll], ['locked', cf.filterLocked], ['unlocked', cf.filterUnlocked]] as const).map(([v, label]) => (
           <label key={v} className="aurora-cip__radio-item">
             <input type="radio" name="aurora-cip-status" checked={filterStatus === v} onChange={() => setFilterStatus(v)} />
             <span>{label}</span>
@@ -126,9 +130,9 @@ export function FilterTab({
         ))}
       </div>
       {clearBtn}
-      <div className="aurora-cip__section-title">匹配（{matched.length}）</div>
+      <div className="aurora-cip__section-title">{cf.filterMatched.replace(String.raw`{n}`, String(matched.length))}</div>
       {matched.length === 0 ? (
-        <div className="aurora-cip__empty">无匹配元素</div>
+        <div className="aurora-cip__empty">{cf.filterEmpty}</div>
       ) : (
         <div className="aurora-cip__layers">
           {matched.slice(0, 30).map((s) => (

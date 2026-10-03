@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Icon } from '../../icons'
 import type { ParsedShape } from './sidebarPanelShared'
+import { useLanguage } from '@stores/LanguageStore'
 
 // ───────────── 大纲 ─────────────
 export function OutlineTab({
@@ -13,6 +14,8 @@ export function OutlineTab({
   scrolled: boolean
   onJump: (id: string) => void
 }) {
+  const { t } = useLanguage()
+  const ct = t.canvasTab
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase()
     if (!term) return noteCards
@@ -29,24 +32,24 @@ export function OutlineTab({
   return (
     <div className="aurora-csp__panel">
       <div className="aurora-csp__header">
-        <div className="aurora-csp__title">大纲</div>
-        <div className="aurora-csp__sub">{noteCards.length} 卡片 · {otherCount} 图形</div>
+        <div className="aurora-csp__title">{ct.outlineTitle}</div>
+        <div className="aurora-csp__sub">{ct.outlineSub.replace(String.raw`{n}`, String(noteCards.length)).replace(String.raw`{m}`, String(otherCount))}</div>
       </div>
       <div className={`aurora-csp__search ${revealSearch ? '' : 'aurora-csp__search--hidden'}`}>
         <Icon.search size={12} />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="搜索卡片标题"
+          placeholder={ct.outlineSearch}
         />
       </div>
       {noteCards.length === 0 ? (
         <div className="aurora-csp__empty">
-          白板暂无卡片<br />
-          使用底部工具栏「便签」即可新建
+          {ct.outlineEmpty}<br />
+          {ct.outlineEmptyHint}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="aurora-csp__empty">未匹配到「{q}」相关卡片</div>
+        <div className="aurora-csp__empty">{ct.outlineNoMatch.replace(String.raw`{q}`, q)}</div>
       ) : (
         <div className="aurora-csp__list">
           {roots.map((c) => (
@@ -64,7 +67,7 @@ export function OutlineTab({
                   <Icon.chevronRight size={12} />
                 </span>
                 <span className="aurora-csp__item-title">
-                  其他（{others.length}）
+                  {ct.outlineOthers.replace(String.raw`{n}`, String(others.length))}
                 </span>
               </button>
               {expanded && others.map((c) => (
@@ -81,11 +84,13 @@ export function OutlineTab({
 }
 
 function OutlineRow({ shape, onJump }: { shape: ParsedShape; onJump: (id: string) => void }) {
+  const { t } = useLanguage()
+  const ct = t.canvasTab
   return (
     <button type="button" className="aurora-csp__item" onClick={() => onJump(shape.id)}>
       <span className="aurora-csp__arrow-ghost" />
       <span className="aurora-csp__dot" style={{ background: 'var(--mc-accent)' }} />
-      <span className="aurora-csp__item-title">{shape.text || '(空卡片)'}</span>
+      <span className="aurora-csp__item-title">{shape.text || ct.emptyCard}</span>
       {shape.fileId && <Icon.fileText size={12} className="aurora-csp__filelink" />}
     </button>
   )

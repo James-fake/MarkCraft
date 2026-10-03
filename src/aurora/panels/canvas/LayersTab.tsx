@@ -1,5 +1,6 @@
 import { Icon } from '../../icons'
 import { TYPE_ICON, type ParsedShape } from './inspectorPanelShared'
+import { useLanguage } from '@stores/LanguageStore'
 
 // ───────────── 图层 ─────────────
 export function LayersTab({
@@ -15,11 +16,13 @@ export function LayersTab({
   onToggleLock: (id: string) => void
   filePathById: Map<string, string>
 }) {
+  const { t } = useLanguage()
+  const ct = t.canvasTab
   return (
     <div className="aurora-cip__section" style={{ padding: 'var(--mc-space-5)' }}>
-      <div className="aurora-cip__section-title">图层（{shapes.length}）</div>
+      <div className="aurora-cip__section-title">{ct.layersTitle.replace(String.raw`{n}`, String(shapes.length))}</div>
       {shapes.length === 0 ? (
-        <div className="aurora-cip__empty">白板暂无元素</div>
+        <div className="aurora-cip__empty">{ct.layersEmpty}</div>
       ) : (
         <div className="aurora-cip__layers">
           {[...shapes].reverse().map((s) => {
@@ -33,7 +36,7 @@ export function LayersTab({
               >
                 {IconComp ? <IconComp size={12} className="aurora-cip__layer-icon" /> : null}
                 <span className="aurora-cip__layer-name" title={s.text}>
-                  {s.text || (s.type === 'note-card' ? '(空卡片)' : s.type)}
+                  {s.text || (s.type === 'note-card' ? ct.emptyCard : s.type)}
                 </span>
                 {s.fileId && filePathById.get(s.fileId) && (
                   <span className="aurora-cip__layer-btn" title={filePathById.get(s.fileId)}>
@@ -43,7 +46,7 @@ export function LayersTab({
                 <button
                   type="button"
                   className="aurora-cip__layer-btn"
-                  title={s.isLocked ? '解锁' : '锁定'}
+                  title={s.isLocked ? ct.layerUnlock : ct.layerLock}
                   onClick={(e) => {
                     e.stopPropagation()
                     onToggleLock(s.id)

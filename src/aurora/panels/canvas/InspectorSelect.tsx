@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Icon } from '../../icons'
 import { usePresence, POPOVER_EXIT_MS } from '@components/ui/usePresence'
+import { useLanguage } from '@stores/LanguageStore'
 
 /**
  * 主题化下拉选择器（替代原生 <select>，避免 Windows 下 option 弹层由 OS 接管、无法套用主题）。
@@ -24,6 +25,7 @@ export function InspectorSelect({
   const triggerRef = useRef<HTMLButtonElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
   const selected = options.find((o) => o.value === value)
+  const cs = useLanguage().t.canvasTab
   // 关闭时先播 100ms 退场再卸载（动效审计 P0-3）；rect 是 state，退场窗口内仍可定位
   const { mounted, exiting } = usePresence(open, POPOVER_EXIT_MS)
 
@@ -65,7 +67,7 @@ export function InspectorSelect({
         aria-label={ariaLabel}
       >
         <span className={`aurora-cip__select-value ${selected ? '' : 'aurora-cip__select-value--ph'}`}>
-          {selected ? selected.label : (placeholder ?? '请选择')}
+          {selected ? selected.label : (placeholder ?? cs.selectPlaceholder)}
         </span>
         <Icon.chevronDown size={12} className="aurora-cip__select-chevron" />
       </button>

@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogCss, platformPublish, blogModal } from './blog'
-import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, blog, editorPanel, diary, kbSearch, kbOverview, kbCreate, kbFilter, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
+import { app, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, blog, editorPanel, diary, kbSearch, kbOverview, kbCreate, kbFilter, settingsUser, zodiac, settingsAbout, settingsData, settingsExport } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -485,6 +485,93 @@ export interface Translations {
     tabRec: string
     tabSearch: string
   }
+  canvasTab: {
+    historyManual: string
+    historyAuto: string
+    historySave: string
+    historyToday: string
+    historyYesterday: string
+    historyEarlier: string
+    historyLock: string
+    historyUnlock: string
+    historyDelete: string
+    historyTitle: string
+    historyCount: string
+    historyWordUnit: string
+    historyEmpty: string
+    historyEmptyHint: string
+    favTitle: string
+    favGridView: string
+    favListView: string
+    favEmpty: string
+    favEmptyHint: string
+    favEmptyCard: string
+    favRemove: string
+    minimapEmpty: string
+    minimapTitle: string
+    minimapCount: string
+    minimapHint: string
+    zoomOut: string
+    zoomIn: string
+    minimapZoomAria: string
+    zoomFit: string
+    searchPlaceholder: string
+    searchAria: string
+    clearSearch: string
+    clearSearchAria: string
+    searchEmptyHint: string
+    searchNoMatch: string
+    searchFiles: string
+    dropToCreate: string
+    filesTitle: string
+    filesCount: string
+    filesEmpty: string
+    filesEmptyHint: string
+    filesDragHint: string
+    emptyCard: string
+    layersTitle: string
+    layerLock: string
+    layerUnlock: string
+    layersEmpty: string
+    outlineTitle: string
+    outlineSub: string
+    outlineEmpty: string
+    outlineEmptyHint: string
+    outlineNoMatch: string
+    outlineOthers: string
+    outlineSearch: string
+    currentCard: string
+    backlinksTitle: string
+    inLinks: string
+    outLinks: string
+    noInLinks: string
+    noOutLinks: string
+    backlinksEmpty: string
+    backlinksEmptyHint: string
+    filterAll: string
+    filterLocked: string
+    filterUnlocked: string
+    filterTagsTitle: string
+    filterTypesTitle: string
+    filterStatusTitle: string
+    filterMatched: string
+    filterClearAll: string
+    filterEmpty: string
+    selectPlaceholder: string
+    relationDefault: string
+    recTitle: string
+    recEmpty: string
+    recEmptyHint: string
+    recAddToCanvas: string
+    tagsTitle: string
+    tagsSelected: string
+    tagsUnfiltered: string
+    tagsEmpty: string
+    tagsEmptyHint: string
+    tagsMatch: string
+    tagsClear: string
+    engineLoading: string
+  }
   canvasList: {
     title: string
     close: string
@@ -652,6 +739,13 @@ export interface Translations {
     pin: string
     emptyTitle: string
     emptySub: string
+    emptyNewNote: string
+    emptyFileNote: string
+    emptySkip: string
+    syncDone: string
+    insertedNote: string
+    exportedPngJson: string
+    exportedJsonOnly: string
   }
   versionHistory: {
     opSave: string
@@ -2169,6 +2263,7 @@ const zh: Translations = {
   canvasTopbar,
   canvasSidebar,
   canvasInspector,
+  canvasTab,
   canvasList,
   propsTab,
   canvasPanel,

@@ -36,6 +36,7 @@ export interface CanvasInspectorPanelProps {
 export function CanvasInspectorPanel({ engine }: CanvasInspectorPanelProps) {
   const { t, language } = useLanguage()
   const ci = t.canvasInspector
+  const ct = t.canvasTab
   const tagSuggestions = language === 'en' ? TAG_SUGGESTIONS_EN : TAG_SUGGESTIONS
   const [tab, setTab] = useState<TabId>('props')
   const [filterTags, setFilterTags] = useState<Set<string>>(new Set())
@@ -121,8 +122,8 @@ export function CanvasInspectorPanel({ engine }: CanvasInspectorPanelProps) {
   const parentCards = useMemo(
     () => shapes
       .filter((s) => s.type === 'note-card' && !selectedIds.includes(s.id))
-      .map((s) => ({ id: s.id, text: s.text || '(空卡片)' })),
-    [shapes, selectedIds],
+      .map((s) => ({ id: s.id, text: s.text || ct.emptyCard })),
+    [shapes, selectedIds, ct.emptyCard],
   )
 
   const { getAllTags } = useTagIndex()

@@ -7,6 +7,7 @@ import { collectFolderIds, flattenFileTree } from '@core/files/fileTree'
 // 由本 hook 包成响应式、useMemo 保证整树只算一次；绝不在白板侧另写一份判定）。
 import { useUsageDocsScope } from '@hooks/useUsageDocsScope'
 import { CANVAS_FILE_DRAG_MIME, CANVAS_FILE_DRAG_NAME_MIME } from './sidebarPanelShared'
+import { useLanguage } from '@stores/LanguageStore'
 
 // ───────────── 文件（拖拽生成卡片） ─────────────
 // 复制编辑器文件列表：数据来自真实 rootFolder（D4 单一数据源），文件夹可展开、
@@ -21,6 +22,8 @@ export function FilesTab({
   scrolled: boolean
   onOpenFile?: (fileId: string) => void
 }) {
+  const { t } = useLanguage()
+  const ct = t.canvasTab
   const [search, setSearch] = useState('')
   const [expanded, setExpanded] = useState<Set<string>>(
     () => new Set(collectFolderIds(rootFolder.children ?? [])),
@@ -67,27 +70,27 @@ export function FilesTab({
   return (
     <div className="aurora-csp__panel">
       <div className="aurora-csp__header">
-        <div className="aurora-csp__title">文件</div>
-        <div className="aurora-csp__sub">{fileCount} 个文件</div>
+        <div className="aurora-csp__title">{ct.filesTitle}</div>
+        <div className="aurora-csp__sub">{ct.filesCount.replace(String.raw`{n}`, String(fileCount))}</div>
       </div>
       <div className={`aurora-csp__search ${revealSearch ? '' : 'aurora-csp__search--hidden'}`}>
         <Icon.search size={12} />
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="搜索文件"
+          placeholder={ct.searchFiles}
         />
       </div>
       {fileCount === 0 ? (
         <div className="aurora-csp__empty">
-          暂无文件<br />
-          <span style={{ fontSize: 11, opacity: 0.7 }}>在编辑器中创建笔记后，可拖拽到白板</span>
+          {ct.filesEmpty}<br />
+          <span style={{ fontSize: 11, opacity: 0.7 }}>{ct.filesEmptyHint}</span>
         </div>
       ) : (
         <>
           <div className="aurora-csp__drag-hint">
             <Icon.grip size={12} />
-            拖拽文件到白板 → 生成卡片
+            {ct.filesDragHint}
           </div>
           <div className="aurora-csp__list">
             {filtered.map(({ node, depth }) => {
@@ -103,7 +106,7 @@ export function FilesTab({
                   draggable={!isFolder}
                   onDragStart={isFolder ? undefined : (e) => onDragStart(e, node)}
                   onClick={() => openNode(node)}
-                  title={isFolder ? node.name : `拖拽到白板生成卡片 · 点击打开：${node.name}`}
+                  title={isFolder ? node.name : ct.dropToCreate.replace(String.raw`{name}`, node.name)}
                 >
                   {isFolder ? (
                     <span className={`aurora-csp__arrow ${isOpen ? 'aurora-csp__arrow--open' : ''}`}>

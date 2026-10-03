@@ -1,4 +1,6 @@
 // ───────────── 标签 ─────────────
+import { useLanguage } from '@stores/LanguageStore'
+
 export function TagsTab({
   tags, getTagCount, picked, onToggle, onClear, tagLogic, setTagLogic,
 }: {
@@ -10,11 +12,14 @@ export function TagsTab({
   tagLogic: 'AND' | 'OR'
   setTagLogic: (v: 'AND' | 'OR') => void
 }) {
+  // 注意：下方 tags.map 用 t 作变量，故语言对象解构为 lang
+  const { t: lang } = useLanguage()
+  const cg = lang.canvasTab
   return (
     <div className="aurora-csp__panel">
       <div className="aurora-csp__header">
-        <div className="aurora-csp__title">标签</div>
-        <div className="aurora-csp__sub">{picked.size > 0 ? `${picked.size} 已选` : '未筛选'}</div>
+        <div className="aurora-csp__title">{cg.tagsTitle}</div>
+        <div className="aurora-csp__sub">{picked.size > 0 ? cg.tagsSelected.replace(String.raw`{n}`, String(picked.size)) : cg.tagsUnfiltered}</div>
       </div>
       <div className="aurora-csp__logic">
         <button
@@ -34,8 +39,8 @@ export function TagsTab({
       </div>
       {tags.length === 0 ? (
         <div className="aurora-csp__empty">
-          暂无标签<br />
-          <span style={{ fontSize: 11, opacity: 0.7 }}>在笔记中使用 #标签 即可创建</span>
+          {cg.tagsEmpty}<br />
+          <span style={{ fontSize: 11, opacity: 0.7 }}>{cg.tagsEmptyHint}</span>
         </div>
       ) : (
         <div className="aurora-csp__list">
@@ -58,14 +63,14 @@ export function TagsTab({
         </div>
       )}
       <div className="aurora-csp__footer">
-        <span style={{ fontSize: 11, color: 'var(--mc-text-tertiary)' }}>{tagLogic} 匹配</span>
+        <span style={{ fontSize: 11, color: 'var(--mc-text-tertiary)' }}>{cg.tagsMatch.replace(String.raw`{logic}`, tagLogic)}</span>
         <button
           type="button"
           className="aurora-csp__footer-btn"
           disabled={picked.size === 0}
           onClick={onClear}
         >
-          清除筛选
+          {cg.tagsClear}
         </button>
       </div>
     </div>

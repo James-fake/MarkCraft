@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Icon } from '../../icons'
 import type { CanvasEngine } from '@features/canvas-v2/engine/CanvasEngine'
 import type { ParsedShape } from './inspectorPanelShared'
+import { useLanguage } from '@stores/LanguageStore'
 
 // ───────────── 推荐（真实关联笔记） ─────────────
 export function RecTab({
@@ -15,6 +16,8 @@ export function RecTab({
   getOutgoingLinks: (fileId: string) => { target: string; relation?: string; context?: string }[]
   filePathById: Map<string, string>
 }) {
+  const { t } = useLanguage()
+  const cr = t.canvasTab
   const onCanvasFileIds = useMemo(() => new Set(shapes.map((s) => s.fileId).filter(Boolean)), [shapes])
   const recs = useMemo(() => {
     const seen = new Map<string, { name: string; fileId: string; relation: string }>()
@@ -27,12 +30,12 @@ export function RecTab({
         if (!targetFileId || onCanvasFileIds.has(targetFileId)) continue
         const key = targetFileId
         if (!seen.has(key)) {
-          seen.set(key, { name: targetName, fileId: targetFileId, relation: link.relation || '关联' })
+          seen.set(key, { name: targetName, fileId: targetFileId, relation: link.relation || cr.relationDefault })
         }
       }
     }
     return Array.from(seen.values()).slice(0, 12)
-  }, [shapes, getOutgoingLinks, filePathById, onCanvasFileIds])
+  }, [shapes, getOutgoingLinks, filePathById, onCanvasFileIds, cr.relationDefault])
 
   const addToCanvas = (fileId: string, name: string) => {
     if (!engine) return
@@ -48,11 +51,11 @@ export function RecTab({
 
   return (
     <div className="aurora-cip__section" style={{ padding: 'var(--mc-space-5)' }}>
-      <div className="aurora-cip__section-title">关联笔记推荐</div>
+      <div className="aurora-cip__section-title">{cr.recTitle}</div>
       {recs.length === 0 ? (
         <div className="aurora-cip__empty">
-          暂无关联笔记推荐<br />
-          <span style={{ fontSize: 11, opacity: 0.7 }}>白板卡片关联的笔记已全部在白板上</span>
+          {cr.recEmpty}<br />
+          <span style={{ fontSize: 11, opacity: 0.7 }}>{cr.recEmptyHint}</span>
         </div>
       ) : (
         recs.map((r) => (
@@ -63,7 +66,7 @@ export function RecTab({
             </div>
             <div className="aurora-cip__rec-actions">
               <button type="button" className="aurora-cip__rec-add" onClick={() => addToCanvas(r.fileId, r.name)}>
-                <Icon.plus size={11} /> 添加到白板
+                <Icon.plus size={11} /> {cr.recAddToCanvas}
               </button>
             </div>
           </div>

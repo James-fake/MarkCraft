@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Icon } from '../../icons'
 import type { ParsedShape } from './inspectorPanelShared'
+import { useLanguage } from '@stores/LanguageStore'
 
 // ───────────── 搜索 ─────────────
 export function SearchTab({
@@ -14,6 +15,8 @@ export function SearchTab({
   setQ: (v: string) => void
   onPick: (id: string) => void
 }) {
+  const { t } = useLanguage()
+  const ct = t.canvasTab
   const results = useMemo(() => {
     const term = q.trim().toLowerCase()
     if (!term) return []
@@ -28,19 +31,19 @@ export function SearchTab({
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="搜索白板元素…"
-          aria-label="搜索白板元素"
+          placeholder={ct.searchPlaceholder}
+          aria-label={ct.searchAria}
         />
         {q && (
-          <button type="button" className="aurora-cip__search-opt" onClick={() => setQ('')} title="清空" aria-label="清空搜索">
+          <button type="button" className="aurora-cip__search-opt" onClick={() => setQ('')} title={ct.clearSearch} aria-label={ct.clearSearchAria}>
             <Icon.close size={12} />
           </button>
         )}
       </div>
       {!q.trim() ? (
-        <div className="aurora-cip__empty">输入关键词搜索白板上的卡片与图形</div>
+        <div className="aurora-cip__empty">{ct.searchEmptyHint}</div>
       ) : results.length === 0 ? (
-        <div className="aurora-cip__empty">未匹配到「{q}」</div>
+        <div className="aurora-cip__empty">{ct.searchNoMatch.replace(String.raw`{q}`, q)}</div>
       ) : (
         <div className="aurora-cip__layers">
           {results.map((s) => (

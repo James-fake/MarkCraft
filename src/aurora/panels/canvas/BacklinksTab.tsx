@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Icon } from '../../icons'
 import { NoteHoverCardView } from '@features/editor/components/NoteHoverCard'
 import type { ParsedShape } from './sidebarPanelShared'
+import { useLanguage } from '@stores/LanguageStore'
 
 // ───────────── 反链 ─────────────
 export function BacklinksTab({
@@ -13,6 +14,8 @@ export function BacklinksTab({
   filePathById: Map<string, string>
   onOpenFile?: (fileId: string) => void
 }) {
+  const { t } = useLanguage()
+  const cb = t.canvasTab
   // hover 卡片（P2-3：对齐编辑器反链的悬浮预览）
   const [hover, setHover] = useState<{ x: number; y: number; fileId: string; label: string; rel?: string } | null>(null)
   const showHover = (e: React.MouseEvent, fileId: string, rel?: string) => {
@@ -23,11 +26,11 @@ export function BacklinksTab({
     return (
       <div className="aurora-csp__panel">
         <div className="aurora-csp__header">
-          <div className="aurora-csp__title">反链</div>
+          <div className="aurora-csp__title">{cb.backlinksTitle}</div>
         </div>
         <div className="aurora-csp__empty">
-          请选中一张卡片查看反链<br />
-          <span style={{ fontSize: 11, opacity: 0.7 }}>提示：白板中点击便签即可选中</span>
+          {cb.backlinksEmpty}<br />
+          <span style={{ fontSize: 11, opacity: 0.7 }}>{cb.backlinksEmptyHint}</span>
         </div>
       </div>
     )
@@ -64,14 +67,14 @@ export function BacklinksTab({
     <div className="aurora-csp__panel">
       {hoverCard}
       <div className="aurora-csp__header">
-        <div className="aurora-csp__title">反链</div>
+        <div className="aurora-csp__title">{cb.backlinksTitle}</div>
         <div className="aurora-csp__sub">
-          {(filePathById.get(selected.fileId) ?? selected.text) || '当前卡片'}
+          {(filePathById.get(selected.fileId) ?? selected.text) || cb.currentCard}
         </div>
       </div>
-      <div className="aurora-csp__section-title">入链（{backlinks.length}）</div>
+      <div className="aurora-csp__section-title">{cb.inLinks.replace(String.raw`{n}`, String(backlinks.length))}</div>
       {backlinks.length === 0 ? (
-        <div className="aurora-csp__empty" style={{ padding: '12px' }}>暂无指向此卡片的链接</div>
+        <div className="aurora-csp__empty" style={{ padding: '12px' }}>{cb.noInLinks}</div>
       ) : (
         backlinks.slice(0, 12).map((b, i) => (
           <div key={`in-${i}`} className="aurora-csp__linkcard" onMouseEnter={(e) => showHover(e, b.sourceFileId, b.relation)} onMouseLeave={() => setHover(null)}>
@@ -83,9 +86,9 @@ export function BacklinksTab({
           </div>
         ))
       )}
-      <div className="aurora-csp__section-title">出链（{outgoing.length}）</div>
+      <div className="aurora-csp__section-title">{cb.outLinks.replace(String.raw`{n}`, String(outgoing.length))}</div>
       {outgoing.length === 0 ? (
-        <div className="aurora-csp__empty" style={{ padding: '12px' }}>此卡片暂无出链</div>
+        <div className="aurora-csp__empty" style={{ padding: '12px' }}>{cb.noOutLinks}</div>
       ) : (
         outgoing.slice(0, 12).map((o, i) => (
           <div key={`out-${i}`} className="aurora-csp__linkcard" onMouseEnter={(e) => showHover(e, o.sourceFileId, o.relation)} onMouseLeave={() => setHover(null)}>

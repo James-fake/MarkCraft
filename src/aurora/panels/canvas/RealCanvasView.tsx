@@ -4,6 +4,7 @@ import { KanbanView } from '@features/canvas-v2/components/views/KanbanView'
 import { TimelineView } from '@features/canvas-v2/components/views/TimelineView'
 import { useCanvasEngine } from '@features/canvas-v2/engine/useCanvasEngine'
 import type { Editor } from '@features/canvas-v2/engine/engineTypes'
+import { useLanguage } from '@stores/LanguageStore'
 
 /**
  * 真实引擎视图适配器（重构版）
@@ -21,8 +22,9 @@ export interface RealCanvasViewProps {
 
 export function RealCanvasView({ view, onClose }: RealCanvasViewProps) {
   const engine = useCanvasEngine()
+  const { t } = useLanguage()
   if (!engine) {
-    return <div className="aurora-canvas__realwrap-loading">正在加载白板引擎…</div>
+    return <div className="aurora-canvas__realwrap-loading">{t.canvasTab.engineLoading}</div>
   }
   const editor = engine as unknown as Editor
   let content: ReactNode

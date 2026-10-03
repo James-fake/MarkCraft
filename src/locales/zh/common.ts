@@ -355,6 +355,108 @@ export const canvasInspector = {
   tabSearch: '搜索',
 }
 
+// ---- 白板各 Tab 子组件与缩放控件 ----
+export const canvasTab = {
+  // HistoryTab
+  historyManual: '手动保存',
+  historyAuto: '自动保存',
+  historySave: '保存',
+  historyToday: '今天',
+  historyYesterday: '昨天',
+  historyEarlier: '更早',
+  historyLock: '锁定',
+  historyUnlock: '解锁',
+  historyDelete: '删除版本',
+  historyTitle: '历史',
+  historyCount: '{n} 版本',
+  historyWordUnit: ' 字',
+  historyEmpty: '暂无历史版本',
+  historyEmptyHint: '对白板的操作会自动产生撤销栈',
+  // FavTab
+  favTitle: '收藏（{n}）',
+  favGridView: '网格',
+  favListView: '列表',
+  favEmpty: '暂无收藏',
+  favEmptyHint: '选中卡片后在属性面板打开「置顶」即可收藏',
+  favEmptyCard: '（空卡片）',
+  favRemove: '取消收藏',
+  // MinimapTab
+  minimapEmpty: '白板为空',
+  minimapTitle: '小地图',
+  minimapCount: '{n} 元素',
+  minimapHint: '{n} 卡片/图形 · 缩放 {zoom}%',
+  zoomOut: '缩小',
+  zoomIn: '放大',
+  minimapZoomAria: '小地图缩放',
+  // 缩放控件（CanvasZoomControls）
+  zoomFit: '适应屏幕',
+  // SearchTab
+  searchPlaceholder: '搜索白板元素…',
+  searchAria: '搜索白板元素',
+  clearSearch: '清空',
+  clearSearchAria: '清空搜索',
+  searchEmptyHint: '输入关键词搜索白板上的卡片与图形',
+  searchNoMatch: '未匹配到「{q}」',
+  // FilesTab
+  searchFiles: '搜索文件',
+  dropToCreate: '拖拽到白板生成卡片 · 点击打开：{name}',
+  filesTitle: '文件',
+  filesCount: '{n} 个文件',
+  filesEmpty: '暂无文件',
+  filesEmptyHint: '在编辑器中创建笔记后，可拖拽到白板',
+  filesDragHint: '拖拽文件到白板 → 生成卡片',
+  // LayersTab / OutlineTab / CanvasInspectorPanel
+  emptyCard: '（空卡片）',
+  layersTitle: '图层（{n}）',
+  layerLock: '锁定',
+  layerUnlock: '解锁',
+  layersEmpty: '白板暂无元素',
+  outlineTitle: '大纲',
+  outlineSub: '{n} 卡片 · {m} 图形',
+  outlineEmpty: '白板暂无卡片',
+  outlineEmptyHint: '使用底部工具栏「便签」即可新建',
+  outlineNoMatch: '未匹配到「{q}」相关卡片',
+  outlineOthers: '其他（{n}）',
+  outlineSearch: '搜索卡片标题',
+  // BacklinksTab
+  currentCard: '当前卡片',
+  backlinksTitle: '反链',
+  inLinks: '入链（{n}）',
+  outLinks: '出链（{n}）',
+  noInLinks: '暂无指向此卡片的链接',
+  noOutLinks: '此卡片暂无出链',
+  backlinksEmpty: '请选中一张卡片查看反链',
+  backlinksEmptyHint: '提示：白板中点击便签即可选中',
+  // FilterTab
+  filterAll: '全部',
+  filterLocked: '已锁定',
+  filterUnlocked: '未锁定',
+  filterTagsTitle: '标签',
+  filterTypesTitle: '类型',
+  filterStatusTitle: '状态',
+  filterMatched: '匹配（{n}）',
+  filterClearAll: '清除全部',
+  filterEmpty: '无匹配元素',
+  // InspectorSelect
+  selectPlaceholder: '请选择',
+  // RecTab
+  relationDefault: '关联',
+  recTitle: '关联笔记推荐',
+  recEmpty: '暂无关联笔记推荐',
+  recEmptyHint: '白板卡片关联的笔记已全部在白板上',
+  recAddToCanvas: '添加到白板',
+  // TagsTab
+  tagsTitle: '标签',
+  tagsSelected: '{n} 已选',
+  tagsUnfiltered: '未筛选',
+  tagsEmpty: '暂无标签',
+  tagsEmptyHint: '在笔记中使用 #标签 即可创建',
+  tagsMatch: '{logic} 匹配',
+  tagsClear: '清除筛选',
+  // RealCanvasView
+  engineLoading: '正在加载白板引擎…',
+}
+
 export const canvasList = {
   title: '白板管理',
   close: '关闭',
@@ -656,6 +758,13 @@ export const canvasPanel = {
   pin: '钉住常驻',
   emptyTitle: '白板还是空的',
   emptySub: '从一张便签开始，记录你的灵感',
+  emptyNewNote: '新建便签',
+  emptyFileNote: '文件便签',
+  emptySkip: '跳过，直接开始',
+  syncDone: '同步完成：新增 {added} 条（虚线），移除 {removed} 条',
+  insertedNote: '已插入笔记：{name}',
+  exportedPngJson: '已导出 {base}（PNG+JSON）',
+  exportedJsonOnly: '已导出 {base}（JSON；PNG 引擎未就绪）',
 }
 
 export const versionHistory = {

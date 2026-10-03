@@ -301,7 +301,7 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
     if (added === 0 && removed === 0) {
       toast?.(CP.linksUpToDate)
     } else {
-      toast?.(`同步完成：新增 ${added} 条（虚线），移除 ${removed} 条`)
+      toast?.(CP.syncDone.replace(String.raw`{added}`, String(added)).replace(String.raw`{removed}`, String(removed)))
     }
   }, [rootFolder, getOutgoingLinks, toast, CP])
 
@@ -387,7 +387,7 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
       y: p.y - 100,
       props: { text: name.replace(/\.md$/i, ''), color: '#06B6D4', fileId },
     })
-    toast?.(`已插入笔记：${name}`)
+    toast?.(CP.insertedNote.replace(String.raw`{name}`, name))
   }, [rootFolder, toast, CP])
 
   // ─── 转为笔记：把选中的自由便签（无 fileId 的 note-card）全文落成真实笔记文件 ───
@@ -430,7 +430,9 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
     const base = cur.name || CP.canvasWord
     const pngOk = await exportCanvasPNG(editor, `${base}.png`)
     exportCanvasJSON(editor, `${base}.json`)
-    toast?.(pngOk ? `已导出 ${base}（PNG+JSON）` : `已导出 ${base}（JSON；PNG 引擎未就绪）`)
+    toast?.(pngOk
+      ? CP.exportedPngJson.replace(String.raw`{base}`, base)
+      : CP.exportedJsonOnly.replace(String.raw`{base}`, base))
   }, [toast, CP])
 
   return (
@@ -547,14 +549,14 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
                   <div className="aurora-canvas__empty-sub">{CP.emptySub}</div>
                   <div className="aurora-canvas__empty-actions">
                     <button type="button" className="aurora-canvas__empty-btn aurora-canvas__empty-btn--primary" onClick={addQuickNote}>
-                      <Icon.edit size={15} /> 新建便签
+                      <Icon.edit size={15} /> {CP.emptyNewNote}
                     </button>
                     <button type="button" className="aurora-canvas__empty-btn" onClick={() => { setLeftInitialTab('files'); setLeftPinned(true) }}>
-                      <Icon.fileText size={15} /> 文件便签
+                      <Icon.fileText size={15} /> {CP.emptyFileNote}
                     </button>
                   </div>
                   <button type="button" className="aurora-canvas__empty-skip" onClick={() => setGuideSkipped(true)}>
-                    跳过，直接开始
+                    {CP.emptySkip}
                   </button>
                   </div>
                 </div>

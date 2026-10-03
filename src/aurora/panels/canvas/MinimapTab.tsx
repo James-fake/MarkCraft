@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { Icon } from '../../icons'
 import type { ParsedShape } from './sidebarPanelShared'
+import { useLanguage } from '@stores/LanguageStore'
 
 // ───────────── 小地图 ─────────────
 export function MinimapTab({
@@ -11,6 +12,8 @@ export function MinimapTab({
   zoom: number
   setZoom: (v: number) => void
 }) {
+  const { t } = useLanguage()
+  const cm = t.canvasTab
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
   useEffect(() => {
@@ -28,7 +31,7 @@ export function MinimapTab({
       ctx2d.fillStyle = 'rgba(255,255,255,0.35)'
       ctx2d.font = '11px system-ui'
       ctx2d.textAlign = 'center'
-      ctx2d.fillText('白板为空', W / 2, H / 2)
+      ctx2d.fillText(cm.minimapEmpty, W / 2, H / 2)
       return
     }
 
@@ -73,20 +76,20 @@ export function MinimapTab({
         ctx2d.fillRect(x, y, w, h)
       }
     }
-  }, [shapes, viewSig, zoom])
+  }, [shapes, viewSig, zoom, cm.minimapEmpty])
 
   return (
     <div className="aurora-csp__panel">
       <div className="aurora-csp__header">
-        <div className="aurora-csp__title">小地图</div>
-        <div className="aurora-csp__sub">{shapes.length} 元素</div>
+        <div className="aurora-csp__title">{cm.minimapTitle}</div>
+        <div className="aurora-csp__sub">{cm.minimapCount.replace('{n}', String(shapes.length))}</div>
       </div>
       <canvas ref={canvasRef} width={248} height={200} className="aurora-csp__mini" />
       <div className="aurora-csp__mini-hint">
-        {shapes.length} 卡片/图形 · 缩放 {Math.round(zoom * 100)}%
+        {cm.minimapHint.replace('{n}', String(shapes.length)).replace('{zoom}', String(Math.round(zoom * 100)))}
       </div>
       <div className="aurora-csp__zoomrow">
-        <button type="button" className="aurora-csp__zoom-btn" onClick={() => setZoom(Math.max(0.2, +(zoom - 0.1).toFixed(2)))} title="缩小" aria-label="缩小">
+        <button type="button" className="aurora-csp__zoom-btn" onClick={() => setZoom(Math.max(0.2, +(zoom - 0.1).toFixed(2)))} title={cm.zoomOut} aria-label={cm.zoomOut}>
           <Icon.minus size={12} />
         </button>
         <input
@@ -97,9 +100,9 @@ export function MinimapTab({
           step={0.05}
           value={zoom}
           onChange={(e) => setZoom(+e.target.value)}
-          aria-label="小地图缩放"
+          aria-label={cm.minimapZoomAria}
         />
-        <button type="button" className="aurora-csp__zoom-btn" onClick={() => setZoom(Math.min(2, +(zoom + 0.1).toFixed(2)))} title="放大" aria-label="放大">
+        <button type="button" className="aurora-csp__zoom-btn" onClick={() => setZoom(Math.min(2, +(zoom + 0.1).toFixed(2)))} title={cm.zoomIn} aria-label={cm.zoomIn}>
           <Icon.plus size={12} />
         </button>
         <span className="aurora-csp__zoom-val">{Math.round(zoom * 100)}%</span>
