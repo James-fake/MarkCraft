@@ -5,6 +5,8 @@
  * 本组件只负责徽标展示与键盘可达（Enter/Space 触发 onToggle），不自带 onClick，
  * 避免与 clickable 项的点击处理叠加热区造成双触发。
  */
+import { useLanguage } from '@stores/LanguageStore'
+
 interface AuroraLintEntryProps {
   errorCount: number
   warnCount: number
@@ -13,11 +15,12 @@ interface AuroraLintEntryProps {
 }
 
 export function AuroraLintEntry({ errorCount, warnCount, onToggle }: AuroraLintEntryProps) {
+  const { t } = useLanguage()
   return (
     <span
       className="aurora-lint-entry"
-      title="点击查看语法检查列表"
-      aria-label="打开语法检查列表"
+      title={t.auroraEditor.lintEntryTitle}
+      aria-label={t.auroraEditor.lintEntryAria}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } }}
@@ -34,7 +37,7 @@ export function AuroraLintEntry({ errorCount, warnCount, onToggle }: AuroraLintE
       {warnCount > 0 && (
         <span className="aurora-lint-entry__num aurora-lint-entry__num--warn">{warnCount}</span>
       )}
-      <span className="aurora-lint-entry__label">语法</span>
+      <span className="aurora-lint-entry__label">{t.auroraEditor.lintLabel}</span>
     </span>
   )
 }

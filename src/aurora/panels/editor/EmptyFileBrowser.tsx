@@ -3,6 +3,7 @@ import { Icon } from '../../icons'
 import { fileTypeMeta } from '../../themes/categoricalColors'
 import { useFileManager } from '@stores/FileStore'
 import { useUsageDocsScope } from '@hooks/useUsageDocsScope'
+import { useLanguage } from '@stores/LanguageStore'
 import type { FileNode } from '@src/types/fileManager'
 
 /**
@@ -12,8 +13,6 @@ import type { FileNode } from '@src/types/fileManager'
  * 不再展示「最近打开」区块（用户要求只保留全部文件）。数据来自真实 useFileManager().rootFolder，
  * 打开走真实 openFile（空态自然退出）。
  */
-
-const ROOT_LABEL = '根目录'
 
 interface FileItem {
   node: FileNode
@@ -29,9 +28,11 @@ function collectFiles(nodes: FileNode[], parentName: string, acc: FileItem[]) {
 }
 
 export function EmptyFileBrowser() {
+  const { t } = useLanguage()
   const { rootFolder, openFile } = useFileManager()
   // 内置「使用文档」不进编辑器的文件列表（判定单源，与 FileTree 同一份）
   const usageDocs = useUsageDocsScope()
+  const ROOT_LABEL = t.auroraEditor.rootFolder
 
   const allFiles = useMemo(() => {
     const acc: FileItem[] = []
@@ -55,7 +56,7 @@ export function EmptyFileBrowser() {
       if (b[0] === ROOT_LABEL) return 1
       return a[0].localeCompare(b[0], 'zh')
     })
-  }, [allFiles])
+  }, [allFiles, ROOT_LABEL])
 
   const totalFiles = allFiles.length
 
@@ -90,7 +91,7 @@ export function EmptyFileBrowser() {
   if (totalFiles === 0) {
     return (
       <div className="aurora-emptyfiles">
-        <div className="aurora-emptyfiles__empty">还没有文件，点击上方「新建笔记」开始写作</div>
+        <div className="aurora-emptyfiles__empty">{t.auroraEditor.noFilesHint}</div>
       </div>
     )
   }
@@ -98,7 +99,7 @@ export function EmptyFileBrowser() {
   return (
     <div className="aurora-emptyfiles">
       <div className="aurora-emptyfiles__head">
-        <span className="aurora-emptyfiles__title">全部文件</span>
+        <span className="aurora-emptyfiles__title">{t.auroraEditor.allFiles}</span>
         <span className="aurora-emptyfiles__count">{totalFiles}</span>
       </div>
       {groups.map(([folder, nodes]) => (

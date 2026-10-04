@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogCss, platformPublish, blogModal } from './blog'
-import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, auroraTabs, blog, editorPanel, diaryFormat, importDialog, linkRedirectDialog, autoLayout, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels, writingAid, exportKit } from './common'
+import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, auroraTabs, blog, editorPanel, diaryFormat, importDialog, importExternal, cssCompat, autocomplete, linkRedirectDialog, autoLayout, auroraEditor, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels, writingAid, exportKit } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -1247,6 +1247,12 @@ export interface Translations {
       fri: string
       sat: string
     }
+    calAria: string
+    prevMonth: string
+    nextMonth: string
+    calTitle: string
+    heatLess: string
+    heatMore: string
   }
   kbSearch: {
     modeText: string
@@ -2329,6 +2335,11 @@ export interface Translations {
     confirmReplace: string
     replacePreviewTitle: string
     noChanges: string
+    exportTitle: string
+    exportSummary: string
+    exportPathLabel: string
+    exportCsvHeader: string
+    exportLinePrefix: string
   }
   tabBar: {
     closeTab: string
@@ -2364,6 +2375,24 @@ export interface Translations {
     openFailed: string
     unknownError: string
   }
+  importExternal: {
+    obsidianNoMd: string
+    obsidianFailed: string
+    notionNoFile: string
+    notionFailed: string
+    requestFailed: string
+    webClipTitle: string
+    webClipCorsFailed: string
+    webClipFailed: string
+  }
+  cssCompat: {
+    prefixSuggestion: string
+    details: Record<string, string>
+  }
+  autocomplete: {
+    filePathDetail: string
+    materialPrefix: string
+  }
   linkRedirectDialog: {
     title: string
     fromLabel: string
@@ -2398,6 +2427,30 @@ export interface Translations {
     previewInfo: string
     applyHint: string
     minCards: string
+  }
+  auroraEditor: {
+    emptyTitle: string
+    emptySubBefore: string
+    emptySubAfter: string
+    emptyNamePlaceholder: string
+    emptyNameAria: string
+    emptyCreate: string
+    allFiles: string
+    noFilesHint: string
+    rootFolder: string
+    lintTitle: string
+    lintListAria: string
+    lintError: string
+    lintWarn: string
+    lintCloseAria: string
+    lintEmpty: string
+    lintSuggestion: string
+    lintFix: string
+    lintEntryTitle: string
+    lintEntryAria: string
+    lintLabel: string
+    backlinksTitle: string
+    backlinksCount: string
   }
   blogModal: {
     generateBlog: string
@@ -2772,8 +2825,12 @@ const zh: Translations = {
   editorPanel,
   diaryFormat,
   importDialog,
+  importExternal,
+  cssCompat,
+  autocomplete,
   linkRedirectDialog,
   autoLayout,
+  auroraEditor,
   diary,
   kbSearch,
   kbOverview,

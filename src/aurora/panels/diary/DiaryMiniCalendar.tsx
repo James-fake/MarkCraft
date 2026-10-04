@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { DiaryEntry } from '@features/diary'
 import { parseYMD, daysInMonth } from '@features/diary'
+import { useLanguage } from '@stores/LanguageStore'
 
-const WEEKDAYS = ['一', '二', '三', '四', '五', '六', '日']
 const pad = (n: number) => String(n).padStart(2, '0')
 
 /** 字数→热力等级（0=无日记，1~5=字数越多格越深）；accent 透明度梯度与 diary.css 的 is-heat-* 配套 */
@@ -32,6 +32,11 @@ interface DiaryMiniCalendarProps {
  * 复用真实日期工具 daysInMonth，不平行 mock。
  */
 export function DiaryMiniCalendar({ entries, focusDate, todayStr, onSelect, onHover }: DiaryMiniCalendarProps) {
+  const { t } = useLanguage()
+  const WEEKDAYS = [
+    t.diary.weekday.mon, t.diary.weekday.tue, t.diary.weekday.wed,
+    t.diary.weekday.thu, t.diary.weekday.fri, t.diary.weekday.sat, t.diary.weekday.sun,
+  ]
   const { y: fy, m: fm } = parseYMD(focusDate)
   const [view, setView] = useState<{ y: number; m: number }>({ y: fy, m: fm })
 
@@ -66,11 +71,11 @@ export function DiaryMiniCalendar({ entries, focusDate, todayStr, onSelect, onHo
   }
 
   return (
-    <div className="dv2-cal" role="grid" aria-label="日记月历">
+    <div className="dv2-cal" role="grid" aria-label={t.diary.calAria}>
       <div className="dv2-cal__head">
-        <button className="dv2-cal__nav" onClick={() => shift(-1)} aria-label="上个月">‹</button>
-        <span className="dv2-cal__title">{y} 年 {m} 月</span>
-        <button className="dv2-cal__nav" onClick={() => shift(1)} aria-label="下个月">›</button>
+        <button className="dv2-cal__nav" onClick={() => shift(-1)} aria-label={t.diary.prevMonth}>‹</button>
+        <span className="dv2-cal__title">{t.diary.calTitle.replace('{y}', String(y)).replace('{m}', String(m))}</span>
+        <button className="dv2-cal__nav" onClick={() => shift(1)} aria-label={t.diary.nextMonth}>›</button>
       </div>
       <div className="dv2-cal__week">
         {WEEKDAYS.map((w) => (
@@ -106,13 +111,13 @@ export function DiaryMiniCalendar({ entries, focusDate, todayStr, onSelect, onHo
           })}
       </div>
       <div className="dv2-cal__legend">
-        <span className="dv2-cal__legend-label">少</span>
+        <span className="dv2-cal__legend-label">{t.diary.heatLess}</span>
         <span className="dv2-cal__legend-grad">
           {HEAT_LEVELS.slice(1).map((a, i) => (
             <i key={i} style={{ background: `color-mix(in srgb, var(--mc-accent) ${a * 100}%, transparent)` }} />
           ))}
         </span>
-        <span className="dv2-cal__legend-label">多</span>
+        <span className="dv2-cal__legend-label">{t.diary.heatMore}</span>
       </div>
     </div>
   )

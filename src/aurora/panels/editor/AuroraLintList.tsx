@@ -14,6 +14,7 @@
 
 import type { LintIssue } from '@utils/lintTypes'
 import { Icon } from '../../icons'
+import { useLanguage } from '@stores/LanguageStore'
 
 interface AuroraLintListProps {
   issues: LintIssue[]
@@ -38,6 +39,7 @@ const FIXABLE_TYPES = new Set([
 ])
 
 export function AuroraLintList({ issues, open, onClose, onJump, onFix }: AuroraLintListProps) {
+  const { t } = useLanguage()
   if (!open) return null
 
   const sorted = [...issues].sort((a, b) => {
@@ -51,22 +53,22 @@ export function AuroraLintList({ issues, open, onClose, onJump, onFix }: AuroraL
     <div
       className="aurora-lint-panel"
       role="dialog"
-      aria-label="语法检查问题列表"
+      aria-label={t.auroraEditor.lintListAria}
       onClick={(e) => e.stopPropagation()}
     >
       <div className="aurora-lint-panel__head">
-        <span className="aurora-lint-panel__title">语法检查</span>
+        <span className="aurora-lint-panel__title">{t.auroraEditor.lintTitle}</span>
         <span className="aurora-lint-panel__count">
           {errorCount > 0 && (
             <span className="aurora-lint-panel__count-item aurora-lint-panel__count-item--error">
               <span className="aurora-lint-panel__dot" />
-              <span>{errorCount} 错误</span>
+              <span>{t.auroraEditor.lintError.replace('{n}', String(errorCount))}</span>
             </span>
           )}
           {warningCount > 0 && (
             <span className="aurora-lint-panel__count-item aurora-lint-panel__count-item--warn">
               <span className="aurora-lint-panel__dot" />
-              <span>{warningCount} 警告</span>
+              <span>{t.auroraEditor.lintWarn.replace('{n}', String(warningCount))}</span>
             </span>
           )}
         </span>
@@ -74,7 +76,7 @@ export function AuroraLintList({ issues, open, onClose, onJump, onFix }: AuroraL
           type="button"
           className="aurora-lint-panel__close"
           onClick={onClose}
-          aria-label="关闭语法检查列表"
+          aria-label={t.auroraEditor.lintCloseAria}
         >
           <Icon.close size={14} />
         </button>
@@ -82,7 +84,7 @@ export function AuroraLintList({ issues, open, onClose, onJump, onFix }: AuroraL
 
       <div className="aurora-lint-panel__list">
         {sorted.length === 0 ? (
-          <div className="aurora-lint-panel__empty"><Icon.check size={14} /> 当前文档无语法问题</div>
+          <div className="aurora-lint-panel__empty"><Icon.check size={14} /> {t.auroraEditor.lintEmpty}</div>
         ) : (
           sorted.map((issue, idx) => {
             const isError = issue.severity === 'error'
@@ -101,7 +103,7 @@ export function AuroraLintList({ issues, open, onClose, onJump, onFix }: AuroraL
                     onJump(issue)
                   }
                 }}
-                title={issue.suggestion ? `提示：${issue.suggestion}` : undefined}
+                title={issue.suggestion ? t.auroraEditor.lintSuggestion.replace('{s}', issue.suggestion) : undefined}
               >
                 <span className="aurora-lint-panel__line">L{issue.line + 1}</span>
                 <span className="aurora-lint-panel__msg">{issue.message}</span>
@@ -113,8 +115,8 @@ export function AuroraLintList({ issues, open, onClose, onJump, onFix }: AuroraL
                       e.stopPropagation()
                       onFix(issue)
                     }}
-                    title="一键修复"
-                    aria-label="一键修复"
+                    title={t.auroraEditor.lintFix}
+                    aria-label={t.auroraEditor.lintFix}
                   >
                     <Icon.spark size={14} />
                   </button>

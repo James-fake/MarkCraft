@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Icon } from '../../icons'
 import { useLinkIndex } from '@stores/LinkIndexStore'
+import { useLanguage } from '@stores/LanguageStore'
 import {
   extractNeighborhood,
   layoutMiniGraph,
@@ -26,6 +27,7 @@ interface AuroraBacklinksProps {
  *  - 交互：反链项点击经 onOpenNote 跳转；图谱节点点击跳转；默认展开。
  */
 export function AuroraBacklinks({ activeFileId, onOpenNote }: AuroraBacklinksProps) {
+  const { t } = useLanguage()
   const { getBacklinks, getGraphData, indexVersion } = useLinkIndex()
 
   const backlinks = useMemo(() => {
@@ -63,15 +65,15 @@ export function AuroraBacklinks({ activeFileId, onOpenNote }: AuroraBacklinksPro
       <div className="aurora-outline__header">
         <div className="aurora-outline__title">
           <span className="aurora-outline__title-bar" />
-          <span>块级反链</span>
-          {backlinks.length > 0 && <span className="aurora-outline__count">{backlinks.length} 条</span>}
+          <span>{t.auroraEditor.backlinksTitle}</span>
+          {backlinks.length > 0 && <span className="aurora-outline__count">{t.auroraEditor.backlinksCount.replace('{n}', String(backlinks.length))}</span>}
         </div>
       </div>
 
       <div className="aurora-backlinks__list">
-        <div className="aurora-backlinks__section-label">反链 · {backlinks.length}</div>
+        <div className="aurora-backlinks__section-label">{t.writingAid.backlinks.replace('{n}', String(backlinks.length))}</div>
         {backlinks.length === 0 ? (
-          <div className="aurora-backlinks__hint">暂无其他笔记链接到此。</div>
+          <div className="aurora-backlinks__hint">{t.writingAid.backlinksEmpty}</div>
         ) : (
           <div className="aurora-backlinks__items">
             {backlinks.map((b) => (
@@ -80,7 +82,7 @@ export function AuroraBacklinks({ activeFileId, onOpenNote }: AuroraBacklinksPro
                 type="button"
                 className="aurora-backlinks__item"
                 onClick={() => onOpenNote(b.id)}
-                title={`打开「${b.title}」`}
+                title={t.writingAid.openNote.replace('{name}', b.title)}
               >
                 <Icon.link size={13} className="aurora-backlinks__item-icon" />
                 <span className="aurora-backlinks__item-title">{b.title}</span>
@@ -89,16 +91,16 @@ export function AuroraBacklinks({ activeFileId, onOpenNote }: AuroraBacklinksPro
           </div>
         )}
 
-        <div className="aurora-backlinks__section-label">迷你图谱</div>
+        <div className="aurora-backlinks__section-label">{t.writingAid.miniGraph}</div>
         {!activeFileId ? (
-          <div className="aurora-backlinks__hint">打开笔记后显示关联图谱。</div>
+          <div className="aurora-backlinks__hint">{t.writingAid.miniGraphEmpty}</div>
         ) : (
           <svg
             className="aurora-backlinks__graph"
             width="100%"
             viewBox={`0 0 ${GRAPH_W} ${GRAPH_H}`}
             role="img"
-            aria-label="当前笔记关联图谱"
+            aria-label={t.writingAid.miniGraphAria}
           >
             {positioned.edgeKeys.map(([s, tt], i) => {
               const a = positioned.positions.find((p) => p.id === s)!
@@ -144,7 +146,7 @@ export function AuroraBacklinks({ activeFileId, onOpenNote }: AuroraBacklinksPro
             ))}
             {!hasGraph && (
               <text x={GRAPH_W / 2} y={GRAPH_H / 2 + 26} textAnchor="middle" fontSize={9} fill="var(--mc-text-tertiary)">
-                暂无关联笔记
+                {t.writingAid.miniGraphNoRelated}
               </text>
             )}
           </svg>

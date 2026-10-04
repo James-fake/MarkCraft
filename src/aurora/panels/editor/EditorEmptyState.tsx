@@ -7,6 +7,7 @@
 import { useRef } from 'react'
 import { Icon } from '../../icons'
 import { EmptyFileBrowser } from './EmptyFileBrowser'
+import { useLanguage } from '@stores/LanguageStore'
 
 interface EditorEmptyStateProps {
   /** 当前文件名输入值（受控于宿主的 newFileName） */
@@ -18,15 +19,16 @@ interface EditorEmptyStateProps {
 }
 
 export function EditorEmptyState({ value, onChange, onCreate }: EditorEmptyStateProps) {
+  const { t } = useLanguage()
   const inputRef = useRef<HTMLInputElement>(null)
   return (
     <div className="aurora-editor__empty">
       <div className="aurora-editor__empty-icon">
         <Icon.fileText size={20} />
       </div>
-      <div className="aurora-editor__empty-title">未打开文档</div>
+      <div className="aurora-editor__empty-title">{t.auroraEditor.emptyTitle}</div>
       <div className="aurora-editor__empty-sub">
-        在下方文件列表中选择一篇笔记，或按 <kbd className="aurora-editor__empty-kbd">⌘K</kbd> 打开命令面板快速定位
+        {t.auroraEditor.emptySubBefore}<kbd className="aurora-editor__empty-kbd">⌘K</kbd>{t.auroraEditor.emptySubAfter}
       </div>
       <div className="aurora-editor__empty-actions">
         <div className="aurora-editor__newfile">
@@ -38,8 +40,8 @@ export function EditorEmptyState({ value, onChange, onCreate }: EditorEmptyState
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') onCreate() }}
-            placeholder="为这篇笔记起个名字…"
-            aria-label="新文件名"
+            placeholder={t.auroraEditor.emptyNamePlaceholder}
+            aria-label={t.auroraEditor.emptyNameAria}
             autoFocus
           />
           <button
@@ -47,7 +49,7 @@ export function EditorEmptyState({ value, onChange, onCreate }: EditorEmptyState
             className="aurora-editor__newfile-btn"
             onClick={onCreate}
           >
-            新建笔记
+            {t.auroraEditor.emptyCreate}
           </button>
         </div>
       </div>

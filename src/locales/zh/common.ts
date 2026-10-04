@@ -1211,6 +1211,40 @@ export const importDialog = {
   unknownError: '未知错误',
 }
 
+export const importExternal = {
+  obsidianNoMd: '未在 ZIP 中找到任何 .md 文件，可能不是有效的 Obsidian Vault 导出',
+  obsidianFailed: '导入 Obsidian Vault 失败：{error}',
+  notionNoFile: '未在 ZIP 中找到 .md 或 .html 文件，可能不是有效的 Notion 导出',
+  notionFailed: '导入 Notion 导出失败：{error}',
+  requestFailed: '请求失败，HTTP 状态码：{status}',
+  webClipTitle: '网页剪藏',
+  webClipCorsFailed: '网页剪藏失败：可能被浏览器的 CORS 策略阻止，无法直接抓取该网址。建议使用浏览器扩展或代理服务转发请求。原始错误：{error}',
+  webClipFailed: '网页剪藏失败：{error}',
+}
+
+export const cssCompat = {
+  prefixSuggestion: '建议添加浏览器前缀: {prefixes}',
+  details: {
+    ':has()': '较新的 CSS 选择器，旧浏览器不支持',
+    '@scope': '实验性特性，仅 Chrome 118+ 支持',
+    'color-mix()': '较新的 CSS 颜色函数',
+    'container-type': '容器查询，较新特性',
+    ':is()': '较新的选择器函数',
+    ':where()': '较新的选择器函数（零优先级）',
+    'aspect-ratio': '宽高比属性，较新',
+    'gap (flex)': 'Flex 布局中的 gap 在旧 Safari 中不支持',
+    'text-wrap: balance': '文本平衡换行，非常新的特性',
+    '@property': 'CSS 属性注册，较新',
+    '@layer': 'CSS 层叠层，较新',
+    ':nth-child() of': '带 of 的 nth-child 语法，较新',
+  },
+}
+
+export const autocomplete = {
+  filePathDetail: '文件路径',
+  materialPrefix: '素材 · {title}',
+}
+
 export const linkRedirectDialog = {
   title: '链接重定向',
   fromLabel: '源目标',
@@ -1248,6 +1282,37 @@ export const autoLayout = {
   minCards: '至少需要 2 个卡片',
 }
 
+// Aurora 编辑器 / 日记面板 UI 文案（空态 / 语法检查 / 块级反链 / 日记月历）
+export const auroraEditor = {
+  // 编辑器空态（EditorEmptyState）
+  emptyTitle: '未打开文档',
+  emptySubBefore: '在下方文件列表中选择一篇笔记，或按 ',
+  emptySubAfter: ' 打开命令面板快速定位',
+  emptyNamePlaceholder: '为这篇笔记起个名字…',
+  emptyNameAria: '新文件名',
+  emptyCreate: '新建笔记',
+  // 空态文件列表（EmptyFileBrowser）
+  allFiles: '全部文件',
+  noFilesHint: '还没有文件，点击上方「新建笔记」开始写作',
+  rootFolder: '根目录',
+  // 语法检查面板（AuroraLintList）
+  lintTitle: '语法检查',
+  lintListAria: '语法检查问题列表',
+  lintError: '{n} 错误',
+  lintWarn: '{n} 警告',
+  lintCloseAria: '关闭语法检查列表',
+  lintEmpty: '当前文档无语法问题',
+  lintSuggestion: '提示：{s}',
+  lintFix: '一键修复',
+  // 状态栏语法入口（AuroraLintEntry）
+  lintEntryTitle: '点击查看语法检查列表',
+  lintEntryAria: '打开语法检查列表',
+  lintLabel: '语法',
+  // 块级反链面板（AuroraBacklinks）
+  backlinksTitle: '块级反链',
+  backlinksCount: '{n} 条',
+}
+
 export const diary = {
   breadcrumb: '日记',
   countUnit: '{n} 篇',
@@ -1275,6 +1340,13 @@ export const diary = {
     fri: '五',
     sat: '六',
   },
+  // 日记月历（DiaryMiniCalendar）
+  calAria: '日记月历',
+  prevMonth: '上个月',
+  nextMonth: '下个月',
+  calTitle: '{y} 年 {m} 月',
+  heatLess: '少',
+  heatMore: '多',
 }
 
 export const kbSearch = {
