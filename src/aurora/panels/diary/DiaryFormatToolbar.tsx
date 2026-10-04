@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { Editor } from '@tiptap/react'
+import { useLanguage } from '@stores/LanguageStore'
 
 interface DiaryFormatToolbarProps {
   /** TiptapEditor 实例（由 DiaryPanel 在编辑器就绪后上抛）；null 时按钮禁用 */
@@ -90,6 +91,7 @@ const ICON_SVG = {
  * - 采用内联 SVG 图标 + 分组分隔，保持日记面板的专注/轻量定位
  */
 export function DiaryFormatToolbar({ editor }: DiaryFormatToolbarProps) {
+  const { t } = useLanguage()
   // 订阅 editor 事务以刷新激活态高亮
   const [, force] = useState(0)
   useEffect(() => {
@@ -141,25 +143,25 @@ export function DiaryFormatToolbar({ editor }: DiaryFormatToolbarProps) {
 
   const groups: ToolbarItem[][] = [
     [
-      { key: 'bold', title: '加粗 (Ctrl+B)', active: () => !!editor?.isActive('bold'), onClick: () => exec(() => editor!.chain().focus().toggleBold().run()), icon: ICON_SVG.bold },
-      { key: 'italic', title: '斜体 (Ctrl+I)', active: () => !!editor?.isActive('italic'), onClick: () => exec(() => editor!.chain().focus().toggleItalic().run()), icon: ICON_SVG.italic },
-      { key: 'strike', title: '删除线', active: () => !!editor?.isActive('strike'), onClick: () => exec(() => editor!.chain().focus().toggleStrike().run()), icon: ICON_SVG.strike },
+      { key: 'bold', title: t.toolbar.bold, active: () => !!editor?.isActive('bold'), onClick: () => exec(() => editor!.chain().focus().toggleBold().run()), icon: ICON_SVG.bold },
+      { key: 'italic', title: t.toolbar.italic, active: () => !!editor?.isActive('italic'), onClick: () => exec(() => editor!.chain().focus().toggleItalic().run()), icon: ICON_SVG.italic },
+      { key: 'strike', title: t.diaryFormat.strike, active: () => !!editor?.isActive('strike'), onClick: () => exec(() => editor!.chain().focus().toggleStrike().run()), icon: ICON_SVG.strike },
     ],
     [
-      { key: 'heading', title: level ? `标题 H${level}` : '标题（H1/H2/H3）', active: () => level > 0, onClick: cycleHeading, icon: ICON_SVG.heading, badge: level ? `H${level}` : undefined },
+      { key: 'heading', title: level ? t.diaryFormat.headingWithLevel.replace('{level}', String(level)) : t.diaryFormat.headingCycle, active: () => level > 0, onClick: cycleHeading, icon: ICON_SVG.heading, badge: level ? `H${level}` : undefined },
     ],
     [
-      { key: 'bulletList', title: '无序列表', active: () => !!editor?.isActive('bulletList'), onClick: () => exec(() => editor!.chain().focus().toggleBulletList().run()), icon: ICON_SVG.bulletList },
-      { key: 'orderedList', title: '有序列表', active: () => !!editor?.isActive('orderedList'), onClick: () => exec(() => editor!.chain().focus().toggleOrderedList().run()), icon: ICON_SVG.orderedList },
+      { key: 'bulletList', title: t.diaryFormat.bulletList, active: () => !!editor?.isActive('bulletList'), onClick: () => exec(() => editor!.chain().focus().toggleBulletList().run()), icon: ICON_SVG.bulletList },
+      { key: 'orderedList', title: t.diaryFormat.orderedList, active: () => !!editor?.isActive('orderedList'), onClick: () => exec(() => editor!.chain().focus().toggleOrderedList().run()), icon: ICON_SVG.orderedList },
     ],
     [
-      { key: 'blockquote', title: '引用', active: () => !!editor?.isActive('blockquote'), onClick: () => exec(() => editor!.chain().focus().toggleBlockquote().run()), icon: ICON_SVG.blockquote },
-      { key: 'codeBlock', title: '代码块', active: () => !!editor?.isActive('codeBlock'), onClick: () => exec(() => editor!.chain().focus().toggleCodeBlock().run()), icon: ICON_SVG.codeBlock },
-      { key: 'inlineCode', title: '行内代码', active: () => !!editor?.isActive('code'), onClick: () => exec(() => editor!.chain().focus().toggleCode().run()), icon: ICON_SVG.inlineCode },
-      { key: 'link', title: '链接', active: () => !!editor?.isActive('link'), onClick: () => {
+      { key: 'blockquote', title: t.toolbar.blockquote, active: () => !!editor?.isActive('blockquote'), onClick: () => exec(() => editor!.chain().focus().toggleBlockquote().run()), icon: ICON_SVG.blockquote },
+      { key: 'codeBlock', title: t.diaryFormat.codeBlock, active: () => !!editor?.isActive('codeBlock'), onClick: () => exec(() => editor!.chain().focus().toggleCodeBlock().run()), icon: ICON_SVG.codeBlock },
+      { key: 'inlineCode', title: t.diaryFormat.inlineCode, active: () => !!editor?.isActive('code'), onClick: () => exec(() => editor!.chain().focus().toggleCode().run()), icon: ICON_SVG.inlineCode },
+      { key: 'link', title: t.toolbar.link, active: () => !!editor?.isActive('link'), onClick: () => {
         if (!editor) return
         const prev = (editor.getAttributes('link').href as string | undefined) ?? 'https://'
-        const url = window.prompt('输入链接地址（留空取消链接）', prev)
+        const url = window.prompt(t.diaryFormat.linkPrompt, prev)
         if (url === null) return
         if (url.trim() === '') {
           editor.chain().focus().extendMarkRange('link').unsetLink().run()
@@ -171,7 +173,7 @@ export function DiaryFormatToolbar({ editor }: DiaryFormatToolbarProps) {
   ]
 
   return (
-    <div className="dv-format-bar" role="toolbar" aria-label="日记格式工具栏">
+    <div className="dv-format-bar" role="toolbar" aria-label={t.diaryFormat.barAria}>
       {groups.map((group, gi) => (
         <div key={gi} className="dv-format-bar__group">
           {group.map((it) => (

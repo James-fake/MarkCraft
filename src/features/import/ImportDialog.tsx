@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react'
 import { importDocxToMarkdown } from './importDocx'
 import { importHtmlToMarkdown } from './importHtml'
 import { Modal, Button } from '../../components/ui'
+import { useLanguage } from '../../stores/LanguageStore'
 
 interface ImportDialogProps {
   isOpen: boolean
@@ -14,6 +15,7 @@ const SUPPORTED_TYPES = '.md,.markdown,.txt,.docx,.html,.htm'
 export default function ImportDialog({ isOpen, onClose, onImport }: ImportDialogProps) {
   const [importing, setImporting] = useState(false)
   const [error, setError] = useState('')
+  const { t } = useLanguage()
 
   const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -35,7 +37,7 @@ export default function ImportDialog({ isOpen, onClose, onImport }: ImportDialog
         const html = await file.text()
         content = importHtmlToMarkdown(html)
       } else {
-        setError(`不支持的文件格式: .${ext}`)
+        setError(t.importDialog.unsupportedFormat.replace('{ext}', ext ?? ''))
         setImporting(false)
         return
       }
@@ -44,22 +46,23 @@ export default function ImportDialog({ isOpen, onClose, onImport }: ImportDialog
       onImport(fileName, content)
       onClose()
     } catch (err) {
-      setError(`打开失败: ${err instanceof Error ? err.message : '未知错误'}`)
+      const msg = err instanceof Error ? err.message : t.importDialog.unknownError
+      setError(t.importDialog.openFailed.replace('{msg}', msg))
     } finally {
       setImporting(false)
       // Reset input so the same file can be re-selected
       e.target.value = ''
     }
-  }, [onImport, onClose])
+  }, [onImport, onClose, t])
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="打开文件"
+      title={t.importDialog.title}
       size="sm"
       accent
-      footer={<Button variant="secondary" onClick={onClose}>取消</Button>}
+      footer={<Button variant="secondary" onClick={onClose}>{t.importDialog.cancel}</Button>}
     >
       <div
         style={{
@@ -89,8 +92,8 @@ export default function ImportDialog({ isOpen, onClose, onImport }: ImportDialog
           id="import-file-input"
         />
         <label htmlFor="import-file-input" style={{ cursor: importing ? 'not-allowed' : 'pointer' }}>
-          {importing ? '正在打开...' : '点击选择文件'}
-          <div style={{ fontSize: 12, marginTop: 8 }}>支持 .md .txt .docx .html</div>
+          {importing ? t.importDialog.importing : t.importDialog.chooseFile}
+          <div style={{ fontSize: 12, marginTop: 8 }}>{t.importDialog.supportedHint}</div>
         </label>
       </div>
 

@@ -1187,6 +1187,41 @@ export const editorPanel = {
   inspectorOverlay: '检查器',
 }
 
+// 日记格式工具栏（DiaryFormatToolbar）：加粗/斜体/引用/链接复用 toolbar 段同文案
+export const diaryFormat = {
+  barAria: '日记格式工具栏',
+  strike: '删除线',
+  headingWithLevel: '标题 H{level}',
+  headingCycle: '标题（H1/H2/H3）',
+  bulletList: '无序列表',
+  orderedList: '有序列表',
+  codeBlock: '代码块',
+  inlineCode: '行内代码',
+  linkPrompt: '输入链接地址（留空取消链接）',
+}
+
+export const importDialog = {
+  title: '打开文件',
+  cancel: '取消',
+  importing: '正在打开...',
+  chooseFile: '点击选择文件',
+  supportedHint: '支持 .md .txt .docx .html',
+  unsupportedFormat: '不支持的文件格式: .{ext}',
+  openFailed: '打开失败: {msg}',
+  unknownError: '未知错误',
+}
+
+export const linkRedirectDialog = {
+  title: '链接重定向',
+  fromLabel: '源目标',
+  fromPlaceholder: '例: 旧文件名',
+  toLabel: '新目标',
+  toPlaceholder: '例: 新文件名',
+  previewBtn: '预览影响',
+  applyBtn: '执行重定向',
+  previewResult: '将影响 {files} 个文件中的 {links} 个链接',
+}
+
 export const diary = {
   breadcrumb: '日记',
   countUnit: '{n} 篇',

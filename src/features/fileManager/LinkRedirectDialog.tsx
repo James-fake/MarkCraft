@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { useLinkIndex } from '../../stores/LinkIndexStore'
 import { useFileManager } from '../../stores/FileStore'
+import { useLanguage } from '../../stores/LanguageStore'
 
 interface Props {
   visible: boolean
@@ -14,6 +15,7 @@ const LinkRedirectDialog: React.FC<Props> = ({ visible, onClose }) => {
   const [preview, setPreview] = useState<{ fileCount: number; linkCount: number } | null>(null)
   const { fileIndex, indexVersion } = useLinkIndex()
   const { getFileContent, updateFileContent } = useFileManager()
+  const { t } = useLanguage()
 
   void indexVersion
 
@@ -58,26 +60,28 @@ const LinkRedirectDialog: React.FC<Props> = ({ visible, onClose }) => {
   return createPortal(
     <div style={{ position: 'fixed', inset: 0, zIndex: 100000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)' }} onClick={onClose}>
       <div style={{ width: 420, background: 'var(--mc-bg-panel, #1e1e2e)', border: '1px solid var(--border-color)', borderRadius: 12, padding: 20 }} onClick={e => e.stopPropagation()}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--mc-text-secondary)', marginBottom: 16 }}>链接重定向</div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--mc-text-secondary)', marginBottom: 16 }}>{t.linkRedirectDialog.title}</div>
 
         <div style={{ marginBottom: 12 }}>
-          <label style={{ fontSize: 12, color: 'var(--mc-text-secondary)', opacity: 0.6, display: 'block', marginBottom: 4 }}>源目标</label>
-          <input value={fromTarget} onChange={e => { setFromTarget(e.target.value); setPreview(null) }} placeholder="例: 旧文件名" style={inputStyle} />
+          <label style={{ fontSize: 12, color: 'var(--mc-text-secondary)', opacity: 0.6, display: 'block', marginBottom: 4 }}>{t.linkRedirectDialog.fromLabel}</label>
+          <input value={fromTarget} onChange={e => { setFromTarget(e.target.value); setPreview(null) }} placeholder={t.linkRedirectDialog.fromPlaceholder} style={inputStyle} />
         </div>
 
         <div style={{ marginBottom: 12 }}>
-          <label style={{ fontSize: 12, color: 'var(--mc-text-secondary)', opacity: 0.6, display: 'block', marginBottom: 4 }}>新目标</label>
-          <input value={toTarget} onChange={e => setToTarget(e.target.value)} placeholder="例: 新文件名" style={inputStyle} />
+          <label style={{ fontSize: 12, color: 'var(--mc-text-secondary)', opacity: 0.6, display: 'block', marginBottom: 4 }}>{t.linkRedirectDialog.toLabel}</label>
+          <input value={toTarget} onChange={e => setToTarget(e.target.value)} placeholder={t.linkRedirectDialog.toPlaceholder} style={inputStyle} />
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-          <button onClick={handlePreview} style={btnStyle}>预览影响</button>
-          <button onClick={handleRedirect} disabled={!fromTarget.trim() || !toTarget.trim()} style={{ ...btnStyle, opacity: (!fromTarget.trim() || !toTarget.trim()) ? 0.5 : 1 }}>执行重定向</button>
+          <button onClick={handlePreview} style={btnStyle}>{t.linkRedirectDialog.previewBtn}</button>
+          <button onClick={handleRedirect} disabled={!fromTarget.trim() || !toTarget.trim()} style={{ ...btnStyle, opacity: (!fromTarget.trim() || !toTarget.trim()) ? 0.5 : 1 }}>{t.linkRedirectDialog.applyBtn}</button>
         </div>
 
         {preview && (
           <div style={{ fontSize: 12, color: 'var(--mc-text-secondary)', opacity: 0.7, padding: '8px 12px', background: 'var(--mc-accent-soft)', borderRadius: 6 }}>
-            将影响 {preview.fileCount} 个文件中的 {preview.linkCount} 个链接
+            {t.linkRedirectDialog.previewResult
+              .replace('{files}', String(preview.fileCount))
+              .replace('{links}', String(preview.linkCount))}
           </div>
         )}
       </div>
