@@ -1243,6 +1243,14 @@ export const cssCompat = {
 export const autocomplete = {
   filePathDetail: '文件路径',
   materialPrefix: '素材 · {title}',
+  // cm6Format* 无选区时的插入占位文案
+  boldPlaceholder: '粗体',
+  italicPlaceholder: '斜体',
+  strikePlaceholder: '删除线',
+  codePlaceholder: '代码',
+  linkTextPlaceholder: '链接文字',
+  mathPlaceholder: '公式',
+  headingPlaceholder: '标题',
 }
 
 export const linkRedirectDialog = {

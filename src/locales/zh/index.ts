@@ -2392,6 +2392,13 @@ export interface Translations {
   autocomplete: {
     filePathDetail: string
     materialPrefix: string
+    boldPlaceholder: string
+    italicPlaceholder: string
+    strikePlaceholder: string
+    codePlaceholder: string
+    linkTextPlaceholder: string
+    mathPlaceholder: string
+    headingPlaceholder: string
   }
   linkRedirectDialog: {
     title: string

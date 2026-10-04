@@ -11,6 +11,42 @@ import {
   type BlockCandidate,
 } from '@services/clipMaterial'
 
+/** 自动补全下拉项 + 源码模式格式化占位文案（可被调用方以目标语言覆盖） */
+export interface AutocompleteMessages {
+  /** 文件路径补全项的说明 */
+  filePathDetail: string
+  /** 素材块补全项前缀模板（{title} = 来源标题 / URL / 文件名） */
+  materialPrefix: string
+  /** 加粗无选区时的插入占位 */
+  boldPlaceholder: string
+  /** 斜体无选区时的插入占位 */
+  italicPlaceholder: string
+  /** 删除线无选区时的插入占位 */
+  strikePlaceholder: string
+  /** 行内代码无选区时的插入占位 */
+  codePlaceholder: string
+  /** 链接无选区时的文字占位 */
+  linkTextPlaceholder: string
+  /** 行内公式无选区时的插入占位 */
+  mathPlaceholder: string
+  /** 标题无选区时的插入占位 */
+  headingPlaceholder: string
+}
+
+export const DEFAULT_AUTOCOMPLETE_MESSAGES: AutocompleteMessages = {
+  filePathDetail: '文件路径',
+  materialPrefix: '素材 · {title}',
+  boldPlaceholder: '粗体',
+  italicPlaceholder: '斜体',
+  strikePlaceholder: '删除线',
+  codePlaceholder: '代码',
+  linkTextPlaceholder: '链接文字',
+  mathPlaceholder: '公式',
+  headingPlaceholder: '标题',
+}
+
+let _acMessages: AutocompleteMessages = DEFAULT_AUTOCOMPLETE_MESSAGES
+
 function insertAndSelect(view: EditorView, insertText: string, from: number, to: number, cursorOffset?: number): boolean {
   const offset = cursorOffset ?? insertText.length
   view.dispatch({
@@ -187,7 +223,7 @@ function blockRefCompletions(context: CompletionContext) {
     options: candidates.map(c => ({
       label: c.text.slice(0, 48) || `^${c.blockId}`,
       type: 'text' as const,
-      detail: c.isMaterial ? `素材 · ${c.sourceTitle || c.sourceUrl || c.fileName}` : c.fileName,
+      detail: c.isMaterial ? _acMessages.materialPrefix.replace('{title}', c.sourceTitle || c.sourceUrl || c.fileName) : c.fileName,
       apply: (view: EditorView, _completion: unknown, from: number, to: number) => {
         const citation = buildMaterialCitation({
           blockId: c.blockId,
@@ -228,7 +264,7 @@ function filePathCompletions(context: CompletionContext) {
     .map(name => ({
       label: name,
       type: 'text' as const,
-      detail: '文件路径',
+      detail: _acMessages.filePathDetail,
       apply: `./${name}`,
     }))
 
@@ -240,7 +276,8 @@ function filePathCompletions(context: CompletionContext) {
 // 功能统一由工具栏与更多菜单提供；内容类补全 emoji/标题/语言/wikiLink/块引用/路径 保留）
 
 // 自动补全扩展
-export function createAutocompleteExtension() {
+export function createAutocompleteExtension(messages: AutocompleteMessages = DEFAULT_AUTOCOMPLETE_MESSAGES) {
+  _acMessages = messages
   return autocompletion({
     override: [emojiCompletions, headingCompletions, languageCompletions, wikiLinkCompletions, blockRefCompletions, filePathCompletions],
     activateOnTyping: true,
@@ -256,7 +293,7 @@ export function cm6FormatBold(view: EditorView): boolean {
     const text = selected.slice(2, -2)
     return insertAndSelect(view, text, from, to, text.length)
   }
-  return insertAndSelect(view, `**${selected || '粗体'}**`, from, to, selected ? from + selected.length + 4 : from + 2)
+  return insertAndSelect(view, `**${selected || _acMessages.boldPlaceholder}**`, from, to, selected ? from + selected.length + 4 : from + 2)
 }
 
 export function cm6FormatItalic(view: EditorView): boolean {
@@ -266,7 +303,7 @@ export function cm6FormatItalic(view: EditorView): boolean {
     const text = selected.slice(1, -1)
     return insertAndSelect(view, text, from, to, text.length)
   }
-  return insertAndSelect(view, `*${selected || '斜体'}*`, from, to, selected ? from + selected.length + 2 : from + 1)
+  return insertAndSelect(view, `*${selected || _acMessages.italicPlaceholder}*`, from, to, selected ? from + selected.length + 2 : from + 1)
 }
 
 export function cm6FormatStrike(view: EditorView): boolean {
@@ -276,7 +313,7 @@ export function cm6FormatStrike(view: EditorView): boolean {
     const text = selected.slice(2, -2)
     return insertAndSelect(view, text, from, to, text.length)
   }
-  return insertAndSelect(view, `~~${selected || '删除线'}~~`, from, to, selected ? from + selected.length + 4 : from + 2)
+  return insertAndSelect(view, `~~${selected || _acMessages.strikePlaceholder}~~`, from, to, selected ? from + selected.length + 4 : from + 2)
 }
 
 export function cm6FormatInlineCode(view: EditorView): boolean {
@@ -286,13 +323,13 @@ export function cm6FormatInlineCode(view: EditorView): boolean {
     const text = selected.slice(1, -1)
     return insertAndSelect(view, text, from, to, text.length)
   }
-  return insertAndSelect(view, `\`${selected || '代码'}\``, from, to, selected ? from + selected.length + 2 : from + 1)
+  return insertAndSelect(view, `\`${selected || _acMessages.codePlaceholder}\``, from, to, selected ? from + selected.length + 2 : from + 1)
 }
 
 export function cm6InsertLink(view: EditorView, url = ''): boolean {
   const { from, to } = view.state.selection.main
   const selected = view.state.sliceDoc(from, to)
-  const text = selected || '链接文字'
+  const text = selected || _acMessages.linkTextPlaceholder
   const href = url || 'https://'
   // 插入 [text](href)，光标停在文字末尾
   return insertAndSelect(view, `[${text}](${href})`, from, to, from + 1 + text.length)
@@ -307,7 +344,7 @@ export function cm6FormatCodeBlock(view: EditorView): boolean {
 export function cm6FormatInlineMath(view: EditorView): boolean {
   const { from, to } = view.state.selection.main
   const selected = view.state.sliceDoc(from, to)
-  return insertAndSelect(view, `$${selected || '公式'}$`, from, to, selected ? from + selected.length + 2 : from + 1)
+  return insertAndSelect(view, `$${selected || _acMessages.mathPlaceholder}$`, from, to, selected ? from + selected.length + 2 : from + 1)
 }
 
 export function cm6FormatBlockMath(view: EditorView): boolean {
@@ -334,7 +371,7 @@ export function cm6FormatHeading(view: EditorView, level: number): boolean {
     return insertAndSelect(view, prefix + content, start, end, prefix.length + content.length)
   }
 
-  content = view.state.sliceDoc(from, to) || '标题'
+  content = view.state.sliceDoc(from, to) || _acMessages.headingPlaceholder
   return insertAndSelect(view, `${prefix}${content}`, from, to, prefix.length + content.length)
 }
 

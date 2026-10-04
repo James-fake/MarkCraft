@@ -1042,6 +1042,13 @@ export const en: Translations = {
   autocomplete: {
     filePathDetail: 'File path',
     materialPrefix: 'Material · {title}',
+    boldPlaceholder: 'bold',
+    italicPlaceholder: 'italic',
+    strikePlaceholder: 'strikethrough',
+    codePlaceholder: 'code',
+    linkTextPlaceholder: 'link text',
+    mathPlaceholder: 'formula',
+    headingPlaceholder: 'Heading',
   },
   autoLayout: {
     title: 'Auto Layout',
