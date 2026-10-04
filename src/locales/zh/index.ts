@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogCss, platformPublish, blogModal } from './blog'
-import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, auroraTabs, blog, editorPanel, diaryFormat, importDialog, importExternal, cssCompat, autocomplete, embedView, linkRedirectDialog, autoLayout, auroraEditor, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels, writingAid, exportKit } from './common'
+import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, auroraTabs, blog, editorPanel, diaryFormat, importDialog, importExternal, cssCompat, autocomplete, embedView, bootstrap, linkRedirectDialog, autoLayout, auroraEditor, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels, writingAid, exportKit } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -2423,6 +2423,14 @@ export interface Translations {
     pdfPreviewFailed: string
     tryOpenDirect: string
   }
+  bootstrap: {
+    renderError: string
+    mountPointMissing: string
+    bootFailedTitle: string
+    bootFailedBody: string
+    reload: string
+    noErrorDetail: string
+  }
   linkRedirectDialog: {
     title: string
     fromLabel: string
@@ -2859,6 +2867,7 @@ const zh: Translations = {
   cssCompat,
   autocomplete,
   embedView,
+  bootstrap,
   linkRedirectDialog,
   autoLayout,
   auroraEditor,

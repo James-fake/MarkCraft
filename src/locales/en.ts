@@ -1073,6 +1073,14 @@ export const en: Translations = {
     pdfPreviewFailed: 'PDF preview failed: {error}',
     tryOpenDirect: 'Try opening directly',
   },
+  bootstrap: {
+    renderError: 'Render error',
+    mountPointMissing: 'Mount point #aurora-root not found',
+    bootFailedTitle: 'App failed to start',
+    bootFailedBody: 'The app could not finish mounting. Below is the captured error, which may help locate the cause:',
+    reload: 'Reload',
+    noErrorDetail: 'No specific error was captured. This may be a resource load failure (check the network or static asset paths) or a browser extension blocking it.',
+  },
   autoLayout: {
     title: 'Auto Layout',
     algorithm: 'Algorithm',

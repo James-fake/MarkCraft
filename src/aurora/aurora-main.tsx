@@ -40,6 +40,18 @@ import './styles/panels/blog.css'
 import './styles/panels/diary.css'
 
 import { AuroraShell } from './app/AuroraShell'
+import { zh } from '../locales/zh'
+import { en } from '../locales/en'
+
+/**
+ * 启动期文案：白屏诊断 / 错误边界早于 React 语言 Provider 就绪，
+ * 故按 `localStorage('markcraft-language')`（与 LanguageProvider 同源）直接取语言包。
+ */
+function bootstrapMessages() {
+  let saved: string | null = null
+  try { saved = localStorage.getItem('markcraft-language') } catch { /* 隐私模式等场景降级为默认中文 */ }
+  return saved === 'en' ? en.bootstrap : zh.bootstrap
+}
 
 /**
  * Aurora 独立入口
@@ -62,7 +74,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
     if (this.state.error) {
       return (
         <div style={{ padding: 'var(--mc-space-8)', fontFamily: 'system-ui, sans-serif', color: '#cf222e', lineHeight: 1.6 }}>
-          <h2 style={{ marginTop: 0 }}>渲染出错</h2>
+          <h2 style={{ marginTop: 0 }}>{bootstrapMessages().renderError}</h2>
           <pre style={{ whiteSpace: 'pre-wrap', background: 'rgba(207,34,46,.08)', padding: 'var(--mc-space-5)', borderRadius: 'var(--mc-radius-md)', fontSize: 'var(--mc-font-base)' }}>
             {String(this.state.error?.stack || this.state.error?.message || this.state.error)}
           </pre>
@@ -100,7 +112,7 @@ function SplashHandoff() {
 function bootstrap() {
   const el = document.getElementById('aurora-root')
   if (!el) {
-    document.body.innerHTML = '<div style="padding:24px;font-family:system-ui;color:#cf222e">找不到 #aurora-root 挂载点</div>'
+    document.body.innerHTML = `<div style="padding:24px;font-family:system-ui;color:#cf222e">${bootstrapMessages().mountPointMissing}</div>`
     return
   }
   createRoot(el).render(
@@ -141,17 +153,18 @@ function installBlankScreenGuard() {
   setTimeout(() => {
     const el = document.getElementById('aurora-root')
     if (el && el.childElementCount === 0) {
+      const msg = bootstrapMessages()
       const detail = seen.length
         ? seen.slice(0, 3).join('\n\n')
-        : '未捕获到具体错误。可能是资源加载失败（请检查网络/静态资源路径），或浏览器扩展拦截。'
+        : msg.noErrorDetail
       el.innerHTML =
         '<div style="padding:28px;font-family:system-ui,-apple-system,sans-serif;color:#cf222e;line-height:1.7">' +
-        '<h2 style="margin:0 0 12px;font-size:18px">界面启动失败</h2>' +
-        '<p style="margin:0 0 12px;color:#57606a">应用未能完成挂载。以下是捕获到的错误信息，可据此定位原因：</p>' +
+        `<h2 style="margin:0 0 12px;font-size:18px">${msg.bootFailedTitle}</h2>` +
+        `<p style="margin:0 0 12px;color:#57606a">${msg.bootFailedBody}</p>` +
         '<pre style="white-space:pre-wrap;background:rgba(207,34,46,.08);padding:14px;border-radius:8px;font-size:12px;overflow:auto;max-height:60vh">' +
         detail.replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] as string)) +
         '</pre>' +
-        '<button onclick="location.reload()" style="margin-top:8px;padding:8px 16px;border:1px solid #d0d7de;border-radius:6px;background:#fff;cursor:pointer;font-size:13px">重新加载</button>' +
+        `<button onclick="location.reload()" style="margin-top:8px;padding:8px 16px;border:1px solid #d0d7de;border-radius:6px;background:#fff;cursor:pointer;font-size:13px">${msg.reload}</button>` +
         '</div>'
     }
   }, 4000)

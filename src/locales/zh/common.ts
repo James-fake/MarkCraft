@@ -1281,6 +1281,17 @@ export const embedView = {
   tryOpenDirect: '尝试直接打开',
 }
 
+// 应用启动兜底文案（bootstrap / 白屏诊断 / 错误边界）
+// 早于 React 语言 Provider 就绪，故由入口按 localStorage('markcraft-language') 直取
+export const bootstrap = {
+  renderError: '渲染出错',
+  mountPointMissing: '找不到 #aurora-root 挂载点',
+  bootFailedTitle: '界面启动失败',
+  bootFailedBody: '应用未能完成挂载。以下是捕获到的错误信息，可据此定位原因：',
+  reload: '重新加载',
+  noErrorDetail: '未捕获到具体错误。可能是资源加载失败（请检查网络/静态资源路径），或浏览器扩展拦截。',
+}
+
 export const linkRedirectDialog = {
   title: '链接重定向',
   fromLabel: '源目标',
