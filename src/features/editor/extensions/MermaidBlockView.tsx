@@ -11,6 +11,7 @@ import MindmapCanvas from './mindmap/MindmapCanvas'
 import type { LayoutDirection } from './mindmap/mindmapLayout'
 import { extractLayout } from '../toolbar/mindmapUtils'
 import { useLanguage } from '@stores/LanguageStore'
+import DOMPurify from 'dompurify'
 
 /** Get layout direction from mindmap code (reads embedded direction marker) */
 function getLayoutDirection(code: string): LayoutDirection {
@@ -18,6 +19,15 @@ function getLayoutDirection(code: string): LayoutDirection {
 }
 
 let renderIdCounter = 0
+
+/** mermaid 在 strict 模式下已禁用内嵌 HTML/事件处理器，这里再对 SVG 兜底净化一次 */
+function sanitizeMermaidSvg(svg: string): string {
+  try {
+    return DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true, svgFilters: true } })
+  } catch {
+    return svg
+  }
+}
 
 type EditMode = 'preview' | 'mindmap-edit' | 'code-edit'
 
@@ -102,7 +112,7 @@ export default function MermaidBlockView({ node, updateAttributes, selected, edi
       const cached = getCachedSvg(codeAttr)
       if (cached) {
         if (mountedRef.current && previewRef.current) {
-          previewRef.current.innerHTML = cached
+          previewRef.current.innerHTML = sanitizeMermaidSvg(cached)
           lastCodeRef.current = codeAttr
         }
         return
@@ -125,8 +135,9 @@ export default function MermaidBlockView({ node, updateAttributes, selected, edi
           const { svg } = await mermaid.render(id, codeAttr)
           if (cancelled || !mountedRef.current) return
           if (mountedRef.current && previewRef.current) {
-            previewRef.current.innerHTML = svg
-            setCachedSvg(codeAttr, svg)
+            const safeSvg = sanitizeMermaidSvg(svg)
+            previewRef.current.innerHTML = safeSvg
+            setCachedSvg(codeAttr, safeSvg)
             lastCodeRef.current = codeAttr
           }
         } catch {

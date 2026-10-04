@@ -1,6 +1,6 @@
 export type { ThemeStyle, BlogConfig, BlogPost, DeployPlatform, CommentSystem, CommentConfig, RewardConfig, FriendLink, AboutConfig, SeriesConfig } from './types'
 export { DEFAULT_BLOG_CONFIG } from './types'
-export { slugify, escapeHtml, escapeAttr, tagId, formatDate, getStyles, wrapHtml } from './utils'
+export { slugify, escapeHtml, escapeAttr, tagId, formatDate, getStyles, wrapHtml, escapeCss, escapeJsString, safeCssUrl } from './utils'
 export type { SeoMeta } from './utils'
 export { generatePostHtml } from './postTemplate'
 export { generateIndexHtml } from './indexTemplate'

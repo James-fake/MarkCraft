@@ -1,5 +1,5 @@
 import { BlogPost, BlogConfig } from './types'
-import { escapeHtml, tagId, formatDate, wrapHtml, optimizeImages } from './utils'
+import { escapeHtml, escapeAttr, tagId, formatDate, wrapHtml, optimizeImages } from './utils'
 import type { SeoMeta } from './utils'
 import { generateToc, addHeadingIds, generateTocHtml, getTocScript } from './tocGenerator'
 import { generateCommentHtml } from './commentScript'
@@ -44,10 +44,10 @@ function getRelatedPosts(current: BlogPost, all: BlogPost[], max = 3): BlogPost[
 function generatePostNav(prev: BlogPost | undefined, next: BlogPost | undefined, bl: 'zh' | 'en'): string {
   if (!prev && !next) return ''
   const prevHtml = prev
-    ? `<a href="../${prev.slug}/index.html" class="post-nav-prev"><span class="post-nav-label">${bl === 'en' ? '← Previous' : '← 上一篇'}</span><span class="post-nav-title">${escapeHtml(prev.title)}</span></a>`
+    ? `<a href="../${escapeAttr(prev.slug)}/index.html" class="post-nav-prev"><span class="post-nav-label">${bl === 'en' ? '← Previous' : '← 上一篇'}</span><span class="post-nav-title">${escapeHtml(prev.title)}</span></a>`
     : '<span class="post-nav-placeholder"></span>'
   const nextHtml = next
-    ? `<a href="../${next.slug}/index.html" class="post-nav-next"><span class="post-nav-label">${bl === 'en' ? 'Next →' : '下一篇 →'}</span><span class="post-nav-title">${escapeHtml(next.title)}</span></a>`
+    ? `<a href="../${escapeAttr(next.slug)}/index.html" class="post-nav-next"><span class="post-nav-label">${bl === 'en' ? 'Next →' : '下一篇 →'}</span><span class="post-nav-title">${escapeHtml(next.title)}</span></a>`
     : '<span class="post-nav-placeholder"></span>'
   return `<nav class="post-nav">${prevHtml}${nextHtml}</nav>`
 }
@@ -55,7 +55,7 @@ function generatePostNav(prev: BlogPost | undefined, next: BlogPost | undefined,
 function generateRelatedPosts(related: BlogPost[], bl: 'zh' | 'en'): string {
   if (related.length === 0) return ''
   const cards = related.map(p =>
-    `<div class="related-post-card"><h4><a href="../${p.slug}/index.html">${escapeHtml(p.title)}</a></h4>${p.date ? `<span class="related-date">${escapeHtml(formatDate(p.date))}</span>` : ''}</div>`
+    `<div class="related-post-card"><h4><a href="../${escapeAttr(p.slug)}/index.html">${escapeHtml(p.title)}</a></h4>${p.date ? `<span class="related-date">${escapeHtml(formatDate(p.date))}</span>` : ''}</div>`
   ).join('')
   return `<div class="related-posts"><div class="related-posts-title">${bl === 'en' ? 'Related Posts' : '相关文章'}</div><div class="related-posts-grid">${cards}</div></div>`
 }
@@ -64,8 +64,8 @@ function generateRewardHtml(config: BlogConfig, bl: 'zh' | 'en'): string {
   const reward = config.reward
   if (!reward?.enable) return ''
   const qrcodes: string[] = []
-  if (reward.wechatQrcode) qrcodes.push(`<div class="reward-item"><img src="${reward.wechatQrcode}" alt="WeChat"><span>${bl === 'en' ? 'WeChat' : '微信'}</span></div>`)
-  if (reward.alipayQrcode) qrcodes.push(`<div class="reward-item"><img src="${reward.alipayQrcode}" alt="Alipay"><span>${bl === 'en' ? 'Alipay' : '支付宝'}</span></div>`)
+  if (reward.wechatQrcode) qrcodes.push(`<div class="reward-item"><img src="${escapeAttr(reward.wechatQrcode)}" alt="WeChat"><span>${bl === 'en' ? 'WeChat' : '微信'}</span></div>`)
+  if (reward.alipayQrcode) qrcodes.push(`<div class="reward-item"><img src="${escapeAttr(reward.alipayQrcode)}" alt="Alipay"><span>${bl === 'en' ? 'Alipay' : '支付宝'}</span></div>`)
   if (qrcodes.length === 0) return ''
   return `<div class="reward-section"><div class="reward-title">${escapeHtml(reward.title || (bl === 'en' ? 'Buy me a coffee' : '请我喝杯咖啡'))}</div><div class="reward-qrcodes">${qrcodes.join('')}</div></div>`
 }
@@ -109,7 +109,7 @@ export function generatePostHtml(
 
   // 阅读量统计
   if (config.enableBusuanzi) {
-    metaParts.push(`<span class="meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span class="view-count" data-slug="${post.slug}">0</span> ${bl === 'en' ? 'views' : '阅读'}</span>`)
+    metaParts.push(`<span class="meta-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span class="view-count" data-slug="${escapeAttr(post.slug)}">0</span> ${bl === 'en' ? 'views' : '阅读'}</span>`)
   }
 
   // Comments
@@ -133,7 +133,7 @@ export function generatePostHtml(
 
   // 点赞/踩
   const applauseHtml = config.enableApplause
-    ? `<div class="vote-section"><button class="vote-btn vote-up" data-slug="${post.slug}" data-type="up" onclick="handleVote(this)"><span class="vote-icon">👍</span><span class="vote-count">0</span></button><button class="vote-btn vote-down" data-slug="${post.slug}" data-type="down" onclick="handleVote(this)"><span class="vote-icon">👎</span><span class="vote-count">0</span></button></div>`
+    ? `<div class="vote-section"><button class="vote-btn vote-up" data-slug="${escapeAttr(post.slug)}" data-type="up" onclick="handleVote(this)"><span class="vote-icon">👍</span><span class="vote-count">0</span></button><button class="vote-btn vote-down" data-slug="${escapeAttr(post.slug)}" data-type="down" onclick="handleVote(this)"><span class="vote-icon">👎</span><span class="vote-count">0</span></button></div>`
     : ''
 
   // Extra renderers (Mermaid/KaTeX)

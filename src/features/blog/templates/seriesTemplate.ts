@@ -3,7 +3,7 @@
  */
 
 import { SeriesConfig, BlogPost, BlogConfig } from './types'
-import { escapeHtml, formatDate, wrapHtml } from './utils'
+import { escapeHtml, formatDate, wrapHtml, safeCssUrl } from './utils'
 
 export function generateSeriesHtml(posts: BlogPost[], config: SeriesConfig[], blogConfig: BlogConfig): string {
   if (!config || config.length === 0) return ''
@@ -43,7 +43,7 @@ export function generateSeriesHtml(posts: BlogPost[], config: SeriesConfig[], bl
     
     return `
       <a href="/series/${escapeHtml(series.slug)}/" class="series-card">
-        <div class="series-cover" style="${series.coverImage ? `background-image: url(${escapeHtml(series.coverImage)})` : ''}">
+        <div class="series-cover" style="${series.coverImage ? `background-image: ${safeCssUrl(series.coverImage)}` : ''}">
           ${!series.coverImage ? '<span class="series-icon">📚</span>' : ''}
         </div>
         <div class="series-info">
@@ -115,7 +115,7 @@ export function generateSeriesDetailHtml(series: SeriesConfig, posts: BlogPost[]
     <div class="container">
       <div class="series-detail-header">
         <a href="/series/" class="back-link">← ${bl === 'en' ? 'Back to series' : '返回系列列表'}</a>
-        <div class="series-detail-cover" style="${series.coverImage ? `background-image: url(${escapeHtml(series.coverImage)})` : ''}">
+        <div class="series-detail-cover" style="${series.coverImage ? `background-image: ${safeCssUrl(series.coverImage)}` : ''}">
           ${!series.coverImage ? '<span class="series-icon-large">📚</span>' : ''}
         </div>
         <h1 class="series-detail-title">${escapeHtml(series.name)}</h1>

@@ -58,12 +58,13 @@ export function injectMermaidContainers(
  */
 export function getMermaidScript(isDark: boolean): string {
   return `<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <script>
 (function(){
   mermaid.initialize({
     startOnLoad: false,
     theme: '${isDark ? 'dark' : 'default'}',
-    securityLevel: 'loose',
+    securityLevel: 'strict',
     themeVariables: { fontSize: '14px' },
     flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
     sequence: { useMaxWidth: true },
@@ -88,7 +89,9 @@ export function getMermaidScript(isDark: boolean): string {
         // mermaid mindmap uses large inline font-size for root nodes
         // 将 mermaid 导出的内联 font-size 统一收敛为 14px（匹配 空白:空白+数字[.数字]px）
         var svg = result.svg.replace(/font-size[ \t\r\n\f]*:[ \t\r\n\f]*[0-9]+(?:[.][0-9]+)?px/gi, 'font-size:14px');
-        diagram.innerHTML = svg;
+        // 安全兜底：strict 模式已禁用内嵌 HTML/事件处理器，再对 SVG 跑一次 DOMPurify
+        var svgSafe = (typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true, svgFilters: true } }) : svg);
+        diagram.innerHTML = svgSafe;
         diagram.setAttribute('data-rendered', 'true');
         renderNext();
       }).catch(function(err) {

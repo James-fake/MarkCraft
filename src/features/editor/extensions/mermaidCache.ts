@@ -38,7 +38,7 @@ export function initMermaid(theme: string): void {
   mermaid.initialize({
     startOnLoad: false,
     theme: mermaidTheme,
-    securityLevel: 'loose',
+    securityLevel: 'strict',
     flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
     sequence: { useMaxWidth: true },
     mindmap: { padding: 16, useMaxWidth: true },
@@ -50,7 +50,7 @@ try {
   mermaid.initialize({
     startOnLoad: false,
     theme: 'default',
-    securityLevel: 'loose',
+    securityLevel: 'strict',
     flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
     sequence: { useMaxWidth: true },
     mindmap: { padding: 16, useMaxWidth: true },

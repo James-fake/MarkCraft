@@ -14,6 +14,12 @@ export function generateSearchHtml(config: BlogConfig): string {
       <div id="search-results" style="margin-top:20px;"></div>
     </div>
     <script>
+      // 运行时转义（搜索数据来自 fetch 的 JSON，标题/描述可能含 HTML）
+      function esc(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      }
       let searchData = [];
       fetch('search-index.json').then(r => r.json()).then(data => { searchData = data; }).catch(() => {});
 
@@ -36,10 +42,10 @@ export function generateSearchHtml(config: BlogConfig): string {
         if (!q.trim()) { results.innerHTML = ''; return; }
         const items = doSearch(q);
         results.innerHTML = items.length ? items.map(item =>
-          '<a href="posts/' + item.slug + '/index.html" style="display:block;padding:16px;margin-bottom:8px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-sm);color:var(--text-primary);text-decoration:none;transition:all 0.2s;">' +
-          '<div style="font-weight:600;font-size:1.05em;margin-bottom:4px;">' + item.title + '</div>' +
-          '<div style="font-size:0.85em;color:var(--text-muted);">' + item.date + (item.category ? ' · ' + item.category : '') + '</div>' +
-          (item.description ? '<div style="font-size:0.9em;color:var(--text-secondary);margin-top:6px;">' + item.description + '</div>' : '') +
+          '<a href="posts/' + esc(item.slug) + '/index.html" style="display:block;padding:16px;margin-bottom:8px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-sm);color:var(--text-primary);text-decoration:none;transition:all 0.2s;">' +
+          '<div style="font-weight:600;font-size:1.05em;margin-bottom:4px;">' + esc(item.title) + '</div>' +
+          '<div style="font-size:0.85em;color:var(--text-muted);">' + esc(item.date) + (item.category ? ' · ' + esc(item.category) : '') + '</div>' +
+          (item.description ? '<div style="font-size:0.9em;color:var(--text-secondary);margin-top:6px;">' + esc(item.description) + '</div>' : '') +
           '</a>'
         ).join('') : '<div style="text-align:center;padding:40px;color:var(--text-muted);">${bl === 'en' ? 'No results found' : '未找到相关文章'}</div>';
       });

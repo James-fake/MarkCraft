@@ -28,8 +28,8 @@ export function resolveThemeColors(config: { theme: string; colorScheme: string;
   let accent = isDark ? scheme.dark : scheme.light
   const accentLight = isDark ? scheme.darkBg : scheme.lightBg
 
-  // Support custom color
-  if (config.colorScheme === 'custom' && config.customColor) {
+  // Support custom color —— 仅接受合法 hex（#rgb / #rrggbb），否则回退到默认色板，避免注入 CSS
+  if (config.colorScheme === 'custom' && config.customColor && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(config.customColor)) {
     accent = config.customColor
   }
 

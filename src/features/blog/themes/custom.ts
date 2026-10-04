@@ -1,4 +1,5 @@
 import type { ThemeIndexData } from './types'
+import { escapeHtml, escapeAttr } from '../templates/utils'
 
 /**
  * Custom theme — minimal skeleton that lets user CSS take full control.
@@ -146,16 +147,16 @@ export function getCustomIndexHtml(data: ThemeIndexData): string {
   const bl: 'zh' | 'en' = data.language === 'en' ? 'en' : 'zh'
   const posts = data.published.map(post => `
     <article class="post-item">
-      <h2><a href="posts/${post.slug}/index.html">${post.title}</a></h2>
-      <div class="post-meta">${post.date}${post.tags.length ? ' · ' + post.tags.map((t: string) => `<span class="tag">${t}</span>`).join(' ') : ''}</div>
-      ${post.excerpt ? `<p class="post-excerpt">${post.excerpt}</p>` : ''}
+      <h2><a href="posts/${escapeAttr(post.slug)}/index.html">${escapeHtml(post.title)}</a></h2>
+      <div class="post-meta">${escapeHtml(post.date)}${post.tags.length ? ' · ' + post.tags.map((t: string) => `<span class="tag">${escapeHtml(t)}</span>`).join(' ') : ''}</div>
+      ${post.excerpt ? `<p class="post-excerpt">${escapeHtml(post.excerpt)}</p>` : ''}
     </article>
   `).join('')
 
   return `
     <header class="site-header">
-      <h1><a href="index.html">${data.siteTitle}</a></h1>
-      ${data.siteDescription ? `<p>${data.siteDescription}</p>` : ''}
+      <h1><a href="index.html">${escapeHtml(data.siteTitle)}</a></h1>
+      ${data.siteDescription ? `<p>${escapeHtml(data.siteDescription)}</p>` : ''}
       <nav class="nav-links">
         <a href="archive.html">${bl === 'en' ? 'Archive' : '归档'}</a>
         <a href="tags.html">${bl === 'en' ? 'Tags' : '标签'}</a>
@@ -167,7 +168,7 @@ export function getCustomIndexHtml(data: ThemeIndexData): string {
     </main>
 
     <footer class="site-footer">
-      © ${new Date().getFullYear()} ${data.siteTitle}
+      © ${new Date().getFullYear()} ${escapeHtml(data.siteTitle)}
     </footer>
   `
 }

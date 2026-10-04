@@ -1,4 +1,4 @@
-export { slugify, escapeHtml, escapeAttr, tagId, optimizeImages, formatDate } from './templateHelpers'
+export { slugify, escapeHtml, escapeAttr, tagId, optimizeImages, formatDate, escapeCss, escapeJsString, safeCssUrl } from './templateHelpers'
 export { generateSeoTags, generateJsonLd } from './seoUtils'
 export type { SeoMeta } from './seoUtils'
 export { adjustColorLightness, adjustColorSaturation, adjustColorSharpness, hexToHsl, hslToHex, hexToRgb, rgbToHex } from './colorUtils'

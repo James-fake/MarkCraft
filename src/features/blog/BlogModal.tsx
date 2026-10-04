@@ -47,7 +47,7 @@ export default function BlogModal({ isOpen, onClose, files, onSuccess, onError }
   const [result, setResult] = useState<BlogGenerationResult | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [isDownloading, setIsDownloading] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [previewHtml, setPreviewHtml] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const modalRef = useRef<HTMLDivElement>(null)
   const { t } = useLanguage()
@@ -56,11 +56,6 @@ export default function BlogModal({ isOpen, onClose, files, onSuccess, onError }
   const fileInfos = mdFiles.map(extractFileInfo)
   const publishedCount = fileInfos.filter(f => !f.draft).length
 
-  // 经 ref 读取当前预览 URL：effect 只在打开瞬间撤销上一张预览；
-  // 若直接补 previewUrl 到 deps，会在生成新 URL 后立即将其撤销（行为破坏）
-  const previewUrlRef = useRef(previewUrl)
-  previewUrlRef.current = previewUrl
-
   useEffect(() => {
     if (isOpen) {
       setConfig({ ...DEFAULT_BLOG_CONFIG })
@@ -68,20 +63,9 @@ export default function BlogModal({ isOpen, onClose, files, onSuccess, onError }
       setIsGenerating(false)
       setIsDownloading(false)
       setError(null)
-      if (previewUrlRef.current) {
-        URL.revokeObjectURL(previewUrlRef.current)
-      }
-      setPreviewUrl(null)
+      setPreviewHtml(null)
     }
   }, [isOpen])
-
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl)
-      }
-    }
-  }, [previewUrl])
 
   useEffect(() => {
     if (!isOpen) return
@@ -105,9 +89,8 @@ export default function BlogModal({ isOpen, onClose, files, onSuccess, onError }
         theme: config.theme,
       })
       setResult(genResult)
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl)
-        setPreviewUrl(null)
+      if (previewHtml) {
+        setPreviewHtml(null)
       }
       onSuccess(t.blogModal.generateSuccess.replace('{count}', String(genResult.posts.length)).replace('{files}', String(genResult.files.length)))
     } catch (err: unknown) {
@@ -117,7 +100,7 @@ export default function BlogModal({ isOpen, onClose, files, onSuccess, onError }
     } finally {
       setIsGenerating(false)
     }
-  }, [mdFiles, config, previewUrl, onSuccess, onError, t])
+  }, [mdFiles, config, previewHtml, onSuccess, onError, t])
 
   const handleDownloadFolder = useCallback(async () => {
     if (!result) return
@@ -183,10 +166,6 @@ export default function BlogModal({ isOpen, onClose, files, onSuccess, onError }
   const handlePreview = useCallback(() => {
     if (!result) return
 
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl)
-    }
-
     const html = generateSingleFileBlog(
       result.posts.map(p => ({
         name: p.slug,
@@ -204,11 +183,9 @@ export default function BlogModal({ isOpen, onClose, files, onSuccess, onError }
       })),
       result.config
     )
-    const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    setPreviewUrl(url)
-    window.open(url, '_blank')
-  }, [result, previewUrl])
+    // 预览以「沙箱 iframe + srcDoc」渲染，不经由 blob: 在新标签页以应用源打开（避免注入以完整应用权限执行）
+    setPreviewHtml(html)
+  }, [result])
 
   const totalSize = result
     ? result.files.reduce((sum, f) => sum + new Blob([f.content]).size, 0)
@@ -217,6 +194,7 @@ export default function BlogModal({ isOpen, onClose, files, onSuccess, onError }
   if (!isOpen) return null
 
   return (
+    <>
     <div
       style={{
         position: 'fixed',
@@ -428,5 +406,34 @@ export default function BlogModal({ isOpen, onClose, files, onSuccess, onError }
         </div>
       </div>
     </div>
+
+    {previewHtml && (
+      <div
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 300,
+          backgroundColor: '#ffffff',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '8px 12px', borderBottom: '1px solid #e2e8f0', flexShrink: 0 }}>
+          <button
+            onClick={() => setPreviewHtml(null)}
+            style={{ padding: '6px 16px', fontSize: 13, borderRadius: 6, border: '1px solid #cbd5e1', backgroundColor: '#f1f5f9', color: '#0f172a', cursor: 'pointer', fontFamily: "'Inter', -apple-system, sans-serif" }}
+          >
+            {t.blogModal.close}
+          </button>
+        </div>
+        <iframe
+          srcDoc={previewHtml}
+          sandbox="allow-scripts"
+          title={t.blogModal.preview}
+          style={{ flex: 1, width: '100%', border: 'none' }}
+        />
+      </div>
+    )}
+    </>
   )
 }
