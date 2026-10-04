@@ -187,6 +187,10 @@ export const table = {
   insertRow: '插入行',
   deleteRow: '删除行',
   insertCol: '插入列',
+  insertColLeft: '在左侧插入列',
+  insertColRight: '在右侧插入列',
+  insertRowAbove: '在上方插入行',
+  insertRowBelow: '在下方插入行',
   deleteCol: '删除列',
   markdownPreview: 'Markdown预览:',
   insertTableBtn: '插入表格',
@@ -1112,6 +1116,19 @@ export const editorToolbar = {
   versionHistory: '版本历史',
   historyShort: '版本历史',
   langSwitch: 'EN',
+  // 编辑视图切换（Aurora 编辑器工具栏）
+  editorViewAria: '编辑视图',
+  viewSource: '源码视图（与预览可叠加为双屏）',
+  viewPreview: '预览视图（与源码可叠加为双屏）',
+  viewWysiwyg: '所见即所得（富文本）模式',
+}
+
+export const auroraTabs = {
+  closeTab: '关闭标签',
+  closeOthers: '关闭其他标签',
+  closeRight: '关闭右侧标签',
+  closeAll: '全部关闭',
+  publishAsBlog: '发布为博客',
 }
 
 export const editorPanel = {

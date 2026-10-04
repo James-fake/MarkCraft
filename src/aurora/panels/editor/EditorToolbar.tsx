@@ -1,6 +1,7 @@
 import { Icon } from '../../icons'
 import { AuroraTabs } from './AuroraTabs'
 import { EditorReturnButton } from './EditorReturnButton'
+import { useLanguage } from '@stores/LanguageStore'
 
 /**
  * Aurora 编辑器工具栏 —— 编辑视图切换（叠加式 + 所见即所得）
@@ -51,6 +52,7 @@ export function EditorToolbar({
   returnLabel,
   onReturn,
 }: EditorToolbarProps) {
+  const { t } = useLanguage()
   const isWysiwyg = editorMode === 'wysiwyg'
   // 高亮：源码/预览窗格各自可见即高亮（双屏时两者同亮）；所见即所得独立高亮
   const sourceActive = !isWysiwyg && sourceVisible
@@ -76,36 +78,36 @@ export function EditorToolbar({
 
       {/* 右（最右）：视图切换 —— 两个窗格按钮（源码/预览，可叠加双屏）+ 一个内核按钮（所见即所得） */}
       <div className="aurora-toolbar__modes">
-        <div className="aurora-mode-toggles" role="group" aria-label="编辑视图">
+        <div className="aurora-mode-toggles" role="group" aria-label={t.editorToolbar.editorViewAria}>
           <button
             type="button"
             className={`aurora-mode-toggle ${sourceActive ? 'is-active' : ''} ${isWysiwyg ? 'is-muted' : ''}`}
             onClick={onToggleSource}
             aria-pressed={sourceActive}
-            title="源码视图（与预览可叠加为双屏）"
+            title={t.editorToolbar.viewSource}
           >
             <Icon.code size={13} />
-            <span>源码</span>
+            <span>{t.editorPanel.modeSource}</span>
           </button>
           <button
             type="button"
             className={`aurora-mode-toggle ${previewActive ? 'is-active' : ''} ${isWysiwyg ? 'is-muted' : ''}`}
             onClick={onTogglePreview}
             aria-pressed={previewActive}
-            title="预览视图（与源码可叠加为双屏）"
+            title={t.editorToolbar.viewPreview}
           >
             <Icon.eye size={13} />
-            <span>预览</span>
+            <span>{t.editorPanel.modePreview}</span>
           </button>
           <button
             type="button"
             className={`aurora-mode-toggle ${wysiwygActive ? 'is-active' : ''}`}
             onClick={onToggleWysiwyg}
             aria-pressed={wysiwygActive}
-            title="所见即所得（富文本）模式"
+            title={t.editorToolbar.viewWysiwyg}
           >
             <Icon.edit size={13} />
-            <span>所见即所得</span>
+            <span>{t.editorPanel.modeWysiwyg}</span>
           </button>
         </div>
       </div>

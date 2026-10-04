@@ -13,6 +13,7 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useFileManager } from '@stores/FileStore'
+import { useLanguage } from '@stores/LanguageStore'
 import type { Tab } from '@src/types/fileManager'
 import { Icon } from '../../icons'
 
@@ -27,6 +28,7 @@ interface AuroraTabsProps {
 
 export function AuroraTabs({ onAllClosed, onPublishFile, onAddToKbFile }: AuroraTabsProps) {
   const { tabs, switchTab, closeTab, closeAllTabs, closeOtherTabs, closeTabsToRight, reorderTabs } = useFileManager()
+  const { t } = useLanguage()
 
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; tab: Tab } | null>(null)
   const [draggedTabId, setDraggedTabId] = useState<string | null>(null)
@@ -158,7 +160,7 @@ export function AuroraTabs({ onAllClosed, onPublishFile, onAddToKbFile }: Aurora
             >
               {isActive && <span className="aurora-tab__indicator" />}
               <span className="aurora-tab__icon"><Icon.fileText size={13} /></span>
-              {tab.isDirty && <span className="aurora-tab__dirty" title="未保存" />}
+              {tab.isDirty && <span className="aurora-tab__dirty" title={t.shell.unsavedStatus} />}
               <span className="aurora-tab__name">{tab.name.replace(/\.md$/, '')}</span>
               <button
                 type="button"
@@ -168,8 +170,8 @@ export function AuroraTabs({ onAllClosed, onPublishFile, onAddToKbFile }: Aurora
                   handleCloseTab(tab)
                 }}
                 onAuxClick={(e) => e.stopPropagation()}
-                aria-label="关闭标签"
-                title="关闭标签"
+                aria-label={t.auroraTabs.closeTab}
+                title={t.auroraTabs.closeTab}
               >
                 <Icon.close size={14} />
               </button>
@@ -185,22 +187,22 @@ export function AuroraTabs({ onAllClosed, onPublishFile, onAddToKbFile }: Aurora
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(e) => e.stopPropagation()}
         >
-          <button type="button" onClick={() => runMenuAction('close')}>关闭标签</button>
-          <button type="button" onClick={() => runMenuAction('closeOthers')}>关闭其他标签</button>
-          <button type="button" onClick={() => runMenuAction('closeRight')}>关闭右侧标签</button>
+          <button type="button" onClick={() => runMenuAction('close')}>{t.auroraTabs.closeTab}</button>
+          <button type="button" onClick={() => runMenuAction('closeOthers')}>{t.auroraTabs.closeOthers}</button>
+          <button type="button" onClick={() => runMenuAction('closeRight')}>{t.auroraTabs.closeRight}</button>
           <span className="aurora-tabs__menu-sep" />
-          <button type="button" onClick={() => runMenuAction('closeAll')}>全部关闭</button>
+          <button type="button" onClick={() => runMenuAction('closeAll')}>{t.auroraTabs.closeAll}</button>
           {(onPublishFile || onAddToKbFile) && (
             <>
               <span className="aurora-tabs__menu-sep" />
               {onPublishFile && (
                 <button type="button" onClick={() => runFileAction('publish')}>
-                  <span className="ico"><Icon.send size={13} /></span>发布为博客
+                  <span className="ico"><Icon.send size={13} /></span>{t.auroraTabs.publishAsBlog}
                 </button>
               )}
               {onAddToKbFile && (
                 <button type="button" onClick={() => runFileAction('addToKb')}>
-                  <span className="ico"><Icon.book size={13} /></span>加入知识库
+                  <span className="ico"><Icon.book size={13} /></span>{t.editorToolbar.addToKb}
                 </button>
               )}
             </>

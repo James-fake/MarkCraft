@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import type { Editor } from '@tiptap/react'
+import { useLanguage } from '../../../stores/LanguageStore'
 
 interface TableContextMenuProps {
   editor: Editor
@@ -28,6 +29,7 @@ function isSeparator(entry: MenuEntry): entry is MenuSeparator {
 
 const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) => {
   const [menu, setMenu] = useState<MenuPosition | null>(null)
+  const { t } = useLanguage()
 
   useEffect(() => {
     const handleContextMenu = (e: MouseEvent) => {
@@ -57,17 +59,17 @@ const TableContextMenu: React.FC<TableContextMenuProps> = ({ editor }) => {
   if (!menu) return null
 
   const menuItems: MenuEntry[] = [
-    { label: '在左侧插入列', action: () => editor.chain().focus().addColumnBefore().run(), disabled: !editor.can().addColumnBefore() },
-    { label: '在右侧插入列', action: () => editor.chain().focus().addColumnAfter().run(), disabled: !editor.can().addColumnAfter() },
-    { label: '在上方插入行', action: () => editor.chain().focus().addRowBefore().run(), disabled: !editor.can().addRowBefore() },
-    { label: '在下方插入行', action: () => editor.chain().focus().addRowAfter().run(), disabled: !editor.can().addRowAfter() },
+    { label: t.table.insertColLeft, action: () => editor.chain().focus().addColumnBefore().run(), disabled: !editor.can().addColumnBefore() },
+    { label: t.table.insertColRight, action: () => editor.chain().focus().addColumnAfter().run(), disabled: !editor.can().addColumnAfter() },
+    { label: t.table.insertRowAbove, action: () => editor.chain().focus().addRowBefore().run(), disabled: !editor.can().addRowBefore() },
+    { label: t.table.insertRowBelow, action: () => editor.chain().focus().addRowAfter().run(), disabled: !editor.can().addRowAfter() },
     { type: 'separator' },
-    { label: '删除列', action: () => editor.chain().focus().deleteColumn().run(), disabled: !editor.can().deleteColumn() },
-    { label: '删除行', action: () => editor.chain().focus().deleteRow().run(), disabled: !editor.can().deleteRow() },
-    { label: '删除表格', action: () => editor.chain().focus().deleteTable().run(), disabled: !editor.can().deleteTable() },
+    { label: t.table.deleteCol, action: () => editor.chain().focus().deleteColumn().run(), disabled: !editor.can().deleteColumn() },
+    { label: t.table.deleteRow, action: () => editor.chain().focus().deleteRow().run(), disabled: !editor.can().deleteRow() },
+    { label: t.table.deleteTable, action: () => editor.chain().focus().deleteTable().run(), disabled: !editor.can().deleteTable() },
     { type: 'separator' },
-    { label: '合并单元格', action: () => editor.chain().focus().mergeCells().run(), disabled: !editor.can().mergeCells() },
-    { label: '拆分单元格', action: () => editor.chain().focus().splitCell().run(), disabled: !editor.can().splitCell() },
+    { label: t.table.mergeCells, action: () => editor.chain().focus().mergeCells().run(), disabled: !editor.can().mergeCells() },
+    { label: t.table.splitCell, action: () => editor.chain().focus().splitCell().run(), disabled: !editor.can().splitCell() },
   ]
 
   return (

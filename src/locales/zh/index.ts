@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogCss, platformPublish, blogModal } from './blog'
-import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, blog, editorPanel, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels, writingAid, exportKit } from './common'
+import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, auroraTabs, blog, editorPanel, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels, writingAid, exportKit } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -256,6 +256,10 @@ export interface Translations {
     insertRow: string
     deleteRow: string
     insertCol: string
+    insertColLeft: string
+    insertColRight: string
+    insertRowAbove: string
+    insertRowBelow: string
     deleteCol: string
     markdownPreview: string
     insertTableBtn: string
@@ -1065,6 +1069,10 @@ export interface Translations {
     versionHistory: string
     historyShort: string
     langSwitch: string
+    editorViewAria: string
+    viewSource: string
+    viewPreview: string
+    viewWysiwyg: string
   }
   editorPanel: {
     pin: string
@@ -2328,6 +2336,13 @@ export interface Translations {
     closeOtherTabs: string
     closeTabsToRight: string
   }
+  auroraTabs: {
+    closeTab: string
+    closeOthers: string
+    closeRight: string
+    closeAll: string
+    publishAsBlog: string
+  }
   blogModal: {
     generateBlog: string
     siteTitle: string
@@ -2696,6 +2711,7 @@ const zh: Translations = {
   settingsGeneral,
   settingsUser,
   editorToolbar,
+  auroraTabs,
   blog,
   editorPanel,
   diary,
