@@ -632,10 +632,17 @@
 .aurora-csp__tabs[data-swiping] .aurora-csp__tabs-thumb { transition: none; }
 /* 使用优化⑥ · 侧栏面板导航 tab 全站同源基准（编辑器 .aurora-rightbar__tab 与此逐字一致） */
 .aurora-csp__tab {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 3px;
   padding: 6px 0 8px; background: transparent; border: none; border-bottom: 2px solid transparent;
   color: var(--mc-icon-muted); font-size: var(--mc-font-xs); font-family: inherit; cursor: pointer;
   transition: color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out), background-color var(--mc-dur-fast) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-out);
+}
+/* 标签文字：单行不换行 + 溢出省略（英文标签比中文长，换行会顶高行高、溢出会与相邻 tab 重叠） */
+.aurora-csp__tab > span {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .aurora-csp__tab:hover { color: var(--mc-text-secondary); background: var(--mc-bg-hover); }
 /* 按压反馈（macOS 动效方案 §3.8）：tab 用微位移防行高抖动 */

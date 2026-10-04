@@ -658,6 +658,9 @@
 }
 .aurora-rightbar__tab {
   flex: 1;
+  /* min-width:0 —— 允许收缩到分配宽度以下；否则 flex 项默认 min-width:auto 不会小于
+     最长单词（如英文标签 "Backlinks"）的 min-content，会撑破行宽与相邻 tab 重叠。 */
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -671,6 +674,13 @@
   font-family: inherit;
   cursor: pointer;
   transition: color var(--mc-dur-fast) var(--mc-ease-out), border-color var(--mc-dur-fast) var(--mc-ease-out), background-color var(--mc-dur-fast) var(--mc-ease-out), transform var(--mc-dur-fast) var(--mc-ease-out);
+}
+/* 标签文字：单行不换行 + 溢出省略（英文标签比中文长，换行会顶高行高、溢出会与相邻 tab 重叠） */
+.aurora-rightbar__tab > span {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .aurora-rightbar__tab:hover {
   color: var(--mc-text-secondary);

@@ -466,11 +466,11 @@ export const en: Translations = {
     tabMinimap: 'Minimap',
   },
   canvasInspector: {
-    tabProps: 'Properties',
+    tabProps: 'Props',
     tabLayers: 'Layers',
     tabFilter: 'Filter',
-    tabFav: 'Favorites',
-    tabRec: 'Suggested',
+    tabFav: 'Favs',
+    tabRec: 'Suggest',
     tabSearch: 'Search',
   },
   canvasTab: {
@@ -1362,7 +1362,7 @@ export const en: Translations = {
     inspectorOverlay: 'Inspector',
     tabOutline: 'Outline',
     tabFootnote: 'Footnotes',
-    tabBacklinks: 'Block backlinks',
+    tabBacklinks: 'Backlinks',
     tabAid: 'Actions',
     expandInspector: 'Expand inspector',
     resizeTitle: 'Drag to resize ({w}px)',
