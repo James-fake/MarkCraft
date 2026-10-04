@@ -292,7 +292,7 @@ export function useCM6State({
         keymap.of([...defaultKeymap, ...searchKeymap]),
         createUndoRedoKeymap(),
         createKeymapExtension(),
-        createAutocompleteExtension(),
+        createAutocompleteExtension(t.autocomplete),
         // P1-1：源码模式 [[note]] / ![[note]] 悬浮预览（对标 WYSIWYG WikiLinkHoverPreview）
         createWikiLinkHoverTooltip({
           resolveData: (target) => resolveHoverDataRef.current(target),

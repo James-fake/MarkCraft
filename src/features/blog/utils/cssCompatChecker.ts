@@ -16,6 +16,32 @@ export interface CompatIssue {
   browsers?: { ie: string; firefox: string; chrome: string; safari: string }
 }
 
+/** 检查 CSS 兼容性时返回的用户可见文案（可被调用方以目标语言覆盖） */
+export interface CssCompatMessages {
+  /** 建议添加前缀模板（{prefixes} = 形如 -webkit-backdrop-filter 的逗号分隔列表） */
+  prefixSuggestion: string
+  /** 按特性 property 键入的本地化描述 */
+  details: Record<string, string>
+}
+
+export const DEFAULT_CSS_COMPAT_MESSAGES: CssCompatMessages = {
+  prefixSuggestion: '建议添加浏览器前缀: {prefixes}',
+  details: {
+    ':has()': '较新的 CSS 选择器，旧浏览器不支持',
+    '@scope': '实验性特性，仅 Chrome 118+ 支持',
+    'color-mix()': '较新的 CSS 颜色函数',
+    'container-type': '容器查询，较新特性',
+    ':is()': '较新的选择器函数',
+    ':where()': '较新的选择器函数（零优先级）',
+    'aspect-ratio': '宽高比属性，较新',
+    'gap (flex)': 'Flex 布局中的 gap 在旧 Safari 中不支持',
+    'text-wrap: balance': '文本平衡换行，非常新的特性',
+    '@property': 'CSS 属性注册，较新',
+    '@layer': 'CSS 层叠层，较新',
+    ':nth-child() of': '带 of 的 nth-child 语法，较新',
+  },
+}
+
 /** 需要浏览器前缀的属性 */
 const PREFIX_NEEDED: Record<string, string[]> = {
   'backdrop-filter': ['-webkit-'],
@@ -142,7 +168,10 @@ const LOW_SUPPORT_FEATURES: Array<{
  * @param css CSS 字符串
  * @returns 兼容性问题列表
  */
-export function checkCssCompat(css: string): CompatIssue[] {
+export function checkCssCompat(
+  css: string,
+  messages: CssCompatMessages = DEFAULT_CSS_COMPAT_MESSAGES,
+): CompatIssue[] {
   if (!css || !css.trim()) return []
   const issues: CompatIssue[] = []
   const lines = css.split('\n')
@@ -160,7 +189,7 @@ export function checkCssCompat(css: string): CompatIssue[] {
           line: i + 1,
           property: prop,
           type: 'prefix_needed',
-          detail: `建议添加浏览器前缀: ${prefixes.map(p => p + prop).join(', ')}`,
+          detail: messages.prefixSuggestion.replace('{prefixes}', prefixes.map(p => p + prop).join(', ')),
           suggestion: prefixes.map(p => p + prop).join('; '),
         })
       }
@@ -173,7 +202,7 @@ export function checkCssCompat(css: string): CompatIssue[] {
           line: i + 1,
           property: feature.property,
           type: feature.type,
-          detail: feature.detail,
+          detail: messages.details[feature.property] ?? feature.detail,
           browsers: feature.browsers,
         })
       }

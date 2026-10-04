@@ -235,7 +235,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
 
   // P1.2: 导出搜索结果（内容构建纯函数见 searchUtils#buildExportContent；此处只负责 Blob 下载）
   const handleExport = useCallback((format: 'md' | 'csv' | 'json') => {
-    const content = buildExportContent(format, { query, results, totalMatches });
+    const content = buildExportContent(format, { query, results, totalMatches }, t.globalSearch);
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -245,7 +245,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
     a.download = `search-${timestamp}.${format}`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [query, results, totalMatches]);
+  }, [query, results, totalMatches, t]);
 
   const highlightMatch = (text: string, start: number, end: number) => {
     const before = text.substring(0, start);

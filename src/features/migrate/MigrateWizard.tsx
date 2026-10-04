@@ -104,7 +104,9 @@ const MigrateWizard: React.FC<MigrateWizardProps> = ({ isOpen, onClose }) => {
       setDone(null)
       try {
         const result =
-          source === 'obsidian' ? await importObsidianVault(file) : await importNotionExport(file)
+          source === 'obsidian'
+            ? await importObsidianVault(file, t.importExternal)
+            : await importNotionExport(file, t.importExternal)
         const folderName =
           file.name.replace(/\.(zip|tar\.gz)$/i, '') || `${w.migrateFolderDefault}-${Date.now()}`
         const folderId = createFolder('root', folderName)
@@ -128,7 +130,7 @@ const MigrateWizard: React.FC<MigrateWizardProps> = ({ isOpen, onClose }) => {
         setImporting(false)
       }
     },
-    [source, createFile, createFolder, toast, w],
+    [source, createFile, createFolder, toast, w, t],
   )
 
   return (

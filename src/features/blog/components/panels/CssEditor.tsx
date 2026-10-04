@@ -572,7 +572,7 @@ export function CssEditor({ value, onChange, placeholder, canUndo, canRedo, onUn
 
           {/* 兼容性提示 — 检测需前缀属性和兼容性有限的新特性 */}
           {(() => {
-            const compatIssues = checkCssCompat(value)
+            const compatIssues = checkCssCompat(value, t.cssCompat)
             if (compatIssues.length === 0) return null
             return (
               <div style={{

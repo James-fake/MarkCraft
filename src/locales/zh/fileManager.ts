@@ -138,6 +138,12 @@ export const globalSearch = {
   confirmReplace: '确认替换',
   replacePreviewTitle: '替换预览（{changes} 处修改 / {files} 个文件）',
   noChanges: '没有实际变化',
+  // 导出搜索结果（buildExportContent）
+  exportTitle: '搜索结果',
+  exportSummary: '共 {files} 个文件，{matches} 处匹配',
+  exportPathLabel: '路径',
+  exportCsvHeader: '文件,行号,列号,匹配,上下文',
+  exportLinePrefix: 'L',
 }
 
 export const tabBar = {

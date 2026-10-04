@@ -58,25 +58,48 @@ export interface ReplaceDiffPreview {
   diffs: { fileName: string; line: number; oldLine: string; newLine: string }[];
 }
 
+/** 导出搜索结果时使用的用户可见文案（可被调用方以目标语言覆盖） */
+export interface SearchExportMessages {
+  /** 导出标题（用于 Markdown 一级标题，后接 ": {query}"） */
+  exportTitle: string
+  /** 摘要模板（{files}=文件数，{matches}=匹配数） */
+  exportSummary: string
+  /** 路径标签（后接 ": {path}"） */
+  exportPathLabel: string
+  /** CSV 表头 */
+  exportCsvHeader: string
+  /** 行号前缀（后接行号，如 L42） */
+  exportLinePrefix: string
+}
+
+export const DEFAULT_SEARCH_EXPORT_MESSAGES: SearchExportMessages = {
+  exportTitle: '搜索结果',
+  exportSummary: '共 {files} 个文件，{matches} 处匹配',
+  exportPathLabel: '路径',
+  exportCsvHeader: '文件,行号,列号,匹配,上下文',
+  exportLinePrefix: 'L',
+}
+
 /** P1.2: 导出搜索结果 —— 内容构建纯函数；Blob 下载由调用方承担 */
 export function buildExportContent(
   format: 'md' | 'csv' | 'json',
   data: { query: string; results: GlobalSearchResult[]; totalMatches: number },
+  messages: SearchExportMessages = DEFAULT_SEARCH_EXPORT_MESSAGES,
 ): string {
   const { query, results, totalMatches } = data;
   let content = '';
 
   if (format === 'md') {
-    content = `# 搜索结果: ${query}\n\n共 ${results.length} 个文件，${totalMatches} 处匹配\n\n`;
+    content = `# ${messages.exportTitle}: ${query}\n\n${messages.exportSummary.replace('{files}', String(results.length)).replace('{matches}', String(totalMatches))}\n\n`;
     for (const r of results) {
-      content += `## ${r.fileName}\n\n路径: ${r.filePath}\n\n`;
+      content += `## ${r.fileName}\n\n${messages.exportPathLabel}: ${r.filePath}\n\n`;
       for (const m of r.matches) {
-        content += `- L${m.line}: ${m.text.trim()}\n`;
+        content += `- ${messages.exportLinePrefix}${m.line}: ${m.text.trim()}\n`;
       }
       content += '\n';
     }
   } else if (format === 'csv') {
-    content = '文件,行号,列号,匹配,上下文\n';
+    content = `${messages.exportCsvHeader}\n`;
     for (const r of results) {
       for (const m of r.matches) {
         const ctx = m.text.replace(/"/g, '""').trim();
