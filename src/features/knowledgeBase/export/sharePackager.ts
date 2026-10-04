@@ -69,6 +69,28 @@ function extractTags(files: FileNode[]): string[] {
 }
 
 /**
+ * ZIP 内唯一名：不同目录下的同名文件（如 a/README.md、b/README.md）扁平化到 files/ 后会
+ * 互相覆盖，导致导出静默丢文件。此处按需追加 -2/-3… 后缀（保扩展名）。
+ */
+function uniqueZipName(used: Set<string>, name: string): string {
+  if (!used.has(name)) {
+    used.add(name)
+    return name
+  }
+  const dot = name.lastIndexOf('.')
+  const base = dot > 0 ? name.slice(0, dot) : name
+  const ext = dot > 0 ? name.slice(dot) : ''
+  let i = 2
+  let candidate = `${base}-${i}${ext}`
+  while (used.has(candidate)) {
+    i += 1
+    candidate = `${base}-${i}${ext}`
+  }
+  used.add(candidate)
+  return candidate
+}
+
+/**
  * 导出知识库为分享包（.mcshare）
  * @param kb 知识库
  * @param files 文件列表
@@ -91,11 +113,13 @@ export async function exportKbPackage(
     if (!filesFolder) {
       throw new Error(messages.shareCreateFilesDirFailed)
     }
+    const usedFileNames = new Set<string>()
     for (const file of files) {
       const content = file.content ?? ''
       // 文件名可能含路径分隔符，统一取文件名避免目录嵌套
       const safeName = file.name.split(/[\\/]/).pop() || file.name
-      filesFolder.file(safeName, content)
+      // 去重：避免不同目录同名文件在扁平化后互相覆盖（静默丢文件）
+      filesFolder.file(uniqueZipName(usedFileNames, safeName), content)
     }
 
     // 2. 收集关联画布数据并写入 canvases/
@@ -105,9 +129,11 @@ export async function exportKbPackage(
       if (!canvasesFolder) {
         throw new Error(messages.shareCreateCanvasesDirFailed)
       }
+      const usedCanvasNames = new Set<string>()
       for (const cv of canvasList) {
         const safeName = (cv.name.split(/[\\/]/).pop() || cv.name).replace(/\.json$/i, '')
-        canvasesFolder.file(`${safeName}.json`, JSON.stringify({
+        // 去重：同名画布在扁平化后互相覆盖
+        canvasesFolder.file(uniqueZipName(usedCanvasNames, `${safeName}.json`), JSON.stringify({
           id: cv.id,
           name: cv.name,
           data: cv.data,

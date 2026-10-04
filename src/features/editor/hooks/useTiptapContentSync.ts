@@ -26,17 +26,27 @@ export function useTiptapContentSync({
   const editorInitialized = useRef(false)
   const prevFileIdRef = useRef<string | undefined>(fileId)
 
+  // `undoRedo`（useUndoRedo() 的 context value）每次 provider 渲染都是新对象，
+  // 且 provider 在每次 pushHistory 后 ~50ms 强制重渲染（见 UndoRedoStore）。
+  // 若把它放进依赖数组，本 effect 会在**每次敲键**后重跑：既清掉挂起的防抖 onChange
+  // （自动保存丢失），又因父级 value 仍是旧值而 setContent(旧值) 回滚内容。
+  // 故用 ref 读取，且依赖数组不含它。
+  const undoRedoRef = useRef(undoRedo)
+  undoRedoRef.current = undoRedo
+
   useEffect(() => {
     if (!editor) return
 
-    // Clear pending debounced onChange when file changes to prevent cross-file write
-    if (debounceTimerRef.current) {
+    const fileIdChanged = prevFileIdRef.current !== fileId
+    prevFileIdRef.current = fileId
+
+    // 仅在**切换文件**时清掉挂起的防抖 onChange（防止跨文件写入）。
+    // 绝不能在无关重渲染时清：父级 value 落后于输入（onChange 有防抖），
+    // 清掉它会让本次输入既不保存、又被 setContent(旧值) 回滚。
+    if (fileIdChanged && debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current)
       debounceTimerRef.current = null
     }
-
-    const fileIdChanged = prevFileIdRef.current !== fileId
-    prevFileIdRef.current = fileId
 
     if (!editorInitialized.current) {
       editorInitialized.current = true
@@ -46,7 +56,7 @@ export function useTiptapContentSync({
       editor.commands.setTextSelection(0)
       lastEmittedMd.current = value
       if (fileId) {
-        undoRedo.initHistory(fileId, value)
+        undoRedoRef.current.initHistory(fileId, value)
       }
       setTimeout(() => {
         isInternalUpdate.current = false
@@ -66,7 +76,7 @@ export function useTiptapContentSync({
       editor.commands.setTextSelection(0)
       lastEmittedMd.current = value
       if (fileId) {
-        undoRedo.initHistory(fileId, value)
+        undoRedoRef.current.initHistory(fileId, value)
       }
       setTimeout(() => {
         isInternalUpdate.current = false
@@ -84,5 +94,5 @@ export function useTiptapContentSync({
     setTimeout(() => {
       isInternalUpdate.current = false
     }, 0)
-  }, [value, editor, fileId, debounceTimerRef, isInternalUpdate, lastEmittedMd, undoRedo])
+  }, [value, editor, fileId, debounceTimerRef, isInternalUpdate, lastEmittedMd])
 }

@@ -22,6 +22,7 @@ import type { ColorScheme, FontSet } from './colorSchemes'
 import { getClassicJsInteractions } from './jsInteractions'
 import { getClassicThemeCss } from './classicThemeCss'
 import { sanitizeCssFast } from '../cssSanitizer'
+import { safeJsonLd } from '../jsonLd'
 
 export interface ClassicTemplateConfig {
   config: BlogConfig
@@ -311,7 +312,7 @@ export function generateClassicHtmlTemplate(params: ClassicTemplateConfig): stri
   const css = getClassicThemeCss({ isDark, colors, fonts })
 
   // JSON-LD structured data
-  const websiteJsonLd = `<script type="application/ld+json">${JSON.stringify({
+  const websiteJsonLd = `<script type="application/ld+json">${safeJsonLd({
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: mergedConfig.siteTitle,
@@ -329,7 +330,7 @@ export function generateClassicHtmlTemplate(params: ClassicTemplateConfig): stri
     if (post.date) schema.datePublished = new Date(post.date).toISOString()
     if (post.description) schema.description = post.description
     if (post.coverImage) schema.image = post.coverImage
-    return `<script type="application/ld+json" id="jsonld-post-${escapeAttr(post.slug)}">${JSON.stringify(schema)}</script>`
+    return `<script type="application/ld+json" id="jsonld-post-${escapeAttr(post.slug)}">${safeJsonLd(schema)}</script>`
   }).join('\n')
 
   return `<!DOCTYPE html>

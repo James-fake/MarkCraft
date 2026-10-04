@@ -1,5 +1,6 @@
 import type { BlogConfig } from './types'
 import { escapeAttr } from './templateHelpers'
+import { safeJsonLd } from '../utils/jsonLd'
 
 export interface SeoMeta {
   title: string
@@ -71,7 +72,7 @@ export function generateJsonLd(seoMeta: SeoMeta, config: BlogConfig): string {
     if (seoMeta.publishedTime) schema.datePublished = seoMeta.publishedTime
     if (seoMeta.modifiedTime) schema.dateModified = seoMeta.modifiedTime
     if (seoMeta.image) schema.image = seoMeta.image
-    return `<script type="application/ld+json">${JSON.stringify(schema)}</script>`
+    return `<script type="application/ld+json">${safeJsonLd(schema)}</script>`
   }
   const schema = {
     '@context': 'https://schema.org',
@@ -80,5 +81,5 @@ export function generateJsonLd(seoMeta: SeoMeta, config: BlogConfig): string {
     description: config.siteDescription,
     url: config.siteUrl,
   }
-  return `<script type="application/ld+json">${JSON.stringify(schema)}</script>`
+  return `<script type="application/ld+json">${safeJsonLd(schema)}</script>`
 }

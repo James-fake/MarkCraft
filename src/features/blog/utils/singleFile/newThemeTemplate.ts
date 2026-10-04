@@ -20,6 +20,7 @@ import {
 import { getMermaidCss, getMermaidScript } from './mermaidHelpers'
 import { generateCustomColorOverrideCss } from './colorSchemes'
 import { sanitizeCssFast } from '../cssSanitizer'
+import { safeJsonLd } from '../jsonLd'
 import { getNewThemeJsInteractions } from './jsInteractions'
 
 const THEME_NAV_LABELS: Record<string, { home: { zh: string; en: string }; archive: { zh: string; en: string }; tags: { zh: string; en: string } }> = {
@@ -231,7 +232,7 @@ export function generateNewThemeSingleFileBlog(
   const customColorOverrideCss = generateCustomColorOverrideCss(config)
 
   // JSON-LD structured data
-  const websiteJsonLd = `<script type="application/ld+json">${JSON.stringify({
+  const websiteJsonLd = `<script type="application/ld+json">${safeJsonLd({
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: config.siteTitle,
@@ -249,7 +250,7 @@ export function generateNewThemeSingleFileBlog(
     if (post.date) schema.datePublished = new Date(post.date).toISOString()
     if (post.description) schema.description = post.description
     if (post.coverImage) schema.image = post.coverImage
-    return `<script type="application/ld+json" id="jsonld-post-${escapeAttr(post.slug)}">${JSON.stringify(schema)}</script>`
+    return `<script type="application/ld+json" id="jsonld-post-${escapeAttr(post.slug)}">${safeJsonLd(schema)}</script>`
   }).join('\n')
 
   return `<!DOCTYPE html>
@@ -904,7 +905,7 @@ export function generateCustomThemeSingleFileBlog(
   const customColorOverrideCss = generateCustomColorOverrideCss(config)
 
   // JSON-LD structured data for custom theme
-  const customWebsiteJsonLd = `<script type="application/ld+json">${JSON.stringify({
+  const customWebsiteJsonLd = `<script type="application/ld+json">${safeJsonLd({
     '@context': 'https://schema.org',
     '@type': 'WebSite',
     name: config.siteTitle,
@@ -922,7 +923,7 @@ export function generateCustomThemeSingleFileBlog(
     if (post.date) schema.datePublished = new Date(post.date).toISOString()
     if (post.description) schema.description = post.description
     if (post.coverImage) schema.image = post.coverImage
-    return `<script type="application/ld+json" id="jsonld-post-${escapeAttr(post.slug)}">${JSON.stringify(schema)}</script>`
+    return `<script type="application/ld+json" id="jsonld-post-${escapeAttr(post.slug)}">${safeJsonLd(schema)}</script>`
   }).join('\n')
 
   return `<!DOCTYPE html>

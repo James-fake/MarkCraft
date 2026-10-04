@@ -467,7 +467,7 @@ export default function BlogStudio({ isOpen, onClose, currentFile, onLoadSample 
                     flex: 1,
                     border: 'none', backgroundColor: '#fff', display: 'block',
                   }}
-                  sandbox="allow-scripts allow-same-origin" title={t.blogStudio.blogPreview}
+                  sandbox="allow-scripts" title={t.blogStudio.blogPreview}
                 />
               </div>
             ) : (

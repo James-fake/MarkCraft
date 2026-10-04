@@ -45,7 +45,9 @@ export default function DeployPanel({ result, t }: DeployPanelProps) {
   const d = isDark
 
   const [platform, setPlatform] = useState<DeployPlatform>('github')
-  const [token, setToken] = useState(() => localStorage.getItem('deploy_token') || '')
+  // 安全：部署 PAT 仅驻内存，绝不落 localStorage。
+  // （此前明文存 'deploy_token'，叠加博客预览的同源 XSS 即可被注入脚本读取外泄。）
+  const [token, setToken] = useState('')
   const [repo, setRepo] = useState('')
   const [owner, setOwner] = useState('')
   const [deploying, setDeploying] = useState(false)
@@ -66,7 +68,7 @@ export default function DeployPanel({ result, t }: DeployPanelProps) {
         'markcraft-blog'
       ))
       setValidated(true)
-      localStorage.setItem('deploy_token', token)
+      // 不持久化 token（见上）；如需跨会话保留，请走系统钥匙串而非 localStorage。
     } catch (e: unknown) {
       setValidateError(e instanceof Error ? e.message : t.blogCss.deployValidateFailed)
       setValidated(false)

@@ -16,11 +16,26 @@ function escapeHtml(text: string): string {
     .replace(/>/g, '&gt;')
 }
 
+/**
+ * 链接 URL 安全化：仅放行 http(s)/mailto 与相对路径（无协议），其余（javascript:/data: 等）降级为 '#'。
+ * 并转义引号——escapeHtml 不转义引号，URL 含 `"` 会从 href 属性中逃逸（属性注入 XSS）。
+ */
+function safeHref(raw: string): string {
+  const url = raw.trim()
+  const hasScheme = /^[a-z][a-z0-9+.-]*:/i.test(url)
+  const allowed = !hasScheme || /^(https?|mailto):/i.test(url)
+  const safe = allowed ? url : '#'
+  return safe.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+}
+
 /** 处理行内 markdown（链接、粗体、斜体、行内代码） */
 function inlineMd(text: string): string {
   let result = escapeHtml(text)
   // 链接 [text](url)
-  result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
+  result = result.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    (_m, label: string, url: string) => `<a href="${safeHref(url)}">${label}</a>`,
+  )
   // 粗体 **text**
   result = result.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
   // 斜体 *text*

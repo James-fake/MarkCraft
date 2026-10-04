@@ -37,6 +37,14 @@ const DANGEROUS_PATTERNS: ReadonlyArray<{
 
   // 7. data: URL 中的 HTML/JS（允许图片 data: URL，仅过滤 text/html）
   { regex: /url\s*\(\s*["']?\s*data:text\/html/gi, replacement: 'url(data:text/disabled', reason: 'data:text/html in url()' },
+
+  // 8. 闭合标签逃逸：自定义 CSS 以 `<style>${css}</style>` 注入，`</style>` 会提前结束 style 元素，
+  //    其后的 `<script>` 便成为真实标签（HTML raw text 不解码实体，只能消除该序列）。
+  //    用 CSS 反斜杠转义 `/`：CSS 语义等价（\/ → /），但 HTML 解析器不再识别为闭合标签。
+  { regex: /<\s*\/\s*(style|script)\b/gi, replacement: '<\\/$1', reason: '</style|</script 逃逸 style 元素' },
+
+  // 9. HTML 注释开启序列（可诱发怪异解析/条件注释类攻击）
+  { regex: /<!--/g, replacement: '<\\!--', reason: '<!-- 注释序列' },
 ]
 
 /** 检测到的威胁记录 */

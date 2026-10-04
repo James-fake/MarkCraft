@@ -1,10 +1,17 @@
 import katex from 'katex';
 import { logger } from '@utils/logger';
 
+/** KaTeX trust 回调收到的上下文（protocol 形如 'http' | 'https' | 'mailto' | '_relative' | '_unknown'） */
+interface KatexTrustContext {
+  command?: string;
+  url?: string;
+  protocol?: string;
+}
+
 interface MathRenderOptions {
   throwOnError?: boolean;
   strict?: boolean | 'ignore' | 'warn' | 'error';
-  trust?: boolean;
+  trust?: boolean | ((context: KatexTrustContext) => boolean);
 }
 
 interface MathErrorLog {
@@ -28,10 +35,20 @@ const DEFAULT_CONFIG: MathRenderConfig = {
 
 let currentConfig: MathRenderConfig = { ...DEFAULT_CONFIG };
 
+/**
+ * 安全：KaTeX `trust` 不设 `true`（那会放行 \href{javascript:…}、\includegraphics 远程图等）。
+ * 仅放行 http/https/mailto 与相对路径；其余（javascript:/data:/vbscript:/file: 等）一律拒绝。
+ * 该输出会直接进入预览 DOM（且不再二次净化），必须在此拦截。
+ */
+const ALLOWED_PROTOCOLS = new Set(['http', 'https', 'mailto', '_relative']);
+
 const DEFAULT_OPTIONS: MathRenderOptions = {
   throwOnError: false,
   strict: 'ignore',
-  trust: true,
+  trust: (context: KatexTrustContext) => {
+    const protocol = (context.protocol || '').toLowerCase();
+    return ALLOWED_PROTOCOLS.has(protocol);
+  },
 };
 
 const errorLogs: MathErrorLog[] = [];
