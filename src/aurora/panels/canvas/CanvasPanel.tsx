@@ -67,7 +67,13 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
   const { t } = useLanguage()
   const CP = t.canvasPanel
   const { rootFolder, openFile, createFile } = useFileManager()
-  const kbStore = useKbStore()
+  // 只取稳定的 useCallback（[] 依赖），不要把整个 useKbStore() 对象放进 effect 依赖 ——
+  // 该对象每次渲染都是新引用，会导致 effect 自激（每次 setOwningKb → 重渲染 → 再查库）。
+  const { getKbsContainingCanvas } = useKbStore()
+  // 默认白板名仅用于「新建」时刻；用 ref 读取，避免把本地化文案放进挂载 effect 依赖
+  // （否则切换语言会重跑挂载逻辑、覆盖当前打开的文档）。
+  const defaultCanvasNameRef = useRef(CP.defaultCanvas)
+  defaultCanvasNameRef.current = CP.defaultCanvas
   const [engine, setEngine] = useState<CanvasEngine | null>(null)
   const [doc, setDoc] = useState<CanvasDocument | null>(null)
   // ExcalidrawCanvas initialDocument（doc 切换时用 key 重挂载重新载入）
@@ -147,7 +153,7 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
         const list = await getCanvasList()
         if (!alive) return
         const target = list.length > 0 ? list[0] : null
-        const d = target ? await loadCanvas(target.id) : await createCanvas(CP.defaultCanvas)
+        const d = target ? await loadCanvas(target.id) : await createCanvas(defaultCanvasNameRef.current)
         if (d && alive) {
           setDoc(d)
           setInitialData(d.data)
@@ -159,7 +165,7 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
     return () => {
       alive = false
     }
-  }, [canvasId, CP])
+  }, [canvasId])
 
   // 反向解析所属知识库（canvasIds），供顶部「所属知识库」芯片回跳
   useEffect(() => {
@@ -167,7 +173,7 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
     if (!doc?.id) { setOwningKb(null); return }
     (async () => {
       try {
-        const ids = await kbStore.getKbsContainingCanvas(doc.id)
+        const ids = await getKbsContainingCanvas(doc.id)
         if (!alive || ids.length === 0) { setOwningKb(null); return }
         const kb = await loadKb(ids[0])
         if (alive && kb) setOwningKb({ id: kb.id, name: kb.name, folderId: kb.folderId })
@@ -176,7 +182,7 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
       }
     })()
     return () => { alive = false }
-  }, [doc?.id, kbStore])
+  }, [doc?.id, getKbsContainingCanvas])
 
   // 打开指定白板：重新载入文档并重挂载引擎
   const openCanvas = useCallback(async (id: string) => {
@@ -328,22 +334,35 @@ export function CanvasPanel({ nav, toast, onOpenFile, canvasId }: CanvasPanelPro
   // 自动保存：引擎 document 变化 → 800ms 防抖 → serializeCanvas + saveCanvas
   useEffect(() => {
     if (!engine || !doc) return
+    // 立即落盘挂起的保存。注意用**本次 effect 捕获的** engine/doc，而非 docRef.current ——
+    // 切文档后 docRef 已指向新文档，用它会「把旧场景写进新文档」。
+    const flush = () => {
+      if (!saveTimer.current) return
+      window.clearTimeout(saveTimer.current)
+      saveTimer.current = null
+      try {
+        const data = serializeCanvas(engine)
+        void saveCanvas({ ...doc, data, updatedAt: Date.now() })
+      } catch {
+        /* 引擎可能已销毁（卸载路径）：忽略 */
+      }
+    }
     const unsub = engine.store.listen(
       () => {
         if (saveTimer.current) window.clearTimeout(saveTimer.current)
         saveTimer.current = window.setTimeout(() => {
-          const cur = docRef.current
-          if (!cur) return
+          saveTimer.current = null
           const data = serializeCanvas(engine)
-          void saveCanvas({ ...cur, data, updatedAt: Date.now() })
-          void refreshThumbnail(cur.id)
+          void saveCanvas({ ...doc, data, updatedAt: Date.now() })
+          void refreshThumbnail(doc.id)
         }, 800)
       },
       { scope: 'document' },
     )
     return () => {
       unsub()
-      if (saveTimer.current) window.clearTimeout(saveTimer.current)
+      // 卸载/切文档：把挂起的保存立即落盘（否则 800ms 窗口内的编辑被静默丢弃）
+      flush()
     }
   }, [engine, doc, refreshThumbnail])
 

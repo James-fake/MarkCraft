@@ -87,6 +87,27 @@ export const LinkIndexProvider: React.FC<{ children: React.ReactNode; rootFolder
     setFileIndex(prev => {
       const newIndex = new Map(prev);
 
+      // 写入用克隆：newIndex 只是浅拷贝，entry 对象与 prev 共享。
+      // 直接就地改 entry（backlinks/unlinkedMentions）会违反 React 不可变约定：
+      // ① StrictMode 下 updater 跑两次 → 反链/提及被重复追加；
+      // ② 未变身份的 entry 不触发依赖引用相等的消费者重渲染。
+      const clonedEntries = new Map<string, FileLinkIndex>();
+      const entryForWrite = (id: string): FileLinkIndex | undefined => {
+        const existing = newIndex.get(id);
+        if (!existing) return undefined;
+        let c = clonedEntries.get(id);
+        if (!c) {
+          c = {
+            ...existing,
+            backlinks: [...existing.backlinks],
+            unlinkedMentions: [...existing.unlinkedMentions],
+          };
+          clonedEntries.set(id, c);
+          newIndex.set(id, c);
+        }
+        return c;
+      };
+
       // Parse new outgoing links for this file
       const newOutgoing = parseLinks(fileId, fileName, content);
 
@@ -116,7 +137,7 @@ export const LinkIndexProvider: React.FC<{ children: React.ReactNode; rootFolder
       for (const oldLink of oldOutgoing) {
         const resolvedId = nameToId.get(oldLink.target) ?? nameToId.get(oldLink.target.toLowerCase());
         if (resolvedId && resolvedId !== thisFileId) {
-          const targetEntry = newIndex.get(resolvedId);
+          const targetEntry = entryForWrite(resolvedId);
           if (targetEntry) {
             targetEntry.backlinks = targetEntry.backlinks.filter(bl => bl.sourceFileId !== thisFileId);
           }
@@ -127,7 +148,7 @@ export const LinkIndexProvider: React.FC<{ children: React.ReactNode; rootFolder
       for (const newLink of newOutgoing) {
         const resolvedId = nameToId.get(newLink.target) ?? nameToId.get(newLink.target.toLowerCase());
         if (resolvedId && resolvedId !== thisFileId) {
-          const targetEntry = newIndex.get(resolvedId);
+          const targetEntry = entryForWrite(resolvedId);
           if (targetEntry) {
             targetEntry.backlinks = [...targetEntry.backlinks, newLink];
           }
@@ -153,8 +174,10 @@ export const LinkIndexProvider: React.FC<{ children: React.ReactNode; rootFolder
       // 1. 更新缓存中本文件的内容
       contentCacheRef.current.set(thisFileId, { content, fileName });
       // 2. 清除其它文件中对本文件的旧提及
-      for (const [otherId, otherEntry] of newIndex) {
+      for (const otherId of Array.from(newIndex.keys())) {
         if (otherId === thisFileId) continue;
+        const otherEntry = entryForWrite(otherId);
+        if (!otherEntry) continue;
         otherEntry.unlinkedMentions = otherEntry.unlinkedMentions.filter(
           m => m.target.toLowerCase() !== thisFileNameWithoutExt.toLowerCase()
         );
@@ -163,7 +186,7 @@ export const LinkIndexProvider: React.FC<{ children: React.ReactNode; rootFolder
       if (thisFileNameWithoutExt.length >= 2) {
         for (const [otherId, cached] of contentCacheRef.current) {
           if (otherId === thisFileId) continue;
-          const otherEntry = newIndex.get(otherId);
+          const otherEntry = entryForWrite(otherId);
           if (!otherEntry) continue;
           const otherContent = cached.content;
           const lines = otherContent.split('\n');

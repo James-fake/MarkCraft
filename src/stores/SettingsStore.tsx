@@ -63,6 +63,9 @@ export interface AppSettings {
 }
 
 const SETTINGS_KEY = 'markcraft_settings'
+// 一次性迁移标志：E1「source → wysiwyg」范式收敛只执行一次，
+// 之后用户主动设回 source 不再被每次加载覆盖。
+const EDITOR_MODE_MIGRATED_KEY = 'markcraft-editor-mode-wysiwyg-migrated'
 
 export const DEFAULT_SETTINGS: AppSettings = {
   // 默认范式收敛：WYSIWYG（TipTap + Live Preview）为默认；源码模式为可选高级模式（P1-1.2 E1）
@@ -123,10 +126,14 @@ export function loadSettings(): AppSettings {
         saveSettings(parsed)
       }
       // 迁移：P1-1.2 E1 范式收敛——老用户默认从 'source' 升级到 'wysiwyg'
-      // （之前源码模式是默认；本升级一次性，若用户后续主动设回 source 不再覆盖）
-      if (parsed.editorMode === 'source') {
-        parsed.editorMode = 'wysiwyg'
-        saveSettings(parsed)
+      // 一次性：由 EDITOR_MODE_MIGRATED_KEY 记录；置位后用户主动设回 source 不再被覆盖。
+      // （此前无标志位，每次加载都把 'source' 改回 'wysiwyg'，用户选择永远不生效。）
+      if (localStorage.getItem(EDITOR_MODE_MIGRATED_KEY) !== '1') {
+        if (parsed.editorMode === 'source') {
+          parsed.editorMode = 'wysiwyg'
+          saveSettings(parsed)
+        }
+        try { localStorage.setItem(EDITOR_MODE_MIGRATED_KEY, '1') } catch { /* ignore */ }
       }
       // 迁移：从独立 localStorage key 迁移 view 相关设置
       // 仅当主 store 中保存的数据不含这些字段时（旧版本用户）
