@@ -6,6 +6,28 @@ import type { FileNode } from '@src/types/fileManager'
 import type { AiChatResult } from '@stores/kbTypes'
 import { getAiService, cosineSimilarity } from './aiService'
 
+/** 知识库问答返回的答案文案（可被调用方以目标语言覆盖） */
+export interface KbChatMessages {
+  /** 无可检索文件 / 问题为空 */
+  noFiles: string
+  /** 问题向量化失败 */
+  embedFailed: string
+  /** 文件内容为空 */
+  emptyContent: string
+  /** 生成回答失败 */
+  genFailed: string
+  /** 片段表头模板（{n}=序号，{src}=来源文件名） */
+  snippetHeader: string
+}
+
+export const DEFAULT_KB_CHAT_MESSAGES: KbChatMessages = {
+  noFiles: '暂无可检索的文件或问题为空',
+  embedFailed: '问题向量化失败，请重试',
+  emptyContent: '文件内容为空，无法回答',
+  genFailed: '生成回答失败，请稍后重试',
+  snippetHeader: '【片段{n} 来源：{src}】',
+}
+
 /** 递归收集所有文件节点（扁平化） */
 function collectAllFiles(nodes: FileNode[]): FileNode[] {
   const result: FileNode[] = []
@@ -47,11 +69,12 @@ interface Paragraph {
  */
 export async function askKb(
   question: string,
-  files: FileNode[]
+  files: FileNode[],
+  messages: KbChatMessages = DEFAULT_KB_CHAT_MESSAGES,
 ): Promise<AiChatResult> {
   const allFiles = collectAllFiles(files)
   if (allFiles.length === 0 || !question.trim()) {
-    return { answer: '暂无可检索的文件或问题为空', sources: [] }
+    return { answer: messages.noFiles, sources: [] }
   }
 
   const ai = getAiService()
@@ -61,7 +84,7 @@ export async function askKb(
   try {
     questionVec = await ai.embed(question)
   } catch {
-    return { answer: '问题向量化失败，请重试', sources: [] }
+    return { answer: messages.embedFailed, sources: [] }
   }
 
   // 2. 切分段落并对每段做 embedding
@@ -85,7 +108,7 @@ export async function askKb(
   }
 
   if (paragraphs.length === 0) {
-    return { answer: '文件内容为空，无法回答', sources: [] }
+    return { answer: messages.emptyContent, sources: [] }
   }
 
   // 3. 计算问题向量与各段向量的余弦相似度，取 top-5
@@ -100,7 +123,10 @@ export async function askKb(
   const context = top5
     .map((item, idx) => {
       const snippet = item.paragraph.text
-      return `【片段${idx + 1} 来源：${item.paragraph.fileName}】\n${snippet}`
+      const header = messages.snippetHeader
+        .replace('{n}', String(idx + 1))
+        .replace('{src}', item.paragraph.fileName)
+      return `${header}\n${snippet}`
     })
     .join('\n\n')
 
@@ -110,7 +136,7 @@ export async function askKb(
     const result = await ai.chat(question, context)
     answer = result.answer
   } catch {
-    answer = '生成回答失败，请稍后重试'
+    answer = messages.genFailed
   }
 
   // 6. 构造 sources（包含 fileId 和 snippet）

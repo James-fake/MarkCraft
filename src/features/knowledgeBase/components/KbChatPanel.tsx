@@ -86,7 +86,7 @@ const KbChatPanel: React.FC<KbChatPanelProps> = ({ kbId, files, variant = 'dialo
     setLoading(true)
 
     try {
-      const result = await askKb(question, files)
+      const result = await askKb(question, files, t.kbChat)
       const aiMessage: ChatMessage = {
         role: 'ai',
         content: result.answer,

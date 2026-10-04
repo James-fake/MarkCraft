@@ -1136,6 +1136,8 @@ export const editorPanel = {
   pin: '钉住常驻',
   unpin: '取消钉住',
   collapse: '收起',
+  // 编辑器「返回来源」按钮（EditorReturnButton）
+  returnPrefix: '返回 {label}',
   // FileTree
   relNow: '刚刚',
   relMin: '{n}分钟前',
@@ -1316,6 +1318,26 @@ export const editorWidgets = {
   clipboardReadFailed: '无法读取剪贴板',
   clipboardFootnoteAria: '粘贴为脚注',
   clipboardFootnoteButton: '粘贴剪贴板 URL 为脚注',
+}
+
+// 知识图谱导出提示（graphExport.ts 纯函数：toast 由面板注入，文案走 messages 形参）
+export const graphExport = {
+  svgDone: '已导出 SVG',
+  jsonDone: '已导出 JSON',
+  pngDone: '已导出 PNG',
+  failed: '导出失败',
+}
+
+// 画布思维导图视图（MindMapView）
+export const mindMap = {
+  emptyCard: '空笔记',
+  title: '思维导图视图',
+  autoRoot: '自动选择根节点',
+  doubleClickHint: '双击节点折叠/展开',
+  noCards: '画布上还没有卡片',
+  noHierarchy: '未检测到卡片层级关系（parentId）',
+  noHierarchyHint: '请在画布上设置卡片的父卡片，或在顶部选择根节点',
+  collapsedHint: '已折叠，双击展开',
 }
 
 export const linkRedirectDialog = {
@@ -1688,6 +1710,12 @@ export const kbChat = {
   placeholder: '输入问题，Enter 发送，Shift+Enter 换行',
   send: '发送',
   error: '抱歉，回答生成失败，请稍后重试。',
+  // askKb 纯函数返回的答案文案（形参注入）
+  noFiles: '暂无可检索的文件或问题为空',
+  embedFailed: '问题向量化失败，请重试',
+  emptyContent: '文件内容为空，无法回答',
+  genFailed: '生成回答失败，请稍后重试',
+  snippetHeader: '【片段{n} 来源：{src}】',
 }
 
 // ---- 知识库·编辑/删除对话框（EditKbModal / DeleteKbModal）----

@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogCss, platformPublish, blogModal } from './blog'
-import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, auroraTabs, blog, editorPanel, diaryFormat, importDialog, importExternal, cssCompat, autocomplete, embedView, bootstrap, editorWidgets, linkRedirectDialog, autoLayout, auroraEditor, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels, writingAid, exportKit } from './common'
+import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, auroraTabs, blog, editorPanel, diaryFormat, importDialog, importExternal, cssCompat, autocomplete, embedView, bootstrap, editorWidgets, graphExport, mindMap, linkRedirectDialog, autoLayout, auroraEditor, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels, writingAid, exportKit } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -1078,6 +1078,7 @@ export interface Translations {
     pin: string
     unpin: string
     collapse: string
+    returnPrefix: string
     relNow: string
     relMin: string
     relHour: string
@@ -1498,6 +1499,11 @@ export interface Translations {
     placeholder: string
     send: string
     error: string
+    noFiles: string
+    embedFailed: string
+    emptyContent: string
+    genFailed: string
+    snippetHeader: string
   }
   kbModal: {
     editTitle: string
@@ -2450,6 +2456,22 @@ export interface Translations {
     clipboardFootnoteAria: string
     clipboardFootnoteButton: string
   }
+  graphExport: {
+    svgDone: string
+    jsonDone: string
+    pngDone: string
+    failed: string
+  }
+  mindMap: {
+    emptyCard: string
+    title: string
+    autoRoot: string
+    doubleClickHint: string
+    noCards: string
+    noHierarchy: string
+    noHierarchyHint: string
+    collapsedHint: string
+  }
   linkRedirectDialog: {
     title: string
     fromLabel: string
@@ -2888,6 +2910,8 @@ const zh: Translations = {
   embedView,
   bootstrap,
   editorWidgets,
+  graphExport,
+  mindMap,
   linkRedirectDialog,
   autoLayout,
   auroraEditor,

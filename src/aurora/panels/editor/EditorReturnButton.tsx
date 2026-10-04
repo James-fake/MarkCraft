@@ -13,6 +13,8 @@
  * 语义（回跳规则在调用方 handleReturnToSource）：kb → 该库详情；其它 view + kbId → 该范围图谱；
  * 无 kbId → 该视图默认形态。点一次即清空来源（一次性）。
  */
+import { useLanguage } from '@stores/LanguageStore'
+
 export interface EditorReturnButtonProps {
   /** 来源显示名（如「甲知识库 · 图谱」/「双链图谱」） */
   label: string
@@ -22,7 +24,8 @@ export interface EditorReturnButtonProps {
 }
 
 export function EditorReturnButton({ label, onReturn, inline }: EditorReturnButtonProps) {
-  const text = `返回 ${label}`
+  const { t } = useLanguage()
+  const text = t.editorPanel.returnPrefix.replace('{label}', label)
   return (
     <button
       type="button"

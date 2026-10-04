@@ -15,6 +15,7 @@ import type { NoteCardShape } from '../../shapes/NoteCardShape'
 import { layoutTree, type TreeNode } from '../../utils/treeLayout'
 import { CanvasIcon } from '../CanvasIcon'
 import { AuroraSelect } from '@components/ui/AuroraSelect'
+import { useLanguage } from '@stores/LanguageStore'
 
 interface MindMapViewProps {
   editor: Editor
@@ -30,6 +31,7 @@ interface MindNode {
 }
 
 export const MindMapView: React.FC<MindMapViewProps> = ({ editor, rootCardId }) => {
+  const { t } = useLanguage()
   const [rootId, setRootId] = useState<string | null>(rootCardId)
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -41,12 +43,12 @@ export const MindMapView: React.FC<MindMapViewProps> = ({ editor, rootCardId }) 
       const shapes = editor.getCurrentPageShapes().filter(s => s.type === 'note-card') as NoteCardShape[]
       return shapes.map(card => ({
         id: String(card.id),
-        title: card.props.text.split('\n')[0]?.replace(/^#+\s*/, '').slice(0, 30) || '空笔记',
+        title: card.props.text.split('\n')[0]?.replace(/^#+\s*/, '').slice(0, 30) || t.mindMap.emptyCard,
         color: card.props.color,
         parentId: card.props.parentId,
       })) as MindNode[]
     },
-    [editor],
+    [editor, t],
   )
 
   /** parentMap：子→父 */
@@ -166,18 +168,18 @@ export const MindMapView: React.FC<MindMapViewProps> = ({ editor, rootCardId }) 
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <CanvasIcon name="mindmap" size={18} />
-          <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--cv-text-main)' }}>思维导图视图</span>
+          <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--cv-text-main)' }}>{t.mindMap.title}</span>
           {/* 根节点选择 */}
           <AuroraSelect
             value={rootId ?? ''}
             onChange={(v) => setRootId(v || null)}
             options={[
-              { value: '', label: '自动选择根节点' },
+              { value: '', label: t.mindMap.autoRoot },
               ...cards.map(c => ({ value: c.id, label: c.title })),
             ]}
           />
           <span style={{ fontSize: 11, color: 'var(--cv-text-tertiary)' }}>
-            双击节点折叠/展开
+            {t.mindMap.doubleClickHint}
           </span>
         </div>
       </div>
@@ -188,15 +190,15 @@ export const MindMapView: React.FC<MindMapViewProps> = ({ editor, rootCardId }) 
           flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: 'var(--cv-text-tertiary)', fontSize: 14,
         }}>
-          画布上还没有卡片
+          {t.mindMap.noCards}
         </div>
       ) : !rootId && cards.every(c => !c.parentId) ? (
         <div style={{
           flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: 'var(--cv-text-tertiary)', fontSize: 14, flexDirection: 'column', gap: 8,
         }}>
-          <div>未检测到卡片层级关系（parentId）</div>
-          <div style={{ fontSize: 12 }}>请在画布上设置卡片的父卡片，或在顶部选择根节点</div>
+          <div>{t.mindMap.noHierarchy}</div>
+          <div style={{ fontSize: 12 }}>{t.mindMap.noHierarchyHint}</div>
         </div>
       ) : (
         <div style={{ flex: 1, overflow: 'auto', padding: 16 }}>
@@ -267,7 +269,7 @@ export const MindMapView: React.FC<MindMapViewProps> = ({ editor, rootCardId }) 
                       r={6}
                       fill="var(--cv-accent)"
                     >
-                      <title>已折叠，双击展开</title>
+                      <title>{t.mindMap.collapsedHint}</title>
                     </circle>
                   )}
                   {/* 有子节点但未折叠的标记 */}

@@ -5,6 +5,21 @@
  */
 import type { GEdge, GNode } from './graphModel'
 
+/** 导出提示文案（可被调用方以目标语言覆盖） */
+export interface GraphExportMessages {
+  svgDone: string
+  jsonDone: string
+  pngDone: string
+  failed: string
+}
+
+export const DEFAULT_GRAPH_EXPORT_MESSAGES: GraphExportMessages = {
+  svgDone: '已导出 SVG',
+  jsonDone: '已导出 JSON',
+  pngDone: '已导出 PNG',
+  failed: '导出失败',
+}
+
 const download = (url: string, name: string) => {
   const a = document.createElement('a')
   a.href = url
@@ -42,10 +57,14 @@ const serializeGraph = (svg: SVGSVGElement): string => {
   return new XMLSerializer().serializeToString(clone)
 }
 
-export const exportSVG = (svg: SVGSVGElement, toast?: (msg: string) => void) => {
+export const exportSVG = (
+  svg: SVGSVGElement,
+  toast?: (msg: string) => void,
+  messages: GraphExportMessages = DEFAULT_GRAPH_EXPORT_MESSAGES,
+) => {
   const data = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(serializeGraph(svg))
   download(data, 'knowledge-graph.svg')
-  toast?.('已导出 SVG')
+  toast?.(messages.svgDone)
 }
 
 export const exportJSON = (
@@ -53,6 +72,7 @@ export const exportJSON = (
   edges: GEdge[],
   visibleIds: Set<string>,
   toast?: (msg: string) => void,
+  messages: GraphExportMessages = DEFAULT_GRAPH_EXPORT_MESSAGES,
 ) => {
   const data = {
     nodes: nodes.filter((n) => visibleIds.has(n.id)).map((n) => ({ id: n.id, label: n.label, type: n.type, tags: n.tags })),
@@ -62,10 +82,14 @@ export const exportJSON = (
     URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })),
     'knowledge-graph.json',
   )
-  toast?.('已导出 JSON')
+  toast?.(messages.jsonDone)
 }
 
-export const exportPNG = (svg: SVGSVGElement, toast?: (msg: string) => void) => {
+export const exportPNG = (
+  svg: SVGSVGElement,
+  toast?: (msg: string) => void,
+  messages: GraphExportMessages = DEFAULT_GRAPH_EXPORT_MESSAGES,
+) => {
   try {
     const xml = serializeGraph(svg)
     const img = new Image()
@@ -85,8 +109,8 @@ export const exportPNG = (svg: SVGSVGElement, toast?: (msg: string) => void) => 
       })
     }
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml)
-    toast?.('已导出 PNG')
+    toast?.(messages.pngDone)
   } catch {
-    toast?.('导出失败')
+    toast?.(messages.failed)
   }
 }

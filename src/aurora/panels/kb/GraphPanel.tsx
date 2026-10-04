@@ -347,11 +347,11 @@ export function GraphPanel({ nav, toast, kbId }: GraphPanelProps) {
   }, [kbStore, nav, toast, G.kbNotJoined])
 
   // —— 导出（P2-3：实现下沉 graph/graphExport.ts，这里只注入 svg 引用与可见集合）——
-  const doExportSvg = () => { if (svgRef.current) exportSVG(svgRef.current, toast) }
+  const doExportSvg = () => { if (svgRef.current) exportSVG(svgRef.current, toast, t.graphExport) }
   const doExportJson = () => {
-    if (svgRef.current) exportJSON(nodesRef.current, edgesRef.current, visibleIds, toast)
+    if (svgRef.current) exportJSON(nodesRef.current, edgesRef.current, visibleIds, toast, t.graphExport)
   }
-  const doExportPng = () => { if (svgRef.current) exportPNG(svgRef.current, toast) }
+  const doExportPng = () => { if (svgRef.current) exportPNG(svgRef.current, toast, t.graphExport) }
 
   // —— P2-3 拆分：派生集合（邻接/模式作用域/可见性/聚合/dim）与引擎（视口/物理/手势/现场）——
   const { adjacency, visibleIds, groupAgg, matchedIds, isDim, isEdgeDim } = useGraphDerived({
