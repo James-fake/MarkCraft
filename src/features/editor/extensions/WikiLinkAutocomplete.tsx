@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import type { Editor } from '@tiptap/react'
 import type { EditorView } from '@tiptap/pm/view'
 import { useLinkIndex } from '@stores/LinkIndexStore'
+import { useLanguage } from '@stores/LanguageStore'
 import { formatDate } from '../../fileManager/DailyNoteService'
 import type { FileNode } from '@src/types/fileManager'
 
@@ -28,6 +29,7 @@ function stripMdExtension(name: string): string {
 }
 
 const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) => {
+  const { t } = useLanguage()
   const [popupState, setPopupState] = useState<PopupState>({
     visible: false,
     query: '',
@@ -68,17 +70,20 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
     const suggestions: { dateStr: string; label: string }[] = []
     const baseDate = month ? new Date(year, month - 1, day || 1) : new Date()
     if (isNaN(baseDate.getTime())) return []
+    const weekDays = [
+      t.diary.weekday.sun, t.diary.weekday.mon, t.diary.weekday.tue,
+      t.diary.weekday.wed, t.diary.weekday.thu, t.diary.weekday.fri, t.diary.weekday.sat,
+    ]
     for (let i = 0; i < 7; i++) {
       const d = new Date(baseDate)
       d.setDate(d.getDate() + i)
       if (d.getFullYear() === year) {
         const dateStr = formatDate(d)
-        const weekDays = ['日', '一', '二', '三', '四', '五', '六']
-        suggestions.push({ dateStr, label: `${dateStr} 星期${weekDays[d.getDay()]}` })
+        suggestions.push({ dateStr, label: t.editorWidgets.dateWeekday.replace('{date}', dateStr).replace('{wd}', weekDays[d.getDay()]) })
       }
     }
     return suggestions
-  }, [popupState.visible, popupState.query, headingMode])
+  }, [popupState.visible, popupState.query, headingMode, t])
 
   const dateSuggestionsRef = useRef(dateSuggestions)
   dateSuggestionsRef.current = dateSuggestions
@@ -455,7 +460,7 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
             borderBottom: '1px solid var(--mc-border-subtle)',
             marginBottom: 4,
           }}>
-            标题 - {headingMode.fileName}
+            {t.editorWidgets.headingPrefix.replace('{name}', headingMode.fileName)}
           </div>
           {headingResults.map((heading, index) => (
             <div

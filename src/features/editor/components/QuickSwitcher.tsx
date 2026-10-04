@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useFileManager } from '@stores/FileStore'
+import { useLanguage } from '@stores/LanguageStore'
 
 interface QuickSwitcherProps {
   visible: boolean
@@ -12,6 +13,7 @@ interface QuickSwitcherProps {
 const stripMd = (name: string) => name.endsWith('.md') ? name.slice(0, -3) : name
 
 const QuickSwitcher: React.FC<QuickSwitcherProps> = ({ visible, onClose, onOpenFile }) => {
+  const { t } = useLanguage()
   const [query, setQuery] = useState('')
   const [selectedIndex, setSelectedIndex] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -88,13 +90,13 @@ const QuickSwitcher: React.FC<QuickSwitcherProps> = ({ visible, onClose, onOpenF
             value={query}
             onChange={e => { setQuery(e.target.value); setSelectedIndex(0) }}
             onKeyDown={handleKeyDown}
-            placeholder="切换打开的文件…"
+            placeholder={t.editorWidgets.quickSwitchPlaceholder}
           />
         </div>
         <div ref={listRef} className="aurora-command__list" style={{ maxHeight: 340 }}>
           {results.length === 0 && (
             <div className="aurora-command__empty">
-              {tabs.length === 0 ? '没有打开的文件' : '无匹配结果'}
+              {tabs.length === 0 ? t.editorWidgets.quickSwitchNoTabs : t.editorWidgets.quickSwitchNoMatch}
             </div>
           )}
           {results.map((file, i) => (

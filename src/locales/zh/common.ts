@@ -1292,6 +1292,32 @@ export const bootstrap = {
   noErrorDetail: '未捕获到具体错误。可能是资源加载失败（请检查网络/静态资源路径），或浏览器扩展拦截。',
 }
 
+// 编辑器浮层/小部件文案（QuickSwitcher / WikiLink 补全与悬停预览 / EmojiPicker / 粘贴脚注）
+export const editorWidgets = {
+  // QuickSwitcher（快速切换已打开文件）
+  quickSwitchPlaceholder: '切换打开的文件…',
+  quickSwitchNoTabs: '没有打开的文件',
+  quickSwitchNoMatch: '无匹配结果',
+  // WikiLinkAutocomplete（[[ 补全，标题模式）
+  headingPrefix: '标题 - {name}',
+  dateWeekday: '{date} 星期{wd}',
+  // WikiLinkHoverPreview（悬停预览）
+  fileMissing: '文件不存在',
+  fuzzyMatch: '模糊匹配',
+  noteLabel: '备注:',
+  backlinkCount: '{n} 个反向链接',
+  outgoingCount: '{n} 个出链',
+  // EmojiPicker（emoji 选择器）
+  emojiSearchPlaceholder: '搜索 Emoji...',
+  emojiNoMatch: '未找到匹配的 Emoji',
+  // FootnoteFromClipboard（粘贴剪贴板 URL 为脚注）
+  clipboardNotUrl: '剪贴板中不是有效 URL',
+  clipboardFootnoteAdded: '已转为脚注',
+  clipboardReadFailed: '无法读取剪贴板',
+  clipboardFootnoteAria: '粘贴为脚注',
+  clipboardFootnoteButton: '粘贴剪贴板 URL 为脚注',
+}
+
 export const linkRedirectDialog = {
   title: '链接重定向',
   fromLabel: '源目标',

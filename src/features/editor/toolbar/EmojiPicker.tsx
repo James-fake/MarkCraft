@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { EMOJI_DATA } from '@utils/emojiData'
+import { useLanguage } from '@stores/LanguageStore'
 
 interface EmojiPickerProps {
   onSelect: (emoji: string) => void
@@ -9,7 +10,9 @@ interface EmojiPickerProps {
 }
 
 export default function EmojiPicker({ onSelect, onClose, anchorEl }: EmojiPickerProps) {
+  const { t } = useLanguage()
   const [search, setSearch] = useState('')
+  // '常用' 是 EMOJI_DATA 的分类键（数据面），非 UI 文案，不外部化
   const [activeCategory, setActiveCategory] = useState('常用')
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -91,7 +94,7 @@ export default function EmojiPicker({ onSelect, onClose, anchorEl }: EmojiPicker
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="搜索 Emoji..."
+          placeholder={t.editorWidgets.emojiSearchPlaceholder}
           autoFocus
           style={{
             width: '100%',
@@ -167,7 +170,7 @@ export default function EmojiPicker({ onSelect, onClose, anchorEl }: EmojiPicker
           color: 'var(--mc-text-tertiary)',
           opacity: 0.6,
         }}>
-          未找到匹配的 Emoji
+          {t.editorWidgets.emojiNoMatch}
         </div>
       )}
     </div>,

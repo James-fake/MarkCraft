@@ -4,6 +4,7 @@ import { Editor } from '@tiptap/core'
 import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useFileManager } from '@stores/FileStore'
 import { useTagIndex } from '@stores/TagIndexStore'
+import { useLanguage } from '@stores/LanguageStore'
 import { findNode } from '@services/fileService'
 
 interface WikiLinkHoverPreviewProps {
@@ -32,6 +33,7 @@ const SHOW_DELAY = 300
 const HIDE_DELAY = 100
 
 const WikiLinkHoverPreview: React.FC<WikiLinkHoverPreviewProps> = ({ editor }) => {
+  const { t } = useLanguage()
   const [visible, setVisible] = useState(false)
   const [position, setPosition] = useState<PopupPosition>({ top: 0, left: 0 })
   const [previewData, setPreviewData] = useState<PreviewData | null>(null)
@@ -245,7 +247,7 @@ const WikiLinkHoverPreview: React.FC<WikiLinkHoverPreviewProps> = ({ editor }) =
       {previewData.broken ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ color: 'var(--mc-danger)', fontSize: 'var(--mc-font-md)' }}>⚠</span>
-          <span style={{ color: 'var(--mc-danger)', fontSize: 'var(--mc-font-sm)' }}>文件不存在</span>
+          <span style={{ color: 'var(--mc-danger)', fontSize: 'var(--mc-font-sm)' }}>{t.editorWidgets.fileMissing}</span>
         </div>
       ) : (
         <>
@@ -275,7 +277,7 @@ const WikiLinkHoverPreview: React.FC<WikiLinkHoverPreviewProps> = ({ editor }) =
                 color: 'var(--mc-warning)',
                 whiteSpace: 'nowrap',
               }}>
-                模糊匹配
+                {t.editorWidgets.fuzzyMatch}
               </span>
             )}
           </div>
@@ -323,14 +325,14 @@ const WikiLinkHoverPreview: React.FC<WikiLinkHoverPreviewProps> = ({ editor }) =
               borderRadius: 'var(--mc-radius-sm)',
               borderLeft: '2px solid var(--mc-accent)',
             }}>
-              <span style={{ fontSize: 'var(--mc-font-xs)', color: 'var(--mc-text-tertiary)', marginRight: 4 }}>备注:</span>
+              <span style={{ fontSize: 'var(--mc-font-xs)', color: 'var(--mc-text-tertiary)', marginRight: 4 }}>{t.editorWidgets.noteLabel}</span>
               {previewData.note}
             </div>
           )}
           {/* Stats row */}
           <div style={{ display: 'flex', gap: 8, fontSize: 'var(--mc-font-xs)', color: 'var(--mc-text-tertiary)', flexWrap: 'wrap' }}>
-            <span>{previewData.backlinkCount} 个反向链接</span>
-            <span>{previewData.outgoingCount} 个出链</span>
+            <span>{t.editorWidgets.backlinkCount.replace('{n}', String(previewData.backlinkCount))}</span>
+            <span>{t.editorWidgets.outgoingCount.replace('{n}', String(previewData.outgoingCount))}</span>
             {previewData.lastModified && <span>{previewData.lastModified}</span>}
           </div>
         </>
