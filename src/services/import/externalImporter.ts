@@ -9,6 +9,74 @@
 import JSZip from 'jszip'
 import { buildMaterialNote, type ClipSource } from '@services/clipMaterial'
 
+/** 导入相关用户可见文案（可被调用方以目标语言覆盖） */
+export interface ImportMessages {
+  /** Obsidian Vault 中无 .md 文件 */
+  obsidianNoMd: string
+  /** Obsidian Vault 导入失败（{error} = 原始错误） */
+  obsidianFailed: string
+  /** Notion 导出中无 .md/.html 文件 */
+  notionNoFile: string
+  /** Notion 导出导入失败 */
+  notionFailed: string
+  /** 网页请求失败（{status} = HTTP 状态码） */
+  requestFailed: string
+  /** 网页剪藏默认标题（无 title 时回落） */
+  webClipTitle: string
+  /** 网页剪藏被 CORS 阻止（{error} = 原始错误） */
+  webClipCorsFailed: string
+  /** 网页剪藏其他失败（{error} = 原始错误） */
+  webClipFailed: string
+  /** 链接被安全策略拒绝（非 http/https 或指向内网/回环地址） */
+  urlBlocked: string
+}
+
+export const DEFAULT_IMPORT_MESSAGES: ImportMessages = {
+  obsidianNoMd: '未在 ZIP 中找到任何 .md 文件，可能不是有效的 Obsidian Vault 导出',
+  obsidianFailed: '导入 Obsidian Vault 失败：{error}',
+  notionNoFile: '未在 ZIP 中找到 .md 或 .html 文件，可能不是有效的 Notion 导出',
+  notionFailed: '导入 Notion 导出失败：{error}',
+  requestFailed: '请求失败，HTTP 状态码：{status}',
+  webClipTitle: '网页剪藏',
+  webClipCorsFailed:
+    '网页剪藏失败：可能被浏览器的 CORS 策略阻止，无法直接抓取该网址。建议使用浏览器扩展或代理服务转发请求。原始错误：{error}',
+  webClipFailed: '网页剪藏失败：{error}',
+  urlBlocked: '仅支持 http/https 且非内网地址的链接',
+}
+
+/**
+ * 抓取前的 URL 安全校验：仅放行 http(s) 且非内网/回环/链路本地地址。
+ * 否则用户可控 URL 可被指向 `file:`、`http://127.0.0.1`、云元数据地址等（SSRF / 本地探测）。
+ */
+function assertFetchableUrl(raw: string, messages: ImportMessages): URL {
+  let url: URL
+  try {
+    url = new URL(raw)
+  } catch {
+    throw new Error(messages.urlBlocked)
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error(messages.urlBlocked)
+  }
+  const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, '')
+  const isPrivate =
+    host === 'localhost' ||
+    host.endsWith('.localhost') ||
+    host.endsWith('.local') ||
+    host.endsWith('.internal') ||
+    host === '::1' ||
+    host === '0.0.0.0' ||
+    /^127\./.test(host) ||
+    /^10\./.test(host) ||
+    /^192\.168\./.test(host) ||
+    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
+    /^169\.254\./.test(host)
+  if (isPrivate) {
+    throw new Error(messages.urlBlocked)
+  }
+  return url
+}
+
 /** 从内容中提取标签（#tag 形式，支持中文） */
 function extractTags(content: string): string[] {
   const tags = new Set<string>()
@@ -67,6 +135,7 @@ function htmlToMarkdown(html: string): string {
  */
 export async function importObsidianVault(
   zipBlob: Blob,
+  messages: ImportMessages = DEFAULT_IMPORT_MESSAGES,
 ): Promise<{
   files: { name: string; content: string; path: string }[]
   tags: string[]
@@ -88,13 +157,14 @@ export async function importObsidianVault(
     }
 
     if (files.length === 0) {
-      throw new Error('未在 ZIP 中找到任何 .md 文件，可能不是有效的 Obsidian Vault 导出')
+      throw new Error(messages.obsidianNoMd)
     }
 
     return { files, tags: Array.from(tagSet) }
   } catch (err) {
     console.error('[KB] 导入 Obsidian Vault 失败:', err)
-    throw new Error(`导入 Obsidian Vault 失败：${err instanceof Error ? err.message : String(err)}`)
+    const msg = err instanceof Error ? err.message : String(err)
+    throw new Error(messages.obsidianFailed.replace('{error}', msg))
   }
 }
 
@@ -106,6 +176,7 @@ export async function importObsidianVault(
  */
 export async function importNotionExport(
   zipBlob: Blob,
+  messages: ImportMessages = DEFAULT_IMPORT_MESSAGES,
 ): Promise<{
   files: { name: string; content: string; path: string }[]
 }> {
@@ -134,13 +205,14 @@ export async function importNotionExport(
     }
 
     if (files.length === 0) {
-      throw new Error('未在 ZIP 中找到 .md 或 .html 文件，可能不是有效的 Notion 导出')
+      throw new Error(messages.notionNoFile)
     }
 
     return { files }
   } catch (err) {
     console.error('[KB] 导入 Notion 导出失败:', err)
-    throw new Error(`导入 Notion 导出失败：${err instanceof Error ? err.message : String(err)}`)
+    const msg = err instanceof Error ? err.message : String(err)
+    throw new Error(messages.notionFailed.replace('{error}', msg))
   }
 }
 
@@ -154,11 +226,14 @@ export async function importNotionExport(
  */
 export async function importWebClipper(
   url: string,
+  messages: ImportMessages = DEFAULT_IMPORT_MESSAGES,
 ): Promise<{ name: string; content: string; source: ClipSource }> {
+  // 先校验（在 try 之外抛出，urlBlocked 直接冒泡，不被下方 catch 二次包裹）
+  const safeUrl = assertFetchableUrl(url, messages)
   try {
-    const res = await fetch(url, { credentials: 'omit' })
+    const res = await fetch(safeUrl.toString(), { credentials: 'omit' })
     if (!res.ok) {
-      throw new Error(`请求失败，HTTP 状态码：${res.status}`)
+      throw new Error(messages.requestFailed.replace('{status}', String(res.status)))
     }
     const html = await res.text()
     const doc = new DOMParser().parseFromString(html, 'text/html')
@@ -168,7 +243,7 @@ export async function importWebClipper(
       el => el.remove(),
     )
 
-    const title = (doc.querySelector('title')?.textContent || '').trim() || '网页剪藏'
+    const title = (doc.querySelector('title')?.textContent || '').trim() || messages.webClipTitle
     const article = doc.querySelector('article') || doc.querySelector('main') || doc.body
     const bodyHtml = article ? article.innerHTML : ''
     const mdBody = htmlToMarkdown(bodyHtml)
@@ -193,10 +268,8 @@ export async function importWebClipper(
     const msg = err instanceof Error ? err.message : String(err)
     // CORS 失败通常表现为 TypeError（被浏览器拦截）
     if (err instanceof TypeError) {
-      throw new Error(
-        `网页剪藏失败：可能被浏览器的 CORS 策略阻止，无法直接抓取该网址。建议使用浏览器扩展或代理服务转发请求。原始错误：${msg}`,
-      )
+      throw new Error(messages.webClipCorsFailed.replace('{error}', msg))
     }
-    throw new Error(`网页剪藏失败：${msg}`)
+    throw new Error(messages.webClipFailed.replace('{error}', msg))
   }
 }

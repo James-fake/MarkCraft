@@ -112,16 +112,19 @@ export default function WysiwygToolbar({
       })
     }
 
-    editor.on('selectionUpdate', handler)
-    editor.on('transaction', ({ transaction }) => {
+    // 具名引用：匿名箭头注册 + 用另一个函数 off 会导致移除失败、监听泄漏
+    const onTransaction = ({ transaction }: { transaction: { docChanged: boolean; storedMarksSet: boolean } }) => {
       if (transaction.docChanged || transaction.storedMarksSet) {
         handler()
       }
-    })
+    }
+
+    editor.on('selectionUpdate', handler)
+    editor.on('transaction', onTransaction)
 
     return () => {
       editor.off('selectionUpdate', handler)
-      editor.off('transaction', handler)
+      editor.off('transaction', onTransaction)
       if (rafId !== null) cancelAnimationFrame(rafId)
     }
   }, [editor])

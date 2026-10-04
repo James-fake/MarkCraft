@@ -2419,6 +2419,7 @@ export interface Translations {
     webClipTitle: string
     webClipCorsFailed: string
     webClipFailed: string
+    urlBlocked: string
   }
   cssCompat: {
     prefixSuggestion: string

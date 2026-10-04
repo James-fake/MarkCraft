@@ -270,15 +270,18 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenu(null)
     }
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenu(null) }
+    // 必须用具名引用注册/移除：匿名箭头每次都是新函数，removeEventListener 永不匹配 → 监听泄漏累积
+    const onResize = () => setMenu(null)
+    const onScroll = () => setMenu(null)
     document.addEventListener('mousedown', onDown)
     document.addEventListener('keydown', onKey)
-    window.addEventListener('resize', () => setMenu(null))
-    window.addEventListener('scroll', () => setMenu(null), true)
+    window.addEventListener('resize', onResize)
+    window.addEventListener('scroll', onScroll, true)
     return () => {
       document.removeEventListener('mousedown', onDown)
       document.removeEventListener('keydown', onKey)
-      window.removeEventListener('resize', () => setMenu(null))
-      window.removeEventListener('scroll', () => setMenu(null), true)
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('scroll', onScroll, true)
     }
   }, [menu])
 

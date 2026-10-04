@@ -1030,6 +1030,7 @@ export const en: Translations = {
     webClipTitle: 'Web Clip',
     webClipCorsFailed: 'Web clip failed: may be blocked by the browser CORS policy and unable to fetch the URL directly. It is recommended to use a browser extension or a proxy service to forward the request. Original error: {error}',
     webClipFailed: 'Web clip failed: {error}',
+    urlBlocked: 'Only http/https URLs to public hosts are supported',
   },
   cssCompat: {
     prefixSuggestion: 'Suggest adding browser prefix: {prefixes}',

@@ -1252,6 +1252,7 @@ export const importExternal = {
   webClipTitle: '网页剪藏',
   webClipCorsFailed: '网页剪藏失败：可能被浏览器的 CORS 策略阻止，无法直接抓取该网址。建议使用浏览器扩展或代理服务转发请求。原始错误：{error}',
   webClipFailed: '网页剪藏失败：{error}',
+  urlBlocked: '仅支持 http/https 且非内网地址的链接',
 }
 
 export const cssCompat = {
