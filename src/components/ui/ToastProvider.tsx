@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useLayoutEffect,
   useRef,
   useState,
@@ -123,8 +124,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     prevTops.current = next
   }, [toasts])
 
-  const remove = useCallback((id: number) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id))
+  // 清掉某个 toast 的待触发定时器（入场定时器或出场定时器都可能残留）
+  const clearTimer = useCallback((id: number) => {
     const tm = timers.current.get(id)
     if (tm) {
       clearTimeout(tm)
@@ -132,25 +133,43 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const remove = useCallback((id: number) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id))
+    clearTimer(id)
+  }, [clearTimer])
+
   // 两段式出场（macOS 动效方案 §3.3）：先置 data-exiting 播反向离场 transition，再卸载。
   const requestExit = useCallback(
     (id: number) => {
       setToasts((prev) => prev.map((t) => (t.id === id ? { ...t, exiting: true } : t)))
+      // 先清掉该 id 可能仍挂着的入场定时器：否则它会稍后再次触发 requestExit，
+      // 造成重复出场动画 + 定时器泄漏（token 审查 M3-ToastProvider）
+      clearTimer(id)
       const tm = setTimeout(() => remove(id), TOAST_EXIT_MS)
       timers.current.set(id, tm)
     },
-    [remove],
+    [remove, clearTimer],
   )
 
   const show = useCallback(
     (msg: string, kind: ToastKind = 'info') => {
       const id = ++idRef.current
       setToasts((prev) => [...prev, { id, msg, kind }])
+      clearTimer(id) // 防御：同一 id 不应有残留定时器
       const tm = setTimeout(() => requestExit(id), TOAST_DURATION_MS)
       timers.current.set(id, tm)
     },
-    [requestExit],
+    [requestExit, clearTimer],
   )
+
+  // 卸载时清掉所有待触发定时器：避免延迟回调在已卸载组件上 setState、以及定时器驻留内存
+  useEffect(() => {
+    const map = timers.current
+    return () => {
+      map.forEach((tm) => clearTimeout(tm))
+      map.clear()
+    }
+  }, [])
 
   return (
     <ToastContext.Provider value={{ show }}>

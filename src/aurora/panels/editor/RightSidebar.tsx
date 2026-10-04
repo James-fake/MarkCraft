@@ -85,6 +85,18 @@ export function RightSidebar({ content, activeFileId, activeTab, forceExpand, on
   })
   const [isResizing, setIsResizing] = useState(false)
   const resizing = useRef(false)
+  // 拖拽中注册到 window 的监听引用，便于组件在拖拽进行中卸载时也能解除，
+  // 否则监听泄漏（审查 M3-RightSidebar）
+  const dragListeners = useRef<{ move: (e: MouseEvent) => void; up: (e: MouseEvent) => void } | null>(null)
+  useEffect(() => {
+    return () => {
+      if (dragListeners.current) {
+        window.removeEventListener('mousemove', dragListeners.current.move)
+        window.removeEventListener('mouseup', dragListeners.current.up)
+        dragListeners.current = null
+      }
+    }
+  }, [])
   // 拖拽结束时要落盘的是「拖完的宽度」，但 mouseup 监听是拖拽开始时注册的闭包，
   // 直接读 state 会拿到拖拽前的旧值（改宽后刷新即回退）。用 ref 跟随最新值。
   const widthRef = useRef(width)
@@ -132,8 +144,10 @@ export function RightSidebar({ content, activeFileId, activeTab, forceExpand, on
       setIsResizing(false)
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
+      dragListeners.current = null
       try { localStorage.setItem(WIDTH_KEY, String(widthRef.current)) } catch { /* ignore */ }
     }
+    dragListeners.current = { move: onMove, up: onUp }
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
   }, [width])

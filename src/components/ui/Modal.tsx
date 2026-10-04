@@ -29,6 +29,18 @@ export interface ModalProps {
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea, input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
 
+// body 滚动锁引用计数：多个模态/嵌套弹窗叠加时，只有最后一个关闭才真正解锁，
+// 避免内层先关就把仍打开的模态也解锁（原实现用 prevOverflow 快照，会错误恢复）。
+let bodyScrollLockCount = 0
+function lockBodyScroll() {
+  bodyScrollLockCount += 1
+  document.body.style.overflow = 'hidden'
+}
+function unlockBodyScroll() {
+  bodyScrollLockCount = Math.max(0, bodyScrollLockCount - 1)
+  if (bodyScrollLockCount === 0) document.body.style.overflow = ''
+}
+
 /**
  * 退场时长：必须与 components.css 的
  * `.aurora-modal-overlay[data-exiting='true']` 动画时长（--mc-dur-fast = 180ms）一致。
@@ -94,8 +106,7 @@ export const Modal: React.FC<ModalProps> = ({
   useEffect(() => {
     if (!isOpen) return
     prevFocus.current = document.activeElement as HTMLElement | null
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
+    lockBodyScroll()
 
     const raf = requestAnimationFrame(() => {
       const f = getFocusable()
@@ -107,8 +118,8 @@ export const Modal: React.FC<ModalProps> = ({
     })
 
     return () => {
-      document.body.style.overflow = prevOverflow
       cancelAnimationFrame(raf)
+      unlockBodyScroll()
       prevFocus.current?.focus?.()
     }
   }, [isOpen, getFocusable])

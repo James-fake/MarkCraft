@@ -15,6 +15,9 @@ const ScrollButtons: React.FC<ScrollButtonsProps> = ({ scrollContainerRef, scrol
   const [container, setContainer] = useState<HTMLElement | null>(() => scrollContainerRef.current)
   // 标记是否处于程序触发的滚动中，避免动画过程中被 scroll 同步逻辑打断
   const animatingRef = useRef(false)
+  // 跟踪进行中的平滑滚动动画与结束回调定时器，便于卸载或重新发起时取消
+  // （资源/生命周期审查 M3-ScrollButtons：否则卸载后仍写 scrollTop / 调 setState）
+  const animRef = useRef<{ cancel: () => void; timer: ReturnType<typeof setTimeout> } | null>(null)
 
   useEffect(() => {
     if (container) return
@@ -60,28 +63,54 @@ const ScrollButtons: React.FC<ScrollButtonsProps> = ({ scrollContainerRef, scrol
     const el = scrollContainerRef.current ?? container
     if (!el) return
     animatingRef.current = true
+    // 先取消可能进行中的动画与回调，避免叠加
+    if (animRef.current) {
+      animRef.current.cancel()
+      clearTimeout(animRef.current.timer)
+      animRef.current = null
+    }
     // 目标永远是顶部（0），scrollHeight 变化不影响
-    smoothScrollTo(el, () => 0)
+    const cancel = smoothScrollTo(el, () => 0)
     // 动画结束后刷新按钮状态
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       animatingRef.current = false
       setShowScrollTop(false)
       setShowScrollBottom(el.scrollHeight - el.clientHeight > 100)
+      animRef.current = null
     }, SMOOTH_SCROLL_DURATION + 50)
+    animRef.current = { cancel, timer }
   }
 
   const scrollToBottom = () => {
     const el = scrollContainerRef.current ?? container
     if (!el) return
     animatingRef.current = true
+    if (animRef.current) {
+      animRef.current.cancel()
+      clearTimeout(animRef.current.timer)
+      animRef.current = null
+    }
     // 目标位置在每帧重新读取，应对虚拟滚动下 scrollHeight 动态变化
-    smoothScrollTo(el, () => el.scrollHeight - el.clientHeight)
-    setTimeout(() => {
+    const cancel = smoothScrollTo(el, () => el.scrollHeight - el.clientHeight)
+    const timer = setTimeout(() => {
       animatingRef.current = false
       setShowScrollBottom(false)
       setShowScrollTop(el.scrollTop > 100)
+      animRef.current = null
     }, SMOOTH_SCROLL_DURATION + 50)
+    animRef.current = { cancel, timer }
   }
+
+  // 卸载时取消进行中的滚动动画与结束回调，避免卸载后写 scrollTop / setState
+  useEffect(() => {
+    return () => {
+      if (animRef.current) {
+        animRef.current.cancel()
+        clearTimeout(animRef.current.timer)
+        animRef.current = null
+      }
+    }
+  }, [])
 
   const hasButtons = showScrollTop || showScrollBottom
 

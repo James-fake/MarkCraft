@@ -27,6 +27,17 @@ const download = (url: string, name: string) => {
   document.body.appendChild(a)
   a.click()
   a.remove()
+  // blob: URL 用后必须回收，否则对象句柄/内存泄漏（审查 M3-graphExport）；
+  // data: URL 无需回收。click 同步触发下载读之后即可安全回收。
+  if (url.startsWith('blob:')) {
+    setTimeout(() => {
+      try {
+        URL.revokeObjectURL(url)
+      } catch {
+        /* 已失效则忽略 */
+      }
+    }, 0)
+  }
 }
 
 /** 克隆 SVG 并把 :root 上的 var() 解析为具体值（导出为独立文件后脱离文档，var() 无法解析） */

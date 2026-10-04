@@ -105,6 +105,11 @@ export default function MermaidBlockView({ node, updateAttributes, selected, edi
       return
     }
 
+    // 提升 cancelled 到 effect 作用域：原实现把它声明在 setTimeout 回调里、
+    // 并试图用 `return () => { cancelled = true }` 返回给 setTimeout 当回调返回值——
+    // 但 setTimeout 会丢弃回调返回值，导致 in-flight 的 mermaid.render 永远无法被取消
+    // （审查 M3-MermaidBlockView）。现由 effect 清理函数统一置位并清定时器。
+    let cancelled = false
     if (renderTimerRef.current) clearTimeout(renderTimerRef.current)
     renderTimerRef.current = setTimeout(() => {
       if (!mountedRef.current || !previewRef.current || !isVisibleRef.current) return
@@ -120,7 +125,6 @@ export default function MermaidBlockView({ node, updateAttributes, selected, edi
 
       initMermaid(theme)
       const id = `mermaid-tiptap-${++renderIdCounter}`
-      let cancelled = false
 
       const doRender = async () => {
         try { await mermaid.parse(codeAttr) } catch {
@@ -149,10 +153,12 @@ export default function MermaidBlockView({ node, updateAttributes, selected, edi
         }
       }
       doRender()
-      return () => { cancelled = true }
     }, 300)
 
-    return () => { if (renderTimerRef.current) clearTimeout(renderTimerRef.current) }
+    return () => {
+      cancelled = true
+      if (renderTimerRef.current) clearTimeout(renderTimerRef.current)
+    }
   }, [codeAttr, editMode, theme, t])
 
   // === Double-click detection via mousedown CAPTURE phase ===

@@ -9,79 +9,73 @@ const transitionKey = new PluginKey('transition')
  *
  * 检测通过 InputRule 创建的节点，为其添加淡入动画 class。
  * 动画在 150ms 后自动移除。
+ *
+ * 注意：`props.decorations` 必须是 state 的纯函数（ProseMirror 会在每次
+ * view 更新时反复调用），因此**不能在它里面调度定时器或修改外部可变状态**。
+ * 原先的写法会在 decorations() 内 `setTimeout` 并写入 Map，导致定时器累积、
+ * 以及 class 每 200ms 被重新挂上。现改为在 `view().update()` 里探测并登记，
+ * decorations() 只读共享集合返回装饰。
  */
 const TransitionExtension = Extension.create({
   name: 'transition',
 
   addProseMirrorPlugins() {
-    // 存储需要动画的节点位置及其移除定时器
-    const pendingAnimations = new Map<number, ReturnType<typeof setTimeout>>()
+    // 已应用淡入动画的节点位置。destroy 时一并清空，避免泄漏。
+    const animated = new Set<number>()
+    const timers = new Map<number, ReturnType<typeof setTimeout>>()
 
     return [
       new Plugin({
         key: transitionKey,
         view() {
           return {
+            // 在 view 更新钩子里做"刚被 InputRule 创建的节点"探测与动画登记，
+            // 而不是在 decorations()（要求纯函数）。每次选区分支最多登记一次。
+            update(view) {
+              const { $head } = view.state.selection
+              for (let d = $head.depth; d > 0; d--) {
+                const node = $head.node(d)
+                if (node.isBlock && node.type.name !== 'doc' && node.type.name !== 'paragraph') {
+                  const pos = $head.before(d)
+                  const nodeStart = pos + 1
+                  // 选区在节点开头附近 → 可能是刚由 InputRule 创建的节点
+                  if (($head.pos === nodeStart || $head.pos === nodeStart + 1) && !animated.has(pos)) {
+                    animated.add(pos)
+                    // 动画播完（~200ms）后从集合移除，下次 decorations 重算即摘掉 class；
+                    // 同时防止集合随编辑无限增长。
+                    const timer = setTimeout(() => {
+                      animated.delete(pos)
+                    }, 200)
+                    timers.set(pos, timer)
+                  }
+                  break
+                }
+              }
+            },
             destroy() {
-              // 清理所有定时器
-              pendingAnimations.forEach((timer) => clearTimeout(timer))
-              pendingAnimations.clear()
+              timers.forEach((t) => clearTimeout(t))
+              timers.clear()
+              animated.clear()
             },
           }
         },
-        appendTransaction(transactions, _oldState, _newState) {
-          // 检测是否有 InputRule 触发的转换
-          let hasInputRuleTransaction = false
-          for (const tr of transactions) {
-            if (tr.getMeta('inputRule')) {
-              hasInputRuleTransaction = true
-              break
-            }
-          }
-          if (!hasInputRuleTransaction) return null
-
-          // 为新创建的节点记录位置（通过比较 oldState 和 newState 的差异）
-          // 这里返回 null，不修改文档，仅通过 decoration 添加动画
-          return null
-        },
         props: {
+          // 纯函数：仅依据已登记的 animated 集合返回装饰，不再调度定时器/改外部状态
           decorations(state) {
-            const decorations: Decoration[] = []
-
-            // 检查最近的交易是否由 InputRule 触发
-            // 通过检测当前选区所在节点是否刚被创建
             const { $head } = state.selection
-
-            // 向上查找最近的块级节点
             for (let d = $head.depth; d > 0; d--) {
               const node = $head.node(d)
               if (node.isBlock && node.type.name !== 'doc' && node.type.name !== 'paragraph') {
                 const pos = $head.before(d)
-                // 检查是否已有动画在等待
-                if (!pendingAnimations.has(pos)) {
-                  // 检查此节点是否刚通过 InputRule 创建
-                  // 简化判断：如果选区在此节点开头，可能是刚创建的
-                  const nodeStart = pos + 1
-                  if ($head.pos === nodeStart || $head.pos === nodeStart + 1) {
-                    decorations.push(
-                      Decoration.node(pos, pos + node.nodeSize, {
-                        class: 'lp-fade-in',
-                      })
-                    )
-
-                    // 设置定时器在动画结束后清理
-                    const timer = setTimeout(() => {
-                      pendingAnimations.delete(pos)
-                    }, 200)
-                    pendingAnimations.set(pos, timer)
-                  }
+                if (animated.has(pos)) {
+                  return DecorationSet.create(state.doc, [
+                    Decoration.node(pos, pos + node.nodeSize, { class: 'lp-fade-in' }),
+                  ])
                 }
                 break
               }
             }
-
-            if (decorations.length === 0) return DecorationSet.empty
-            return DecorationSet.create(state.doc, decorations)
+            return DecorationSet.empty
           },
         },
       }),

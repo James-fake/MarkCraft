@@ -10,11 +10,19 @@
  */
 export const SMOOTH_SCROLL_DURATION = 900
 
-export function smoothScrollTo(el: HTMLElement, getTarget: () => number): void {
+/**
+ * 平滑滚动到目标位置（easeInOutQuint）。返回取消函数：
+ * 调用后停止后续 rAF 并清掉已排程的帧，组件卸载或重新发起滚动时务必调用，
+ * 否则卸载后仍会持续写入 el.scrollTop（资源/生命周期审查 M3-ScrollButtons）。
+ */
+export function smoothScrollTo(el: HTMLElement, getTarget: () => number): () => void {
   const startScroll = el.scrollTop
   const startTime = performance.now()
+  let rafId = 0
+  let cancelled = false
 
   const tick = (now: number) => {
+    if (cancelled) return
     const elapsed = now - startTime
     const progress = Math.min(1, elapsed / SMOOTH_SCROLL_DURATION)
     // easeInOutQuint：progress < 0.5 ? 16*p^5 : 1 - pow(-2p+2, 5)/2
@@ -29,11 +37,16 @@ export function smoothScrollTo(el: HTMLElement, getTarget: () => number): void {
     el.scrollTop = current
 
     if (progress < 1) {
-      requestAnimationFrame(tick)
+      rafId = requestAnimationFrame(tick)
     } else {
       // 确保最终位置精确
       el.scrollTop = finalTarget
     }
   }
-  requestAnimationFrame(tick)
+  rafId = requestAnimationFrame(tick)
+
+  return () => {
+    cancelled = true
+    cancelAnimationFrame(rafId)
+  }
 }
