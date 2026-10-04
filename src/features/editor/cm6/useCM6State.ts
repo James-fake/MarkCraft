@@ -39,6 +39,19 @@ import { getCodeTheme } from '../../themes/CodeThemeManager'
 
 export type { WordCountMode } from './useCM6Stats'
 
+/**
+ * Ctrl/Cmd+Click 打开笔记里的链接前做协议白名单。
+ * 笔记内容不可信：`[点我](javascript:alert(1))` 若直接交给 window.open，
+ * 会以应用自身源执行脚本（可读 IndexedDB / localStorage）。
+ * 仅放行 http(s)/mailto/tel，其余（javascript:/data:/file:/vbscript: 等）一律拒绝。
+ */
+function openExternalSafely(rawUrl: string): boolean {
+  const url = rawUrl.trim()
+  if (!/^(https?|mailto|tel):/i.test(url)) return false
+  window.open(url, '_blank', 'noopener,noreferrer')
+  return true
+}
+
 // Custom fold service for Markdown fenced code blocks
 const markdownCodeFold = foldService.of((state, from, _to) => {
   const line = state.doc.lineAt(from)
@@ -327,8 +340,7 @@ export function useCM6State({
               const end = match.index + match[0].length
               if (pos - line.from >= start && pos - line.from <= end) {
                 const url = match[1]
-                window.open(url, '_blank', 'noopener')
-                return true
+                return openExternalSafely(url)
               }
             }
             // Also check bare URLs
@@ -337,8 +349,7 @@ export function useCM6State({
               const start = match.index
               const end = start + match[0].length
               if (pos - line.from >= start && pos - line.from <= end) {
-                window.open(match[0], '_blank', 'noopener')
-                return true
+                return openExternalSafely(match[0])
               }
             }
             return false

@@ -75,6 +75,9 @@ export async function generateHtmlBlob(
     ? `<footer class="export-footer">${escapeHtml(template.footer.trim())}</footer>`
     : ''
 
+  // 正文净化：显式禁止 <style>（原本是 ADD_TAGS 放行）。笔记内嵌 CSS 可造成
+  // position:fixed 覆盖层点击劫持、url() 外链追踪等；导出所需主题样式由下方
+  // <head> 内的 <style>${css}</style> 单独提供，不依赖正文里的 <style>。
   const html = `<!DOCTYPE html>
 <html lang="zh-CN" data-theme="${theme}">
 <head>
@@ -89,7 +92,7 @@ ${css}
 ${docHeader}
 ${tocHtml}
 <main class="export-content">
-${DOMPurify.sanitize(bodyHtml, { ADD_TAGS: ['style'], ADD_ATTR: ['data-theme', 'data-code'] })}
+${DOMPurify.sanitize(bodyHtml, { FORBID_TAGS: ['style'], ADD_ATTR: ['data-theme', 'data-code'] })}
 </main>
 ${docFooter}
 </body>

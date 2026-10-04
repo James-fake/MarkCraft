@@ -18,11 +18,16 @@ export const giteeAdapter: PlatformAdapter = {
   },
 
   async fetch(path: string, token: string, options?: RequestInit) {
-    const separator = path.includes('?') ? '&' : '?'
-    const url = `${GITEE_API}${path}${separator}access_token=${token}`
+    // token 不能放 URL（会泄漏进浏览器历史 / Referer / 服务端日志）；改用 Authorization 头，
+    // 与 githubAdapter / cloudflareAdapter 的做法保持一致
+    const url = `${GITEE_API}${path}`
     const res = await fetch(url, {
       ...options,
-      headers: { 'Content-Type': 'application/json', ...options?.headers },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...options?.headers,
+      },
     })
     if (!res.ok) {
       const error = await res.json().catch(() => ({ message: res.statusText }))
