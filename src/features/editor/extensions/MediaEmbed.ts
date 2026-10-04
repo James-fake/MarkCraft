@@ -26,8 +26,25 @@ const MediaEmbed = Node.create({
 
   addAttributes() {
     return {
-      src: { default: null },
-      type: { default: 'video' },
+      // 序列化端（mdToHtml.ts:121/126）产出 `<div data-media-embed data-media-type="…"><video|audio src="…">`：
+      // src 在子媒体元素上、类型在 data-media-type。若走默认解析（getAttribute('src')/('type')）
+      // 会得到 src:null、type 恒 'video' —— 重新加载即丢媒体源、audio 变 video。
+      src: {
+        default: null,
+        parseHTML: (el: HTMLElement) => {
+          const media = el.matches('video, audio') ? el : el.querySelector('video, audio')
+          return media?.getAttribute('src') ?? el.getAttribute('src') ?? null
+        },
+      },
+      type: {
+        default: 'video',
+        parseHTML: (el: HTMLElement) => {
+          const explicit = el.getAttribute('data-media-type')
+          if (explicit === 'audio' || explicit === 'video') return explicit
+          if (el.matches('audio')) return 'audio'
+          return 'video'
+        },
+      },
     }
   },
 

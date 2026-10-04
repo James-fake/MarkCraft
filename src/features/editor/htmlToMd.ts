@@ -147,10 +147,10 @@ export function htmlToMarkdown(html: string): string {
     filter: (node: HTMLElement) => {
       return node.nodeName === 'LI' && node.getAttribute('data-type') === 'taskItem'
     },
-    replacement: (_content: string, node: HTMLElement) => {
+    replacement: (content: string, node: HTMLElement) => {
       const checked = node.getAttribute('data-checked') === 'true'
-      const divEl = node.querySelector('div')
-      const text = divEl ? divEl.textContent || '' : node.textContent || ''
+      // 优先用已转换的 content（保留任务项内的内联格式）；为空时回退 textContent
+      const text = content.replace(/\n+/g, ' ').trim() || (node.textContent || '')
       return `- [${checked ? 'x' : ' '}] ${text}\n`
     },
   })
@@ -392,8 +392,10 @@ export function htmlToMarkdown(html: string): string {
         (node.parentElement?.nodeName === 'TBODY' && node.querySelector('th') !== null)
 
       for (const child of Array.from(node.children)) {
-        const cellText = child.textContent?.trim() || ''
-        cells.push(`| ${cellText} `)
+        // 逐单元格子转换：保留单元格内的内联格式（粗体/斜体/链接/行内代码）；
+        // textContent 会把它们全部抹平为纯文本（WYSIWYG 往返丢格式）。
+        const cellMd = td.turndown((child as HTMLElement).innerHTML).replace(/\n+/g, ' ').trim()
+        cells.push(`| ${cellMd} `)
       }
 
       let result = cells.join('') + '|\n'

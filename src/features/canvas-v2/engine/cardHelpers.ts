@@ -41,7 +41,9 @@ export function renderNoteCardContent(text: string, lang: 'zh' | 'en' = 'zh'): s
     )
     return sanitizeHtml(withMermaid)
   } catch {
-    return text
+    // 安全：异常路径也必须净化——绝不可返回未净化的原文，
+    // 调用方（OverlayCards）会直接 dangerouslySetInnerHTML 注入本返回值。
+    return sanitizeHtml(text)
   }
 }
 

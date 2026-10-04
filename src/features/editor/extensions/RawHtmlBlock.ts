@@ -17,7 +17,14 @@ const RawHtmlBlock = Node.create({
 
   addAttributes() {
     return {
-      html: { default: '' },
+      // 显式读写：序列化端用 data-html 承载原始 HTML（mdToHtml.ts:147 / htmlToMd.ts:322），
+      // 若走默认解析（读 getAttribute('html')）则加载即丢内容，且 renderHTML 不写回 data-html
+      // 会让保存也丢内容。
+      html: {
+        default: '',
+        parseHTML: (el) => el.getAttribute('data-html') || '',
+        renderHTML: (attrs) => (attrs.html ? { 'data-html': attrs.html } : {}),
+      },
     }
   },
 

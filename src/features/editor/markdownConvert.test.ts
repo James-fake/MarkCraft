@@ -18,6 +18,20 @@ describe('htmlToMarkdown（E5 富文本粘贴转换）', () => {
     expect(md).toContain('| 苹果 | 3 |')
   })
 
+  it('表格单元格内联格式保真（回归：此前 textContent 会抹平粗体/链接）', () => {
+    const html = '<table><tbody><tr><td><strong>粗</strong>体</td><td><a href="https://x.com">链接</a></td></tr></tbody></table>'
+    const md = htmlToMarkdown(html)
+    expect(md).toContain('**粗**体')
+    expect(md).toContain('[链接](https://x.com)')
+  })
+
+  it('任务项内联格式保真（回归：此前 textContent 会抹平）', () => {
+    const html = '<ul data-type="taskList"><li data-type="taskItem" data-checked="false"><div><strong>重点</strong>待办</div></li></ul>'
+    const md = htmlToMarkdown(html)
+    expect(md).toContain('- [ ]')
+    expect(md).toContain('**重点**待办')
+  })
+
   it('无序/有序列表 → Markdown 列表', () => {
     const html = '<ul><li>第一项</li><li>第二项</li></ul><ol><li>步骤一</li></ol>'
     const md = htmlToMarkdown(html)

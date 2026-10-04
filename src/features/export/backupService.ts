@@ -181,21 +181,28 @@ export async function buildWorkspaceZip(
 
   const files = collectFiles(root)
   const assetById = new Map<string, ExportAsset>()
+  // 去重键按「目录 + 文件名」作用域：不同目录下的同名文件（a/README.md、b/README.md）
+  // 在 zip 内本不冲突，不应被误改名。
   const usedNames = new Set<string>()
+  // 记录每个文件最终落盘相对路径，供 manifest 与实际 zip 内容保持一致
+  const finalPathById = new Map<string, string>()
 
   for (const file of files) {
-    // 处理重名：目录内同名文件加后缀
+    const origRelPath = resolveRelativePath(root, file)
+    const dir = origRelPath.includes('/') ? origRelPath.slice(0, origRelPath.lastIndexOf('/') + 1) : ''
+    // 处理重名：**目录内**同名文件加后缀
     const base = safeFileName(file.name).replace(/\.md$/i, '')
     let name = `${base}.md`
     let n = 2
-    while (usedNames.has(name)) {
+    while (usedNames.has(dir + name)) {
       name = `${base}-${n++}.md`
     }
-    usedNames.add(name)
+    usedNames.add(dir + name)
 
-    const relPath = resolveRelativePath(root, file).replace(/[^/]+$/, name)
+    const relPath = dir + name
+    finalPathById.set(file.id, relPath)
     // md 所在目录（图片相对引用基于此目录解析）
-    const mdDir = relPath.includes('/') ? relPath.slice(0, relPath.lastIndexOf('/') + 1) : ''
+    const mdDir = dir
     const { markdown, assets, missing } = transformContentForExport(file.content ?? '', getBase64Image)
 
     for (const a of assets) {
@@ -244,7 +251,8 @@ export async function buildWorkspaceZip(
     },
     nodes: files.map((f) => ({
       id: f.id,
-      path: resolveRelativePath(root, f),
+      // 用最终落盘路径（含重名后缀），与 zip 内实际文件名一致
+      path: finalPathById.get(f.id) ?? resolveRelativePath(root, f),
       createdAt: f.createdAt,
       updatedAt: f.updatedAt,
     })),
