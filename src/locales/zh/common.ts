@@ -804,6 +804,17 @@ export const graph = {
   emptyNoneSub: '调整筛选条件、标签选择或图谱模式，图谱将重新显现。',
   viewAllFiles: '查看全部文件',
   backToFileList: '回到文件列表',
+  // ── 顶部筛选条（GraphCanvasArea）──
+  scopeOnlyTitle: '仅显示「{name}」范围内的笔记节点',
+  scopeExitTitle: '退出当前范围，回到「文件列表」（不含知识库）',
+  searchNodePh: '搜索节点…',
+  matchedCount: '{n} 个',
+  nodeType: '节点类型',
+  // 范围选择滚轮选项（useGraphScopeData）
+  scopeFilesLabel: '文件列表（不含知识库）',
+  scopeAllLabel: '全部文件',
+  scopeKbLabel: '知识库 · {name}',
+  scopeKbFallback: '知识库',
   // ── 主面板（GraphPanel）──
   typeNameCurrent: '当前笔记',
   typeNameNote: '笔记',
@@ -1027,6 +1038,18 @@ export const blog = {
   viewAllNotes: '查看全部笔记',
   ariaGroups: '功能分组切换',
   ariaSubTabs: '子面板切换',
+  // 顶栏分组 tab（PANEL_GROUPS）
+  groupTheme: '主题',
+  groupData: '数据',
+  groupAdvanced: '高级',
+  // 组内子面板（PANELS）
+  panelStyle: '样式',
+  panelColor: '配色',
+  panelContent: '内容',
+  panelFeatures: '功能',
+  panelCss: 'CSS',
+  panelExport: '导出',
+  currentTheme: '当前主题：',
   deviceDesktop: '桌面',
   deviceTablet: '平板',
   deviceMobile: '手机',
@@ -1187,6 +1210,13 @@ export const editorPanel = {
   pinInspector: '钉住检查器',
   unpinInspector: '取消钉住检查器',
   inspectorOverlay: '检查器',
+  // 编辑器右栏检查器 Tab（RightSidebar）
+  tabOutline: '大纲',
+  tabFootnote: '脚注',
+  tabBacklinks: '块级反链',
+  tabAid: '辅助',
+  expandInspector: '展开检查器',
+  resizeTitle: '拖拽调整宽度（{w}px）',
 }
 
 // 日记格式工具栏（DiaryFormatToolbar）：加粗/斜体/引用/链接复用 toolbar 段同文案
@@ -1425,6 +1455,7 @@ export const diary = {
   onThisDay: '那年今日 · {y}年',
   dailyQ: '每日一问',
   switchOne: '换一个',
+  recordMood: '记录心情',
   pickMood: '选择今日心情',
   weekday: {
     sun: '日',
@@ -1442,6 +1473,10 @@ export const diary = {
   calTitle: '{y} 年 {m} 月',
   heatLess: '少',
   heatMore: '多',
+  // 日记悬浮卡 / 情绪选择器弹层
+  noEntryThisDay: '这一天还没有日记',
+  cancel: '取消',
+  confirmCount: '确认 ({n})',
 }
 
 export const kbSearch = {

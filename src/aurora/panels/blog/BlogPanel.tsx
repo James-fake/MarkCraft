@@ -71,6 +71,20 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
   const { t, language } = useLanguage()
   const isZh = language === 'zh'
   const B = t.blog
+  // 顶栏分组 tab 与组内子面板 label（注册表 blogStudioModel 只留 key/icon，文案在此解析）
+  const groupLabels: Record<string, string> = {
+    theme: B.groupTheme,
+    data: B.groupData,
+    advanced: B.groupAdvanced,
+  }
+  const panelLabels: Record<PanelKey, string> = {
+    style: B.panelStyle,
+    color: B.panelColor,
+    content: B.panelContent,
+    features: B.panelFeatures,
+    css: B.panelCss,
+    export: B.panelExport,
+  }
   const { openCommandPalette } = useCommandPalette()
   // 内置《使用文档》作用域（判定单源：@core/files/usageDocs ← useUsageDocsScope）：
   // 供下面「博客入口」的清单过滤复用，避免同一判定各自手写 → 行为漂移（项目已有教训）。
@@ -457,10 +471,10 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
                       if (groupActive) setPanelOpen((v) => !v)
                       else { setPanel(g.items[0]); setPanelOpen(true) }
                     }}
-                    title={g.label}
+                    title={groupLabels[g.key]}
                   >
                     <I size={16} />
-                    <span>{g.label}</span>
+                    <span>{groupLabels[g.key]}</span>
                   </button>
                 )
               })}
@@ -472,7 +486,6 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
               {/* 滑块：选中态的视觉承载者（选中底色已从 tab 迁到这里） */}
               <span className="aurora-blog__subseg-thumb" ref={blogTabs.thumbRef} aria-hidden="true" />
               {activeGroup.items.map((key) => {
-                const p = PANELS.find((x) => x.key === key)!
                 return (
                   <button
                     key={key}
@@ -481,7 +494,7 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
                     className={`aurora-blog__subseg-btn ${panel === key ? 'is-active' : ''}`}
                     onClick={() => { setPanel(key); setPanelOpen(true) }}
                   >
-                    {p.label}
+                    {panelLabels[key]}
                   </button>
                 )
               })}
@@ -517,7 +530,7 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
             onPointerCancel={onHeaderUp}
           >
             <span className="aurora-blog__panel-dot" style={{ background: 'var(--mc-accent)' }} />
-            <span className="aurora-blog__panelzone-title">{activePanel.label}</span>
+            <span className="aurora-blog__panelzone-title">{panelLabels[activePanel.key]}</span>
             <span className="aurora-blog__panel-grip" title={B.gripTitle}><Icon.grip size={15} /></span>
           </div>
           {panelOpen && (

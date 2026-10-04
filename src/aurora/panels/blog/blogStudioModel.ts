@@ -20,22 +20,22 @@ import { countWords } from '@features/editor/stats'
 // 批次债①：默认值单源收口——与真实层语义重叠的字段从 DEFAULT_DESIGN_CONFIG 派生（见下方 DEFAULT_CONFIG）
 type PanelKey = 'style' | 'color' | 'content' | 'features' | 'css' | 'export'
 
-/* 子面板注册表：label 供次级 segmented 与浮层标题复用（功能与旧 6 tab 一致） */
-const PANELS: { key: PanelKey; label: string; icon: IconName }[] = [
-  { key: 'style', label: '样式', icon: 'theme' },
-  { key: 'color', label: '配色', icon: 'paint' },
-  { key: 'content', label: '内容', icon: 'fileText' },
-  { key: 'features', label: '功能', icon: 'sparkle' },
-  { key: 'css', label: 'CSS', icon: 'code' },
-  { key: 'export', label: '导出', icon: 'export' },
+/* 子面板注册表：只留 key/icon，label 由消费方（BlogPanel）经 useLanguage 解析（模块层不可用 hook） */
+const PANELS: { key: PanelKey; icon: IconName }[] = [
+  { key: 'style', icon: 'theme' },
+  { key: 'color', icon: 'paint' },
+  { key: 'content', icon: 'fileText' },
+  { key: 'features', icon: 'sparkle' },
+  { key: 'css', icon: 'code' },
+  { key: 'export', icon: 'export' },
 ]
 
 /* P1-5 信息架构：6 个平级 tab 折叠为 3 组（主题/数据/高级），
  * 组内以次级 segmented 切换子面板；子面板本身不增不减。 */
-const PANEL_GROUPS: { key: string; label: string; icon: IconName; items: PanelKey[] }[] = [
-  { key: 'theme', label: '主题', icon: 'theme', items: ['style', 'color'] },
-  { key: 'data', label: '数据', icon: 'layers', items: ['content', 'features'] },
-  { key: 'advanced', label: '高级', icon: 'settings', items: ['css', 'export'] },
+const PANEL_GROUPS: { key: string; icon: IconName; items: PanelKey[] }[] = [
+  { key: 'theme', icon: 'theme', items: ['style', 'color'] },
+  { key: 'data', icon: 'layers', items: ['content', 'features'] },
+  { key: 'advanced', icon: 'settings', items: ['css', 'export'] },
 ]
 
 /* ---- 配色方案（单一数据源：真实 BlogStudio 的 COLOR_SCHEMES，禁增/禁漂移）---- */
@@ -45,18 +45,21 @@ const COLOR_SCHEMES: { key: string; label: string; hex: string }[] = REAL_COLOR_
   hex: c.color,
 }))
 
-/* ---- 主题市场（单一数据源：真实 BlogStudio 的 THEME_INFO_LIST，覆盖全部分类）---- */
-const THEME_CATEGORIES: { value: string; label: string }[] = REAL_THEME_CATEGORIES.map((c) => ({
+/* ---- 主题市场（单一数据源：真实 BlogStudio 的 THEME_INFO_LIST，覆盖全部分类）----
+ * 分类 / 风格标签携带 zh+en 双语文案，由消费方（settingPanels，持 useLanguage）按界面语言取用。 */
+const THEME_CATEGORIES: { value: string; zh: string; en: string }[] = REAL_THEME_CATEGORIES.map((c) => ({
   value: c.key,
-  label: c.zh,
+  zh: c.zh,
+  en: c.en,
 }))
-const THEME_STYLE_TAGS: { value: string; label: string }[] = REAL_THEME_STYLE_TAGS.map((t) => ({
+const THEME_STYLE_TAGS: { value: string; zh: string; en: string }[] = REAL_THEME_STYLE_TAGS.map((t) => ({
   value: t.key,
-  label: t.zh,
+  zh: t.zh,
+  en: t.en,
 }))
 /* 风格筛选滚轮选项：风格行已从多选 chip 改为滚轮鼓单选（AuroraSelect），头部补「全部」 */
-const THEME_STYLE_FILTER_OPTIONS: { value: string; label: string }[] = [
-  { value: '', label: '全部' },
+const THEME_STYLE_FILTER_OPTIONS: { value: string; zh: string; en: string }[] = [
+  { value: '', zh: '全部', en: 'All' },
   ...THEME_STYLE_TAGS,
 ]
 
@@ -76,6 +79,7 @@ interface ThemeItem {
   category: string
   tags: string[]
   desc: string
+  descEn: string
   featured?: boolean
 }
 
@@ -90,6 +94,7 @@ const THEME_MARKET: ThemeItem[] = THEME_INFO_LIST
   category: t.category,
   tags: t.tags,
   desc: t.description.zh,
+  descEn: t.description.en,
   featured: !!t.featured,
 }))
 

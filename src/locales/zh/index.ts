@@ -966,6 +966,15 @@ export interface Translations {
     emptyNoneSub: string
     viewAllFiles: string
     backToFileList: string
+    scopeOnlyTitle: string
+    scopeExitTitle: string
+    searchNodePh: string
+    matchedCount: string
+    nodeType: string
+    scopeFilesLabel: string
+    scopeAllLabel: string
+    scopeKbLabel: string
+    scopeKbFallback: string
     typeNameCurrent: string
     typeNameNote: string
     typeNameTag: string
@@ -1125,6 +1134,12 @@ export interface Translations {
     pinInspector: string
     unpinInspector: string
     inspectorOverlay: string
+    tabOutline: string
+    tabFootnote: string
+    tabBacklinks: string
+    tabAid: string
+    expandInspector: string
+    resizeTitle: string
   }
   blog: {
     studio: string
@@ -1150,6 +1165,16 @@ export interface Translations {
     viewAllNotes: string
     ariaGroups: string
     ariaSubTabs: string
+    groupTheme: string
+    groupData: string
+    groupAdvanced: string
+    panelStyle: string
+    panelColor: string
+    panelContent: string
+    panelFeatures: string
+    panelCss: string
+    panelExport: string
+    currentTheme: string
     deviceDesktop: string
     deviceTablet: string
     deviceMobile: string
@@ -1238,6 +1263,7 @@ export interface Translations {
     onThisDay: string
     dailyQ: string
     switchOne: string
+    recordMood: string
     pickMood: string
     weekday: {
       sun: string
@@ -1254,6 +1280,9 @@ export interface Translations {
     calTitle: string
     heatLess: string
     heatMore: string
+    noEntryThisDay: string
+    cancel: string
+    confirmCount: string
   }
   kbSearch: {
     modeText: string

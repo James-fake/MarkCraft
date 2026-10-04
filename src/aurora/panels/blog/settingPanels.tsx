@@ -19,10 +19,12 @@ import { SectionLabel, StudioInput, StudioTextarea, StudioSelect, StudioToggle, 
  * 面板：样式（含主题市场子组件）
  * ========================================================== */
 function StylePanel({ cfg, setCfg, panelOpen }: { cfg: BlogConfig; setCfg: (p: Partial<BlogConfig>) => void; panelOpen: boolean }) {
-  const { t } = useLanguage()
+  const { t, language } = useLanguage()
   const B = t.blog
-  // 数据层选项首项为「全部」，展示文案随界面语言（数据层不持文案）
-  const styleFilterOptions = THEME_STYLE_FILTER_OPTIONS.map((o, i) => (i === 0 ? { ...o, label: B.all } : o))
+  // 数据层选项携带 zh/en 双语文案，展示文案随界面语言
+  const pickLabel = (o: { zh: string; en: string }) => (language === 'en' ? o.en : o.zh)
+  const catOptions = THEME_CATEGORIES.map((o) => ({ value: o.value, label: pickLabel(o) }))
+  const styleFilterOptions = THEME_STYLE_FILTER_OPTIONS.map((o) => ({ value: o.value, label: pickLabel(o) }))
   const [query, setQuery] = useState('')
   const [cat, setCat] = useState('all')
   // 风格筛选改为滚轮鼓单选（与设置页 AuroraSelect 同一套交互）；'' = 全部
@@ -61,7 +63,10 @@ function StylePanel({ cfg, setCfg, panelOpen }: { cfg: BlogConfig; setCfg: (p: P
 
   // 卡片 tag 显示名：与真层 ThemePanel.getTagLabel 同一映射（key→zh，找不到回退原 key）。
   // 2026-09-14 前卡片直接渲染英文 key（academic/fullwidth…），与筛选行的中文 chip 割裂。
-  const tagLabel = (tg: string) => THEME_STYLE_TAGS.find((t) => t.value === tg)?.label ?? tg
+  const tagLabel = (tg: string) => {
+    const f = THEME_STYLE_TAGS.find((s) => s.value === tg)
+    return f ? pickLabel(f) : tg
+  }
   const filtered = THEME_MARKET
     .filter((t) => cat === 'all' || t.category === cat)
     .filter((t) => !tag || t.tags.includes(tag))
@@ -101,7 +106,7 @@ function StylePanel({ cfg, setCfg, panelOpen }: { cfg: BlogConfig; setCfg: (p: P
       <SectionLabel>{B.themeMarket}</SectionLabel>
       <div className="aurora-blog-tabs">
         <span className="aurora-blog-chipgroup__label">{B.catLabel}</span>
-        <AuroraSelect value={cat} options={THEME_CATEGORIES} onChange={setCat} placeholder={B.all} ariaLabel={B.ariaByCat} />
+        <AuroraSelect value={cat} options={catOptions} onChange={setCat} placeholder={B.all} ariaLabel={B.ariaByCat} />
       </div>
       <div className="aurora-blog-tags">
         <span className="aurora-blog-chipgroup__label">{B.styleLabel}</span>
@@ -114,7 +119,7 @@ function StylePanel({ cfg, setCfg, panelOpen }: { cfg: BlogConfig; setCfg: (p: P
             className={`aurora-blog-theme ${cfg.themeKey === t.key ? 'is-active' : ''}`}
             role="button"
             tabIndex={0}
-            title={t.desc}
+            title={language === 'en' ? t.descEn : t.desc}
             onClick={() => setCfg({ themeKey: t.key })}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -130,7 +135,7 @@ function StylePanel({ cfg, setCfg, panelOpen }: { cfg: BlogConfig; setCfg: (p: P
               {cfg.themeKey === t.key && <span className="aurora-blog-theme__check"><Icon.check size={13} /></span>}
             </div>
             <div className="aurora-blog-theme__name"><b>{t.nameZh}</b><span>{t.nameEn}</span></div>
-            <div className="aurora-blog-theme__desc">{t.desc}</div>
+            <div className="aurora-blog-theme__desc">{language === 'en' ? t.descEn : t.desc}</div>
             <div className="aurora-blog-theme__tags">
               {t.tags.map((tg) => <em key={tg}>{tagLabel(tg)}</em>)}
               {t.featured && <em className="is-featured">{B.featured}</em>}
@@ -148,7 +153,7 @@ function StylePanel({ cfg, setCfg, panelOpen }: { cfg: BlogConfig; setCfg: (p: P
         ))}
       </div>
       <div className="aurora-blog-current">
-        当前主题：<b>{theme?.nameZh}</b> · {theme?.nameEn}
+        {B.currentTheme}<b>{theme?.nameZh}</b> · {theme?.nameEn}
         <span className="aurora-blog-current__grad" style={{ background: theme?.gradient }} />
       </div>
       </div>

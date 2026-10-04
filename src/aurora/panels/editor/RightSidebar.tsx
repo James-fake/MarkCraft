@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Icon } from '../../icons'
+import { useLanguage } from '@stores/LanguageStore'
 import AuroraOutline from './AuroraOutline'
 import AuroraFootnotes from './AuroraFootnotes'
 import AuroraBacklinks from './AuroraBacklinks'
@@ -20,13 +21,14 @@ import AuroraPublish from './AuroraPublish'
 export type InspectorTab = 'outline' | 'footnote' | 'backlinks' | 'aid'
 
 // 使用优化⑥ · 侧栏 tab 全站统一（图标+文字竖排，与白板 csp__tab 同款同源）
-const TABS: { id: InspectorTab; label: string; icon: string }[] = [
-  { id: 'outline', label: '大纲', icon: 'list' },
-  { id: 'footnote', label: '脚注', icon: 'footnote' },
-  { id: 'backlinks', label: '块级反链', icon: 'backlinks' },
+// label 由组件内经 useLanguage 解析（模块层不可用 hook）
+const TABS: { id: InspectorTab; icon: string }[] = [
+  { id: 'outline', icon: 'list' },
+  { id: 'footnote', icon: 'footnote' },
+  { id: 'backlinks', icon: 'backlinks' },
   // 2026-09-13：原「辅助」（写作辅助/成稿核查/粘贴为脚注）整体退役，改为「发布 / 归集」两项动作；
   // 图标随之由 wand（AI 魔杖）换为 send（对外投递），与实际内容对齐。
-  { id: 'aid', label: '辅助', icon: 'send' },
+  { id: 'aid', icon: 'send' },
 ]
 
 const WIDTH_KEY = 'mc-aurora-rightbar-w'
@@ -59,6 +61,13 @@ interface RightSidebarProps {
 }
 
 export function RightSidebar({ content, activeFileId, activeTab, forceExpand, onTabChange, onOpenNote, onChange, activeFileName, onPublishNote, kbMenuOpen, kbMenuFileId, onKbMenuOpenChange }: RightSidebarProps) {
+  const { t } = useLanguage()
+  const tabLabels: Record<InspectorTab, string> = {
+    outline: t.editorPanel.tabOutline,
+    footnote: t.editorPanel.tabFootnote,
+    backlinks: t.editorPanel.tabBacklinks,
+    aid: t.editorPanel.tabAid,
+  }
   const [tab, setTab] = useState<InspectorTab>('outline')
   const [activeFootnoteId, setActiveFootnoteId] = useState<string | null>(null)
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -155,12 +164,12 @@ export function RightSidebar({ content, activeFileId, activeTab, forceExpand, on
           type="button"
           className="aurora-rightbar__rail"
           onClick={toggleCollapse}
-          aria-label="展开检查器"
+          aria-label={t.editorPanel.expandInspector}
           aria-expanded={false}
-          title="展开检查器"
+          title={t.editorPanel.expandInspector}
         >
           <Icon.chevronLeft size={14} />
-          <span className="aurora-rightbar__rail-label">检查器</span>
+          <span className="aurora-rightbar__rail-label">{t.editorPanel.inspectorOverlay}</span>
         </button>
       </div>
     )
@@ -168,21 +177,21 @@ export function RightSidebar({ content, activeFileId, activeTab, forceExpand, on
 
   return (
     <div className={rootClassName} style={rootStyle}>
-      <span className="aurora-rightbar__resizer" onMouseDown={startResize} title={`拖拽调整宽度（${width}px）`} />
+      <span className="aurora-rightbar__resizer" onMouseDown={startResize} title={t.editorPanel.resizeTitle.replace('{w}', String(width))} />
       <div className="aurora-rightbar__tabs" role="tablist">
-        {TABS.map((t) => {
-          const IconComp = Icon[t.icon as keyof typeof Icon]
+        {TABS.map((tab) => {
+          const IconComp = Icon[tab.icon as keyof typeof Icon]
           return (
             <button
-              key={t.id}
+              key={tab.id}
               type="button"
               role="tab"
-              aria-selected={currentTab === t.id}
-              className={`aurora-rightbar__tab ${currentTab === t.id ? 'is-active' : ''}`}
-              onClick={() => selectTab(t.id)}
+              aria-selected={currentTab === tab.id}
+              className={`aurora-rightbar__tab ${currentTab === tab.id ? 'is-active' : ''}`}
+              onClick={() => selectTab(tab.id)}
             >
               {IconComp ? <IconComp size={14} /> : null}
-              <span>{t.label}</span>
+              <span>{tabLabels[tab.id]}</span>
             </button>
           )
         })}
@@ -191,9 +200,9 @@ export function RightSidebar({ content, activeFileId, activeTab, forceExpand, on
             type="button"
             className="aurora-rightbar__collapse-btn"
             onClick={toggleCollapse}
-            aria-label="收起检查器"
+            aria-label={t.editorPanel.collapseInspector}
             aria-expanded={true}
-            title="收起检查器"
+            title={t.editorPanel.collapseInspector}
           >
             <Icon.chevronRight size={14} />
           </button>

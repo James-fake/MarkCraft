@@ -6,6 +6,7 @@
  */
 import { useState, useMemo, useEffect } from 'react'
 import { loadKb, getKbFiles } from '@stores/kbStore'
+import { useLanguage } from '@stores/LanguageStore'
 import type { KnowledgeBase } from '@stores/kbTypes'
 import type { GraphData } from '@stores/LinkIndexStore'
 import type { FileNode } from '@src/types/fileManager'
@@ -31,6 +32,8 @@ export interface GraphScopeDataOpts {
 }
 
 export function useGraphScopeData(p: GraphScopeDataOpts) {
+  const { t } = useLanguage()
+  const G = t.graph
   // —— 数据范围（2026-09-23 用户需求：默认「文件列表」+ 面板内可选库/全部）——
   // 范围状态 = 范围键（'files' | 'all' | 'kb:<id>'）。初始值优先取「路由指令」
   //（从知识库「查看完整图谱」进入时带 kbId），否则取上次记住的值（用户拍板：记住最后一次）。
@@ -90,16 +93,16 @@ export function useGraphScopeData(p: GraphScopeDataOpts) {
   const scopeReady = scopeKind === 'all' || (p.kbListed && kbDocs !== null && (scopeKind !== 'kb' || !!scopeKbFileIds))
 
   /** 当前范围显示名（面包屑 / 状态栏 / 画布角标 / 空态共用）；默认档返回空串 = 「无需标注」 */
-  const scopeLabel = scopeKind === 'kb' ? scopeKbName || '知识库' : scopeKind === 'all' ? '全部文件' : ''
+  const scopeLabel = scopeKind === 'kb' ? scopeKbName || G.scopeKbFallback : scopeKind === 'all' ? G.scopeAllLabel : ''
 
   /** 范围选择器选项：默认档在最前，然后「全部文件」，最后每个知识库一档 */
   const scopeOptions = useMemo(
     () => [
-      { value: DEFAULT_GRAPH_SCOPE, label: '文件列表（不含知识库）' },
-      { value: 'all', label: '全部文件' },
-      ...p.kbList.map((k) => ({ value: scopeKeyOf('kb', k.id), label: `知识库 · ${k.name}` })),
+      { value: DEFAULT_GRAPH_SCOPE, label: G.scopeFilesLabel },
+      { value: 'all', label: G.scopeAllLabel },
+      ...p.kbList.map((k) => ({ value: scopeKeyOf('kb', k.id), label: G.scopeKbLabel.replace('{name}', k.name) })),
     ],
-    [p.kbList],
+    [p.kbList, G],
   )
 
   // 记着（或在路由里带着）的知识库已被删除 ⇒ 静默回落默认档。
@@ -122,7 +125,6 @@ export function useGraphScopeData(p: GraphScopeDataOpts) {
     if (scopeKind === 'kb') return scopeKbFileIds ? scopeGraphToKb(base, scopeKbFileIds) : empty
     if (scopeKind === 'files') return excludeGraphFiles(base, allKbFileIds)
     return base
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [graph, scopeReady, scopeKind, scopeKbFileIds, allKbFileIds, p.rootFolder, p.activeFileId, p.getFilePath, p.tagIndex])
   const allTags = useMemo(
     () => Array.from(p.tagIndex.keys()).map((x) => (x.includes('/') ? x.split('/').pop()! : x)),

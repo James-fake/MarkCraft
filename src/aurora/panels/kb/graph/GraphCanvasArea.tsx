@@ -4,6 +4,7 @@
  */
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { Icon } from '../../../icons'
+import { useLanguage } from '@stores/LanguageStore'
 import {
   RADIUS, CURRENT_R, hexPoints,
   type GNode, type GEdge,
@@ -57,6 +58,8 @@ export interface GraphCanvasAreaProps {
 }
 
 export function GraphCanvasArea(p: GraphCanvasAreaProps) {
+  const { t } = useLanguage()
+  const G = t.graph
   return (
     <>
       {/* 方案 C · 顶部筛选条：搜索 + 节点类型 + 着色（高频操作提升，告别左栏长列表混排） */}
@@ -64,7 +67,7 @@ export function GraphCanvasArea(p: GraphCanvasAreaProps) {
         {/* 范围芯片（非默认档出现）：一眼看清「现在看的只是这一批」，并给出一键退出口 */}
         {p.scopeKind !== 'files' && (
           <>
-            <span className="aurora-graph__scope" title={`仅显示「${p.scopeLabel}」范围内的笔记节点`}>
+            <span className="aurora-graph__scope" title={G.scopeOnlyTitle.replace('{name}', p.scopeLabel)}>
               {p.scopeKind === 'kb' ? <Icon.book size={13} /> : <Icon.layers size={13} />}
               <span className="aurora-graph__scope-name">{p.scopeLabel}</span>
             </span>
@@ -72,17 +75,17 @@ export function GraphCanvasArea(p: GraphCanvasAreaProps) {
               type="button"
               className="aurora-graph__scope-exit"
               onClick={() => p.setScope(p.defaultScope)}
-              title="退出当前范围，回到「文件列表」（不含知识库）"
+              title={G.scopeExitTitle}
             >
-              回到文件列表
+              {G.backToFileList}
             </button>
             <span className="aurora-graph__topbar-sep" />
           </>
         )}
         <div className="aurora-graph__search">
           <Icon.search size={14} />
-          <input value={p.search} onChange={(e) => p.setSearch(e.target.value)} placeholder="搜索节点…" />
-          {p.matchedIds && <span className="count">{p.matchedIds.size} 个</span>}
+          <input value={p.search} onChange={(e) => p.setSearch(e.target.value)} placeholder={G.searchNodePh} />
+          {p.matchedIds && <span className="count">{G.matchedCount.replace('{n}', String(p.matchedIds.size))}</span>}
         </div>
         <span className="aurora-graph__topbar-sep" />
         <div className="aurora-graph__topbar-type">
@@ -91,22 +94,22 @@ export function GraphCanvasArea(p: GraphCanvasAreaProps) {
             className={`aurora-graph__topbar-btn${p.typeOpen ? ' is-open' : ''}`}
             onClick={() => p.setTypeOpen((o) => !o)}
           >
-            <Icon.filter size={14} /> 节点类型
+            <Icon.filter size={14} /> {G.nodeType}
             <Icon.chevronDown size={12} />
           </button>
           {p.typeOpen && (
             <div className="aurora-graph__pop" onPointerLeave={() => p.setTypeOpen(false)}>
               <label className="aurora-graph__check">
                 <input type="checkbox" checked={p.showNote} onChange={(e) => p.setShowNote(e.target.checked)} />
-                笔记
+                {G.typeNote}
               </label>
               <label className="aurora-graph__check">
                 <input type="checkbox" checked={p.showTag} onChange={(e) => p.setShowTag(e.target.checked)} />
-                标签
+                {G.typeTag}
               </label>
               <label className="aurora-graph__check">
                 <input type="checkbox" checked={p.showFolder} onChange={(e) => p.setShowFolder(e.target.checked)} />
-                文件夹
+                {G.typeFolder}
               </label>
             </div>
           )}

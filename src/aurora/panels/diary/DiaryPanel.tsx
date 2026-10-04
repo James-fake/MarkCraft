@@ -291,7 +291,7 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
               <button className="dv2-link-btn" onClick={() => setFocusDate(TODAY_STR)}>{D.backToToday}</button>
             )}
             <button className="dv2-mood-btn" onClick={openMood}>
-              <Icon.smile size={13} /> 记录心情
+              <Icon.smile size={13} /> {D.recordMood}
             </button>
           </div>
 
@@ -374,7 +374,7 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
                 </>
               ) : (
                 <div className="dv2-popover__empty">
-                  <span>这一天还没有日记</span>
+                  <span>{D.noEntryThisDay}</span>
                   {hoveredDate && (
                     <button className="dv2-popover__view" onClick={() => { setFocusDate(hoveredDate); setHoveredDate(null) }}>{D.writeThis}</button>
                   )}
@@ -408,10 +408,10 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
         footer={
           <>
             <Button variant="secondary" onClick={() => setMoodOpen(false)}>
-              取消
+              {D.cancel}
             </Button>
             <Button variant="primary" onClick={confirmMood}>
-              确认 ({focusedMoodKeys.length})
+              {D.confirmCount.replace('{n}', String(focusedMoodKeys.length))}
             </Button>
           </>
         }

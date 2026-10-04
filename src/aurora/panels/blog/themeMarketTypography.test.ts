@@ -77,7 +77,15 @@ describe('主题市场 · 卡片 tag 中文映射（单一数据源）', () => {
   })
 
   it('tagLabel 回退语义与真层 getTagLabel 一致（映射不到时显示原 key，不抛错）', () => {
-    expect(tsx).toMatch(/tagLabel = \(tg: string\) => THEME_STYLE_TAGS\.find\(\(t\) => t\.value === tg\)\?\.label \?\? tg/)
+    expect(tsx).toMatch(/const tagLabel = \(tg: string\) => \{/)
+    expect(tsx).toMatch(/THEME_STYLE_TAGS\.find\(\(s\) => s\.value === tg\)/)
+    expect(tsx).toMatch(/return f \? pickLabel\(f\) : tg/)
+  })
+
+  it('分类/风格标签随界面语言（数据源持 zh/en 双语，非恒中文）', () => {
+    expect(tsx).toMatch(/pickLabel = \(o: \{ zh: string; en: string \}\) => \(language === 'en' \? o\.en : o\.zh\)/)
+    expect(tsx).toMatch(/const catOptions = THEME_CATEGORIES\.map\(\(o\) => \(\{ value: o\.value, label: pickLabel\(o\) \}\)\)/)
+    expect(tsx).toMatch(/const styleFilterOptions = THEME_STYLE_FILTER_OPTIONS\.map\(\(o\) => \(\{ value: o\.value, label: pickLabel\(o\) \}\)\)/)
   })
 })
 
@@ -113,7 +121,8 @@ describe('主题市场 · 筛选改滚轮鼓选择（与设置页 AuroraSelect �
   })
 
   it('风格滚轮选项头部补「全部」，其后展开单一数据源 THEME_STYLE_TAGS', () => {
-    expect(tsx).toMatch(/i === 0 \? \{ \.\.\.o, label: B\.all \} : o/)
+    // 头部「全部」现由数据源 THEME_STYLE_FILTER_OPTIONS 首项承载（zh/en 双语）
+    expect(tsx).toMatch(/THEME_STYLE_FILTER_OPTIONS: \{ value: string; zh: string; en: string \}\[\] = \[\s*\n\s*\{ value: '', zh: '全部', en: 'All' \}/)
     expect(tsx).toMatch(/THEME_STYLE_FILTER_OPTIONS\.map/)
   })
 
@@ -122,7 +131,7 @@ describe('主题市场 · 筛选改滚轮鼓选择（与设置页 AuroraSelect �
   })
 
   it('分类滚轮沿用单一数据源 THEME_CATEGORIES（内含「全部」选项，value=all）', () => {
-    expect(tsx).toMatch(/<AuroraSelect value=\{cat\} options=\{THEME_CATEGORIES\}/)
+    expect(tsx).toMatch(/<AuroraSelect value=\{cat\} options=\{catOptions\}/)
     expect(gen).toMatch(/key: 'all',\s*zh: '全部'/)
   })
 })
