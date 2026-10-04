@@ -239,7 +239,12 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
       // 直接进入编辑态：首次输入即创建当天日记（空模板、不切走当前文件），内容同步落盘
       const folderId = findOrCreateDailyFolder(rootFolder, createFolder)
       const newId = createFile(folderId, `${date}.md`, md, false)
-      if (newId) draftIdsRef.current.set(date, newId)
+      if (newId) {
+        draftIdsRef.current.set(date, newId)
+      } else {
+        // 必须抛出：调用方靠 try/catch 判定成败，静默返回会让 UI 显示“已保存”而内容并未落盘
+        throw new Error(`Failed to create diary file: ${date}.md`)
+      }
     },
     [entryMap, rootFolder, createFile, createFolder, updateFileContent],
   )

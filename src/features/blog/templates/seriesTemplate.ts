@@ -89,9 +89,14 @@ export function generateSeriesDetailHtml(series: SeriesConfig, posts: BlogPost[]
   })
 
   const totalPosts = sortedPosts.length
-  
+
+  // 阅读进度：与下方进度条显示 `0 / totalPosts` 保持一致（目前尚无持久化来源）。
+  // 原实现 `post.seriesOrder <= (post.seriesOrder || 0)` 是自比恒真 → 每篇都标“已读”。
+  // 将来接入真实阅读进度时，把 readCount 换成该值即可。
+  const readCount = 0
+
   const postsList = sortedPosts.map((post, index) => {
-    const isCompleted = post.seriesOrder !== undefined ? post.seriesOrder <= (post.seriesOrder || 0) : false
+    const isCompleted = post.seriesOrder !== undefined ? post.seriesOrder <= readCount : false
     
     return `
       <a href="/posts/${post.slug}/" class="series-post-item ${isCompleted ? 'completed' : ''}">

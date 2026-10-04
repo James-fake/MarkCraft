@@ -107,21 +107,37 @@ const MigrateWizard: React.FC<MigrateWizardProps> = ({ isOpen, onClose }) => {
           source === 'obsidian'
             ? await importObsidianVault(file, t.importExternal)
             : await importNotionExport(file, t.importExternal)
+        // 文件夹名取自用户文件名：必须去掉路径非法字符，否则可能创建失败或落到意外位置
+        const rawName = file.name.replace(/\.(zip|tar\.gz)$/i, '')
         const folderName =
-          file.name.replace(/\.(zip|tar\.gz)$/i, '') || `${w.migrateFolderDefault}-${Date.now()}`
+          rawName.replace(/[\\/:*?"<>|]/g, '-').trim() || `${w.migrateFolderDefault}-${Date.now()}`
         const folderId = createFolder('root', folderName)
+        if (!folderId) {
+          throw new Error(`Failed to create folder: ${folderName}`)
+        }
         let count = 0
+        const failed: string[] = []
         for (const f of result.files) {
           try {
             const fileName = f.name.endsWith('.md') ? f.name : `${f.name}.md`
             createFile(folderId, fileName, f.content)
             count++
           } catch {
-            /* 单文件写入失败不中断整体 */
+            // 单文件失败不中断整体，但必须计数并上报，否则用户以为全部导入成功
+            failed.push(f.name)
           }
         }
         setDone({ folder: folderName, count })
-        toast.show(w.migrateDone.replace('{n}', String(count)).replace('{folder}', folderName), 'success')
+        if (failed.length > 0) {
+          const msg = w.migratePartial
+            .replace('{n}', String(count))
+            .replace('{folder}', folderName)
+            .replace('{failed}', String(failed.length))
+          setError(msg)
+          toast.show(msg, 'error')
+        } else {
+          toast.show(w.migrateDone.replace('{n}', String(count)).replace('{folder}', folderName), 'success')
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         setError(msg)

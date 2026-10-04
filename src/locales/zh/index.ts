@@ -196,6 +196,7 @@ export interface Translations {
     migrateImporting: string
     migrateDone: string
     migrateFailed: string
+    migratePartial: string
     migrateClose: string
     migrateAgain: string
     migrateFolderDefault: string

@@ -89,7 +89,9 @@ export function textToStorage(text: string): string {
       if (base64Data) {
         return `![${alt}](${base64Data})`
       }
-      return `![${alt}](${imageId})`
+      // 图片已被清理/未水合时，必须保留 `image:` 前缀：
+      // 若回落成裸 id（如 img_3），会被当成非法相对路径，textFromStorage 再也认不回，图片引用永久丢失
+      return `![${alt}](image:${imageId})`
     }
   )
 }

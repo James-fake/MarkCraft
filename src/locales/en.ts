@@ -181,6 +181,7 @@ export const en: Translations = {
     migrateImporting: 'Importing…',
     migrateDone: 'Imported {n} notes into "{folder}"',
     migrateFailed: 'Import failed: {msg}',
+    migratePartial: 'Imported {n} notes into "{folder}", but {failed} failed to write',
     migrateClose: 'Done',
     migrateAgain: 'Import another',
     migrateFolderDefault: 'Imported',

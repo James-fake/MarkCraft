@@ -13,7 +13,8 @@ export function useMathRender(baseHtml: string): string | null {
   const [mathRenderedHtml, setMathRenderedHtml] = useState<string | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const abortRef = useRef(false)
-  const prevRef = useRef(baseHtml)
+  // 哨兵初值：不能初始化为 baseHtml，否则首挂载立即命中 `===` 早返回 → 首屏 KaTeX 不渲染（只留 katex-* 原始标记）
+  const prevRef = useRef<string | null>(null)
 
   useEffect(() => {
     if (baseHtml === prevRef.current) return

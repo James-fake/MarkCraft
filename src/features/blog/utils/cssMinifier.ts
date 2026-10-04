@@ -5,6 +5,30 @@
  */
 
 /**
+ * 受保护片段的占位符：字符串字面量与 url(...) 内容必须先摘出再压缩，
+ * 否则后续「去空白 / 0px→0 / 0.5→.5」等正则会把 content:"a: b" 改成 content:"a:b"、
+ * 把 url(data:…base64,…) 改坏，导致导出 CSS 静默损坏。
+ */
+const PROTECTED_TOKEN = '\u0000'
+
+function maskProtectedSections(css: string): { masked: string; chunks: string[] } {
+  const chunks: string[] = []
+  const pattern = /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|url\([^)]*\)/gi
+  const masked = css.replace(pattern, (match) => {
+    chunks.push(match)
+    return `${PROTECTED_TOKEN}${chunks.length - 1}${PROTECTED_TOKEN}`
+  })
+  return { masked, chunks }
+}
+
+function restoreProtectedSections(css: string, chunks: string[]): string {
+  return css.replace(
+    new RegExp(`${PROTECTED_TOKEN}(\\d+)${PROTECTED_TOKEN}`, 'g'),
+    (_match, index) => chunks[Number(index)] ?? '',
+  )
+}
+
+/**
  * 压缩 CSS 代码
  * @param css 原始 CSS 字符串
  * @returns 压缩后的 CSS 字符串
@@ -12,7 +36,8 @@
 export function minifyCss(css: string): string {
   if (!css || !css.trim()) return css
 
-  let result = css
+  const { masked, chunks } = maskProtectedSections(css)
+  let result = masked
 
   // 1. 移除注释（保留 /*! ... */ 重要注释，如版权声明）
   result = result.replace(/\/\*(?!!)[\s\S]*?\*\//g, '')
@@ -44,7 +69,7 @@ export function minifyCss(css: string): string {
   // 10. 最终 trim
   result = result.trim()
 
-  return result
+  return restoreProtectedSections(result, chunks)
 }
 
 /** 压缩统计信息 */

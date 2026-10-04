@@ -52,7 +52,9 @@ export function useTiptapDropPaste(args: Parameters<typeof useTiptapImageHandler
     // F3: Smart paste — detect WikiLink format and insert as WikiLink mark
     const plainText = event.clipboardData?.getData('text/plain')
     if (plainText) {
-      const wikiLinkMatch = plainText.match(/^\[\[([^\]]+)\]\]$/m)
+      // 不能用 `m` 标志：那会让 ^/$ 匹配行边界，多行剪贴板只要含一行 `[[Note]]`
+      // 就整体劫持粘贴、丢弃其余文本。先 trim，再要求「整段内容就是单个 WikiLink」。
+      const wikiLinkMatch = plainText.trim().match(/^\[\[([^\]]+)\]\]$/)
       if (wikiLinkMatch) {
         const target = wikiLinkMatch[1]
         const { from } = view.state.selection

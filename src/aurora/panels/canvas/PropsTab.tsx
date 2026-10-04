@@ -51,7 +51,8 @@ export function PropsTab({
         rows={4}
         value={s.text.replace(/ {2,}/g, ' ')}
         placeholder={t.propsTab.contentPlaceholder}
-        onChange={(e) => set({ props: { text: e.target.value } })}
+        // 必须与上方 value 用同一套归一化：只归一显示、却回写原始值会导致显示与状态不一致（光标跳变、空格被静默改写）
+        onChange={(e) => set({ props: { text: e.target.value.replace(/ {2,}/g, ' ') } })}
       />
       {s.type === 'label-card' ? (
         <>

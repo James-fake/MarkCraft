@@ -99,7 +99,9 @@ export default function FrontMatterPanel({ isOpen, onClose, content, onContentCh
 
   const handleApply = () => {
     const parsed = parseFrontMatter(content)
+    // 先铺开原 frontmatter：面板只掌管下列 13 个字段，其余自定义 YAML 键必须原样保留，否则会被静默删除
     const newFrontMatter = {
+      ...parsed.frontMatter,
       title: titleValue,
       date: dateValue,
       tags: tagsValue.split(',').map(t => t.trim()).filter(Boolean),

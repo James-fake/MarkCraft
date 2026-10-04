@@ -112,6 +112,7 @@ export const welcome = {
   migrateImporting: '正在导入…',
   migrateDone: '已成功导入 {n} 篇笔记到「{folder}」',
   migrateFailed: '导入失败：{msg}',
+  migratePartial: '已导入 {n} 篇到「{folder}」，另有 {failed} 篇写入失败',
   migrateClose: '完成',
   migrateAgain: '再导入一个',
   migrateFolderDefault: '导入',

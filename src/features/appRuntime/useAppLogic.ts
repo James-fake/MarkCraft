@@ -64,6 +64,10 @@ export function useAppLogic(params: UseAppLogicParams): UseAppLogicResult {
   // —— S2: 笔记版本快照 ——
   const { createVersion } = useNoteVersion()
   const lastSavedContentRef = useRef<string>('')
+  // 卸载快照必须取「最新的真实内容」：lastSavedContentRef 仅在 !isDirty 时更新，
+  // 直接用它建 'save' 版本会让快照滞后于真实内容（未保存即卸载时丢掉最后一段编辑）
+  const latestContentRef = useRef<string>(localContent)
+  latestContentRef.current = localContent
   useEffect(() => {
     if (activeFileId && !isDirty && localContent && localContent !== lastSavedContentRef.current) {
       createVersion(activeFileId, localContent, 'auto')
@@ -72,8 +76,8 @@ export function useAppLogic(params: UseAppLogicParams): UseAppLogicResult {
   }, [isDirty, activeFileId, localContent, createVersion])
   useEffect(() => {
     return () => {
-      if (activeFileId && lastSavedContentRef.current) {
-        createVersion(activeFileId, lastSavedContentRef.current, 'save')
+      if (activeFileId && latestContentRef.current) {
+        createVersion(activeFileId, latestContentRef.current, 'save')
       }
     }
   }, [activeFileId, createVersion])
