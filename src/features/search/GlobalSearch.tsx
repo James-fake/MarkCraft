@@ -52,6 +52,15 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
   const folders = useMemo(() => collectFolders(rootFolder), [rootFolder]);
   const allTags = useMemo(() => getAllTags(), [getAllTags]);
 
+  // 时间预设标签本地化（TIME_PRESETS 的 id 为逻辑键，label 随语言切换）
+  const TIME_LABELS: Record<string, string> = {
+    all: t.globalSearch.timeAll,
+    today: t.globalSearch.timeToday,
+    week: t.globalSearch.timeWeek,
+    month: t.globalSearch.timeMonth,
+    year: t.globalSearch.timeYear,
+  };
+
   const filters: SearchFilters = useMemo(() => {
     const { start, end } = getTimeRange(timePreset);
     return {
@@ -306,14 +315,14 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={booleanMode ? '布尔查询：foo AND bar / foo OR bar / foo NOT bar' : t.globalSearch.searchPlaceholder}
+            placeholder={booleanMode ? t.globalSearch.booleanPlaceholder : t.globalSearch.searchPlaceholder}
             className="flex-1 py-3 bg-transparent outline-none quick-open-input"
             style={{ color: 'var(--mc-text-primary)', fontSize: '14px', border: 'none' }}
           />
           <button
             onClick={() => { if (!booleanMode) setShowReplace(!showReplace); }}
             disabled={booleanMode}
-            title={booleanMode ? '布尔查询模式下不支持替换' : '替换模式'}
+            title={booleanMode ? t.globalSearch.replaceDisabledInBoolean : t.globalSearch.replaceMode}
             style={{
               ...toggleBtnBase,
               border: `1px solid ${showReplace ? 'var(--button-primary)' : 'var(--mc-border-subtle)'}`,
@@ -325,7 +334,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
           >⟳</button>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            title="过滤器"
+            title={t.globalSearch.filter}
             style={{
               ...toggleBtnBase,
               border: `1px solid ${showFilters || hasActiveFilters ? 'var(--button-primary)' : 'var(--mc-border-subtle)'}`,
@@ -336,7 +345,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
           >⚙</button>
           <button
             onClick={() => setCaseSensitive(!caseSensitive)}
-            title={caseSensitive ? '区分大小写: 开' : '区分大小写: 关'}
+            title={caseSensitive ? t.globalSearch.caseSensitiveOn : t.globalSearch.caseSensitiveOff}
             style={{
               ...toggleBtnBase,
               border: `1px solid ${caseSensitive ? 'var(--button-primary)' : 'var(--mc-border-subtle)'}`,
@@ -347,7 +356,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
           >Aa</button>
           <button
             onClick={() => setWholeWord(!wholeWord)}
-            title={wholeWord ? '全词匹配: 开' : '全词匹配: 关'}
+            title={wholeWord ? t.globalSearch.wholeWordOn : t.globalSearch.wholeWordOff}
             style={{
               ...toggleBtnBase,
               border: `1px solid ${wholeWord ? 'var(--button-primary)' : 'var(--mc-border-subtle)'}`,
@@ -363,7 +372,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
               // 正则与布尔模式互斥
               if (next) setBooleanMode(false);
             }}
-            title={useRegex ? '正则表达式: 开' : '正则表达式: 关'}
+            title={useRegex ? t.globalSearch.regexOn : t.globalSearch.regexOff}
             style={{
               ...toggleBtnBase,
               border: `1px solid ${useRegex ? 'var(--button-primary)' : 'var(--mc-border-subtle)'}`,
@@ -379,7 +388,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
               // 布尔与正则模式互斥；布尔模式下关闭替换面板（替换仍走字面量查询）
               if (next) { setRegex(false); setShowReplace(false); }
             }}
-            title={booleanMode ? '布尔查询: 开（支持 AND / OR / NOT，"短语" 用引号）' : '布尔查询: 关'}
+            title={booleanMode ? t.globalSearch.booleanOn : t.globalSearch.booleanOff}
             style={{
               ...toggleBtnBase,
               border: `1px solid ${booleanMode ? 'var(--button-primary)' : 'var(--mc-border-subtle)'}`,
@@ -412,7 +421,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
               type="text"
               value={replacement}
               onChange={(e) => setReplacement(e.target.value)}
-              placeholder="替换为..."
+              placeholder={t.globalSearch.replacePlaceholder}
               className="flex-1 bg-transparent outline-none"
               style={{ color: 'var(--mc-text-primary)', fontSize: '13px', border: 'none' }}
             />
@@ -425,11 +434,11 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                 backgroundColor: 'var(--button-primary)', color: '#fff',
                 opacity: query.trim() ? 1 : 0.4,
               }}
-            >全部替换</button>
+            >{t.globalSearch.replaceAll}</button>
             <button
               onClick={handleReplaceAllInFile}
               disabled={!query.trim() || !getActiveFileId()}
-              title={getActiveFileId() ? '只替换当前活动文件中的所有匹配' : '没有打开的文件'}
+              title={getActiveFileId() ? t.globalSearch.replaceCurrentFileTitle : t.globalSearch.noOpenFile}
               style={{
                 padding: '4px 10px', borderRadius: 4, fontSize: '11px',
                 cursor: (query.trim() && getActiveFileId()) ? 'pointer' : 'not-allowed',
@@ -437,7 +446,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                 backgroundColor: 'transparent', color: 'var(--mc-text-secondary)',
                 opacity: (query.trim() && getActiveFileId()) ? 0.85 : 0.4,
               }}
-            >仅当前文件</button>
+            >{t.globalSearch.replaceCurrentFile}</button>
             {undoSnapshot && (
               <button
                 onClick={handleUndo}
@@ -445,7 +454,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                   padding: '4px 10px', borderRadius: 4, fontSize: '11px', cursor: 'pointer',
                   border: '1px solid #e55', backgroundColor: 'transparent', color: '#e55',
                 }}
-              >撤销</button>
+              >{t.globalSearch.undo}</button>
             )}
           </div>
         )}
@@ -462,7 +471,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                 size={1}
                 style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, border: '1px solid var(--mc-border-subtle)', backgroundColor: 'var(--mc-bg-panel)', color: 'var(--mc-text-primary)', maxWidth: 160 }}
               >
-                <option value="">📁 路径: 全部</option>
+                <option value="">{t.globalSearch.pathAll}</option>
                 {folders.map(f => <option key={f.id} value={f.id}>📁 {f.name}</option>)}
               </select>
 
@@ -474,7 +483,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                 size={1}
                 style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, border: '1px solid var(--mc-border-subtle)', backgroundColor: 'var(--mc-bg-panel)', color: 'var(--mc-text-primary)', maxWidth: 140 }}
               >
-                <option value="">🏷️ 标签: 全部</option>
+                <option value="">{t.globalSearch.tagAll}</option>
                 {allTags.map(tag => <option key={tag} value={tag}>#{tag}</option>)}
               </select>
 
@@ -482,14 +491,14 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
               <AuroraSelect
                 value={timePreset}
                 onChange={(v) => setTimePreset(v)}
-                options={TIME_PRESETS.map(tp => ({ value: tp.id, label: `📅 ${tp.label}` }))}
+                options={TIME_PRESETS.map(tp => ({ value: tp.id, label: `📅 ${TIME_LABELS[tp.id] ?? tp.label}` }))}
               />
 
               {hasActiveFilters && (
                 <button
                   onClick={() => { setFolderIds([]); setSelectedTags([]); setTimePreset('all') }}
                   style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, border: '1px solid var(--mc-border-subtle)', background: 'transparent', color: 'var(--mc-text-secondary)', cursor: 'pointer' }}
-                >清除</button>
+                >{t.globalSearch.clear}</button>
               )}
             </div>
           </div>
@@ -586,7 +595,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                             setInlineReplacement(replacement);
                           }
                         }}
-                        title="替换此条"
+                        title={t.globalSearch.replaceThis}
                         style={{
                           ...toggleBtnBase,
                           flexShrink: 0,
@@ -595,7 +604,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                           color: isEditing ? 'var(--button-primary)' : 'var(--mc-text-secondary)',
                           opacity: isEditing ? 1 : 0.6,
                         }}
-                      >替换</button>
+                      >{t.globalSearch.replace}</button>
                     </div>
                     {isEditing && (
                       <div className="flex items-center gap-2 mt-1.5" onClick={(e) => e.stopPropagation()}>
@@ -613,7 +622,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                             }
                           }}
                           autoFocus
-                          placeholder="输入替换文本..."
+                          placeholder={t.globalSearch.inputReplaceText}
                           className="flex-1 outline-none"
                           style={{
                             color: 'var(--mc-text-primary)', fontSize: '12px', fontFamily: 'monospace',
@@ -628,7 +637,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                             border: '1px solid var(--button-primary)',
                             backgroundColor: 'var(--button-primary)', color: '#fff',
                           }}
-                        >替换</button>
+                        >{t.globalSearch.replace}</button>
                         <button
                           onClick={() => { setEditingMatchKey(null); setInlineReplacement(''); }}
                           style={{
@@ -636,7 +645,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
                             border: '1px solid var(--mc-border-subtle)',
                             backgroundColor: 'transparent', color: 'var(--mc-text-secondary)',
                           }}
-                        >取消</button>
+                        >{t.globalSearch.cancel}</button>
                       </div>
                     )}
                   </div>
@@ -644,7 +653,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
               })}
               {result.matches.length > MAX_VISIBLE_MATCHES && (
                 <div style={{ padding: '2px 24px', fontSize: 11, color: 'var(--mc-text-secondary)', opacity: 0.4 }}>
-                  {'...'}{t.globalSearch.matchesCount.replace('个匹配', '')} {result.matches.length - MAX_VISIBLE_MATCHES} {t.globalSearch.matchCount}
+                  {t.globalSearch.moreMatches.replace('{n}', String(result.matches.length - MAX_VISIBLE_MATCHES))}
                 </div>
               )}
             </div>

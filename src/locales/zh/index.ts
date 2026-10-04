@@ -2287,6 +2287,40 @@ export interface Translations {
     openFile: string
     escClose: string
     fileCount: string
+    booleanPlaceholder: string
+    replaceDisabledInBoolean: string
+    replaceMode: string
+    filter: string
+    caseSensitiveOn: string
+    caseSensitiveOff: string
+    wholeWordOn: string
+    wholeWordOff: string
+    regexOn: string
+    regexOff: string
+    booleanOn: string
+    booleanOff: string
+    replacePlaceholder: string
+    replaceAll: string
+    replaceCurrentFileTitle: string
+    noOpenFile: string
+    replaceCurrentFile: string
+    undo: string
+    pathAll: string
+    tagAll: string
+    clear: string
+    replaceThis: string
+    replace: string
+    inputReplaceText: string
+    cancel: string
+    moreMatches: string
+    timeAll: string
+    timeToday: string
+    timeWeek: string
+    timeMonth: string
+    timeYear: string
+    confirmReplace: string
+    replacePreviewTitle: string
+    noChanges: string
   }
   tabBar: {
     closeTab: string

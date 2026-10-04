@@ -1,4 +1,5 @@
 import type { ReplaceDiffPreview } from './searchUtils'
+import { useLanguage } from '../../stores/LanguageStore'
 
 /** P1.2 任务3: 替换预览（diff 视图）—— 纯展示组件，确认/取消动作由调用方承担 */
 interface ReplacePreviewProps {
@@ -8,6 +9,7 @@ interface ReplacePreviewProps {
 }
 
 export function ReplacePreview({ preview, onConfirm, onCancel }: ReplacePreviewProps) {
+  const { t } = useLanguage()
   return (
     <div className="flex flex-col flex-1 min-h-0" style={{ backgroundColor: 'rgba(128,128,128,0.03)' }}>
       <div
@@ -15,7 +17,9 @@ export function ReplacePreview({ preview, onConfirm, onCancel }: ReplacePreviewP
         style={{ borderColor: 'var(--mc-border-subtle)' }}
       >
         <span style={{ color: 'var(--mc-text-primary)', fontSize: '12px', fontWeight: 600 }}>
-          替换预览（{preview.diffs.length} 处修改 / {preview.modifications.length} 个文件）
+          {t.globalSearch.replacePreviewTitle
+            .replace('{changes}', String(preview.diffs.length))
+            .replace('{files}', String(preview.modifications.length))}
         </span>
         <div className="flex items-center gap-2">
           <button
@@ -25,7 +29,7 @@ export function ReplacePreview({ preview, onConfirm, onCancel }: ReplacePreviewP
               border: '1px solid var(--button-primary)',
               backgroundColor: 'var(--button-primary)', color: '#fff',
             }}
-          >确认替换</button>
+          >{t.globalSearch.confirmReplace}</button>
           <button
             onClick={onCancel}
             style={{
@@ -33,13 +37,13 @@ export function ReplacePreview({ preview, onConfirm, onCancel }: ReplacePreviewP
               border: '1px solid var(--mc-border-subtle)',
               backgroundColor: 'transparent', color: 'var(--mc-text-secondary)',
             }}
-          >取消</button>
+          >{t.globalSearch.cancel}</button>
         </div>
       </div>
       <div className="overflow-y-auto flex-1" style={{ scrollbarWidth: 'thin' }}>
         {preview.diffs.length === 0 && (
           <div className="px-4 py-8 text-center" style={{ color: 'var(--mc-text-secondary)', opacity: 0.5, fontSize: '13px' }}>
-            没有实际变化
+            {t.globalSearch.noChanges}
           </div>
         )}
         {preview.diffs.map((d, idx) => (

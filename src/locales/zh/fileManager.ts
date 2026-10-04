@@ -95,6 +95,49 @@ export const globalSearch = {
   openFile: '↵ 打开文件',
   escClose: 'Esc 关闭',
   fileCount: '个文件',
+  // 布尔查询模式
+  booleanPlaceholder: '布尔查询：foo AND bar / foo OR bar / foo NOT bar',
+  replaceDisabledInBoolean: '布尔查询模式下不支持替换',
+  replaceMode: '替换模式',
+  // 过滤器
+  filter: '过滤器',
+  // 开关状态（title）
+  caseSensitiveOn: '区分大小写: 开',
+  caseSensitiveOff: '区分大小写: 关',
+  wholeWordOn: '全词匹配: 开',
+  wholeWordOff: '全词匹配: 关',
+  regexOn: '正则表达式: 开',
+  regexOff: '正则表达式: 关',
+  booleanOn: '布尔查询: 开（支持 AND / OR / NOT，"短语" 用引号）',
+  booleanOff: '布尔查询: 关',
+  // 替换栏
+  replacePlaceholder: '替换为...',
+  replaceAll: '全部替换',
+  replaceCurrentFileTitle: '只替换当前活动文件中的所有匹配',
+  noOpenFile: '没有打开的文件',
+  replaceCurrentFile: '仅当前文件',
+  undo: '撤销',
+  // 过滤器选项
+  pathAll: '📁 路径: 全部',
+  tagAll: '🏷️ 标签: 全部',
+  clear: '清除',
+  // 单条替换内联
+  replaceThis: '替换此条',
+  replace: '替换',
+  inputReplaceText: '输入替换文本...',
+  cancel: '取消',
+  // 结果列表超出阈值
+  moreMatches: '...还有 {n} 处匹配',
+  // 时间预设
+  timeAll: '全部时间',
+  timeToday: '今天',
+  timeWeek: '本周',
+  timeMonth: '本月',
+  timeYear: '本年',
+  // 替换预览（哑组件）
+  confirmReplace: '确认替换',
+  replacePreviewTitle: '替换预览（{changes} 处修改 / {files} 个文件）',
+  noChanges: '没有实际变化',
 }
 
 export const tabBar = {
