@@ -3,6 +3,7 @@ import type { NodeViewProps } from '@tiptap/react'
 import { useEffect, useRef, useState } from 'react'
 import { getPdfBlob } from '@core/storage/blobStore'
 import { logger } from '@utils/logger'
+import { useLanguage } from '@stores/LanguageStore'
 
 /** 一次最多渲染的页数，避免超大 PDF 占满内存（C3 风险缓解） */
 const MAX_PAGES = 30
@@ -10,6 +11,7 @@ const MAX_PAGES = 30
 type LoadStatus = 'loading' | 'ready' | 'error'
 
 export default function PdfEmbedView({ node }: NodeViewProps) {
+  const { t } = useLanguage()
   const { src, pdfId } = node.attrs
   const containerRef = useRef<HTMLDivElement>(null)
   const [status, setStatus] = useState<LoadStatus>('loading')
@@ -59,7 +61,7 @@ export default function PdfEmbedView({ node }: NodeViewProps) {
 
         if (pdfId) {
           const blob = await getPdfBlob(pdfId)
-          if (!blob) throw new Error('PDF 数据不存在（可能尚未上传或已清理）')
+          if (!blob) throw new Error(t.embedView.pdfDataMissing)
           const bytes = new Uint8Array(await blob.arrayBuffer())
           await renderInto(pdfjs, bytes)
         } else if (src) {
@@ -74,20 +76,20 @@ export default function PdfEmbedView({ node }: NodeViewProps) {
           }
         } else {
           setStatus('error')
-          setError('PDF 源未指定')
+          setError(t.embedView.pdfSrcMissing)
         }
       } catch (err) {
         if (cancelled) return
         logger.error('[PdfEmbedView] load failed:', err)
         setStatus('error')
-        setError(err instanceof Error ? err.message : 'PDF 加载失败')
+        setError(err instanceof Error ? err.message : t.embedView.pdfLoadFailed)
       }
     })()
 
     return () => {
       cancelled = true
     }
-  }, [src, pdfId])
+  }, [src, pdfId, t])
 
   return (
     <NodeViewWrapper>
@@ -112,7 +114,7 @@ export default function PdfEmbedView({ node }: NodeViewProps) {
           }}
         >
           <span>📄 PDF</span>
-          {pageCount > 0 && <span>· {pageCount} 页</span>}
+          {pageCount > 0 && <span>{t.embedView.pagesCount.replace('{n}', String(pageCount))}</span>}
           {src && !pdfId && (
             <a
               href={src}
@@ -120,21 +122,21 @@ export default function PdfEmbedView({ node }: NodeViewProps) {
               rel="noreferrer"
               style={{ marginLeft: 'auto', color: 'var(--link-color, #2563eb)' }}
             >
-              打开原文件
+              {t.embedView.openOriginal}
             </a>
           )}
         </div>
 
         {status === 'loading' && (
-          <div style={{ padding: 24, textAlign: 'center', color: 'var(--editor-text, #666)' }}>加载中…</div>
+          <div style={{ padding: 24, textAlign: 'center', color: 'var(--editor-text, #666)' }}>{t.embedView.loading}</div>
         )}
 
         {status === 'error' && (
           <div style={{ padding: 16, color: '#ef4444', fontSize: 13 }}>
-            <div>PDF 预览失败：{error}</div>
+            <div>{t.embedView.pdfPreviewFailed.replace('{error}', error)}</div>
             {src && (
               <a href={src} target="_blank" rel="noreferrer" style={{ color: '#ef4444' }}>
-                尝试直接打开
+                {t.embedView.tryOpenDirect}
               </a>
             )}
           </div>

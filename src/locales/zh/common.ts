@@ -1253,6 +1253,34 @@ export const autocomplete = {
   headingPlaceholder: '标题',
 }
 
+// 编辑器嵌入视图文案（EmbedContentView / MermaidBlockView / PdfEmbedView）
+export const embedView = {
+  // EmbedContentView（嵌入笔记 / 图片视图）
+  fileMissing: '⚠ 文件不存在',
+  loadFailed: '⚠ 无法加载内容',
+  blockRefNotFound: '⚠ 块引用 ^{id} 未找到',
+  renderFailed: '⚠ 渲染失败',
+  editInSource: '在源文件中编辑',
+  collapse: '折叠',
+  expandWithLines: '展开 (共 {n} 行)',
+  // MermaidBlockView（Mermaid / 思维导图块）
+  emptyDiagram: '空图表块 - 双击编辑',
+  diagramSyntaxError: '图表语法错误',
+  diagramRenderError: '图表渲染错误',
+  edit: '编辑',
+  done: '完成',
+  visualEdit: '可视化编辑',
+  // PdfEmbedView（PDF 嵌入视图）
+  pdfDataMissing: 'PDF 数据不存在（可能尚未上传或已清理）',
+  pdfSrcMissing: 'PDF 源未指定',
+  pdfLoadFailed: 'PDF 加载失败',
+  pagesCount: '· {n} 页',
+  openOriginal: '打开原文件',
+  loading: '加载中…',
+  pdfPreviewFailed: 'PDF 预览失败：{error}',
+  tryOpenDirect: '尝试直接打开',
+}
+
 export const linkRedirectDialog = {
   title: '链接重定向',
   fromLabel: '源目标',

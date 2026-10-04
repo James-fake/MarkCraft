@@ -10,6 +10,7 @@ import { locateMindmapNodes } from './mindmap/MindmapLocator'
 import MindmapCanvas from './mindmap/MindmapCanvas'
 import type { LayoutDirection } from './mindmap/mindmapLayout'
 import { extractLayout } from '../toolbar/mindmapUtils'
+import { useLanguage } from '@stores/LanguageStore'
 
 /** Get layout direction from mindmap code (reads embedded direction marker) */
 function getLayoutDirection(code: string): LayoutDirection {
@@ -21,6 +22,7 @@ let renderIdCounter = 0
 type EditMode = 'preview' | 'mindmap-edit' | 'code-edit'
 
 export default function MermaidBlockView({ node, updateAttributes, selected, editor, getPos }: NodeViewProps) {
+  const { t } = useLanguage()
   const codeAttr = (node.attrs.code as string) || ''
   const [editMode, setEditMode] = useState<EditMode>('preview')
   const [editValue, setEditValue] = useState(codeAttr)
@@ -88,7 +90,7 @@ export default function MermaidBlockView({ node, updateAttributes, selected, edi
 
     if (!codeAttr.trim()) {
       if (mountedRef.current && previewRef.current) {
-        previewRef.current.innerHTML = '<span style="opacity:0.3;font-style:italic">空图表块 - 双击编辑</span>'
+        previewRef.current.innerHTML = `<span style="opacity:0.3;font-style:italic">${t.embedView.emptyDiagram}</span>`
       }
       return
     }
@@ -115,7 +117,7 @@ export default function MermaidBlockView({ node, updateAttributes, selected, edi
           if (cancelled || !mountedRef.current) return
           try { (mermaid as unknown as { parseError?: unknown }).parseError = undefined } catch {}
           if (mountedRef.current && previewRef.current) {
-            previewRef.current.innerHTML = `<div style="padding:0.75rem;color:#e74c3c;background:rgba(231,76,60,0.1);border-radius:0.375rem;font-size:0.8rem;"><strong>图表语法错误</strong></div>`
+            previewRef.current.innerHTML = `<div style="padding:0.75rem;color:#e74c3c;background:rgba(231,76,60,0.1);border-radius:0.375rem;font-size:0.8rem;"><strong>${t.embedView.diagramSyntaxError}</strong></div>`
           }
           return
         }
@@ -131,7 +133,7 @@ export default function MermaidBlockView({ node, updateAttributes, selected, edi
           if (cancelled || !mountedRef.current) return
           try { (mermaid as unknown as { parseError?: unknown }).parseError = undefined } catch {}
           if (mountedRef.current && previewRef.current) {
-            previewRef.current.innerHTML = `<div style="padding:0.75rem;color:#e74c3c;background:rgba(231,76,60,0.1);border-radius:0.375rem;font-size:0.8rem;"><strong>图表渲染错误</strong></div>`
+            previewRef.current.innerHTML = `<div style="padding:0.75rem;color:#e74c3c;background:rgba(231,76,60,0.1);border-radius:0.375rem;font-size:0.8rem;"><strong>${t.embedView.diagramRenderError}</strong></div>`
           }
         }
       }
@@ -140,7 +142,7 @@ export default function MermaidBlockView({ node, updateAttributes, selected, edi
     }, 300)
 
     return () => { if (renderTimerRef.current) clearTimeout(renderTimerRef.current) }
-  }, [codeAttr, editMode, theme])
+  }, [codeAttr, editMode, theme, t])
 
   // === Double-click detection via mousedown CAPTURE phase ===
   // ProseMirror's mousedown handler fires BEFORE click events. On the second
@@ -386,14 +388,14 @@ export default function MermaidBlockView({ node, updateAttributes, selected, edi
         }}>
           {isPreview && !isMindmap && (
             <button onClick={enterCodeEdit} style={btnStyle}>
-              编辑
+              {t.embedView.edit}
             </button>
           )}
           {isMindmapEdit && null}
           {isCodeEdit && (
             <>
-              <button onClick={exitEdit} style={{ ...btnStyle, backgroundColor: '#10b981' }}>完成</button>
-              {isMindmap && <button onClick={enterMindmapEdit} style={btnStyle}>可视化编辑</button>}
+              <button onClick={exitEdit} style={{ ...btnStyle, backgroundColor: '#10b981' }}>{t.embedView.done}</button>
+              {isMindmap && <button onClick={enterMindmapEdit} style={btnStyle}>{t.embedView.visualEdit}</button>}
             </>
           )}
         </div>

@@ -8,6 +8,7 @@ import { findNode } from '@services/fileService'
 import { markdownToHtml } from '../markdownConvert'
 import { sanitizeHtml } from '@services/sanitizeHtml'
 import { imageStore } from '@core/storage/imageStore'
+import { useLanguage } from '@stores/LanguageStore'
 
 /** Parse target like "笔记#第三章" → { fileName: '笔记', heading: '第三章' }
  *  Also supports line ranges: "file#L10-L20" or "file#L10"
@@ -48,6 +49,7 @@ const parseTarget = (target: string) => {
 }
 
 const EmbedContentView: React.FC<{ node: PMNode; editor: Editor }> = ({ node }) => {
+  const { t } = useLanguage()
   const { target, embedType } = node.attrs
   const { resolveTarget, indexVersion, onFileUpdate } = useLinkIndex()
   const { rootFolder, openFile } = useFileManager()
@@ -70,14 +72,14 @@ const EmbedContentView: React.FC<{ node: PMNode; editor: Editor }> = ({ node }) 
     setResolvedFileId(fileId)
 
     if (!fileId) {
-      setPreviewHtml('<p style="color:#ef4444;font-size:12px;">⚠ 文件不存在</p>')
+      setPreviewHtml(`<p style="color:#ef4444;font-size:12px;">${t.embedView.fileMissing}</p>`)
       setTotalLines(0)
       return
     }
 
     const fileNode = findNode(rootFolder, fileId)
     if (!fileNode || !fileNode.content) {
-      setPreviewHtml('<p style="color:#ef4444;font-size:12px;">⚠ 无法加载内容</p>')
+      setPreviewHtml(`<p style="color:#ef4444;font-size:12px;">${t.embedView.loadFailed}</p>`)
       setTotalLines(0)
       return
     }
@@ -113,7 +115,7 @@ const EmbedContentView: React.FC<{ node: PMNode; editor: Editor }> = ({ node }) 
         }
 
         if (blockStart === -1) {
-          relevantContent = `⚠ 块引用 ^${blockId} 未找到`
+          relevantContent = t.embedView.blockRefNotFound.replace('{id}', blockId)
         } else {
           const blockLines = lines.slice(blockStart, blockEnd)
           relevantContent = blockLines.map(l => l.replace(`^${blockId}`, '').trimEnd()).join('\n')
@@ -163,10 +165,10 @@ const EmbedContentView: React.FC<{ node: PMNode; editor: Editor }> = ({ node }) 
       // 否则 `!((恶意笔记))` 块嵌入可在受害者打开正常笔记时执行跨笔记 XSS。
       setPreviewHtml(sanitizeHtml(html))
     } catch {
-      setPreviewHtml('<p style="color:#ef4444;font-size:12px;">⚠ 渲染失败</p>')
+      setPreviewHtml(`<p style="color:#ef4444;font-size:12px;">${t.embedView.renderFailed}</p>`)
       setTotalLines(0)
     }
-  }, [fileName, heading, lineStart, lineEnd, blockId, embedType, resolveTarget, rootFolder, expanded])
+  }, [fileName, heading, lineStart, lineEnd, blockId, embedType, resolveTarget, rootFolder, expanded, t])
 
   useEffect(() => {
     loadContent()
@@ -264,7 +266,7 @@ const EmbedContentView: React.FC<{ node: PMNode; editor: Editor }> = ({ node }) 
               if (resolvedFileId) openFile(resolvedFileId)
             }}
             style={{ cursor: 'pointer', opacity: 0.6, marginLeft: 'auto' }}
-            title="在源文件中编辑"
+            title={t.embedView.editInSource}
           >
             ✏️
           </span>
@@ -293,7 +295,7 @@ const EmbedContentView: React.FC<{ node: PMNode; editor: Editor }> = ({ node }) 
               opacity: 0.7,
             }}
           >
-            {expanded ? '折叠' : `展开 (共 ${totalLines} 行)`}
+            {expanded ? t.embedView.collapse : t.embedView.expandWithLines.replace('{n}', String(totalLines))}
           </div>
         )}
       </div>
