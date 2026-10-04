@@ -1222,6 +1222,32 @@ export const linkRedirectDialog = {
   previewResult: '将影响 {files} 个文件中的 {links} 个链接',
 }
 
+export const autoLayout = {
+  title: '自动排版',
+  algorithm: '排版算法',
+  algoTree: '树形布局',
+  algoGrid: '网格布局',
+  algoCircle: '圆形布局',
+  algoFlow: '流程图布局',
+  descTree: '基于卡片 parentId 构建树，横向层级排列',
+  descGrid: '按行列等距排列',
+  descCircle: '均匀分布在圆周上',
+  descFlow: '按连线拓扑分层（Sugiyama 风格）',
+  scope: '范围',
+  scopeSelected: '选中卡片',
+  scopeAll: '全部卡片',
+  targetCount: '目标卡片数：{n}',
+  spacing: '间距',
+  spacingCompact: '紧凑',
+  spacingStandard: '标准',
+  spacingLoose: '宽松',
+  preview: '预览',
+  apply: '应用',
+  previewInfo: '预览已生成：{n} 个节点',
+  applyHint: '点击「{apply}」将布局写入画布',
+  minCards: '至少需要 2 个卡片',
+}
+
 export const diary = {
   breadcrumb: '日记',
   countUnit: '{n} 篇',

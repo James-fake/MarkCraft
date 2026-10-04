@@ -17,6 +17,7 @@ import {
   layoutFlow,
 } from '../utils/layoutUtils'
 import { CanvasIcon } from './CanvasIcon'
+import { useLanguage } from '../../../stores/LanguageStore'
 
 interface AutoLayoutPanelProps {
   editor: Editor
@@ -27,20 +28,6 @@ type Algorithm = 'tree' | 'grid' | 'circle' | 'flow'
 type Scope = 'selected' | 'all'
 type Spacing = 'compact' | 'standard' | 'loose'
 
-const ALGORITHM_LABEL: Record<Algorithm, string> = {
-  tree: '树形布局',
-  grid: '网格布局',
-  circle: '圆形布局',
-  flow: '流程图布局',
-}
-
-const ALGORITHM_DESC: Record<Algorithm, string> = {
-  tree: '基于卡片 parentId 构建树，横向层级排列',
-  grid: '按行列等距排列',
-  circle: '均匀分布在圆周上',
-  flow: '按连线拓扑分层（Sugiyama 风格）',
-}
-
 const SPACING_GAP: Record<Spacing, { grid: number; tree: number; flow: number; circle: number }> = {
   compact: { grid: 20, tree: 40, flow: 40, circle: 200 },
   standard: { grid: 40, tree: 80, flow: 80, circle: 350 },
@@ -50,10 +37,25 @@ const SPACING_GAP: Record<Spacing, { grid: number; tree: number; flow: number; c
 const CARD_TYPES = new Set(['note-card', 'image-card', 'file-card', 'embed-card', 'canvas-ref'])
 
 export const AutoLayoutPanel: React.FC<AutoLayoutPanelProps> = ({ editor, onClose }) => {
+  const { t } = useLanguage()
   const [algorithm, setAlgorithm] = useState<Algorithm>('tree')
   const [scope, setScope] = useState<Scope>('selected')
   const [spacing, setSpacing] = useState<Spacing>('standard')
   const [previewPositions, setPreviewPositions] = useState<Map<string, { x: number; y: number }> | null>(null)
+
+  const ALGORITHM_LABEL: Record<Algorithm, string> = {
+    tree: t.autoLayout.algoTree,
+    grid: t.autoLayout.algoGrid,
+    circle: t.autoLayout.algoCircle,
+    flow: t.autoLayout.algoFlow,
+  }
+
+  const ALGORITHM_DESC: Record<Algorithm, string> = {
+    tree: t.autoLayout.descTree,
+    grid: t.autoLayout.descGrid,
+    circle: t.autoLayout.descCircle,
+    flow: t.autoLayout.descFlow,
+  }
 
   /** 获取目标形状 */
   const targetShapes = useMemo<TLShape[]>(() => {
@@ -202,7 +204,7 @@ export const AutoLayoutPanel: React.FC<AutoLayoutPanelProps> = ({ editor, onClos
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--cv-text-main)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-          <CanvasIcon name="sparkle" size={14} /> 自动排版
+          <CanvasIcon name="sparkle" size={14} /> {t.autoLayout.title}
         </span>
         <button
           onClick={onClose}
@@ -216,7 +218,7 @@ export const AutoLayoutPanel: React.FC<AutoLayoutPanelProps> = ({ editor, onClos
       {/* 算法选择 */}
       <div>
         <div style={{ fontSize: 10, color: 'var(--cv-text-tertiary)', marginBottom: 6, textTransform: 'uppercase' }}>
-          排版算法
+          {t.autoLayout.algorithm}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
           {(Object.keys(ALGORITHM_LABEL) as Algorithm[]).map(algo => (
@@ -237,27 +239,27 @@ export const AutoLayoutPanel: React.FC<AutoLayoutPanelProps> = ({ editor, onClos
       {/* 范围选择 */}
       <div>
         <div style={{ fontSize: 10, color: 'var(--cv-text-tertiary)', marginBottom: 6, textTransform: 'uppercase' }}>
-          范围
+          {t.autoLayout.scope}
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
           <button
             onClick={() => { setScope('selected'); setPreviewPositions(null) }}
             style={{ ...activeBtnStyle(scope === 'selected'), flex: 1 }}
-          >选中卡片</button>
+          >{t.autoLayout.scopeSelected}</button>
           <button
             onClick={() => { setScope('all'); setPreviewPositions(null) }}
             style={{ ...activeBtnStyle(scope === 'all'), flex: 1 }}
-          >全部卡片</button>
+          >{t.autoLayout.scopeAll}</button>
         </div>
         <div style={{ fontSize: 10, color: 'var(--cv-text-tertiary)', marginTop: 4 }}>
-          目标卡片数：{targetShapes.length}
+          {t.autoLayout.targetCount.replace('{n}', String(targetShapes.length))}
         </div>
       </div>
 
       {/* 间距调节 */}
       <div>
         <div style={{ fontSize: 10, color: 'var(--cv-text-tertiary)', marginBottom: 6, textTransform: 'uppercase' }}>
-          间距
+          {t.autoLayout.spacing}
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
           {(['compact', 'standard', 'loose'] as Spacing[]).map(sp => (
@@ -266,7 +268,7 @@ export const AutoLayoutPanel: React.FC<AutoLayoutPanelProps> = ({ editor, onClos
               onClick={() => { setSpacing(sp); setPreviewPositions(null) }}
               style={{ ...activeBtnStyle(spacing === sp), flex: 1 }}
             >
-              {sp === 'compact' ? '紧凑' : sp === 'standard' ? '标准' : '宽松'}
+              {sp === 'compact' ? t.autoLayout.spacingCompact : sp === 'standard' ? t.autoLayout.spacingStandard : t.autoLayout.spacingLoose}
             </button>
           ))}
         </div>
@@ -278,7 +280,7 @@ export const AutoLayoutPanel: React.FC<AutoLayoutPanelProps> = ({ editor, onClos
           onClick={handlePreview}
           style={{ ...btnStyle, flex: 1 }}
           disabled={targetShapes.length < 2}
-        ><CanvasIcon name="eye" size={14} /> 预览</button>
+        ><CanvasIcon name="eye" size={14} /> {t.autoLayout.preview}</button>
         <button
           onClick={handleApply}
           style={{
@@ -289,7 +291,7 @@ export const AutoLayoutPanel: React.FC<AutoLayoutPanelProps> = ({ editor, onClos
             border: 'none',
           }}
           disabled={targetShapes.length < 2}
-        >应用</button>
+        >{t.autoLayout.apply}</button>
       </div>
 
       {/* 预览信息 */}
@@ -298,9 +300,9 @@ export const AutoLayoutPanel: React.FC<AutoLayoutPanelProps> = ({ editor, onClos
           fontSize: 10, color: 'var(--cv-text-secondary)',
           backgroundColor: 'var(--cv-meta-bg)', padding: 6, borderRadius: 6,
         }}>
-          预览已生成：{previewPositions.size} 个节点
+          {t.autoLayout.previewInfo.replace('{n}', String(previewPositions.size))}
           <br />
-          点击「应用」将布局写入画布
+          {t.autoLayout.applyHint.replace('{apply}', t.autoLayout.apply)}
         </div>
       )}
 
@@ -310,7 +312,7 @@ export const AutoLayoutPanel: React.FC<AutoLayoutPanelProps> = ({ editor, onClos
           fontSize: 10, color: 'var(--cv-text-tertiary)',
           textAlign: 'center',
         }}>
-          至少需要 2 个卡片
+          {t.autoLayout.minCards}
         </div>
       )}
     </div>

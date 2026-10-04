@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogCss, platformPublish, blogModal } from './blog'
-import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, auroraTabs, blog, editorPanel, diaryFormat, importDialog, linkRedirectDialog, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels, writingAid, exportKit } from './common'
+import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, auroraTabs, blog, editorPanel, diaryFormat, importDialog, linkRedirectDialog, autoLayout, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels, writingAid, exportKit } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -2374,6 +2374,31 @@ export interface Translations {
     applyBtn: string
     previewResult: string
   }
+  autoLayout: {
+    title: string
+    algorithm: string
+    algoTree: string
+    algoGrid: string
+    algoCircle: string
+    algoFlow: string
+    descTree: string
+    descGrid: string
+    descCircle: string
+    descFlow: string
+    scope: string
+    scopeSelected: string
+    scopeAll: string
+    targetCount: string
+    spacing: string
+    spacingCompact: string
+    spacingStandard: string
+    spacingLoose: string
+    preview: string
+    apply: string
+    previewInfo: string
+    applyHint: string
+    minCards: string
+  }
   blogModal: {
     generateBlog: string
     siteTitle: string
@@ -2748,6 +2773,7 @@ const zh: Translations = {
   diaryFormat,
   importDialog,
   linkRedirectDialog,
+  autoLayout,
   diary,
   kbSearch,
   kbOverview,
