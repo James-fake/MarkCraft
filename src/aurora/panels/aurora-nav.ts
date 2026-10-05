@@ -106,8 +106,10 @@ export function buildAuroraSidebarGroups(t: Translations): SidebarGroup[] {
       title: t.nav.groupWorkspace,
       items: [
         { id: 'welcome', icon: 'welcome', label: t.nav.welcome },
-        { id: 'editor', icon: 'edit', label: t.nav.editor, count: 256 },
-        { id: 'diary', icon: 'calendar', label: t.nav.diary, count: 365 },
+        // 角标原为写死假数字（editor:256 / diary:365 / canvas:12），与实际数据无关，
+        // 属误导性展示 —— 一律去掉；需要真实计数时再由调用方传入（审查 M4-aurora-nav）。
+        { id: 'editor', icon: 'edit', label: t.nav.editor },
+        { id: 'diary', icon: 'calendar', label: t.nav.diary },
       ],
     },
     {
@@ -123,7 +125,7 @@ export function buildAuroraSidebarGroups(t: Translations): SidebarGroup[] {
       collapsible: true,
       defaultCollapsed: true,
       items: [
-        { id: 'canvas', icon: 'square', label: t.nav.canvas, count: 12 },
+        { id: 'canvas', icon: 'square', label: t.nav.canvas },
         { id: 'graph', icon: 'graph', label: t.nav.graph },
         { id: 'knowledge', icon: 'knowledge', label: t.nav.knowledge },
         { id: 'settings', icon: 'settings', label: t.nav.settings },

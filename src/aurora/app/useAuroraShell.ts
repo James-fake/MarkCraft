@@ -53,7 +53,21 @@ export function useAuroraShell() {
   // 订阅 URL hash 变化 + 浏览器前进/后退（popstate）→ viewState
   // （对齐 App.tsx App.tsx:234-243：hashchange 与 popstate 都触发深链还原）
   useEffect(() => {
-    const onHash = () => handleHashChange()
+    const onHash = () => {
+      handleHashChange()
+      // welcome / settings 是本地 aux 视图，不写入 URL hash；原实现只还原标准视图而
+      // 忽略 auxView，导致在 welcome/settings 下按浏览器后退「失灵」（auxView 一直停在
+      // settings / 无法退回 welcome）。审查 M4-useAuroraShell。
+      // 有 #view= → 标准视图生效，清 aux；无 #view= → 回到初始 aux 默认（welcome）。
+      try {
+        if (typeof location === 'undefined') return
+        // 白板分享链接（#canvas-share=）是独立覆盖层，不动 auxView
+        if (location.hash.startsWith('#canvas-share=')) return
+        setAuxView(location.hash.startsWith('#view=') ? null : 'welcome')
+      } catch {
+        /* ignore */
+      }
+    }
     window.addEventListener('hashchange', onHash)
     window.addEventListener('popstate', onHash)
     return () => {

@@ -30,7 +30,9 @@ function buildLintDecorations(doc: ProseMirrorNode, issues: LintIssue[]): Decora
   })
 
   for (const issue of issues) {
-    const lineIndex = issue.line - 1 // 0-based
+    // LintIssue.line 为 0-based（与 linePositions 的下标一致，linePositions[0] 即首行起点），
+    // 原 `issue.line - 1` 会把首行（line=0）判定为 <0 而丢弃，并整体错位一行。
+    const lineIndex = issue.line
     if (lineIndex < 0) continue
 
     // Find the ProseMirror position range for this line

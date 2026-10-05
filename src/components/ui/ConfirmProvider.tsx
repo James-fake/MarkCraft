@@ -33,20 +33,38 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     open: false,
     opts: { message: '' },
   })
+  // 当前正在展示的确认项 resolver；队列用于支持「并发 confirm()」——
+  // 原实现直接覆盖 resolverRef，第二个并发调用会让前一个 Promise 永不 settle（挂起）。
   const resolverRef = useRef<((v: boolean) => void) | null>(null)
+  const queueRef = useRef<Array<{ opts: ConfirmOptions; resolve: (v: boolean) => void }>>([])
+
+  const showFront = useCallback(() => {
+    const item = queueRef.current[0]
+    if (!item) {
+      resolverRef.current = null
+      setState((s) => ({ ...s, open: false }))
+      return
+    }
+    resolverRef.current = item.resolve
+    setState({ open: true, opts: item.opts })
+  }, [])
 
   const confirm = useCallback((opts: ConfirmOptions) => {
     return new Promise<boolean>((resolve) => {
-      resolverRef.current = resolve
-      setState({ open: true, opts })
+      queueRef.current.push({ opts, resolve })
+      // 无正在展示的对话框时，立即展示队首；否则入队，待当前项 settle 后再展示
+      if (!resolverRef.current) showFront()
     })
-  }, [])
+  }, [showFront])
 
   const settle = useCallback((result: boolean) => {
-    setState((s) => ({ ...s, open: false }))
-    resolverRef.current?.(result)
+    const resolve = resolverRef.current
+    queueRef.current.shift()
     resolverRef.current = null
-  }, [])
+    resolve?.(result)
+    // 展示下一项（若有）
+    showFront()
+  }, [showFront])
 
   return (
     <ConfirmContext.Provider value={{ confirm }}>

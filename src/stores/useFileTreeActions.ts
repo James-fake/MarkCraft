@@ -30,20 +30,22 @@ export function useFileTreeActions(args: {
       updatedAt: Date.now(),
     };
 
-    // V5-M3: Compute newRoot inside setState and use it for openFile
+    // V5-M3: Compute newRoot inside setState. 副作用（openFile / 事件）移到 updater 之外，
+    // 否则在 StrictMode 下 updater 会被重复调用导致 openFile 被调度两次（审查 M4-useFileTreeActions）。
     setState(prev => {
       const newRoot = addChildNode(prev.rootFolder, parentId, newFile);
       if (openAfterCreate) {
-        setTimeout(() => {
-          openFile(newFile.id);
-        }, 0);
         // 新文件创建时默认隐藏侧边栏，保持纯净的编辑区域
         return { ...prev, rootFolder: newRoot, sidebarVisible: false };
       }
       return { ...prev, rootFolder: newRoot };
     });
-    // 通知 UI 层隐藏大纲等其他面板
+    // 副作用在 updater 之外执行（仍用 setTimeout(0) 延后到 state commit 之后）
     if (openAfterCreate) {
+      setTimeout(() => {
+        openFile(newFile.id);
+      }, 0);
+      // 通知 UI 层隐藏大纲等其他面板
       window.dispatchEvent(new CustomEvent('markcraft:new-file-created'));
     }
     return newFile.id;

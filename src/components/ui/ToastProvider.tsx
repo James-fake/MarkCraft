@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -171,8 +172,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  // Context 值必须 memo：否则每次 provider 渲染（弹/收 toast 都会改 toasts 状态）都产生
+  // 新的对象身份，令所有 useToast() 消费者的依赖（如 AuroraShell 的命令注册 effect）重跑，
+  // 造成每次 toast 都全量重注册命令并重渲染面板（审查 M4-AuroraShell）。
+  const value = useMemo(() => ({ show }), [show])
+
   return (
-    <ToastContext.Provider value={{ show }}>
+    <ToastContext.Provider value={value}>
       {children}
       <div
         ref={containerRef}
@@ -206,9 +212,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
  * 全局 Toast hook。未处于 Provider 内时返回空实现（开发/测试期容错）。
  * 返回的 show 引用稳定，可安全放入 useCallback 依赖数组。
  */
+// 无 Provider 时的稳定空实现：模块级常量，避免每次调用返回新对象/新函数造成下游依赖抖动
+const EMPTY_TOAST: ToastContextValue = { show: () => {} }
+
 // eslint-disable-next-line react-refresh/only-export-components -- Provider 与配套 hook 强耦合，同文件为 React 惯用形态
 export function useToast(): ToastContextValue {
   const ctx = useContext(ToastContext)
-  if (!ctx) return { show: () => {} }
-  return ctx
+  return ctx ?? EMPTY_TOAST
 }

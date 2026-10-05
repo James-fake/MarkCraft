@@ -2,35 +2,36 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { keymap, EditorView } from '@codemirror/view'
 import { useUndoRedo } from '@stores/UndoRedoStore'
 
-// 撤销/重做回调 ref，用于在 CM6 keymap 中访问最新的 handleUndo/handleRedo
-// 使用实例级ref避免多实例冲突
-const undoCallbackRef = { current: () => {} }
-const redoCallbackRef = { current: () => {} }
-
 /**
  * CM6 撤销/重做快捷键桥接
- * 将 Ctrl+Z/Y 映射到 UndoRedoStore，而非 CM6 的 history()
+ * 将 Ctrl+Z/Y 映射到 UndoRedoStore，而非 CM6 的 history()。
+ *
+ * 回调 ref 由调用方以「实例级」传入（useCM6UndoRedo 内部用 useRef 创建），
+ * 避免原模块级单例在多编辑器并存时相互串扰（审查 M4-useCM6UndoRedo）。
  */
-export function createUndoRedoKeymap() {
+export function createUndoRedoKeymap(
+  undoRef: { current: () => void },
+  redoRef: { current: () => void },
+) {
   return keymap.of([
     {
       key: 'Mod-z',
       run: () => {
-        undoCallbackRef.current()
+        undoRef.current()
         return true
       },
     },
     {
       key: 'Mod-y',
       run: () => {
-        redoCallbackRef.current()
+        redoRef.current()
         return true
       },
     },
     {
       key: 'Mod-Shift-z',
       run: () => {
-        redoCallbackRef.current()
+        redoRef.current()
         return true
       },
     },
@@ -64,6 +65,11 @@ export function useCM6UndoRedo({
   valueRef.current = value
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
+
+  // 实例级回调 ref：每个编辑器实例持有独立的 undo/redo 桥接引用，
+  // 供 createUndoRedoKeymap(undoCallbackRef, redoCallbackRef) 闭包读取最新 handler。
+  const undoCallbackRef = useRef<() => void>(() => {})
+  const redoCallbackRef = useRef<() => void>(() => {})
 
   // UndoRedo 状态订阅
   useEffect(() => {
@@ -138,7 +144,7 @@ export function useCM6UndoRedo({
     }, 0)
   }, [undoRedo, isUndoRedoRef, viewRef])
 
-  // 将 handleUndo/handleRedo 桥接到 CM6 keymap 的回调 ref
+  // 将 handleUndo/handleRedo 桥接到本实例的回调 ref（不再写入模块级单例）
   useEffect(() => {
     undoCallbackRef.current = handleUndo
     redoCallbackRef.current = handleRedo
@@ -150,5 +156,7 @@ export function useCM6UndoRedo({
     pushUndo,
     handleUndo,
     handleRedo,
+    undoCallbackRef,
+    redoCallbackRef,
   }
 }

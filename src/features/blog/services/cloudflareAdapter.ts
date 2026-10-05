@@ -1,4 +1,5 @@
 import type { DeployConfig, DeployProgressCallback } from './deployTypes'
+import { fetchWithTimeout } from './fetchWithTimeout'
 
 const API_BASE = 'https://api.cloudflare.com/client/v4'
 
@@ -7,7 +8,7 @@ export const cloudflareAdapter = {
   defaultBranch: 'main',
 
   async validateToken(token: string): Promise<{ login: string; name: string }> {
-    const res = await fetch(`${API_BASE}/user`, {
+    const res = await fetchWithTimeout(`${API_BASE}/user`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!res.ok) throw new Error('Invalid Cloudflare token')
@@ -26,7 +27,7 @@ export const cloudflareAdapter = {
 
     // 1. 验证 Token & 获取 Account ID
     onProgress({ stage: 'authenticating', message: '验证 Cloudflare 身份...', messageKey: 'deployStageAuthenticating', messageParams: { platform: 'Cloudflare' }, progress: 5 })
-    const userRes = await fetch(`${API_BASE}/accounts`, {
+    const userRes = await fetchWithTimeout(`${API_BASE}/accounts`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     const userData = await userRes.json()
@@ -36,11 +37,11 @@ export const cloudflareAdapter = {
 
     // 2. 创建或获取 Project
     onProgress({ stage: 'creating-repo', message: '检查 Cloudflare Pages 项目...', messageKey: 'deployStageCheckingProject', progress: 15 })
-    const projectRes = await fetch(`${API_BASE}/accounts/${accountId}/pages/projects/${projectName}`, {
+    const projectRes = await fetchWithTimeout(`${API_BASE}/accounts/${accountId}/pages/projects/${projectName}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!projectRes.ok) {
-      const createRes = await fetch(`${API_BASE}/accounts/${accountId}/pages/projects`, {
+      const createRes = await fetchWithTimeout(`${API_BASE}/accounts/${accountId}/pages/projects`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: projectName, production_branch: 'main' }),
@@ -58,7 +59,7 @@ export const cloudflareAdapter = {
     }
 
     onProgress({ stage: 'committing', message: '创建 Cloudflare Pages 部署...', messageKey: 'deployStageCreatingDeploy', progress: 80 })
-    const deployRes = await fetch(`${API_BASE}/accounts/${accountId}/pages/projects/${projectName}/deployments`, {
+    const deployRes = await fetchWithTimeout(`${API_BASE}/accounts/${accountId}/pages/projects/${projectName}/deployments`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}` },
       body: formData,

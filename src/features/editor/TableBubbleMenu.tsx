@@ -23,8 +23,13 @@ export default function TableBubbleMenu({ editor }: TableBubbleMenuProps) {
       return
     }
 
-    // 获取当前表格节点的 DOM 元素
-    const tableEl = editor.view.dom.closest('.tiptap-editor-content')?.querySelector('table') as HTMLElement | null
+    // 获取当前光标所在表格节点的 DOM 元素（而非文档里第一个 table）。
+    // 多表格并存时，原 querySelector('table') 恒取首个，导致菜单定位/排序错位。
+    const { $anchor } = editor.state.selection
+    const dom = editor.view.domAtPos($anchor.pos)
+    const startNode =
+      dom.node.nodeType === Node.TEXT_NODE ? dom.node.parentElement : (dom.node as HTMLElement | null)
+    const tableEl = startNode?.closest('table') as HTMLElement | null
 
     if (!tableEl) {
       setVisible(false)

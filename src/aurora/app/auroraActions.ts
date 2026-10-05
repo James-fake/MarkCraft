@@ -70,6 +70,8 @@ export function buildAuroraActions(deps: AuroraActionDeps): Record<string, (() =
     'tools.linkRedirect': () => { nav('editor'); modalOpen('linkRedirect') },
     'tools.openBlockBacklinks': () => {
       if (!getActiveFileId()) { toast('请先在编辑器中打开一篇笔记'); return }
+      // 与其它弹层型命令保持一致：先切到编辑器视图，否则在非编辑视图下弹层不可见（静默无效）
+      nav('editor')
       modalOpen('blockBacklinks')
     },
     'tools.insertTemplate': () => { nav('editor'); modalOpen('templateInsert') },

@@ -16,10 +16,12 @@ export function createLintExtension(
     const issues = lintMarkdown(doc, undefined)
 
     return issues
-      .filter((issue: LintIssue) => issue.line >= 1 && issue.line <= totalLines)
+      // LintIssue.line 为 0-based（getLineAndCol 从 0 计；fixFunctions 用 lines[issue.line]），
+      // 故合法区间为 [0, totalLines)；CodeMirror 的 doc.line(n) 是 1-based，需 +1。
+      .filter((issue: LintIssue) => issue.line >= 0 && issue.line < totalLines)
       .map((issue: LintIssue): Diagnostic => ({
-        from: view.state.doc.line(issue.line).from + issue.startCol,
-        to: view.state.doc.line(issue.line).from + issue.endCol,
+        from: view.state.doc.line(issue.line + 1).from + issue.startCol,
+        to: view.state.doc.line(issue.line + 1).from + issue.endCol,
         severity: issue.severity === 'error' ? 'error' : 'warning',
         message: issue.message,
         source: 'markdown-lint',

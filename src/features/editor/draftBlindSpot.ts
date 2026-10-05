@@ -37,8 +37,11 @@ export const DEFAULT_DRAFT_MESSAGES: DraftMessages = {
   unbalanced: '观点较单一，可补充不同视角或反面论证以增强严谨性。',
 }
 
+// 注意：模块级 /g 正则的 .test() 会保留 lastIndex 状态，连续调用交错时结果不稳定
+// （审查 M4-draftBlindSpot）。ABSOLUTE_RE 需 g 配合 .match() 取全部命中；BALANCE_RE 仅用于
+// 单次布尔判定，去掉 g 后 .test() 即无状态。两者使用前都重置 lastIndex 以防万一。
 const ABSOLUTE_RE = /(绝对|所有|永远|必然|一定|毫无例外|全都|无一例外)/g
-const BALANCE_RE = /(但是|然而|不过|另一方面|反方|换个角度|也存在|与之相反|从反面)/g
+const BALANCE_RE = /(但是|然而|不过|另一方面|反方|换个角度|也存在|与之相反|从反面)/
 
 /**
  * 对单篇成稿做轻量核查，返回提示列表（按严重度：warn 先于 info）。
@@ -66,6 +69,7 @@ export function analyzeDraft(
     })
   }
 
+  ABSOLUTE_RE.lastIndex = 0
   const absolutes = body.match(ABSOLUTE_RE)
   if (absolutes && absolutes.length > 0) {
     hints.push({
@@ -75,6 +79,7 @@ export function analyzeDraft(
     })
   }
 
+  BALANCE_RE.lastIndex = 0
   const balanced = BALANCE_RE.test(body)
   if (!balanced) {
     hints.push({

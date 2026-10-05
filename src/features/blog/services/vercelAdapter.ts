@@ -1,4 +1,5 @@
 import type { DeployConfig, DeployProgressCallback } from './deployTypes'
+import { fetchWithTimeout } from './fetchWithTimeout'
 
 const API_BASE = 'https://api.vercel.com'
 
@@ -7,7 +8,7 @@ export const vercelAdapter = {
   defaultBranch: 'main',
 
   async validateToken(token: string): Promise<{ login: string; name: string }> {
-    const res = await fetch(`${API_BASE}/v2/user`, {
+    const res = await fetchWithTimeout(`${API_BASE}/v2/user`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!res.ok) throw new Error('Invalid Vercel token')
@@ -34,7 +35,7 @@ export const vercelAdapter = {
       const file = files[i]
       onProgress({ stage: 'uploading', message: `上传文件 (${i + 1}/${files.length}): ${file.path}`, messageKey: 'deployStageUploading', messageParams: { current: String(i + 1), total: String(files.length), path: file.path }, progress: 15 + Math.floor((i / files.length) * 40) })
 
-      const res = await fetch(`${API_BASE}/v2/files`, {
+      const res = await fetchWithTimeout(`${API_BASE}/v2/files`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -58,7 +59,7 @@ export const vercelAdapter = {
     // 3. 创建或获取 Project
     onProgress({ stage: 'creating-repo', message: '创建 Vercel 项目...', messageKey: 'deployStageCreatingProject', progress: 60 })
     let projectId: string
-    const listRes = await fetch(`${API_BASE}/v9/projects?limit=100`, {
+    const listRes = await fetchWithTimeout(`${API_BASE}/v9/projects?limit=100`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     const listData = await listRes.json()
@@ -66,7 +67,7 @@ export const vercelAdapter = {
     if (existing) {
       projectId = existing.id
     } else {
-      const createRes = await fetch(`${API_BASE}/v9/projects`, {
+      const createRes = await fetchWithTimeout(`${API_BASE}/v9/projects`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: projectName, framework: null }),
@@ -78,7 +79,7 @@ export const vercelAdapter = {
 
     // 4. 创建 Deployment
     onProgress({ stage: 'committing', message: '创建部署...', messageKey: 'deployStageCreatingDeployment', progress: 75 })
-    const deployRes = await fetch(`${API_BASE}/v13/deployments`, {
+    const deployRes = await fetchWithTimeout(`${API_BASE}/v13/deployments`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -93,19 +94,29 @@ export const vercelAdapter = {
     // 5. 等待部署完成
     onProgress({ stage: 'configuring-pages', message: '等待部署完成...', messageKey: 'deployStageWaiting', progress: 90 })
     let deploymentUrl = deployData.url ? `https://${deployData.url}` : ''
+    let ready = false
     for (let i = 0; i < 30; i++) {
       await new Promise(r => setTimeout(r, 2000))
-      const checkRes = await fetch(`${API_BASE}/v13/deployments/${deployData.id}`, {
+      const checkRes = await fetchWithTimeout(`${API_BASE}/v13/deployments/${deployData.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
+      // 原实现不校验 checkRes.ok：接口报错时 JSON 无 state，会一直空转 30 次后误报成功
+      if (!checkRes.ok) {
+        throw new Error(`Failed to check deployment status: ${checkRes.statusText}`)
+      }
       const checkData = await checkRes.json()
       if (checkData.state === 'READY') {
         deploymentUrl = `https://${checkData.url}`
+        ready = true
         break
       }
       if (checkData.state === 'ERROR') {
         throw new Error('Vercel deployment failed')
       }
+    }
+    // 轮询耗尽仍未 READY → 不能报成功（原实现会带着旧 URL 直接宣布部署成功）
+    if (!ready) {
+      throw new Error('Vercel deployment timed out: deployment not READY after 60s')
     }
 
     onProgress({ stage: 'done', message: 'Vercel 部署成功！', messageKey: 'deployStageDone', messageParams: { platform: 'Vercel' }, progress: 100, url: deploymentUrl })

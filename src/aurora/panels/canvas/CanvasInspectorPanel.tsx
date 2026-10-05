@@ -86,8 +86,12 @@ export function CanvasInspectorPanel({ engine }: CanvasInspectorPanelProps) {
       setShapes((prev) => {
         // 签名须覆盖可编辑属性（含 color / bg / fontSize），否则改色 / 改字号时
         // selected 引用不刷新，检视内色块高亮与数值不跟随变更。
-        const sig = next.map((s) => `${s.id}:${s.text}:${s.color}:${s.bg}:${s.fontSize}:${s.pinned}:${s.isLocked}`).join('|')
-        const prevSig = prev.map((s) => `${s.id}:${s.text}:${s.color}:${s.bg}:${s.fontSize}:${s.pinned}:${s.isLocked}`).join('|')
+        // 另需覆盖几何属性 x/y/w/h/rotation 与 parentId：否则拖拽 / 缩放 / 旋转 /
+        // 改父子关系后签名不变，检查器数值不刷新（审查 M4-CanvasInspectorPanel）。
+        const shapeSig = (s: (typeof next)[number]) =>
+          `${s.id}:${s.x}:${s.y}:${s.w}:${s.h}:${s.rotation}:${s.parentId}:${s.text}:${s.color}:${s.bg}:${s.fontSize}:${s.pinned}:${s.isLocked}`
+        const sig = next.map(shapeSig).join('|')
+        const prevSig = prev.map(shapeSig).join('|')
         return sig === prevSig ? prev : next
       })
     }

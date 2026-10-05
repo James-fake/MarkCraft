@@ -1,4 +1,5 @@
 import type { PlatformAdapter, GitTreeItem, GitUser, GitRefObject, GitSha } from './deployTypes'
+import { fetchWithTimeout } from './fetchWithTimeout'
 
 const GITHUB_API = 'https://api.github.com'
 
@@ -18,7 +19,7 @@ export const githubAdapter: PlatformAdapter = {
   },
 
   async fetch(path: string, token: string, options?: RequestInit) {
-    const res = await fetch(`${GITHUB_API}${path}`, {
+    const res = await fetchWithTimeout(`${GITHUB_API}${path}`, {
       ...options,
       headers: {
         Authorization: `Bearer ${token}`,

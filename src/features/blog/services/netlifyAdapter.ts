@@ -1,4 +1,6 @@
+import JSZip from 'jszip'
 import type { DeployConfig, DeployProgressCallback } from './deployTypes'
+import { fetchWithTimeout } from './fetchWithTimeout'
 
 const API_BASE = 'https://api.netlify.com/api/v1'
 
@@ -7,7 +9,7 @@ export const netlifyAdapter = {
   defaultBranch: 'main',
 
   async validateToken(token: string): Promise<{ login: string; name: string }> {
-    const res = await fetch(`${API_BASE}/user`, {
+    const res = await fetchWithTimeout(`${API_BASE}/user`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     if (!res.ok) throw new Error('Invalid Netlify token')
@@ -30,7 +32,7 @@ export const netlifyAdapter = {
     // 2. 创建或获取 Site
     onProgress({ stage: 'creating-repo', message: '检查 Netlify 站点...', messageKey: 'deployStageCreatingRepo', progress: 15 })
     let siteId: string
-    const listRes = await fetch(`${API_BASE}/sites?filter=all`, {
+    const listRes = await fetchWithTimeout(`${API_BASE}/sites?filter=all`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     const sites = await listRes.json()
@@ -38,7 +40,7 @@ export const netlifyAdapter = {
     if (existing) {
       siteId = existing.id
     } else {
-      const createRes = await fetch(`${API_BASE}/sites`, {
+      const createRes = await fetchWithTimeout(`${API_BASE}/sites`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: siteName }),
@@ -48,25 +50,30 @@ export const netlifyAdapter = {
       siteId = createData.id
     }
 
-    // 3. 上传文件并部署
+    // 3. 打包文件并部署
+    // Netlify 的 /sites/{id}/deploys 以「站点内容 ZIP」为准（Content-Type: application/zip）；
+    // 原实现用 formData.append('functions', …)，那是 Netlify Functions 的字段，
+    // 站点文件根本不会被部署（审查 M4-netlifyAdapter）。
     onProgress({ stage: 'uploading', message: '上传文件到 Netlify...', messageKey: 'deployStagePreparing', progress: 25 })
-    const formData = new FormData()
+    const zip = new JSZip()
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
       onProgress({ stage: 'uploading', message: `打包文件 (${i + 1}/${files.length}): ${file.path}`, messageKey: 'deployStagePackaging', messageParams: { current: String(i + 1), total: String(files.length), path: file.path }, progress: 25 + Math.floor((i / files.length) * 50) })
-      formData.append('functions', new Blob([file.content], { type: 'application/octet-stream' }), file.path)
+      zip.file(file.path, file.content)
     }
+    const zipBlob = await zip.generateAsync({ type: 'blob' })
 
     onProgress({ stage: 'committing', message: '创建 Netlify 部署...', messageKey: 'deployStageCreatingDeploy', progress: 80 })
-    const deployRes = await fetch(`${API_BASE}/sites/${siteId}/deploys`, {
+    const deployRes = await fetchWithTimeout(`${API_BASE}/sites/${siteId}/deploys`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
-      body: formData,
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/zip' },
+      body: zipBlob,
     })
     if (!deployRes.ok) throw new Error(`Failed to create deployment: ${(await deployRes.json()).message}`)
-    await deployRes.json()
+    const deployData = await deployRes.json()
 
-    const deploymentUrl = `https://${siteName}.netlify.app`
+    // 采用 API 响应里的真实 URL，不再硬编码 https://{siteName}.netlify.app
+    const deploymentUrl = deployData.ssl_url || deployData.url || `https://${siteName}.netlify.app`
     onProgress({ stage: 'done', message: 'Netlify 部署成功！', messageKey: 'deployStageDone', messageParams: { platform: 'Netlify' }, progress: 100, url: deploymentUrl })
     return deploymentUrl
   },

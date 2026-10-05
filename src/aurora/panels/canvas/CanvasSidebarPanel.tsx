@@ -103,9 +103,12 @@ const [shapes, setShapes] = useState<ParsedShape[]>([])
         } satisfies ParsedShape
       })
       setShapes((prev) => {
-        // 浅相等：id|text 序列相同则不更新（避免无意义重渲染）
-        const sig = next.map((s) => `${s.id}:${s.text}:${s.fileId}`).join('|')
-        const prevSig = prev.map((s) => `${s.id}:${s.text}:${s.fileId}`).join('|')
+        // 浅相等：id|text 序列相同则不更新（避免无意义重渲染）。
+        // 签名必须带上几何属性 x/y/w/h，否则拖拽 / 缩放后签名不变，
+        // 缩略图与计数不刷新（审查 M4-CanvasSidebarPanel）。
+        const shapeSig = (s: (typeof next)[number]) => `${s.id}:${s.x}:${s.y}:${s.w}:${s.h}:${s.text}:${s.fileId}`
+        const sig = next.map(shapeSig).join('|')
+        const prevSig = prev.map(shapeSig).join('|')
         return sig === prevSig ? prev : next
       })
     }

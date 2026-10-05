@@ -52,6 +52,24 @@ function findAncestorFolderIds(node: FileNode, targetId: string, acc: string[] =
   return null
 }
 
+// 返回某个节点的同父子节点列表（用于重名检测）。找不到父级或 id 即根级时回退到根 children。
+function getSiblingNodes(root: FileNode, id: string): FileNode[] {
+  if (id === root.id) return root.children ?? []
+  let result: FileNode[] | null = null
+  const walk = (node: FileNode): boolean => {
+    for (const c of node.children ?? []) {
+      if (c.id === id) {
+        result = node.children ?? []
+        return true
+      }
+      if (c.type === 'folder' && walk(c)) return true
+    }
+    return false
+  }
+  walk(root)
+  return result ?? root.children ?? []
+}
+
 function formatRelative(ts: number, EP: Translations['editorPanel']): string {
   const diff = Date.now() - ts
   const min = Math.floor(diff / 60000)
@@ -118,17 +136,24 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
     }
   }, [editing])
 
-  // 数据源变化（首次挂载 / async 从 IndexedDB 恢复 / 新建节点）后，自动展开所有已存在的
-  // 文件夹，保证文件树在任意数据源下都完整可见。虚拟根始终展开，无需纳入 expanded；
-  // 仅做「增量添加」，不会清除用户手动折叠的文件夹。
+  // 数据源变化后自动展开文件夹：仅对「尚未自动处理过」的文件夹做增量展开——
+  // 首次挂载/数据恢复时展开全部已有文件夹，之后仅展开新建文件夹。
+  // 绝不重新展开用户手动折叠的文件夹：原实现依赖 [rootFolder]，任何 rootFolder 变更
+  // 都会把所有文件夹重新加回 expanded，导致手动折叠被「弹开」（审查 M4-FileTree）。
+  const autoExpandedRef = useRef<Set<string> | null>(null)
   useEffect(() => {
     setExpanded((prev) => {
+      if (!autoExpandedRef.current) autoExpandedRef.current = new Set(prev)
       const next = new Set(prev)
       let changed = false
       const addFolders = (nodes: FileNode[]) => {
         for (const n of nodes) {
           if (n.type === 'folder') {
-            if (!next.has(n.id)) { next.add(n.id); changed = true }
+            if (!autoExpandedRef.current!.has(n.id)) {
+              autoExpandedRef.current!.add(n.id)
+              next.add(n.id)
+              changed = true
+            }
             if (n.children) addFolders(n.children)
           }
         }
@@ -193,7 +218,9 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
     const finalOf = (n: string) =>
       editing.type === 'file' && !n.toLowerCase().endsWith('.md') ? `${n}.md` : n
     const desired = finalOf(name)
-    const siblings = rootFolder.children ?? []
+    // 重名检测应针对编辑节点的「真实同级」（其所在父文件夹的 children），而非恒查根级
+    // children —— 深层节点重命名/新建时原实现会漏判或误判（审查 M4-FileTree）。
+    const siblings = getSiblingNodes(rootFolder, editing.id)
     const clash = (cand: string) =>
       siblings.some((c) => c.id !== editing.id && c.name.toLowerCase() === cand.toLowerCase())
     let final = desired

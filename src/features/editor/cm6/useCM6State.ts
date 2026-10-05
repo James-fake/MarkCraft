@@ -227,7 +227,7 @@ export function useCM6State({
   openFileRef.current = openFile
 
   // Sub-hooks
-  const { canUndo, canRedo, pushUndo, handleUndo, handleRedo } = useCM6UndoRedo({
+  const { canUndo, canRedo, pushUndo, handleUndo, handleRedo, undoCallbackRef, redoCallbackRef } = useCM6UndoRedo({
     fileId,
     value,
     viewRef,
@@ -301,9 +301,9 @@ export function useCM6State({
         closeBrackets(),
         ...rainbowBrackets(),
         // 不使用 CM6 的 history()，改用 UndoRedoStore 保持跨模式一致性
-        // Ctrl+Z/Y 通过 createUndoRedoKeymap 桥接到 UndoRedoStore
+        // Ctrl+Z/Y 通过 createUndoRedoKeymap 桥接到 UndoRedoStore（实例级 ref，避免多编辑器串扰）
         keymap.of([...defaultKeymap, ...searchKeymap]),
-        createUndoRedoKeymap(),
+        createUndoRedoKeymap(undoCallbackRef, redoCallbackRef),
         createKeymapExtension(),
         createAutocompleteExtension(t.autocomplete),
         // P1-1：源码模式 [[note]] / ![[note]] 悬浮预览（对标 WYSIWYG WikiLinkHoverPreview）
@@ -440,7 +440,7 @@ export function useCM6State({
           : theme === 'dark' ? [cm6DarkTheme] : []),
       ],
     })
-  }, [focusMode, pushUndo, t, theme, appSettings.fontSize, appSettings.codeFontFamily, appSettings.codeBlockDefaultLang, appSettings.codeTheme, appSettings.autoPairBrackets, appSettings.autoPairQuotes, appSettings.autoPairMarkdown, appSettings.spellCheck, fixIssue, imageStore, lintMarkdown])
+  }, [focusMode, pushUndo, t, theme, appSettings.fontSize, appSettings.codeFontFamily, appSettings.codeBlockDefaultLang, appSettings.codeTheme, appSettings.autoPairBrackets, appSettings.autoPairQuotes, appSettings.autoPairMarkdown, appSettings.spellCheck, fixIssue, imageStore, lintMarkdown, undoCallbackRef, redoCallbackRef])
 
   // 初始化 EditorView
   useEffect(() => {
