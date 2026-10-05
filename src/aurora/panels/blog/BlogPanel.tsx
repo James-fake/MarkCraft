@@ -41,6 +41,19 @@ import { useLanguage } from '@stores/LanguageStore'
  *    deployPanels.tsx；本文件只剩主面板（状态编排 + 布局，行为不变）。
  */
 
+/**
+ * 防抖值 Hook：博客预览在 cfg/friends/series 变动时需全量重跑 generateSingleFileBlog，
+ * 代价较高。对这类高频变动的配置做 ~300ms 防抖，避免每次按键都同步重生成整站（M5 性能项）。
+ */
+function useDebouncedValue<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value)
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay)
+    return () => clearTimeout(id)
+  }, [value, delay])
+  return debounced
+}
+
 /* ============================================================
  * 主面板
  * ========================================================== */
@@ -213,9 +226,15 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
 
   const handleNav = (id: string) => nav?.(resolveAuroraNav(id))
 
+  // M5 性能：cfg/friends/series 是高频变动的配置（站点标题/描述/友链/系列编辑），
+  // 预览全量生成代价高；对其做防抖，仅防抖后的版本驱动生成（输入控件仍即时受控）。
+  const debouncedCfg = useDebouncedValue(cfg, 300)
+  const debouncedFriends = useDebouncedValue(friends, 300)
+  const debouncedSeries = useDebouncedValue(series, 300)
+
   // P0 修复：预览 = 真实 generateSingleFileBlog（themeStyle 驱动 60+ 主题模板渲染）。
   // 与真实 BlogStudio 的 updatePreview 同源（单一数据源），themeKey/colorScheme/font/
-  // 自定义 CSS/友链/系列/功能开关任一变化都会重新生成并即时反映到 iframe。
+  // 自定义 CSS/友链/系列/功能开关任一变化都会（防抖 ~300ms 后）重新生成并反映到 iframe。
   // 预览失败/空态占位（iframe 内联 HTML）：让"生成异常"可见，不再静默空白
   const previewFallback = useMemo(() => {
     const wrap = (icon: string, title: string, body: string) => `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;font-family:system-ui,'PingFang SC','Microsoft YaHei',sans-serif;background:#fafafa;color:#333;display:flex;align-items:center;justify-content:center;height:100vh;padding:24px;box-sizing:border-box"><div style="max-width:460px;text-align:center"><div style="font-size:30px;margin-bottom:12px">${icon}</div><div style="font-weight:600;margin-bottom:8px;font-size:15px">${title}</div><div style="font-size:13px;color:#666;line-height:1.6;word-break:break-all">${body}</div></div></body></html>`
@@ -239,14 +258,14 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
           name: d.title.endsWith('.md') ? d.title : `${d.title}.md`,
           content: d.content,
         })),
-        toRealBlogConfig(cfg, friends, series),
+        toRealBlogConfig(debouncedCfg, debouncedFriends, debouncedSeries),
       )
     } catch (e) {
       // 诊断埋点（Aurora 层）：预览生成异常时如实上报，避免静默空白
       console.error('[BlogPanel] 预览生成失败:', e)
       return wrap('<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="1.5"><path d="M12 4 4 20h16L12 4Z"/><path d="M12 10v4M12 17v1"/></svg>', B.previewFailedTitle, `${B.previewFailedBody.replace('{msg}', esc(String((e as Error)?.message ?? e)))}<br><br><span style="font-size:12px;color:#999">${B.previewFailedHint}</span>`)
     }
-  }, [cfg, docs, friends, series, kbSource, B])
+  }, [debouncedCfg, docs, debouncedFriends, debouncedSeries, kbSource, B])
 
   // 功能列表浮层：仅允许停靠在「博客界面」最左 / 最右贴边位置（2 个停靠点）。
   // 交互 = 抓住表头向左/向右「甩丢」：拖动时实时跟随指针，松手按抛掷速度吸附到对应贴边，

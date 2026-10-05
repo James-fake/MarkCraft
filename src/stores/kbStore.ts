@@ -74,24 +74,8 @@ function collectMarkdownFiles(node: FileNode | null): FileNode[] {
 }
 
 
-/** 获取节点的完整路径（从 root 开始） */
-function getNodePath(root: FileNode, targetId: string): string {
-  const path: string[] = []
-  function dfs(node: FileNode): boolean {
-    if (node.id === targetId) return true
-    if (node.children) {
-      for (const child of node.children) {
-        path.push(child.name)
-        if (dfs(child)) return true
-        path.pop()
-      }
-    }
-    return false
-  }
-  path.push(root.name)
-  dfs(root)
-  return path.join('/')
-}
+// 注：原 getNodePath(root, targetId) 单次 O(n) DFS 已移除——收集规则匹配文件时
+// 对每个文件调用它会使整体退化成 O(n²)，现改为一次性遍历建 id → 路径映射（见 resolveFiles）。
 
 /** 匹配规则 */
 function matchRule(file: FileNode, fullPath: string, rule: KnowledgeBaseRule): boolean {
@@ -387,8 +371,18 @@ export function getKbFiles(rootFolder: FileNode, kb: KnowledgeBase, maxFiles = 5
     const enabledRules = kb.rules.filter(r => r.enabled)
     if (enabledRules.length > 0) {
       const allFiles = collectAllFiles(rootFolder)
+      // 一次性遍历建 id → 路径映射；原实现对每个文件各跑一次 getNodePath（单次 O(n) DFS），
+      // 整体退化为 O(n²)。路径语义与 getNodePath 一致（含根名，'/' 分隔）。
+      const pathById = new Map<string, string>()
+      const buildPaths = (node: FileNode, prefix: string) => {
+        const p = prefix ? `${prefix}/${node.name}` : node.name
+        pathById.set(node.id, p)
+        for (const child of node.children ?? []) buildPaths(child, p)
+      }
+      buildPaths(rootFolder, '')
+
       for (const file of allFiles) {
-        const fullPath = getNodePath(rootFolder, file.id)
+        const fullPath = pathById.get(file.id) ?? ''
         for (const rule of enabledRules) {
           if (matchRule(file, fullPath, rule)) {
             result.add(file.id)

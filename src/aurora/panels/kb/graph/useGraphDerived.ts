@@ -158,10 +158,19 @@ export function useGraphDerived(p: GraphDerivedOpts) {
 
   const highlightSet = p.highlightId ? neighborsOf(p.highlightId) : null
 
+  // 节点 id → 节点 索引表。isDim / isEdgeDim 会对每个节点、每条边各调用一次，
+  // 原实现用 Array.find 线性查找 → 整体退化成 O(N²)；改 Map 查表后为 O(1)（审查 M5）。
+  const nodeById = useMemo(() => {
+    const m = new Map<string, GNode>()
+    p.nodesRef.current.forEach((n) => m.set(n.id, n))
+    return m
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- graphRev 为节点重建的变更信号（nodesRef 是稳定 ref，须靠 graphRev 触发重算）
+  }, [p.graphRev, p.nodesRef])
+
   const isDim = (id: string): boolean => {
     if (matchedIds) return !matchedIds.has(id)
     if (p.focusGroup) {
-      const n = p.nodesRef.current.find((x) => x.id === id)
+      const n = nodeById.get(id)
       return n ? p.groupKeyFor(n) !== p.focusGroup : false
     }
     if (highlightSet) return !highlightSet.has(id)
@@ -171,8 +180,8 @@ export function useGraphDerived(p: GraphDerivedOpts) {
   const isEdgeDim = (s: string, t: string): boolean => {
     if (matchedIds) return !(matchedIds.has(s) || matchedIds.has(t))
     if (p.focusGroup) {
-      const ns = p.nodesRef.current.find((x) => x.id === s)
-      const nt = p.nodesRef.current.find((x) => x.id === t)
+      const ns = nodeById.get(s)
+      const nt = nodeById.get(t)
       const ks = ns ? p.groupKeyFor(ns) : ''
       const kt = nt ? p.groupKeyFor(nt) : ''
       return ks !== p.focusGroup && kt !== p.focusGroup

@@ -88,24 +88,41 @@ export async function askKb(
   }
 
   // 2. 切分段落并对每段做 embedding
-  const paragraphs: Paragraph[] = []
+  // 原实现逐段 await（串行），段落数一多耗时就线性累积。改为有限并发：
+  // 既显著提速，又不至于一次性打满 embedding 接口触发限流（审查 M5）。
+  // 结果按下标回填保证顺序稳定（下游 top-N 不因并发完成顺序而抖动）。
+  const jobs: Array<{ fileId: string; fileName: string; text: string }> = []
   for (const file of allFiles) {
     const content = file.content ?? ''
-    const chunks = splitParagraphs(content)
-    for (const chunk of chunks) {
+    for (const chunk of splitParagraphs(content)) {
+      jobs.push({ fileId: file.id, fileName: file.name, text: chunk })
+    }
+  }
+
+  const EMBED_CONCURRENCY = 5
+  const embedded: Array<Paragraph | null> = new Array(jobs.length).fill(null)
+  let cursor = 0
+  const worker = async () => {
+    while (cursor < jobs.length) {
+      const i = cursor++
+      const job = jobs[i]
       try {
-        const vec = await ai.embed(chunk)
-        paragraphs.push({
-          fileId: file.id,
-          fileName: file.name,
-          text: chunk,
+        const vec = await ai.embed(job.text)
+        embedded[i] = {
+          fileId: job.fileId,
+          fileName: job.fileName,
+          text: job.text,
           vector: vec,
-        })
+        }
       } catch {
         // 跳过 embedding 失败的段落，继续处理其他段落
       }
     }
   }
+  await Promise.all(
+    Array.from({ length: Math.min(EMBED_CONCURRENCY, jobs.length) }, () => worker()),
+  )
+  const paragraphs: Paragraph[] = embedded.filter((p): p is Paragraph => p !== null)
 
   if (paragraphs.length === 0) {
     return { answer: messages.emptyContent, sources: [] }

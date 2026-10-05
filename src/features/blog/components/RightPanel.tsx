@@ -1,4 +1,5 @@
 import { BlogDesignConfig, formatSize } from '../hooks/useBlogGenerator'
+import { byteLength } from '@utils/byteLength'
 import { BlogGenerationResult } from '../blogGenerator'
 import { useLanguage } from '@stores/LanguageStore'
 import { SectionLabel, useStudioTheme } from './StudioControls'
@@ -376,7 +377,7 @@ export default function ExportPanel({
                     fontFamily: "'JetBrains Mono', monospace",
                     flexShrink: 0,
                   }}>
-                    {formatSize(new Blob([file.content]).size)}
+                    {formatSize(byteLength(file.content))}
                   </span>
                 </div>
               )

@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { generateSingleFileBlog, generateBlog, downloadBlogAsZip, BlogGenerationResult } from '../blogGenerator'
 import { BlogConfig, ThemeStyle, RewardConfig, FriendLink, AboutConfig, SeriesConfig } from '../templates'
 import { parseFrontMatter } from '@utils/frontMatter'
+import { byteLength } from '@utils/byteLength'
 import { useLanguage } from '@stores/LanguageStore'
 import { recordPublish, type PublishTraceEntry } from '../services/publishTrace'
 import type { PostStatus } from '../services/postStatus'
@@ -535,11 +536,17 @@ export function useBlogGenerator(
     }
   }, [result, t])
 
-  const totalSize = result
-    ? result.files.reduce((sum, f) => sum + new Blob([f.content]).size, 0)
-    : 0
+  // 原实现对全部文件逐个 `new Blob([content]).size`，且每次渲染都重算（审查 M5）。
+  // 改为 TextEncoder 取字节数 + useMemo 按依赖缓存。
+  const totalSize = useMemo(
+    () => (result ? result.files.reduce((sum, f) => sum + byteLength(f.content), 0) : 0),
+    [result],
+  )
 
-  const previewSize = previewHtml ? (new Blob([previewHtml]).size / 1024).toFixed(1) : ''
+  const previewSize = useMemo(
+    () => (previewHtml ? (byteLength(previewHtml) / 1024).toFixed(1) : ''),
+    [previewHtml],
+  )
 
   return {
     designConfig,

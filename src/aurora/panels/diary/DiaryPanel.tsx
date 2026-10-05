@@ -60,22 +60,45 @@ const MOOD_SEMANTIC_COLOR: Record<MoodCat, string> = {
   mix: 'var(--mc-warning)',
 }
 
+/* 单篇日记的派生字段（仅与文件内容相关），按文件 id 缓存：内容不变则复用，
+   避免每次 rootFolder/refreshNonce 变化都对全部日记文件重跑
+   countWords/extractTags/makeExcerpt（M5 性能项） */
+interface DiaryDerivedCache {
+  content: string
+  excerpt: string
+  words: number
+  tags: string[]
+}
+
 /* 从文件树收集真实日记条目（YYYY-MM-DD.md），算法与 features/diary 工具一致 */
-function collectDiaryEntries(root: FileNode | null): DiaryEntry[] {
+function collectDiaryEntries(
+  root: FileNode | null,
+  cache: Map<string, DiaryDerivedCache>,
+): DiaryEntry[] {
   const entries: DiaryEntry[] = []
   const walk = (node: FileNode) => {
     if (node.type === 'file') {
       const m = /^(\d{4}-\d{2}-\d{2})\.md$/.exec(node.name)
       if (m) {
         const content = node.content || ''
+        let derived = cache.get(node.id)
+        if (!derived || derived.content !== content) {
+          derived = {
+            content,
+            excerpt: makeExcerpt(content),
+            words: countWords(content),
+            tags: extractTags(content),
+          }
+          cache.set(node.id, derived)
+        }
         entries.push({
           id: node.id,
           date: m[1],
           content,
           title: m[1],
-          excerpt: makeExcerpt(content),
-          words: countWords(content),
-          tags: extractTags(content),
+          excerpt: derived.excerpt,
+          words: derived.words,
+          tags: derived.tags,
         })
       }
     }
@@ -113,8 +136,10 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
     }
   }, [])
 
+  // 派生字段缓存：内容不变的日记文件复用上次的 countWords/extractTags/makeExcerpt 结果
+  const diaryCacheRef = useRef<Map<string, DiaryDerivedCache>>(new Map())
   // eslint-disable-next-line react-hooks/exhaustive-deps -- nonce: refreshNonce 为可见性/聚焦时强制重扫日记目录的失效闸（collectDiaryEntries 为读取型函数）
-  const entries = useMemo(() => collectDiaryEntries(rootFolder), [rootFolder, refreshNonce])
+  const entries = useMemo(() => collectDiaryEntries(rootFolder, diaryCacheRef.current), [rootFolder, refreshNonce])
   const entryMap = useMemo(() => new Map(entries.map((e) => [e.date, e])), [entries])
 
   /* ---------- 真实情绪：localStorage 单一数据源（loadMoods/saveMoods） ---------- */

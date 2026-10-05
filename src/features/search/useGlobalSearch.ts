@@ -276,7 +276,10 @@ export function useGlobalSearch() {
         for (const term of positiveTerms) {
           const base = termRegexCache.get(term)
           if (!base) continue
-          const regex = new RegExp(base.source, base.flags)
+          // 直接复用缓存正则，并在每次 exec 前重置 lastIndex（g 标志会在 exec 后推进）。
+          // 原实现对「每行 × 每词项」都 new RegExp 重新编译，成本随行数线性放大（审查 M5）。
+          const regex = base
+          regex.lastIndex = 0
           let match: RegExpExecArray | null
           while ((match = regex.exec(line)) !== null) {
             lineHits.push({
@@ -336,10 +339,12 @@ export function useGlobalSearch() {
           if (!evaluateBooleanQuery(node.content, booleanGroups, termRegexCache)) return
           matches = collectBooleanMatches(lines)
         } else {
+          // 只编译一次并在每行 exec 前重置 lastIndex；原实现每行 new RegExp 重复编译（审查 M5）
+          const regex = new RegExp(searchRegex.source, searchRegex.flags)
           for (let idx = 0; idx < lines.length; idx++) {
             const line = lines[idx]
             let match
-            const regex = new RegExp(searchRegex.source, searchRegex.flags)
+            regex.lastIndex = 0
             while ((match = regex.exec(line)) !== null) {
               matches.push({
                 line: idx + 1,
@@ -404,6 +409,8 @@ export function useGlobalSearch() {
 
     const filters = options.filters
     const modified: { fileId: string; newContent: string; matchCount: number }[] = []
+    // 复用同一份正则（match/replace 会自动归零 lastIndex），避免每个文件各编译两次（审查 M5）
+    const replaceRegex = new RegExp(searchRegex.source, searchRegex.flags)
 
     function walk(node: FileNode) {
       if (node.type === 'file' && node.content) {
@@ -412,9 +419,10 @@ export function useGlobalSearch() {
         if (filters?.endTime && node.updatedAt > filters.endTime) return
 
         const content = node.content
-        const matches = content.match(new RegExp(searchRegex.source, searchRegex.flags))
+        const matches = content.match(replaceRegex)
         if (matches && matches.length > 0) {
-          const newContent = content.replace(new RegExp(searchRegex.source, searchRegex.flags), replacement)
+          replaceRegex.lastIndex = 0
+          const newContent = content.replace(replaceRegex, replacement)
           if (newContent !== content) {
             modified.push({ fileId: node.id, newContent, matchCount: matches.length })
           }
@@ -479,10 +487,13 @@ export function useGlobalSearch() {
     }
 
     const content = file.content
-    const matches = content.match(new RegExp(searchRegex.source, searchRegex.flags))
+    // 复用同一份正则，避免两次 new RegExp 重复编译（审查 M5）
+    const replaceRegex = new RegExp(searchRegex.source, searchRegex.flags)
+    const matches = content.match(replaceRegex)
     if (!matches || matches.length === 0) return null
 
-    const newContent = content.replace(new RegExp(searchRegex.source, searchRegex.flags), replacement)
+    replaceRegex.lastIndex = 0
+    const newContent = content.replace(replaceRegex, replacement)
     if (newContent === content) return null
 
     return { fileId, newContent, matchCount: matches.length }
