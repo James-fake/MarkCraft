@@ -115,6 +115,8 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
   useEffect(() => {
     if (!inspectMode) return
     const handleMessage = (e: MessageEvent) => {
+      // 仅接受来自预览 iframe 本身的消息，拒绝任意页面伪造的 mc-element-selected
+      if (iframeRef.current && e.source !== iframeRef.current.contentWindow) return
       if (e.data?.type === 'mc-element-selected') {
         setSelectedElement({
           selector: e.data.selector,
@@ -126,6 +128,7 @@ export function VisualCssEditor({ iframeRef, onGenerateCss, isDark, previewDevic
     }
     window.addEventListener('message', handleMessage)
     return () => window.removeEventListener('message', handleMessage)
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- iframeRef 是稳定 ref，读取 .current 无需入依赖
   }, [inspectMode])
 
   // Clean up inspector when mode is off — 调用 __mcCleanupInspector 移除事件监听

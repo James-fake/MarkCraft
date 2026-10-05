@@ -11,7 +11,7 @@ export default function IframeView({ node }: NodeViewProps) {
           src={src}
           width={width}
           height={height}
-          sandbox="allow-scripts allow-same-origin"
+          sandbox="allow-scripts"
           style={{ border: 'none', display: 'block' }}
           title="Embedded content"
         />

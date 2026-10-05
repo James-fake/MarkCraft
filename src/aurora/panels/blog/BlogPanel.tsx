@@ -565,7 +565,7 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
           <div className="aurora-blog__preview">
             <div className="aurora-blog__preview-stage">
               <div className={`aurora-blog__frame aurora-blog__frame--${device}`}>
-                <iframe ref={previewIframeRef} title={B.previewTitle} srcDoc={previewFallback} />
+                <iframe ref={previewIframeRef} title={B.previewTitle} srcDoc={previewFallback} sandbox="allow-scripts" />
               </div>
             </div>
           </div>

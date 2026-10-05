@@ -378,7 +378,10 @@ export async function deleteBackup(backupId: number): Promise<void> {
 }
 
 /** 启动定时自动备份调度器（每天检查一次，若今天未备份则自动创建） */
+// 单例守卫：避免 StrictMode 双调用或重复启动创建多个每日调度器
+let autoBackupTimer: ReturnType<typeof setInterval> | null = null
 export function startAutoBackupScheduler(): ReturnType<typeof setInterval> {
+  if (autoBackupTimer !== null) return autoBackupTimer
   const checkAndBackup = async () => {
     try {
       const all = await db.backups.where('type').equals('auto').toArray()
@@ -402,6 +405,7 @@ export function startAutoBackupScheduler(): ReturnType<typeof setInterval> {
   // 启动时立即检查一次
   checkAndBackup()
 
-  // 每 24 小时检查一次
-  return setInterval(checkAndBackup, 24 * 60 * 60 * 1000)
+  // 每 24 小时检查一次（单例：重复调用返回同一计时器）
+  autoBackupTimer = setInterval(checkAndBackup, 24 * 60 * 60 * 1000)
+  return autoBackupTimer
 }

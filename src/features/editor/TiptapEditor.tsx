@@ -161,9 +161,14 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
           if (node) {
             const linkMark = node.marks.find(m => m.type.name === 'link')
             if (linkMark?.attrs.href) {
-              event.preventDefault()
-              window.open(linkMark.attrs.href as string, '_blank', 'noopener')
-              return true
+              const href = linkMark.attrs.href as string
+              // 协议白名单（与 CM6 openExternalSafely 一致）：仅放行 http(s)/mailto/tel，
+              // 拒绝 javascript:/data: 等，避免 Ctrl/Cmd+点击执行任意脚本
+              if (/^(https?|mailto|tel):/i.test(href.trim())) {
+                event.preventDefault()
+                window.open(href, '_blank', 'noopener')
+                return true
+              }
             }
           }
         }

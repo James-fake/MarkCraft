@@ -128,7 +128,9 @@ export function markdownToHtml(md: string, imageStore: ImageStoreAPI): string {
 
     // @[iframe](url) 转换为 <iframe> 标签
     processed = processed.replace(/@\[iframe\]\(([^)]+)\)/gi, (_match, src) => {
-      return `<iframe src="${src}" sandbox="allow-scripts allow-same-origin"></iframe>`
+      // 仅允许 http/https 嵌入，杜绝 javascript:/data: 等向量；去掉 allow-same-origin 防止沙箱逃逸
+      const safeSrc = /^(https?:\/\/)/i.test(src.trim()) ? src.replace(/"/g, '%22') : ''
+      return safeSrc ? `<iframe src="${safeSrc}" sandbox="allow-scripts"></iframe>` : ''
     })
 
     // C3：@[pdf](url) 或 @[pdf](pdfId) 转换为 <div data-type="pdfEmbed">
