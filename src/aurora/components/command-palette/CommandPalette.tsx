@@ -323,7 +323,7 @@ export function CommandPalette({ open, onClose, commands, fileItems, onOpenFile 
               <kbd>Esc</kbd> {cp.footerClose}
             </span>
           </div>
-          <div>{flatItems.length} 个结果</div>
+          <div>{cp.resultCount.replace('{n}', String(flatItems.length))}</div>
         </div>
       </div>
     </div>

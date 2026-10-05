@@ -111,6 +111,11 @@ describe('Phase 3 命令接线（共享 catalog + 适配器，D4 单一数据源
       modalOpen: (id) => { modalCalls.push(id) },
       viewRef: { current: 'editor' },
       toast: () => {},
+      labels: {
+        untitled: '未命名',
+        newFolder: '新建文件夹',
+        openNoteFirst: '请先在编辑器中打开一篇笔记',
+      },
     }
     const actions = buildAuroraActions(deps)
 

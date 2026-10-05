@@ -64,6 +64,7 @@ export interface Translations {
     footerNavigate: string
     footerRun: string
     footerClose: string
+    resultCount: string
   }
   toolbar: {
     undo: string
@@ -1095,6 +1096,7 @@ export interface Translations {
     relDay: string
     untitled: string
     newFolder: string
+    openNoteFirst: string
     collapseTree: string
     searchPh: string
     newFile: string

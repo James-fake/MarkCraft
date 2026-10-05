@@ -73,6 +73,7 @@ export const cmdPalette = {
   footerNavigate: '导航',
   footerRun: '执行',
   footerClose: '关闭',
+  resultCount: '{n} 个结果',
 }
 
 export const welcome = {
@@ -1169,6 +1170,7 @@ export const editorPanel = {
   relDay: '{n}天前',
   untitled: '未命名',
   newFolder: '新建文件夹',
+  openNoteFirst: '请先在编辑器中打开一篇笔记',
   collapseTree: '收起文件列表',
   searchPh: '搜索文件...',
   newFile: '新建文件',

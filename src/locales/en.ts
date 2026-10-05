@@ -54,6 +54,7 @@ export const en: Translations = {
     footerNavigate: 'Navigate',
     footerRun: 'Run',
     footerClose: 'Close',
+    resultCount: '{n} results',
   },
   toolbar: {
     undo: 'Undo (Ctrl+Z)',
@@ -1322,6 +1323,7 @@ export const en: Translations = {
     relDay: '{n} d ago',
     untitled: 'Untitled',
     newFolder: 'New folder',
+    openNoteFirst: 'Open a note in the editor first',
     collapseTree: 'Collapse file list',
     searchPh: 'Search files...',
     newFile: 'New file',

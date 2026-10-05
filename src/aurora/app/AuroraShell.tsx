@@ -265,6 +265,11 @@ function ShellInner() {
     cmdBridge,
     viewRef,
     toast: toast.show,
+    labels: {
+      untitled: t.editorPanel.untitled,
+      newFolder: t.editorPanel.newFolder,
+      openNoteFirst: t.editorPanel.openNoteFirst,
+    },
   })
 
   // —— P0 · 1.5 全局键盘快捷键（真实 useKeyboardShortcuts hook，对齐 LegacyApp 键位）——

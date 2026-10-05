@@ -39,10 +39,19 @@ export interface AuroraActionDeps {
   viewRef: MutableRefObject<string>
   /** 轻量 toast 提示（条件命令无活动文件等场景引导） */
   toast: (msg: string) => void
+  /** 默认命名与提示文案（走语言包，避免英文界面下仍出现中文硬编码） */
+  labels: {
+    /** 新建文件默认名前缀 */
+    untitled: string
+    /** 新建文件夹默认名 */
+    newFolder: string
+    /** 「请先在编辑器中打开一篇笔记」引导语 */
+    openNoteFirst: string
+  }
 }
 
 export function buildAuroraActions(deps: AuroraActionDeps): Record<string, (() => void) | undefined> {
-  const { rootFolder, createFile, createFolder, openFile, getActiveFileId, tabs, closeTab, updateSetting, theme, focusMode, typewriterMode, getOutgoingLinks, toggleLanguage, nav, modalOpen, cmdBridge, viewRef, toast } = deps
+  const { rootFolder, createFile, createFolder, openFile, getActiveFileId, tabs, closeTab, updateSetting, theme, focusMode, typewriterMode, getOutgoingLinks, toggleLanguage, nav, modalOpen, cmdBridge, viewRef, toast, labels } = deps
 
   // 非编辑器视图下，先跳编辑器并延迟执行，待 EditorPanel 挂载并注册 cmdBridge 后再触达编辑器内部动作。
   const runInEditor = (fn: () => void) => () => {
@@ -55,7 +64,7 @@ export function buildAuroraActions(deps: AuroraActionDeps): Record<string, (() =
   }
 
   return {
-    'file.newFile': () => { createFile(rootFolder.id, `未命名-${Date.now()}.md`, ''); nav('editor') },
+    'file.newFile': () => { createFile(rootFolder.id, `${labels.untitled}-${Date.now()}.md`, ''); nav('editor') },
     'file.openDailyNote': () => { openDailyNote(new Date(), rootFolder, createFile, createFolder, openFile) },
     'view.toggleTheme': () => updateSetting('theme', theme === 'dark' ? 'light' : 'dark'),
     'settings.switchLanguage': () => toggleLanguage(),
@@ -69,7 +78,7 @@ export function buildAuroraActions(deps: AuroraActionDeps): Record<string, (() =
     'file.importFile': () => { nav('editor'); modalOpen('import') },
     'tools.linkRedirect': () => { nav('editor'); modalOpen('linkRedirect') },
     'tools.openBlockBacklinks': () => {
-      if (!getActiveFileId()) { toast('请先在编辑器中打开一篇笔记'); return }
+      if (!getActiveFileId()) { toast(labels.openNoteFirst); return }
       // 与其它弹层型命令保持一致：先切到编辑器视图，否则在非编辑视图下弹层不可见（静默无效）
       nav('editor')
       modalOpen('blockBacklinks')
@@ -81,7 +90,7 @@ export function buildAuroraActions(deps: AuroraActionDeps): Record<string, (() =
     'tools.migrate': () => modalOpen('migrate'),
     'navigation.quickSwitcher': () => modalOpen('quickSwitcher'),
     // —— Phase 4 P0 · 1.6：补回 12 条此前不可达命令（真实 handler 注入）——
-    'file.newFolder': () => { createFolder('root', '新文件夹') },
+    'file.newFolder': () => { createFolder('root', labels.newFolder) },
     // —— P1-3：依赖命令桥的编辑器内部动作，非编辑器视图下先跳编辑器再执行 ——
     'file.save': runInEditor(() => cmdBridge.current.save?.()),
     'view.togglePreview': runInEditor(() => cmdBridge.current.togglePreview?.()),
