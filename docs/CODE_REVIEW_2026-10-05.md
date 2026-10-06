@@ -141,3 +141,20 @@
 - 优先修复：**H1、H2** 为真实权限越界风险，建议立即修复（加 `sandbox` / 去 `allow-same-origin` + URL 白名单）。
 - 建议修复顺序：H1 → H2 → M1 → M2 → M3 → L1/L2/L3。
 - 修复后可沿用既有验证门禁：`tsc --noEmit` → `eslint --max-warnings 0` → `vitest run` → `vite build`（含 `CODEBUDDY_SAFE_DELETE_ENABLED=0`），按此前批次风格提交。
+
+---
+
+## 6. 修复状态（2026-10-06 收尾）
+
+| 编号 | 结论 | 提交 |
+|------|------|------|
+| 🔴 H1 | ✅ 已修复：BlogPanel 预览 iframe 补 `sandbox="allow-scripts"` | `767c01f` |
+| 🔴 H2 | ✅ 已修复：`mdToHtml.ts` 改 http/https 白名单 + 引号转义；`IframeView.tsx` 去 `allow-same-origin` | `767c01f` |
+| 🟠 M1 | ✅ 已修复：`TiptapEditor.tsx` 链接点击加 `^(https?\|mailto\|tel):` 协议白名单 | `767c01f` |
+| 🟠 M2 | ✅ 已修复：`VisualCssEditor.tsx` postMessage 增加 `e.source === iframe.contentWindow` 来源校验 | `767c01f` |
+| 🟠 M3 | ⚪ 复核为**误报**：全部 `JSON.parse` 调用点均已在 `try/catch` 内（等价 `safeJsonParse` 防御）；`jsonLd.ts` 为注释、`backupService.ts:242` 为内存深拷贝不会抛。**无需改动**（强迁会回退 `librarySync` 的语义化报错） | — |
+| 🟡 L1 | ✅ 已修复：`backupService.ts` 自动备份定时器加模块级单例守卫 | `767c01f` |
+| 🟡 L2 | ✅ 已修复：顶层 `esbuild.drop:['console']`（仅生产）。实测产物 console 325→27，余者皆三方库特性探测 | `b50b5f3` |
+| 🟡 L3 | ✅ 已处理：导出博客运行时 best-effort 空 catch 补注释说明「静默降级」意图 | `b50b5f3` |
+
+**验证门禁（2026-10-06）**：`tsc --noEmit` ✓ · `eslint` 0 error ✓ · `vite build` ✓ · `vitest` 1821/1824 通过（唯一失败为 harness 缺 IndexedDB 的环境性用例，与本批改动无关）。
