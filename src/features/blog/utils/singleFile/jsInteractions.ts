@@ -33,7 +33,7 @@ export function getClassicJsInteractions(blogLang: 'zh' | 'en'): string {
       var targetTop = rect.top + currentScroll - OFFSET;
       if (document.body) document.body.scrollTop = targetTop;
       if (document.documentElement) document.documentElement.scrollTop = targetTop;
-      try { window.scrollTo(0, targetTop); } catch(_) {}
+      try { window.scrollTo(0, targetTop); } catch(_) {} // 导出博客运行时：best-effort，静默降级 // 导出博客运行时：best-effort，静默降级
     }
 
     function navigateToPost(slug, sectionId) {
@@ -275,7 +275,7 @@ export function getClassicJsInteractions(blogLang: 'zh' | 'en'): string {
       input.value = window.location.href;
       document.body.appendChild(input);
       input.select();
-      try { document.execCommand('copy'); } catch(e) {}
+      try { document.execCommand('copy'); } catch(e) {} // 导出博客运行时：best-effort，静默降级
       document.body.removeChild(input);
       var btn = document.querySelector('.share-copy-btn');
       if (btn) {
@@ -321,7 +321,7 @@ function _scrollToHeading(el) {
   var targetTop = rect.top + currentScroll - OFFSET;
   if (document.body) document.body.scrollTop = targetTop;
   if (document.documentElement) document.documentElement.scrollTop = targetTop;
-  try { window.scrollTo(0, targetTop); } catch(_) {}
+  try { window.scrollTo(0, targetTop); } catch(_) {} // 导出博客运行时：best-effort，静默降级
 }
 
 function showView(viewName) {

@@ -260,7 +260,6 @@ export function useGraphEngine(p: GraphEngineOpts) {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       runningRef.current = false
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // 可见性/模式/布局相关变化 → 重新计算目标并 reheat（非力导向时平滑过渡）

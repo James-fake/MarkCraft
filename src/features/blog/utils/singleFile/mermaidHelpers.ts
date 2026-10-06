@@ -97,7 +97,7 @@ export function getMermaidScript(isDark: boolean): string {
       }).catch(function(err) {
         diagram.innerHTML = '<div style="padding:1rem;color:#e74c3c;background:rgba(231,76,60,0.1);border-radius:0.5rem;font-size:0.875rem;"><strong>Diagram render error</strong></div>';
         diagram.setAttribute('data-rendered', 'true');
-        try { var el = document.getElementById('d' + id); if (el) el.remove(); } catch(e) {}
+        try { var el = document.getElementById('d' + id); if (el) el.remove(); } catch(e) {} // 导出博客运行时：best-effort，静默降级
         renderNext();
       });
     }

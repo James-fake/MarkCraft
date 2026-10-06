@@ -190,7 +190,6 @@ export async function saveCanvas(doc: CanvasDocument, thumbnail?: string): Promi
       // 某些环境（如 SSR）无 window，静默忽略
     }
   } catch (e) {
-    // eslint-disable-next-line no-console
     console.error('Canvas v2 保存失败', e)
     throw e
   }

@@ -186,6 +186,11 @@ export default defineConfig(({ mode }) => ({
     'process.env.NODE_ENV': JSON.stringify(mode),
     'process.env.IS_PREACT': JSON.stringify('false'),
   },
+  // L2（代码审查 Low）：生产构建剥离 console.*，避免日志噪声泄漏到发布产物。
+  // ⚠ esbuild 转换选项必须置于**顶层**（Vite 5 无 build.esbuild，写在其下会被忽略）。
+  // 仅生产模式启用——dev 下保留 console 便于调试。
+  // 注：logger.ts 本身是「仅 dev 输出」封装，本项与之互补、互不冲突。
+  esbuild: mode === 'production' ? { drop: ['console'] } : {},
   resolve: {
     alias,
   },
