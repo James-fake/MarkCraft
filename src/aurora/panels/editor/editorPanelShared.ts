@@ -1,5 +1,4 @@
 import type { MutableRefObject } from 'react'
-import type { FileNode } from '@src/types/fileManager'
 
 /** Aurora 弹层开关（由 AuroraShell 以单一数据源持有，命令与编辑器 UI 共用；方案 B 就近归属渲染） */
 export interface AuroraModalControls {
@@ -58,15 +57,5 @@ export interface EditorPanelProps {
 
 // 字数统计统一走真实 features/editor/stats.ts 的 countWords（D4 单一数据源）
 
-// 新建文件同名去重：根目录子节点命中同名 .md 时追加 (n)，避免覆盖已有文件（VS Code 风格）
-export function uniqueFileName(root: FileNode, base: string): string {
-  const want = base.endsWith('.md') ? base : `${base}.md`
-  const names = new Set(
-    (root.children ?? []).filter((c) => c.type === 'file').map((c) => c.name),
-  )
-  if (!names.has(want)) return want
-  const stem = base.endsWith('.md') ? base.slice(0, -3) : base
-  let i = 2
-  while (names.has(`${stem} (${i}).md`)) i++
-  return `${stem} (${i}).md`
-}
+// 同名去重已下沉到 services/fileService（供导入/拖拽等非 aurora 场景复用）；此处转出，保持既有引用不变。
+export { uniqueFileName } from '@services/fileService'

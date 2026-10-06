@@ -160,6 +160,23 @@ export function saveStateSync(state: FileManagerState): void {
   saveLargeData(STORAGE_KEY, data).catch(e => logger.error('IDB save sync failed:', e));
 }
 
+/**
+ * 为「新建 / 导入」文件生成不冲突的 .md 文件名（VS Code 风格）。
+ * 根目录下已有 `A.md` 时，依次尝试 `A (1).md`、`A (2).md` … 返回带 `.md` 的最终名。
+ * 自 aurora/panels/editor/editorPanelShared 下沉（导入/拖拽等非 aurora 场景需复用）。
+ */
+export function uniqueFileName(root: FileNode, base: string): string {
+  const want = base.endsWith('.md') ? base : `${base}.md`;
+  const names = new Set(
+    (root.children ?? []).filter((c) => c.type === 'file').map((c) => c.name),
+  );
+  if (!names.has(want)) return want;
+  const stem = base.endsWith('.md') ? base.slice(0, -3) : base;
+  let i = 1;
+  while (names.has(`${stem} (${i}).md`)) i++;
+  return `${stem} (${i}).md`;
+}
+
 /** 在文件树中查找节点 */
 export function findNode(root: FileNode, id: string): FileNode | null {
   if (root.id === id) return root;

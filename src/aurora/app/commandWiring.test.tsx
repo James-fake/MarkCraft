@@ -96,7 +96,7 @@ describe('Phase 3 命令接线（共享 catalog + 适配器，D4 单一数据源
     expect(adapted.find((c) => c.id === 'tools.openVersionHistory')).toBeUndefined()
   })
 
-  it('Phase 3d：9 条弹层命令均已接入 buildAuroraActions（命令面板可触达、弹层可达）', () => {
+  it('Phase 3d：弹层命令均已接入 buildAuroraActions（命令面板可触达、弹层可达）', () => {
     const modalCalls: string[] = []
     const deps: AuroraActionDeps = {
       rootFolder: { id: 'root', name: 'root', type: 'folder', children: [], createdAt: 0, updatedAt: 0 },
@@ -120,7 +120,7 @@ describe('Phase 3 命令接线（共享 catalog + 适配器，D4 单一数据源
     const actions = buildAuroraActions(deps)
 
     const modalCommands = [
-      'file.importFile', 'tools.linkRedirect', 'tools.openBlockBacklinks',
+      'tools.linkRedirect', 'tools.openBlockBacklinks',
       'tools.insertTemplate', 'tools.templateDiscovery', 'file.quickCapture',
       'tools.librarySync', 'tools.migrate', 'navigation.quickSwitcher',
     ]
@@ -130,13 +130,16 @@ describe('Phase 3 命令接线（共享 catalog + 适配器，D4 单一数据源
       expect(actions[id], `auroraActions 应接线 ${id}`).toBeTypeOf('function')
     }
 
+    // 「打开文件」已改为直达系统文件框（不再走弹窗），但仍须在目录中且已接线
+    expect(catalogIds).toContain('file.importFile')
+    expect(actions['file.importFile']).toBeTypeOf('function')
+
     // 触发型命令确实调用 modalOpen（行为守恒：命令面板 → 打开对应弹层）
-    actions['file.importFile']!()
     actions['tools.migrate']!()
     actions['navigation.quickSwitcher']!()
-    expect(modalCalls).toContain('import')
     expect(modalCalls).toContain('migrate')
     expect(modalCalls).toContain('quickSwitcher')
+    expect(modalCalls).not.toContain('import')
 
     // tools.openBlockBacklinks 有 activeFileId 时才开（守卫逻辑）
     const calls2: string[] = []

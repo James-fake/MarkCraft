@@ -14,6 +14,7 @@ import type { useLinkIndex } from '../../stores/LinkIndexStore'
 import type { EditorCommandBridge, AuroraModalId } from '../panels/editor/EditorPanel'
 import { openDailyNote } from '../../features/fileManager/DailyNoteService'
 import { generateReverseMoc } from '../../features/fileManager/MocGenerator'
+import { pickAndImportFile } from '../../features/import/importFlow'
 import { findNode } from '@core/files/fileTree'
 
 export interface AuroraActionDeps {
@@ -75,7 +76,8 @@ export function buildAuroraActions(deps: AuroraActionDeps): Record<string, (() =
     'tools.diary': () => nav('diary'),
     'tools.openBlogStudio': () => nav('blog'),
     // —— Phase 3d：弹层触发型命令（此前无 auroraAction → 命令面板缺失 + 弹层不可达）——
-    'file.importFile': () => { nav('editor'); modalOpen('import') },
+    // 「打开文件」：直达系统文件框（去掉中间弹窗，遵循 macOS HIG「不为简单操作弹 sheet」/ Cmd+O 惯例）
+    'file.importFile': () => { nav('editor'); pickAndImportFile({ rootFolder, createFile, onError: toast }) },
     'tools.linkRedirect': () => { nav('editor'); modalOpen('linkRedirect') },
     'tools.openBlockBacklinks': () => {
       if (!getActiveFileId()) { toast(labels.openNoteFirst); return }

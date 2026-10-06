@@ -15,6 +15,8 @@ import { EditorLayout, type EditorLayoutHandle } from '@features/editor/EditorLa
 // —— P2-2：功能接线聚合（lint/弹层/模板/快速捕捉/导入/主题/自动保存）统一在此 ——
 // EditorPanel 因此只 import `@features/editor/*` 一个域，回归「布局 + 组合」角色。
 import { useEditorIntegration } from '@features/editor/editorIntegration'
+import { pickAndImportFile } from '@features/import/importFlow'
+import { useToast } from '@components/ui/ToastProvider'
 // 编辑器内部左侧文件树：Aurora 外壳 + 真实数据（详见 FileTree.tsx）
 import { FileTree } from './FileTree'
 // 内置「使用文档」→ 只读简介页（2026-09-22：裁剪编辑 chrome，仅保留阅读所需元素）
@@ -64,6 +66,7 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   const { rootFolder, getActiveFileId, getActiveFileContent, updateFileContent, createFile, openFile, activeTabId, tabs, markTabDirty, closeTransientTabs } = useFileManager()
   const { settings, updateSetting } = useSettings()
   const { t, language, toggleLanguage } = useLanguage()
+  const toast = useToast()
   const EP = t.editorPanel
   // 知识库列表（辅助 Tab · 就地展开）的展开态与目标文件：受控持有，使 ⌘K 命令
   // 与标签右键菜单都能远程召唤同一个列表（数据与归集动作在 AuroraPublish 内闭环）。
@@ -334,7 +337,11 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   }, [returnCtx, nav])
 
   // 弹层开关：只依赖壳层传入的 modal 控制器，与 feature 无关，故留在本层（布局/交互）
-  const openImport = useCallback(() => auroraModal?.open('import'), [auroraModal])
+  // 「打开文件」：直达系统文件框（去掉中间弹窗）
+  const openImport = useCallback(
+    () => pickAndImportFile({ rootFolder, createFile, onError: (m) => toast.show(m, 'error') }),
+    [rootFolder, createFile, toast],
+  )
   const openLinkRedirect = useCallback(() => auroraModal?.open('linkRedirect'), [auroraModal])
   // 弹层**回调**（导入 / 模板插入 / 快速捕捉）已随弹层一并迁入 useEditorIntegration。
 

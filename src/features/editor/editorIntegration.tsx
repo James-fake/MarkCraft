@@ -5,7 +5,6 @@ import { countWords } from '@features/editor/stats'
 import { lintMarkdown, fixIssue } from '@features/lint/markdownLinter'
 import type { LintIssue } from '@utils/lintTypes'
 import VersionHistoryPanel from '@features/editor/VersionHistoryPanel'
-import ImportDialog from '@features/import/ImportDialog'
 import LinkRedirectDialog from '@features/fileManager/LinkRedirectDialog'
 import BlockBacklinksPanel from '@features/editor/BlockBacklinksPanel'
 import TemplateInsertModal from '@features/templates/TemplateInsertModal'
@@ -222,13 +221,6 @@ export function useEditorIntegration(p: EditorIntegrationParams): EditorIntegrat
   const lintHasIssues = lintIssues.length > 0
 
   // —— 弹层回调（与 App.tsx 行为守恒，复用真实 FileStore API）——
-  const handleImportFile = useCallback(
-    (fileName: string, content: string) => {
-      createFile(rootFolder.id, fileName, content)
-      auroraModal?.close('import')
-    },
-    [auroraModal, createFile, rootFolder.id],
-  )
 
   const handleTemplateInsert = useCallback(
     (content: string) => {
@@ -275,14 +267,6 @@ export function useEditorIntegration(p: EditorIntegrationParams): EditorIntegrat
             closeVersionHistory()
           }}
           language={language}
-        />
-      )}
-
-      {auroraModal?.isOpen('import') && (
-        <ImportDialog
-          isOpen={auroraModal.isOpen('import')}
-          onClose={() => auroraModal.close('import')}
-          onImport={handleImportFile}
         />
       )}
 

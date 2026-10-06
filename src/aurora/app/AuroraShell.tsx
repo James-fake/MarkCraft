@@ -15,6 +15,8 @@ import { useLanguage } from '../../stores/LanguageStore'
 import { ensureUsageDocsKb } from '../../stores/kbSeed'
 import { applyTheme } from '../../features/themes/ThemeManager'
 import { collectFiles, exportLibraryBundle, parseLibraryBundle, mergeLibraryFiles, downloadTextFile } from '../../features/pwa/librarySync'
+import { isSupportedFile, importFileToMarkdown } from '../../features/import/importFile'
+import { uniqueFileName } from '../../services/fileService'
 import LibrarySyncModal from '../../features/pwa/LibrarySyncModal'
 import MigrateWizard from '../../features/migrate/MigrateWizard'
 import QuickSwitcher from '../../features/editor/components/QuickSwitcher'
@@ -223,14 +225,15 @@ function ShellInner() {
       const files = e.dataTransfer?.files
       if (!files || files.length === 0) return
       for (const file of Array.from(files)) {
-        if (file.name.endsWith('.md') || file.name.endsWith('.markdown') || file.name.endsWith('.txt')) {
-          try {
-            const content = await file.text()
-            const fileName = file.name.replace(/\.(md|markdown|txt)$/, '')
-            createFile('root', fileName, content)
-          } catch (err) {
-            console.error('Failed to read dropped file', err)
-          }
+        // 仅处理受支持的**文档**格式；图片等仍由编辑器内的图片拖放处理器接管。
+        // 白名单与「打开文件」共用 SUPPORTED_EXT（单一来源），不再各自硬编码。
+        if (!isSupportedFile(file.name)) continue
+        try {
+          const { baseName, content } = await importFileToMarkdown(file)
+          const name = uniqueFileName(rootFolder, baseName)
+          createFile('root', name, content)
+        } catch (err) {
+          toast.show(err instanceof Error ? err.message : String(err), 'error')
         }
       }
     }
@@ -244,7 +247,7 @@ function ShellInner() {
       document.removeEventListener('dragover', handleDragOver)
       document.removeEventListener('drop', handleDrop)
     }
-  }, [createFile])
+  }, [createFile, rootFolder, toast])
 
   const auroraActions = buildAuroraActions({
     rootFolder,
