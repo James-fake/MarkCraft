@@ -129,7 +129,23 @@
 | 🟡 L4 | ✅ 已修 | 删 `AURORA_SIDEBAR_GROUPS` 三处假 `count`，并补注释说明其「语言无关结构基准」定位 |
 | ✅ L3 | 撤销 | 复核为有意设计（既有测试已固化「文件夹同名不算冲突」） |
 
-**验证门禁（2026-10-07）**：`tsc --noEmit` ✓ · `eslint` ✓ · `vitest` 146/147 文件（1833 passed / 1 failed，唯一失败为 `BlogPanel.smoke` 缺 IndexedDB 的**环境性**用例，与本次改动无关）。
+**验证门禁（2026-10-07）**：`tsc --noEmit` ✓ · `eslint` ✓ · `vitest` **147/147 文件全部通过（1835 passed / 0 failed）**。
+
+---
+
+## 五、附带修正（收尾时发现）
+
+### 5.1 `BlogPanel.smoke` 的失败是**被误判的回归**，不是环境问题
+
+- 该用例（「主题市场切换主题 → 预览 iframe 实时渲染」）长期被记为「缺 IndexedDB 的环境性失败」。
+- **实测**：失败断言是 `expect(after).not.toBe(before)` —— 点主题卡后 iframe 的 `srcdoc` **未变化**，与 IndexedDB 无关（同文件其余 5 个用例均通过；stderr 里的 Dexie `MissingAPIError` 只是噪音）。
+- **真因**：M5（`16c5d68`）给预览加了 ~300ms 防抖（`BlogPanel` 的 `useDebouncedValue`），主题切换写入 `cfg` → `previewFallback` 需等防抖才重算，而用例在 `fireEvent.click` 后**同步**读 `srcdoc`，拿到的仍是旧值。
+- **修复**：测试改用 `waitFor` 等防抖生效（`de3485c`）。
+- **教训**：把「stderr 有环境噪音」等同于「失败是环境性的」会掩盖真实回归 —— 判据应以**失败断言本身**为准。
+
+### 5.2 行尾符清理
+
+`src/features/editor/EditorLayout.tsx` 的 mixed 行尾（585 CRLF + 21 LF）已归一化为 LF（`4b13f86`）；纯行尾变化，`git diff --ignore-cr-at-eol` 输出为空。仓库另有若干统一 CRLF 的文件（自身一致、编辑时不产生虚假 diff），本次未动。
 
 > **L1 为何不用「在 `createFile` 内部兜底去重」**：`createFile` 的 `newFile`（含 `generateId()` 副作用）必须在 `setState` updater **之外**构造（见 `useFileTreeActions.ts:33-34` 的 StrictMode 注释），故无法在 updater 内安全地基于最新树重算文件名。改用「延迟取值」是当前约束下最干净的解法。
 
