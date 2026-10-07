@@ -21,10 +21,20 @@ screenshots/
 /*.mjs
 /*.png
 
-# ===== 工作区数据（仅保留 memory/ 与 artifacts/，其余本地不入库）=====
+# ===== 工作区数据（仅保留 memory/ 与 artifacts/ 的文档，其余本地不入库）=====
 .workbuddy/*
 !.workbuddy/memory/
 !.workbuddy/artifacts/
+# AI 工作产物：artifacts/ 只保留可 diff 的文档与设计稿（md / html / svg）。
+# 截图与一次性调试脚本（png / mjs / cjs / js / json / txt / log）不入库 ——
+# 体积大（png 曾占约 11M）且无法审查（仓库卫生检查 2026-10-07）。
+.workbuddy/artifacts/**/*.png
+.workbuddy/artifacts/**/*.mjs
+.workbuddy/artifacts/**/*.cjs
+.workbuddy/artifacts/**/*.js
+.workbuddy/artifacts/**/*.json
+.workbuddy/artifacts/**/*.txt
+.workbuddy/artifacts/**/*.log
 # AI 工具工作目录（本地工具数据，不入库）
 .workbuddy-ai/
 
