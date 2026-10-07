@@ -78,8 +78,6 @@ export function ThemePanel({ currentThemeStyle, onThemeChange }: ThemePanelProps
   }
 
   const displayThemes = THEME_INFO_LIST.filter(theme => {
-    // 默认视图（无搜索/无分类/无标签）只露精品主题；主动搜索/筛选时展示全部可探索（P1-1.3 B1）
-    if (!searchQuery && activeCategory === 'all' && activeTags.length === 0 && !FEATURED_THEMES.includes(theme.key)) return false
     if (searchQuery) {
       const q = searchQuery.toLowerCase()
       const match = theme.name.zh.includes(q) || theme.name.en.toLowerCase().includes(q) || theme.description.zh.includes(q) || theme.description.en.toLowerCase().includes(q) || theme.tags.some(t => t.includes(q))
@@ -89,8 +87,11 @@ export function ThemePanel({ currentThemeStyle, onThemeChange }: ThemePanelProps
     if (activeTags.length > 0 && !activeTags.every(t => theme.tags.includes(t as ThemeTag))) return false
     return true
   }).sort((a, b) => {
-    // 严格按英文名称首字母 A-Z 排序（第二个字母 A-Z 以此类推）
-    // 使用 base sensitivity 忽略重音符号（如 Café 当作 Cafe），保证稳定排序
+    // 精品（FEATURED_THEMES）置顶，其余按英文名 A-Z
+    // base sensitivity 忽略重音符号（如 Café 当作 Cafe），保证稳定排序
+    const aFeat = FEATURED_THEMES.includes(a.key) ? 0 : 1
+    const bFeat = FEATURED_THEMES.includes(b.key) ? 0 : 1
+    if (aFeat !== bFeat) return aFeat - bFeat
     const aName = a.name.en.toLowerCase()
     const bName = b.name.en.toLowerCase()
     return aName.localeCompare(bName, 'en', { sensitivity: 'base' })

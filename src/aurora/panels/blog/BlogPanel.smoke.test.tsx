@@ -26,7 +26,7 @@ beforeAll(() => {
 
 import { RealProviders } from '../../providers/RealProviders'
 import { BlogPanel } from './BlogPanel'
-import { FEATURED_THEMES } from '@features/blog/hooks/useBlogGenerator'
+import { FEATURED_THEMES, THEME_INFO_LIST } from '@features/blog/hooks/useBlogGenerator'
 import { useFileManager } from '@stores/FileStore'
 import { useUsageDocsScope } from '@hooks/useUsageDocsScope'
 import { collectMarkdownFiles } from '@core/files/fileTree'
@@ -113,7 +113,7 @@ describe('BlogPanel 接真实数据（FileStore 文档 + 真实主题市场）',
     expect(screen.getByText(/篇待发布/)).toBeTruthy()
   })
 
-  it('配色 / 主题市场渲染真实单一数据源 + 只露精品 12（P1-1.3 B1）', async () => {
+  it('配色 / 主题市场渲染真实单一数据源 + 默认展示全部主题（精品置顶）', async () => {
     const { container } = renderPanel()
     // 功能面板首次默认收起：先点「样式」tab 展开（主题市场在样式面板内）
     fireEvent.click(container.querySelectorAll('.aurora-blog__tab')[0])
@@ -122,15 +122,19 @@ describe('BlogPanel 接真实数据（FileStore 文档 + 真实主题市场）',
     // '便当盒' = 真实 THEME_INFO_LIST 的 bento 主题（旧 20 项 mock 市场无此主题），
     // 出现即证明已接真实目录而非旧平行 mock
     expect((await screen.findAllByText('便当盒')).length).toBeGreaterThan(0)
-    // B1：精品清单恰 12 个；非精品（poetry 诗歌）不在主题市场渲染
-    expect(FEATURED_THEMES).toHaveLength(12)
+    // 默认展示 THEME_INFO_LIST 全量（不再只露 12 个精品）；非精品（诗歌 poetry）也应可见
     const marketNames = Array.from(container.querySelectorAll('.aurora-blog-theme__name b')).map(
       (el) => el.textContent,
     )
-    expect(marketNames).toHaveLength(12)
-    expect(marketNames).not.toContain('诗歌')
+    expect(marketNames).toHaveLength(THEME_INFO_LIST.length)
+    expect(marketNames).toContain('诗歌')
     expect(marketNames).toContain('终端')
     expect(marketNames).toContain('水墨')
+    // 精品置顶：首张卡片应属 FEATURED_THEMES
+    const featuredZh = new Set(
+      THEME_INFO_LIST.filter((t) => FEATURED_THEMES.includes(t.key)).map((t) => t.name.zh),
+    )
+    expect(featuredZh.has(marketNames[0] ?? '')).toBe(true)
   })
 
   it('P0 修复：主题市场切换主题 → 预览 iframe 实时渲染对应主题模板（真实 generateSingleFileBlog）', async () => {

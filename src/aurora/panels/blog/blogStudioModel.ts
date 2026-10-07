@@ -9,7 +9,6 @@ import {
   THEME_INFO_LIST,
   THEME_CATEGORIES as REAL_THEME_CATEGORIES,
   THEME_STYLE_TAGS as REAL_THEME_STYLE_TAGS,
-  FEATURED_THEMES,
   DEFAULT_DESIGN_CONFIG,
 } from '@features/blog/hooks/useBlogGenerator'
 import type { BlogConfig as RealBlogConfig, ThemeStyle } from '@features/blog'
@@ -83,9 +82,8 @@ interface ThemeItem {
   featured?: boolean
 }
 
-// 主题市场只露精品（P1-1.3 B1）：默认展示 12 个差异风格；已存配置仍可引用其余主题渲染
+// 主题市场展示全部主题（精品由 UI 标记并置顶）；已存配置可引用任意主题渲染
 const THEME_MARKET: ThemeItem[] = THEME_INFO_LIST
-  .filter((t) => FEATURED_THEMES.includes(t.key))
   .map((t) => ({
   key: t.key,
   nameEn: t.name.en,
