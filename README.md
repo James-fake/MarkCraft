@@ -21,8 +21,6 @@
 
 ![Excalidraw](https://img.shields.io/badge/Excalidraw-0.17-6965F6)
 
-![tldraw](https://img.shields.io/badge/tldraw-5.2-000000)
-
 ![Dexie](https://img.shields.io/badge/Dexie-4.4-FF7043)
 
 ![License](https://img.shields.io/badge/License-MIT-success)
@@ -46,17 +44,17 @@
 |        模块       |   数量   | 说明                               |
 | :-------------: | :----: | :------------------------------- |
 |      📝 编辑器     |  2 种引擎 | CodeMirror 6 源码 + Tiptap 所见即所得   |
-| 🎨 白板 Canvas v2 |  混合引擎  | Excalidraw + HTML 卡片浮层 + 30+ 组件  |
-|      📚 知识库     | 11 大模块 | 多库管理 · AI 盲区 · 学习路径 · 健康度        |
-|     🔗 知识链接     |  13 项  | WikiLink / 反链 / 提及 / 嵌入          |
-|     🌐 知识图谱     |  6 种布局 | 力导向 / 3D 球体 / 时间线 等              |
+| 🎨 白板 Canvas v2 |  混合引擎  | Excalidraw + HTML 卡片浮层 + 自研兼容层  |
+|      📚 知识库     |  7 大模块 | 多库管理 · 检索/问答 · 健康度 · MOC          |
+|     🔗 知识链接     |  双向链接  | WikiLink / 反链 / 提及 / 块引用 / 嵌入      |
+|     🌐 知识图谱     |  4 种布局 | 力导向 / 同心圆 / 树 / 网格                |
 |     🏷️ 标签系统    |   嵌套树  | 支持 `#父/子` 多层嵌套                   |
-|     🎨 博客主题     |  64 种  | 分 5 批，覆盖所有场景                     |
+|     🎨 博客主题     |  64 种  | 主题市场全部可选，精品置顶                    |
 |     📤 导出格式     |  12 种  | Markdown → PDF / DOCX / EPUB ... |
-|      ⌨️ 快捷键     |  28 项  | 格式/文件/视图/编辑/插入                   |
-|      🎨 主题      |  5+6 种 | 5 编辑器主题 + 6 代码主题                 |
-|     📋 命令面板     |  25 项  | 6 大分类，模糊搜索                       |
-|     🤖 AI 能力    |   6 项  | 盲区 / 问答 / 推荐 / 语义搜索 / 聚类         |
+|      ⌨️ 快捷键     |  三套绑定  | Tiptap / CodeMirror 6 / 全局可配置表     |
+|      🎨 主题      |  6+6 种 | 6 编辑器主题 + 6 代码主题                 |
+|     📋 命令面板     |  47 条  | 9 个命令域，模糊搜索 + 文件搜索               |
+|     🤖 AI 能力    |   3 项  | 问答 / 相似检索 / 统一服务入口                |
 |      💾 存储      |   双层   | localStorage + IndexedDB（Dexie）  |
 
 
@@ -118,25 +116,25 @@
 
 |      🎨     |      🎭      |     📚     |       🔗       |      🌐     |         🪧        |       🚀      |
 | :---------: | :----------: | :--------: | :------------: | :---------: | :---------------: | :-----------: |
-| **64 博客主题** |   **双引擎编辑**  | **AI 知识库** |   **13 项链接**   | **6 种图谱布局** | **Excalidraw 白板** |  **12 种导出格式** |
-|   覆盖全场景审美   | CM6 + Tiptap |  盲区/路径/问答  | WikiLink/反链/嵌入 |   含 3D 球体   |     卡片 + 画笔混合     | PDF/DOCX/EPUB |
+| **64 博客主题** |   **双内核编辑**  | **知识库系统** |   **知识链接**    | **4 种图谱布局** | **Excalidraw 白板** |  **12 种导出格式** |
+|   覆盖全场景审美   | CM6 + Tiptap |  检索/问答/健康度  | WikiLink/反链/嵌入 |   力导向等 4 种   |     卡片 + 画笔混合     | PDF/DOCX/EPUB |
 
 
-- 🎯 **双引擎编辑** — CodeMirror 6 源码 + Tiptap 所见即所得，一键切换
-- 🪧 **Canvas v2 白板** — Excalidraw 底层 + HTML 卡片浮层 + CanvasEngine 适配器，混合画笔与卡片
-- 📚 **AI 知识库系统** — 多库管理、健康度评分、盲区分析、学习路径、写作目标、KB 问答
-- 🔗 **知识链接体系** — WikiLink 双向链接、反向链接、未链接提及、嵌入引用
-- 🌐 **3D 知识图谱** — 6 种布局，含自动旋转的 3D 球体与中心性分析
+- 🎯 **双内核编辑** — CodeMirror 6 源码 + Tiptap 所见即所得，**以 Markdown 为唯一交换格式**（WYSIWYG 走 HTML↔Markdown 往返）
+- 🪧 **Canvas v2 白板** — Excalidraw 真实渲染 + 自研 `CanvasEngine` 兼容层 + HTML 卡片浮层，混合画笔与卡片
+- 📚 **知识库系统** — 多库管理、健康度评分（4 维）、全文/正则/相似检索、KB 问答、MOC 生成
+- 🔗 **知识链接体系** — WikiLink 双向链接、反向链接、未链接提及、块引用 `((id))`、嵌入引用
+- 🌐 **知识图谱** — 4 种布局（力导向 / 同心圆 / 树 / 网格）+ 度数统计 + 局部 BFS 展开 + 快照对比
 - 🏷️ **嵌套标签系统** — 支持 `#父/子` 多层嵌套，自动构建标签树
-- 🎨 **64 种博客主题** — 杂志/极简/赛博朋克/水墨禅意... 覆盖所有审美
+- 🎨 **64 种博客主题** — 杂志/极简/赛博朋克/水墨禅意... 覆盖所有审美，主题市场默认全部可选、精品置顶
 - 📤 **12 种导出格式** — Markdown / HTML / PDF / Word / EPUB / LaTeX ...
-- ⌨️ **28 项快捷键** — 全套格式化与文件操作快捷键
-- 🎴 **5+6 种主题** — 编辑器主题 + 独立代码主题
-- 💾 **双层存储** — localStorage（文件树）+ IndexedDB/Dexie（知识库/白板/向量索引）
-- 🤖 **本地 AI** — `@xenova/transformers` 浏览器端推理，语义搜索/聚类无需后端
+- ⌨️ **三套快捷键绑定** — Tiptap / CodeMirror 6 / 全局可配置绑定表（localStorage 持久化）
+- 🎴 **6+6 种主题** — 6 种编辑器主题 + 6 种独立代码主题
+- 💾 **双层存储** — localStorage（设置/书签/最近文件）+ IndexedDB/Dexie（文件树/知识库/白板/版本历史）
+- 🔍 **本地检索优先** — 内置零依赖本地向量引擎（384 维词频 hash 向量），无需后端即可使用
 - 🌍 **中英双语** — 界面全国际化
 
-**运行环境**：纯前端应用，文件树存 localStorage，知识库/白板存 IndexedDB，所有 AI 推理在浏览器本地完成，无需后端服务。
+**运行环境**：纯前端应用，设置与书签存 localStorage，文件树 / 知识库 / 白板 / 版本历史存 IndexedDB（Dexie）。本地检索引擎零依赖、可离线运行；远程语义引擎的接入位已在代码中预留（当前无 UI 配置入口）。
 
 
 ### 🎬 工作流程
@@ -144,7 +142,7 @@
 ```mermaid
 flowchart LR
     A[📝 编写笔记<br/>CodeMirror / Tiptap] --> B[🔗 建立链接<br/>WikiLink / 标签]
-    B --> C[🌐 图谱可视化<br/>3D 球体]
+    B --> C[🌐 图谱可视化<br/>4 种布局]
     C --> D[🎨 生成博客<br/>64 主题]
     D --> E[📤 导出分享<br/>12 格式]
 ```
@@ -159,12 +157,12 @@ flowchart LR
 
 ---
 
-### 🎯 11 大功能模块 · 全栈式知识管理
+### 🎯 核心功能模块
 
 ### 📝 编辑核心
 
 
-**18 项编辑器核心功能** ✨ — 从源码到所见即所得，从格式化到自动补全
+**编辑器核心功能** ✨ — 从源码到所见即所得，从格式化到自动补全
 
 
 - 🎭 **双引擎编辑器** — CodeMirror 6（源码模式）+ Tiptap（所见即所得模式），一键切换
@@ -184,7 +182,7 @@ flowchart LR
 - 🛠️ **格式化工具栏** — 加粗、斜体、标题、列表、引用、代码块、Emoji、思维导图等按钮
 - 📈 **文档统计** — 字数（纯文本/标准模式）、字符数、行数、阅读时间实时统计
 - ⚡ **Slash 命令** — WYSIWYG 模式输入 `/` 触发快捷命令菜单，快速插入 Mermaid、思维导图、数学公式、脚注、表格、代码块等
-- ✅ **拼写检查** — 源码模式下内置拼写检查扩展
+- ✅ **拼写检查** — 源码模式内置（**默认关闭**，需手动开启；词典优先从 CDN 拉取，失败回落内置词表）
 - 🔤 **智能标点** — 自动转换直引号为弯引号等排版优化
 - 💬 **Callout / Admonition** — 11 种类型提示框，支持可折叠
 - 📋 **定义列表 / 缩写标记 / 注释** — 扩展 Markdown 语法支持
@@ -273,95 +271,33 @@ MOC（Map of Content，内容地图）自动生成聚合指定主题的索引文
 
 ### 🌐 知识图谱
 
-全屏 Canvas 可视化，将笔记间的链接关系以图形方式呈现。快捷键 `Ctrl+Shift+G`。
+全屏 **SVG 2D** 可视化，把笔记间的链接关系以图形呈现。快捷键 `Ctrl+Shift+G`。
 
+> 🎯 **图谱 = 你的第二大脑** — 节点 = 笔记 / 标签，边 = 链接关系
 
-```mermaid
-graph TD
-    C(🟢 中心节点)
-    H(🟣 Hub)
-    R1(🔵 引用)
-    R2(🔵 引用)
-    R3(🔵 引用)
-    R4(🔵 引用)
-    X(⚠️ 反驳):::red
-    I(⚪ 孤立):::orange
-    C --- H
-    C --- R1
-    C --- R2
-    C --- R3
-    C --- R4
-    C -.->|反驳| X
-    C -.->|孤立| I
-    classDef red stroke:#EF4444,stroke-dasharray:5 3,color:#EF4444
-    classDef orange stroke:#F59E0B,stroke-dasharray:2 4,color:#F59E0B
-```
+#### 4 种布局算法
 
-> 🎯 **图谱 = 你的第二大脑** — 节点（圆/菱形）= 笔记/标签，边 = 链接关系
+| 布局  | 标识           | 说明                                    |
+| --- | ------------ | ------------------------------------- |
+| 力导向 | `force`      | 自研物理模拟：斥力 + 弹簧 + 向心 + 阻尼 + 单帧位移上限     |
+| 同心圆 | `concentric` | 按层级环绕中心分布                             |
+| 树形  | `tree`       | 层级展开                                  |
+| 网格  | `grid`       | 均匀网格排布                                |
 
+#### 👁️ 视觉与交互
 
-#### 6 种布局算法
+- 🎨 **节点区分** — 文件节点 / 标签节点，尺寸随连接数变化
+- 🌈 **着色分组** — 按**关键词匹配**归类着色（不是社区聚类算法）
+- 📊 **度数统计** — `computeDegrees` 统计每节点连接数
+- 🔍 **局部展开** — BFS 展开邻居节点（`useGraphDerived.ts`）
+- 🖱️ **交互** — 节点拖拽、画布平移、滚轮缩放
 
-| 布局                 | 算法                       | 适用场景        |
-| ------------------ | ------------------------ | ----------- |
-| 力导向 `force`        | D3 风格物理模拟（斥力 + 引力 + 中心力） | 探索性可视化，自然聚类 |
-| 径向 `radial`        | 按 BFS 深度分层同心圆            | 以某文件为中心展开   |
-| 层次 `hierarchical`  | 拓扑排序分层                   | 文档依赖关系      |
-| 圆形 `circular`      | 均匀圆周分布                   | 简洁总览        |
-| **3D 球体 `sphere`** | Fibonacci 球面分布 + 透视投影    | 美观展示，自动旋转   |
-| 时间线 `timeline`     | 按文件名 YYYY-MM-DD 排序       | 日记/时间序列     |
+#### 📸 快照与导出
 
-#### 🌐 3D 球体布局
+- **快照** — 持久化到 IndexedDB（`graph-snapshots` 键）
+- **导出** — `graphExport.ts` 支持 **SVG**（矢量，含主题变量解析）、**PNG**（Canvas 渲染）、**JSON**（结构化数据）
 
-
-
-
-
-- 🌐 **Fibonacci 球面分布** — 黄金角度均匀分布节点，无极点聚集
-- 🎯 **透视投影** — `z` 轴近大远小，模拟 3D 深度
-- 🔄 **自动旋转** — Y 轴缓慢旋转，拖拽时暂停便于操作
-- 🛤️ **节点轨道** — 拖拽节点松开后，节点从放置位置开始围绕球心轨道旋转
-- 🖱️ **球体布局交互** — 拖拽节点自由移动、拖拽空白平移视图、滚轮缩放（0.08x - 6x）
-
-#### 👁️ 视觉与交互特性
-
-- 🎨 **节点样式** — 文件节点（圆）/ 标签节点（菱形），大小随连接数增大
-- 🌈 **颜色区分** — 普通蓝、Hub 紫（高连接）、中心绿、孤立灰、8 种社区色
-- ✏️ **关系边着色** — 引用蓝、反驳红（虚线流动）、支撑绿、延伸紫（点线）、相关灰、示例琥珀
-- ✨ **节点发光** — 选中节点脉冲呼吸动画，Hub 节点光晕
-- 📦 **多节点框选** — Ctrl + 拖拽框选，批量操作（隐藏 / 设为中心 / 复制链接）
-- 🔗 **拖拽创建链接** — 拖拽节点到另一节点，弹出关系类型选择器，自动写入 `[[target|关系:类型]]`
-- 🖱️ **右键菜单** — 设为中心 / 隐藏 / 展开邻居 / 复制链接 / 查看详情
-- 📊 **详情面板** — 展示入链、出链、标签、健康评分
-- 🎬 **节点淡入淡出** — 增量更新时 300ms 平滑过渡
-
-#### 📊 分析功能
-
-- 🛤️ **最短路径** — BFS 查找两节点间最短路径，高亮显示
-- 🏆 **PageRank 中心性** — 迭代 20 次计算节点重要度
-- 🌉 **介数中心性 Betweenness** — 最短路径统计桥接节点
-- 🏘️ **团簇发现** — 社区链接密度检测，>10 节点可聚合为单节点，双击展开
-- 📸 **图谱快照** — localStorage 自动快照，对比模式显示新增/删除/修改差异，时间轴滑块切换
-- 📊 **分析报告** — 一键生成 Markdown 报告（总览 / 拓扑 / 社区 / 中心性 / 优化建议），可复制或导出
-
-#### 🎨 图谱配色
-
-跟随 MarkCraft 全局主题（深色 / 浅色），通过 MutationObserver 监听 `data-theme` 实时切换，无需单独配置。
-
-#### 📤 多格式导出
-
-SVG 矢量图、Mermaid（`graph LR`）、Graphviz DOT（`digraph`）、JSON 结构化数据。
-
-#### ⚡ 性能优化
-
-- 🎚️ **LOD 分层** — 缩放 <0.3 仅圆点、0.3-0.6 显示标签、>0.6 完整渲染
-- ✂️ **视口裁剪** — 只渲染可见区域节点
-- 🗂️ **离屏 Canvas** — 静态层（边、网格）独立缓冲，脏标记重绘
-- 🚀 **空间索引** — `SpatialIndex` 网格哈希，`findNodeAt` 从 O(N) → O(1)
-- 📦 **批量绘制** — 同色边合并为单次 stroke
-- 🏘️ **大图聚合** — >300 节点按社区聚合显示
-- 🔄 **增量更新** — 订阅 `indexVersion`，单文件变更不重建全图
-
+> ⚠️ **文档修正说明**：本仓库早期文档曾描述「6 种布局 / 3D 球体（Fibonacci 球面分布 + 自动旋转）/ PageRank 与介数中心性 / 团簇发现 / Mermaid 与 DOT 导出 / LOD 分层与视口裁剪」等能力，经代码核查**均未实现**，已全部移除。当前图谱为 SVG 2D 渲染 + 4 种布局。
 ---
 
 ## 🎨 Canvas v2 白板
@@ -383,19 +319,20 @@ MarkCraft 的白板模块采用「混合引擎」架构：底层使用 Excalidra
 | 适配器     | `CanvasEngine`                 | 鸭子类型伪装 tldraw Editor API，统一调度 |
 | 持久化     | `canvasPersistence.ts`         | IndexedDB 序列化 / 加载            |
 
-### 🎴 7 种卡片形状
+### 🎴 8 种卡片类型
 
-| 形状                      | 说明                     |
-| ----------------------- | ---------------------- |
-| 📝 `NoteCardShape`      | 文本笔记卡片                 |
-| 📁 `FileCardShape`      | 文件引用卡片（关联 Markdown 笔记） |
-| 🔗 `EmbedCardShape`     | 嵌入引用卡片（嵌入另一篇笔记内容）      |
-| 📦 `GroupCardShape`     | 分组卡片（聚合多卡片）            |
-| 🖼️ `ImageCardShape`    | 图片卡片                   |
-| 🗂️ `NestedCanvasShape` | 嵌套白板（白板中的白板）           |
-| 🔗 `CanvasRefShape`     | 跨白板引用卡片                |
+| 类型      | 说明               |
+| ------- | ---------------- |
+| 📝 便签卡片 | 富文本笔记卡片          |
+| 🖼️ 图片卡片 | 图片展示             |
+| 📁 文件卡片 | 关联 Markdown 笔记   |
+| 🔗 嵌入卡片 | 嵌入另一篇笔记的内容       |
+| 📦 分组卡片 | 聚合多张卡片           |
+| 🗂️ 嵌套白板 | 白板中的白板           |
+| 🔗 画布引用 | 跨白板引用            |
+| 🏷️ 标签卡片 | 标签标记             |
 
-### 🛠️ 30+ 功能组件
+### 🛠️ 功能组件
 
 - 🪧 **顶栏 Topbar** — 视图模式切换、保存状态、分享、导出
 - 🎈 **浮动工具泡 FloatingToolbar** — 智能避障选位（6 候选位 × 最小重叠面积）
@@ -436,49 +373,48 @@ MarkCraft 的白板模块采用「混合引擎」架构：底层使用 Excalidra
 ## 📚 知识库系统
 
 
-**📚 P7 智能化系统 · 11 大模块 · IndexedDB 持久化 · 本地 AI 推理**
+**📚 知识库系统 · 7 大模块 · IndexedDB 持久化 · 本地检索引擎**
 
 `Atelier Glass` 玻璃质感设计 · 多知识库并行管理
 
 
-MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多个独立的知识库，每个知识库关联一个专属文件夹、若干白板、规则筛选、博客配置，并提供 AI 驱动的盲区分析、学习路径推荐、健康度评分、KB 问答等智能化能力。元数据存 IndexedDB（Dexie），文件树存 localStorage。
+MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多个独立的知识库，每个知识库关联一个专属文件夹、若干白板、规则筛选、博客配置，并提供健康度评分、本地向量检索、KB 问答、MOC 生成等能力。知识库元数据存 IndexedDB（Dexie `kv` 表）。
 
-### 🎛️ 11 大功能模块
+### 🎛️ 7 大功能模块
 
-| 模块          | 说明                                     |
-| ----------- | -------------------------------------- |
-| 📊 **概览**   | 知识库统计（文件数/字数/标签/活动热力图）、健康度评分环形图、Top 标签 |
-| 📝 **笔记**   | 知识库笔记列表、新建笔记（名称弹窗 + 保存确认弹窗 + 列表自动刷新）   |
-| 🔍 **搜索**   | 跨库搜索、高级筛选器、保存查询预设                      |
-| ✅ **任务**    | 任务清单、关联笔记、进度追踪                         |
-| 🎯 **目标**   | 写作目标（字数/篇数/截止日期）、进度可视化                 |
-| 📅 **回顾**   | 间隔重复回顾计划、定期复习                          |
-| 💬 **问答**   | KB 问答面板（基于 RAG，本地向量检索）                 |
-| 🔗 **依赖**   | 文件依赖关系图、循环引用检测                         |
-| 🗺️ **MOC** | 自动生成内容地图（标签模式 / 中心文件模式 / 3 种模板）        |
-| 💡 **盲区**   | AI 知识盲区分析、未覆盖主题、推荐补充方向                 |
-| 📤 **导出**   | 文档导出 / 静态站点导出 / 分享打包                   |
+| 模块          | 说明                                        |
+| ----------- | ----------------------------------------- |
+| 📊 **概览**   | 知识库统计（文件数 / 字数 / 标签）、健康度评分、迷你图谱（前 12 节点）、最近活动 |
+| 📝 **笔记**   | 知识库笔记列表、新建笔记（名称弹窗 + 保存确认弹窗）                |
+| 🔍 **搜索**   | 文本 / 正则 / 全词 / 相似 四种模式 + 高级筛选 + 保存查询       |
+| 💬 **问答**   | KB 问答面板（本地向量检索 + 抽取式回答）                    |
+| 🔗 **依赖**   | 文件依赖关系图、循环引用检测                             |
+| 🗺️ **MOC** | 自动生成内容地图（标签模式 / 中心文件模式 / 3 种模板）            |
+| 📤 **导出**   | 文档导出（PDF / Markdown / EPUB）/ 静态站点导出 / 分享打包  |
 
-### 🤖 AI 能力（6 项，本地推理）
+> 📌 **历史说明**：早期版本规划过「任务 / 目标 / 回顾 / 盲区」4 个模块，已从 `TABS` 中移除
+> （源码注释：避免半成品模块分散注意力），当前 7 个 Tab **全部接入真实功能组件、无占位桩**。
 
-| 能力       | 实现                     | 说明                          |
-| -------- | ---------------------- | --------------------------- |
-| 🎯 盲区分析  | `blindSpotAnalyzer.ts` | 基于标签覆盖度 + TF-IDF，识别知识盲区     |
-| 💬 KB 问答 | `kbChat.ts`            | RAG 检索 + 上下文拼接              |
-| 🎁 推荐    | `recommender.ts`       | 相似文件推荐、关联笔记推荐               |
-| 🔎 语义搜索  | `semanticSearch.ts`    | `@xenova/transformers` 向量检索 |
-| 🏷️ 主题聚类 | `topicClusterer.ts`    | K-Means 主题聚类                |
-| 🤖 AI 服务 | `aiService.ts`         | 统一 AI 服务入口                  |
+### 🤖 AI 能力（3 项）
+
+> ⚠️ **实现现状**：`ai/` 目录下只有 3 个文件（`aiService` / `kbChat` / `semanticSearch`）。
+> 默认引擎是**本地 hash 词袋向量**（384 维，中文 2-gram + 英文词，**无 IDF 计算**）——反映的是
+> 关键词分布而非深层语义；远程 OpenAI 兼容引擎的代码存在，但**当前无 UI 配置入口，实际不可达**。
+
+| 能力       | 实现                  | 说明                                      |
+| -------- | ------------------- | --------------------------------------- |
+| 💬 KB 问答 | `kbChat.ts`         | 段落切分 → 向量化 → 余弦 top-5 → 拼接上下文，抽取式回答       |
+| 🔎 相似检索  | `semanticSearch.ts` | 文件级向量索引 + 余弦 top-K，按内容 hash 增量更新          |
+| 🤖 AI 服务 | `aiService.ts`      | 统一入口；本地引擎恒可用，远程引擎代码保留但未接线                |
 
 ### 🩺 健康度评分系统
 
-`healthScore.ts` 综合评估知识库健康度（0-100 分）：
+`healthScore.ts` 综合评估知识库健康度（0-100 分），**4 个维度各 25 分**：
 
-- 📊 **覆盖度** — 标签/主题覆盖广度
-- 🔗 **链接密度** — 笔记间互联程度
-- 🌐 **图谱连通性** — 孤儿文件占比、平均路径长度
-- 📈 **活跃度** — 最近活动时间、更新频率
-- 🏷️ **标签均衡** — 标签使用分布
+- 🔗 **链接密度** — 平均链接数 / 2 × 25
+- 🌐 **孤立率** — (1 − 孤立文件占比) × 25
+- 🏷️ **标签覆盖率** — 有标签的文件占比 × 25
+- 📈 **更新活跃度** — 30 天内更新过的文件占比 × 25
 
 ### 📋 知识库模板
 
@@ -601,7 +537,7 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 - 🔼 **滚动按钮** — 编辑区和预览区各有一键到顶/到底悬浮按钮
 - 🏠 **欢迎页面** — 温暖文艺感全屏沉浸式布局，鼠标跟随光效、4 种动效、功能卡片网格
 - 🌍 **中英双语** — 界面支持中文/英文切换，所有文案均国际化
-- 📋 **命令面板** — `Ctrl+P` 唤出，6 大分类 25 项命令，模糊搜索，支持中英文
+- 📋 **命令面板** — `Ctrl+P` 唤出，47 条命令（9 个命令域），子串 + 子序列模糊匹配，融合文件搜索
 - ↩️ **导航历史** — `Alt+←` / `Alt+→` 后退/前进，跨文件跳转历史
 - ⚡ **快速切换器** — `Ctrl+O` 最近文件快速切换
 - 💾 **崩溃恢复** — 意外关闭后自动恢复未保存内容
@@ -666,8 +602,8 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 
 |      📊     |      🎨      |   🔣  |    🌐   |     💾    |        🤖       |   🧪   |
 | :---------: | :----------: | :---: | :-----: | :-------: | :-------------: | :----: |
-|  marked 14  | highlight.js | KaTeX | Mermaid | DOMPurify | Transformers.js | Vitest |
-| Markdown 解析 |     代码高亮     |  数学公式 |   图表渲染  |    安全净化   |     本地 AI 推理    |  测试框架  |
+|  marked 14  | highlight.js | KaTeX | Mermaid | DOMPurify | 本地 TF-IDF | Vitest |
+| Markdown 解析 |     代码高亮     |  数学公式 |   图表渲染  |    安全净化   |   AI 检索引擎   |  测试框架  |
 
 
 | 类别            | 技术                                    | 版本                | 说明                               |
@@ -679,9 +615,9 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 | 源码编辑器         | CodeMirror 6                          | ^6.x              | 代码编辑、语法高亮、自动补全                   |
 | 所见即所得编辑器      | Tiptap                                | ^3.24.0           | 富文本编辑、节点视图                       |
 | **白板绘制**      | **Excalidraw**                        | **^0.17.6**       | **手绘风格自由绘制（Canvas v2 底层）**       |
-| **白板引擎**      | **tldraw**                            | **^5.2.4**        | **CanvasEngine 适配器目标 API**       |
+| **白板引擎**      | **CanvasEngine（自研适配层）**              | **—**             | **鸭子类型兼容 tldraw Editor API 形状；已不依赖 tldraw** |
 | **本地数据库**     | **Dexie**                             | **^4.4.4**        | **IndexedDB 封装（知识库/白板/向量索引）**    |
-| **本地 AI 推理**  | **@xenova/transformers**              | **^2.17.2**       | **浏览器端 transformer 模型（语义搜索/聚类）** |
+| **AI 检索**      | **本地 TF-IDF + 可选远程 API**             | **—**             | **零依赖本地统计检索；可接 OpenAI 兼容远程引擎**      |
 | **虚拟列表**      | **react-window**                      | **^2.2.7**        | **大列表虚拟滚动（知识库/白板列表）**            |
 | **ZIP 打包**    | **JSZip**                             | **^3.10.1**       | **博客/白板多文件导出**                   |
 | Markdown 解析   | marked                                | ^14.1.3           | GFM + breaks                     |
@@ -695,7 +631,9 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 | 脚注支持          | marked-footnote                       | ^1.4.0            | marked 插件                        |
 | Word 导入       | mammoth                               | ^1.12.0           | .docx → Markdown                 |
 | PDF 导出        | html2pdf.js                           | ^0.14.0           | 客户端 PDF 生成                       |
+| PDF 内嵌渲染     | pdfjs-dist                            | ^4.10.38          | 笔记内嵌 PDF 预览                      |
 | Word 导出       | docx                                  | ^9.7.1            | 客户端 DOCX 生成                      |
+| gzip 压缩       | pako                                  | ^2.1.0            | 备份 / 分享包解压                        |
 | 截图导出          | dom-to-image-more                     | ^3.10.0           | PNG / JPEG 截图                    |
 | 测试框架          | Vitest + Testing Library              | ^1.0.0 / ^14.0.0  | 单元测试 + 组件测试                      |
 
@@ -1055,17 +993,16 @@ npm run preview
 | 图片大小确认阈值            | 2MB                             | 超过此大小的图片嵌入前弹出确认                      |
 | 博客预览防抖              | 500ms                           | Blog Studio 中设计变更到预览更新的延迟            |
 | 索引重建防抖              | 300ms                           | 文件变更后链接/标签索引重建的防抖延迟                  |
-| 图谱球体旋转速度            | 0.001 rad/帧                     | 3D 球体自动旋转角速度                         |
 | 图谱缩放范围              | 0.08x - 6x                      | 鼠标滚轮缩放的上下限                           |
-| 图谱团簇聚合阈值            | 300 节点                          | 超过此数量按社区聚合显示                         |
 | localStorage 版本     | v5                              | 版本不匹配时重置为默认数据                        |
 | **IndexedDB 数据库**   | Dexie `markcraft-db`            | 知识库 / 白板 / 向量索引持久化                   |
 | **KB 列表 key**       | `kb-list`                       | IndexedDB `kv` 表，存储所有知识库元数据列表        |
 | **KB 文档 key**       | `kb-doc-{id}`                   | IndexedDB `kv` 表，单个知识库完整文档           |
 | **Canvas 列表 key**   | `canvas-list`                   | IndexedDB `kv` 表，白板列表                |
 | **Canvas 文档 key**   | `canvas-doc-{id}`               | IndexedDB `kv` 表，单个白板文档              |
-| **AI 推理引擎**         | @xenova/transformers            | 浏览器本地推理，无需后端                         |
-| **AI 向量维度**         | 384 维                           | all-MiniLM-L6-v2 模型默认输出              |
+| **AI 引擎（默认）**       | 本地 TF-IDF                       | 零依赖离线统计检索，无需后端                          |
+| **AI 引擎（可选）**       | OpenAI 兼容远程 API                | 配置 `remoteBaseUrl` 后启用，失败自动回退本地           |
+| **AI 向量维度**         | 384 维                           | 本地词频向量维度；远程引擎由所选模型决定                    |
 | **KB 健康度评分**        | 0-100                           | 综合覆盖度/链接密度/连通性/活跃度/标签均衡              |
 | **白板 feature flag** | `VITE_CANVAS_ENGINE=excalidraw` | 启用 Excalidraw 混合引擎                   |
 | **Excalidraw 资源路径** | `/excalidraw-assets/`           | `window.EXCALIDRAW_ASSET_PATH` 本地化字体 |
@@ -1078,339 +1015,97 @@ npm run preview
 MarkCraft/
 ├── index.html
 ├── package.json
-├── vite.config.ts
-├── tsconfig.json
-├── tailwind.config.js
+├── vite.config.ts / vite.smoke.config.ts / vite.shots.config.ts
 ├── vitest.config.ts
-├── postcss.config.js
+├── tsconfig.json / tsconfig.node.json / tsconfig.test.json
+├── tailwind.config.js / postcss.config.js
+├── .gitattributes / .gitignore
+├── scripts/                        # 构建与治理脚本 + 本地 ESLint 插件
+│   ├── eslint-plugin-local/        # 依赖方向守卫规则（no-aurora-ui-import 等）
+│   └── gen-usage-docs.cjs          # 内置使用文档生成
+├── public/                         # 静态资源
+├── docs/                           # 设计文档与代码审查报告
 └── src/
-    ├── main.tsx
-    ├── App.tsx
-    ├── index.css
-    ├── vite-env.d.ts
-    ├── setupTests.ts
-    ├── types/
-    │   ├── fileManager.ts
-    │   ├── translations.ts
-    │   ├── electron.d.ts
-    │   └── fileSystemAccess.d.ts
-    ├── workers/                     # Web Workers
-    │   ├── indexWorker.ts          # 链接/标签索引后台计算
-    │   └── indexWorkerAdapter.ts   # Worker 通信适配器
-    ├── stores/                      # 全局状态管理
-    │   ├── FileStore.tsx            # 文件管理 + 标签页状态
-    │   ├── ThemeStore.tsx           # 主题状态
-    │   ├── LanguageStore.tsx        # 国际化状态
-    │   ├── ModalStore.tsx           # 弹窗状态
-    │   ├── UndoRedoStore.tsx        # 撤销/重做状态
-    │   ├── SettingsStore.tsx        # 应用设置状态
-    │   ├── BookmarkStore.tsx        # 书签状态
-    │   ├── LinkIndexStore.tsx       # 链接索引（WikiLink/反链/提及）
-    │   ├── TagIndexStore.tsx        # 标签索引
-    │   └── storage/                 # IndexedDB 存储层
-    │       ├── db.ts                # Dexie 数据库封装（kv 表）
-    │       └── migrate.ts           # 存储迁移
-    ├── hooks/                       # 全局 Hooks
-    │   ├── useAutoSave.ts           # 自动保存（防抖捕获 fileId）
-    │   ├── useEditorSettings.ts
-    │   ├── useKeyboardShortcuts.ts  # 13 个全局快捷键
-    │   ├── useMarkdownRenderer.ts
-    │   ├── useTheme.ts
-    │   ├── useAppLayout.ts
-    │   └── useLanguage.ts
-    ├── locales/                     # 国际化文案
-    │   ├── zh/                      # 中文（common/editor/toolbar/...）
-    │   └── en.ts                    # 英文
-    ├── services/                    # 公共服务
-    │   ├── crashRecovery.ts         # 崩溃恢复
-    │   ├── fileService.ts
-    │   ├── fullscreen.ts
-    │   ├── markedConfig.ts         # marked 配置
-    │   └── undoRedoManager.ts
-    ├── styles/                      # 全局样式
-    │   ├── base.css
-    │   ├── components.css
-    │   ├── markdown.css
-    │   ├── mermaid.css
-    │   ├── syntax.css
-    │   └── tiptap.css
-    ├── utils/                       # 工具函数
-    │   ├── errorUtils.ts
-    │   ├── hash.ts
-    │   ├── logger.ts
-    │   ├── smoothScroll.ts
-    │   └── titleUtils.ts
-    └── features/                    # 功能模块
-        ├── editor/                  # 编辑器核心
-        │   ├── CodeMirrorEditor.tsx # CodeMirror 6 源码编辑器
-        │   ├── TiptapEditor.tsx     # Tiptap 所见即所得编辑器
-        │   ├── EditorLayout.tsx     # 编辑器布局
-        │   ├── EditorStatusBar.tsx  # 状态栏
-        │   ├── RichEditor.tsx       # 富文本容器
-        │   ├── EmojiPicker.tsx
-        │   ├── TableBubbleMenu.tsx
-        │   ├── cm6/                 # CodeMirror 扩展
-        │   │   ├── autocompleteExtension.ts
-        │   │   ├── focusModeExtension.ts
-        │   │   ├── imagePreviewExtension.ts
-        │   │   ├── lintExtension.ts
-        │   │   ├── markdownHighlight.ts
-        │   │   ├── mathPreviewExtension.ts
-        │   │   ├── rainbowBrackets.ts
-        │   │   └── inputHandlers.ts
-        │   ├── extensions/          # Tiptap 扩展（40+ 文件）
-        │   │   ├── WikiLink.ts + WikiLinkAutocomplete.tsx
-        │   │   ├── WikiLinkHoverPreview.tsx
-        │   │   ├── EmbedContent.ts + EmbedContentView.tsx
-        │   │   ├── MermaidBlock.ts + MathBlock.ts + MathInline.ts
-        │   │   ├── SlashCommand.ts
-        │   │   ├── SearchExtension.ts
-        │   │   ├── CalloutNode.ts + CalloutView.tsx
-        │   │   ├── DefinitionList.ts / AbbreviationMark.ts
-        │   │   ├── CodeBlockWithView.ts / CodeBlockView.tsx
-        │   │   ├── SmartBackspace.ts / SmartPunctuation.ts
-        │   │   ├── SpellCheckExtension.ts
-        │   │   ├── TableContextMenu.tsx / TableTabNavigation.ts
-        │   │   ├── mindmap/          # 思维导图子模块
-        │   │   │   ├── MindmapCanvas.tsx
-        │   │   │   ├── MindmapParser.ts
-        │   │   │   ├── mindmapLayout.ts
-        │   │   │   └── ...
-        │   │   └── ...
-        │   ├── hooks/               # 编辑器 Hooks
-        │   │   ├── shortcuts/       # 快捷键分组
-        │   │   ├── useEditorShortcuts.ts
-        │   │   ├── useTiptapExtensions.ts
-        │   │   └── ...
-        │   └── spell/               # 拼写检查
-        ├── preview/                 # 预览模块
-        │   ├── Preview.tsx
-        │   ├── MermaidRenderer.tsx
-        │   └── mathRenderer.ts
-        ├── blog/                    # 博客工坊（64 种主题）
-        │   ├── BlogStudio.tsx       # 博客设计工作室
-        │   ├── BlogModal.tsx        # 博客入口弹窗
-        │   ├── blogGenerator.ts     # 博客生成入口
-        │   ├── components/          # 博客工作室组件
-        │   │   ├── IconSidebar.tsx
-        │   │   ├── LeftPanel.tsx
-        │   │   ├── RightPanel.tsx
-        │   │   ├── StudioControls.tsx
-        │   │   └── panels/          # 配置面板
-        │   │       ├── ContentPanel.tsx
-        │   │       ├── StylePanel.tsx
-        │   │       ├── ThemePanel.tsx
-        │   │       ├── CssPanel.tsx
-        │   │       ├── FeaturesPanel.tsx
-        │   │       └── ...
-        │   ├── hooks/useBlogGenerator.ts
-        │   ├── services/            # 5 种部署平台适配器
-        │   ├── templates/           # 博客页面模板
-        │   │   ├── postTemplate.ts / indexTemplate.ts
-        │   │   ├── archiveTemplate.ts / tagsTemplate.ts
-        │   │   ├── rssTemplate.ts / sitemapTemplate.ts
-        │   │   ├── searchTemplate.ts / aboutTemplate.ts
-        │   │   ├── seriesTemplate.ts / linksTemplate.ts
-        │   │   ├── pwaTemplate.ts / shareButtons.ts
-        │   │   ├── seoUtils.ts / tocGenerator.ts
-        │   │   └── styleBuilder/    # 样式构建器
-        │   ├── themes/              # 64 种博客主题
-        │   │   ├── inkWash.ts / terminal.ts / newspaper.ts
-        │   │   ├── glassmorphism.ts / bento.ts / narrative.ts
-        │   │   ├── cyberpunk.ts / aurora.ts / academia.ts
-        │   │   ├── retro.ts / garden.ts / midnight.ts
-        │   │   ├── newThemes.ts / custom.ts
-        │   │   └── index.ts
-        │   └── utils/               # 博客生成工具
-        │       ├── singleFile/      # 单文件 SPA 生成器
-        │       ├── blogMultiFileGenerator.ts
-        │       ├── cssMinifier.ts / cssSanitizer.ts
-        │       └── scopeWrapper.ts
-        ├── graph/                   # 知识图谱
-        │   └── GraphView.tsx        # 6 种布局 + 3D 球体 + 分析功能
-        ├── fileManager/             # 文件管理 + 知识面板
-        │   ├── Sidebar.tsx          # 侧边栏（文件/知识双页 Tab）
-        │   ├── FileTreeNode.tsx
-        │   ├── TabBar.tsx
-        │   ├── BacklinksPanel.tsx   # 反向链接面板
-        │   ├── BookmarkPanel.tsx    # 书签面板
-        │   ├── TagPanel.tsx         # 标签树面板
-        │   ├── LinkHealthPanel.tsx  # 链接健康面板
-        │   ├── LinkMinimap.tsx      # 链接小地图
-        │   ├── LinkSearchPanel.tsx  # 链接搜索
-        │   ├── LinkRedirectDialog.tsx
-        │   ├── DailyNoteManager.tsx # 日记功能
-        │   ├── DailyNoteService.ts
-        │   ├── MocGenerator.ts     # MOC 生成器
-        │   ├── WelcomePage.tsx
-        │   └── defaultDocsZh.ts / defaultDocsEn.ts  # 内置文档
-        ├── commandPalette/          # 命令面板
-        │   ├── CommandPalette.tsx
-        │   └── commandRegistry.ts   # 25 项命令注册
-        ├── toolbar/                 # 工具栏
-        │   ├── MarkdownToolbar.tsx / WysiwygToolbar.tsx
-        │   ├── groups/              # 按钮分组
-        │   ├── popovers/            # 弹出面板
-        │   └── mindmapTemplates.tsx
-        ├── outline/                 # 大纲导航
-        │   ├── Outline.tsx
-        │   └── outlineUtils.ts
-        ├── lint/                    # 语法检查
-        │   ├── markdownLinter.ts
-        │   ├── LintPopover.tsx
-        │   └── rules/               # 检查规则
-        ├── export/                  # 导出（12 种格式）
-        │   ├── SaveAsModal.tsx
-        │   ├── exportStyleManager.ts
-        │   └── utils/
-        │       ├── exportHtml.ts / exportPdf.ts
-        │       ├── exportDocx.ts / exportEpub.ts
-        │       ├── exportLatex.ts / exportMarkdown.ts
-        │       ├── exportImage.ts / exportCss.ts
-        │       ├── exportMediaWiki.ts / exportOpml.ts
-        │       ├── exportPlainText.ts / exportRst.ts
-        │       └── markedTypes.ts
-        ├── search/                  # 搜索
-        │   ├── GlobalSearch.tsx
-        │   ├── QuickOpen.tsx
-        │   ├── SearchReplace.tsx
-        │   └── useGlobalSearch.ts
-        ├── settings/                # 设置面板（5 个 Tab）
-        │   ├── SettingsPanel.tsx
-        │   ├── ShortcutManager.ts
-        │   └── ShortcutRecorder.tsx
-        ├── themes/                  # 主题管理
-        │   ├── ThemeManager.ts      # 5 种编辑器主题
-        │   └── CodeThemeManager.ts  # 6 种代码主题
-        ├── tags/                    # 标签提取
-        │   └── tagExtractor.ts
-        ├── templates/               # 模板系统
-        │   ├── TemplateInsertModal.tsx
-        │   └── templateManager.ts
-        ├── imageUpload/             # 图片上传与缓存
-        │   ├── ImageCachePanel.tsx
-        │   ├── ImageHostSettings.tsx
-        │   ├── imageCacheManager.ts
-        │   └── relativePathHandler.ts
-        ├── import/                  # 文件导入
-        │   ├── ImportDialog.tsx
-        │   ├── importDocx.ts
-        │   └── importHtml.ts
-        ├── canvas-v2/               # 🎨 Canvas v2 白板（Excalidraw 混合引擎）
-        │   ├── CanvasView.tsx      # 白板主视图
-        │   ├── canvasStore.ts       # 白板 IndexedDB 存储
-        │   ├── canvasPersistence.ts # 序列化 / 加载
-        │   ├── dataMigration.ts     # v1 → v2 数据迁移
-        │   ├── types.ts
-        │   ├── engine/              # 混合引擎核心
-        │   │   ├── CanvasEngine.ts       # 适配器（鸭子类型伪装 tldraw Editor）
-        │   │   ├── ExcalidrawCanvas.tsx  # Excalidraw 底层
-        │   │   ├── CardOverlay.tsx       # HTML 卡片浮层容器
-        │   │   ├── OverlayCards.tsx      # 卡片浮层渲染
-        │   │   ├── cardHelpers.ts        # 卡片工具
-        │   │   ├── engineTypes.ts        # 引擎类型
-        │   │   └── useCanvasEngine.tsx   # 引擎 Hook
-        │   ├── shapes/              # 7 种卡片形状
-        │   │   ├── NoteCardShape.tsx / FileCardShape.tsx
-        │   │   ├── EmbedCardShape.tsx / GroupCardShape.tsx
-        │   │   ├── ImageCardShape.tsx / NestedCanvasShape.tsx
-        │   │   ├── CanvasRefShape.tsx
-        │   │   └── index.ts
-        │   ├── components/          # 30+ 功能组件
-        │   │   ├── Topbar.tsx / BottomBar.tsx / FloatingToolbar.tsx
-        │   │   ├── ContextMenu.tsx / CommandPalette.tsx
-        │   │   ├── LayersPanel.tsx / PropertyPanel.tsx / CardPropertyPanel.tsx
-        │   │   ├── SearchPanel.tsx / FilterPanel.tsx
-        │   │   ├── TemplateManager.tsx / TemplatePicker.tsx
-        │   │   ├── ResourceLibrary.tsx / FavoritesPanel.tsx / PinnedCards.tsx
-        │   │   ├── FileListPanel.tsx / FilePickerModal.tsx
-        │   │   ├── AutoLayoutPanel.tsx / LayoutToolbar.tsx
-        │   │   ├── PresentationPanel.tsx / PresentationViewer.tsx
-        │   │   ├── RelationEditor.tsx / RelationTypeSelector.tsx
-        │   │   ├── KnowledgeGraph.tsx / BacklinkGraph.tsx
-        │   │   ├── BackgroundPicker.tsx / EraserClearSlider.tsx
-        │   │   ├── CanvasListPanel.tsx / CanvasPickerModal.tsx
-        │   │   ├── ShareDialog.tsx / ReadOnlyCanvas.tsx
-        │   │   ├── RecommendPanel.tsx / PenContextMenu.tsx
-        │   │   └── sidebar/ / views/
-        │   ├── hooks/               # useShortcuts 等
-        │   ├── utils/               # 工具集
-        │   │   ├── canvasExport.ts / canvasImport.ts
-        │   │   ├── forceLayout.ts / treeLayout.ts / hierarchy.ts
-        │   │   ├── graphBuilder.ts / mocGenerator.ts
-        │   │   ├── searchIndex.ts / similarity.ts / tfidf.ts
-        │   │   ├── wordFrequency.ts / statsCalculator.ts
-        │   │   ├── presentationOrder.ts / shareLink.ts
-        │   │   ├── templateIO.ts / templates.ts / templateThumbnail.ts
-        │   │   ├── fileAsset.ts / fileFolderImport.ts
-        │   │   ├── oembed.ts / tagColors.ts
-        │   │   ├── layoutUtils.ts / tldrawColorMap.ts
-        │   │   └── ...
-        │   ├── store/ / theme/      # 状态 / 主题
-        │   └── components/canvas.css
-        ├── knowledgeBase/           # 📚 知识库系统（P7 智能化）
-        │   ├── kbStore.ts           # IndexedDB 持久化（Dexie）
-        │   ├── useKbStore.ts        # 知识库状态 Hook
-        │   ├── types.ts             # KnowledgeBase 类型定义
-        │   ├── healthScore.ts      # 健康度评分（0-100）
-        │   ├── mocGenerator.ts     # MOC 自动生成
-        │   ├── reviewGenerator.ts  # 回顾计划生成
-        │   ├── kbTheme.ts          # Atelier Glass 主题
-        │   ├── kb-ui.css            # 玻璃质感样式
-        │   ├── ai/                  # AI 能力（本地推理）
-        │   │   ├── aiService.ts          # 统一 AI 服务入口
-        │   │   ├── blindSpotAnalyzer.ts # 盲区分析
-        │   │   ├── kbChat.ts             # KB 问答（RAG）
-        │   │   ├── recommender.ts       # 推荐
-        │   │   ├── semanticSearch.ts    # 语义搜索（@xenova/transformers）
-        │   │   └── topicClusterer.ts    # 主题聚类（K-Means）
-        │   ├── components/          # 知识库 UI
-        │   │   ├── KbManager.tsx         # 知识库管理器
-        │   │   ├── KbDashboard.tsx       # 详情仪表盘（11 模块）
-        │   │   ├── KbNoteViewer.tsx      # 笔记编辑器
-        │   │   ├── KbEditor.tsx         # 知识库编辑器
-        │   │   ├── KbChatPanel.tsx       # 问答面板
-        │   │   ├── KbSearchPanel.tsx     # 搜索面板
-        │   │   ├── KbExportMenu.tsx     # 导出菜单
-        │   │   ├── KbMiniGraph.tsx      # 迷你图谱
-        │   │   ├── KbTemplateSelector.tsx
-        │   │   ├── AdvancedFilter.tsx   # 高级筛选
-        │   │   ├── CrossKbSearch.tsx     # 跨库搜索
-        │   │   ├── FileDependencyPanel.tsx
-        │   │   ├── LearningPathPanel.tsx
-        │   │   ├── ReviewPanel.tsx
-        │   │   ├── TaskPanel.tsx
-        │   │   ├── WritingGoalPanel.tsx
-        │   │   ├── KbIcons.tsx
-        │   │   └── kbOverlayRoot.ts
-        │   ├── export/             # 导出
-        │   │   ├── documentExporter.ts  # 文档导出
-        │   │   ├── staticSiteExporter.ts # 静态站点导出
-        │   │   └── sharePackager.ts      # 分享打包
-        │   ├── import/
-        │   │   └── externalImporter.ts  # 外部导入
-        │   └── templates/
-        │       └── kbTemplates.ts        # 知识库模板
-        ├── dashboard/              # 📊 仪表盘数据层
-        │   └── useDashboardData.ts  # 数据 hook（供 GraphPanel 链接健康消费）
-        └── shared/                  # 共享组件
-            ├── ErrorBoundary.tsx
-            ├── FrontMatterPanel.tsx
-            ├── InputModal.tsx
-            ├── OptimizeImagesModal.tsx
-            ├── imageHelpers.ts / imageStore.ts
-            ├── mathRenderer.ts / mathUtils.ts
-            ├── mermaidCache.ts
-            └── frontMatter.ts
+    ├── core/                       # ① 核心数据层（不依赖 UI）
+    │   ├── files/                  # 文件树模型、内置使用文档、最近文件
+    │   ├── storage/                # IndexedDB（Dexie）存储层
+    │   ├── tags/                   # 标签索引
+    │   ├── data/                   # 内置数据
+    │   └── constants/
+    ├── services/                   # ② 公共服务（优先无 React 依赖）
+    │   ├── fileService.ts          # 文件树操作 + uniqueFileName 重名去重
+    │   ├── sanitizeHtml.ts         # DOMPurify 单一消毒闸门
+    │   ├── backupService.ts        # 备份与自动备份
+    │   ├── crashRecovery.ts        # 崩溃恢复
+    │   ├── blockReference.ts       # 块引用
+    │   ├── command/                # 命令注册表
+    │   ├── import/                 # 外部导入（URL → Markdown）
+    │   └── templates/
+    ├── stores/                     # ③ 全局状态（React Context + Hooks）
+    │   ├── FileStore.tsx           # 文件树 + 标签页
+    │   ├── SettingsStore.tsx       # 应用设置
+    │   ├── LinkIndexStore.tsx      # 链接索引（WikiLink / 反链 / 提及）
+    │   ├── TagIndexStore.tsx       # 标签索引
+    │   ├── BlockIndexStore.tsx     # 块索引
+    │   ├── UndoRedoStore.tsx       # 撤销 / 重做
+    │   ├── NoteVersionStore.tsx    # 版本历史
+    │   ├── BookmarkStore.tsx       # 书签
+    │   ├── ModalStore.tsx / LanguageStore.tsx / UserProfileStore.tsx
+    │   ├── kbStore.ts / useKbStore.ts / kbTypes.ts    # 知识库
+    │   └── densityStore.ts         # 界面密度
+    ├── features/                   # ④ 领域功能模块
+    │   ├── editor/                 # 编辑器（Tiptap 3 WYSIWYG + CodeMirror 6 源码）
+    │   ├── import/                 # 导入管线（md / txt / docx / html → GFM Markdown）
+    │   ├── export/                 # 导出（12 种格式）
+    │   ├── blog/                   # 博客工坊（主题 / 模板 / 发布适配器）
+    │   ├── canvas-v2/              # 白板引擎（Excalidraw 混合）
+    │   ├── knowledgeBase/          # 知识库（含 ai/ 双引擎检索）
+    │   ├── diary/                  # 日记
+    │   ├── search/                 # 全局搜索
+    │   ├── lint/                   # Markdown 语法检查
+    │   ├── outline/                # 大纲
+    │   ├── preview/                # 预览渲染
+    │   ├── templates/              # 模板系统
+    │   ├── themes/                 # 主题管理
+    │   ├── pwa/                    # PWA / 快速捕捉 / 库同步
+    │   ├── fileManager/            # 日记笔记、MOC 生成
+    │   ├── migrate/                # 数据迁移
+    │   ├── commandPalette/         # 命令目录
+    │   ├── dashboard/              # 首页概览数据
+    │   ├── appRuntime/             # 应用级副作用
+    │   ├── imageUpload/            # 图床上传
+    │   ├── navigation/             # 视图状态
+    │   └── settings/               # 设置项
+    ├── components/                 # ⑤ 跨层共享 UI 基元
+    │   └── ui/                     # Modal / Toast / Icon / Confirm 等
+    ├── aurora/                     # ⑥ UI 外壳（桌面原生风格）
+    │   ├── app/                    # AuroraShell / auroraActions / 命令编排
+    │   ├── panels/                 # 功能面板（editor / kb / canvas / blog / diary / settings / welcome）
+    │   ├── components/             # shell / command-palette / ui
+    │   ├── providers/              # RealProviders（依赖装配）
+    │   ├── styles/                 # tokens.css + 各面板样式
+    │   ├── themes/                 # 主题
+    │   ├── navigation/             # 导航路由
+    │   ├── hooks/
+    │   └── docs/                   # Aurora 设计文档与审计记录
+    ├── hooks/                      # 全局 Hooks（自动保存 / 快捷键 / 渲染 / 密度）
+    ├── locales/                    # 国际化（zh/ 分片 + en.ts）
+    ├── styles/                     # 全局样式（base / markdown / tiptap / mermaid / syntax）
+    ├── types/                      # 全局类型
+    ├── utils/                      # 工具函数（safeJson / schemaGuards / logger / mathRenderer …）
+    └── __tests__/                  # 跨模块契约测试（别名同步、PWA 配置）
 ```
+
+> **依赖方向**：`core` → `services` / `stores` → `features` → `aurora`（单向，禁止反向）。
+> 由本地 ESLint 规则 `local/no-aurora-ui-import` 在 pre-commit（lint-staged）阶段强制守卫。
 
 ### 🧩 核心模块说明
 
-#### 🌐 知识图谱模块 (`features/graph/`)
+#### 🌐 知识图谱模块 (`aurora/panels/kb/graph/`)
 
 | 文件              | 说明                                                                                        |
 | --------------- | ----------------------------------------------------------------------------------------- |
-| `GraphView.tsx` | 知识图谱核心组件（约 4700 行），含 6 种布局算法、3D 球体、中心性分析、团簇发现、快照对比、分析报告、多格式导出、LOD 分层、空间索引、离屏 Canvas 等完整功能 |
+| `graph/` 模块组 | 知识图谱核心（多模块拆分：`GraphCanvasArea.tsx` / `useGraphEngine.ts` / `useGraphDerived.ts` / `graphModel.ts` / `graphExport.ts`），含 4 种布局算法、度数统计、局部 BFS 展开、快照与 SVG/PNG/JSON 导出 |
 
 #### 🔗 知识链接模块 (`features/fileManager/` + `stores/`)
 
@@ -1467,8 +1162,8 @@ MarkCraft/
 | `engine/OverlayCards.tsx`     | 卡片浮层渲染（NoteCard/FileCard/EmbedCard 等）                                                                                                            |
 | `engine/cardHelpers.ts`       | 卡片创建/更新/绑定工具                                                                                                                                     |
 | `engine/useCanvasEngine.tsx`  | 引擎状态 Hook                                                                                                                                        |
-| `shapes/`                     | 7 种卡片形状（NoteCard/FileCard/EmbedCard/GroupCard/ImageCard/NestedCanvas/CanvasRef）                                                                  |
-| `components/`                 | 30+ 功能组件（Topbar/BottomBar/FloatingToolbar/ContextMenu/CommandPalette/LayersPanel/PropertyPanel/SearchPanel/TemplateManager/PresentationViewer 等） |
+| `shapes/`                     | 卡片形状定义（便签 / 图片 / 文件 / 嵌入 / 分组 / 嵌套白板 / 画布引用 / 标签，共 8 种）                                                                |
+| `components/`                 | 功能组件（Topbar / BottomBar / FloatingToolbar / ContextMenu / LayersPanel / PropertyPanel / SearchPanel / TemplateManager / PresentationViewer 等） |
 | `utils/`                      | 布局算法（forceLayout/treeLayout/hierarchy）、图构建、TF-IDF、相似度、搜索索引、模板 IO、演示顺序                                                                            |
 | `hooks/useShortcuts.ts`       | 白板快捷键                                                                                                                                            |
 | `theme/canvasTheme.ts`        | 卡片配色 / 关系类型颜色 / 暗色模式                                                                                                                             |
@@ -1479,20 +1174,17 @@ MarkCraft/
 | ------------------------------ | --------------------------------------------------- |
 | `kbStore.ts`                   | IndexedDB 持久化层（基于 Dexie），多知识库列表 + 单文档分离存储           |
 | `useKbStore.ts`                | 知识库状态 Hook（activeKb/loadActiveKb/getFiles/saveKb 等） |
-| `types.ts`                     | `KnowledgeBase` 类型定义（11 大模块字段）                      |
+| `types.ts`                     | `KnowledgeBase` 类型定义（含已下线的任务/目标/回顾/盲区字段）           |
 | `healthScore.ts`               | 健康度评分（0-100），综合覆盖度/链接密度/连通性/活跃度/标签均衡                |
 | `mocGenerator.ts`              | MOC 自动生成（标签模式 / 中心文件模式 / 3 种模板）                     |
 | `reviewGenerator.ts`           | 间隔重复回顾计划生成                                          |
 | `kbTheme.ts`                   | Atelier Glass 主题色（KB_STAT_COLORS 等）                 |
 | `kb-ui.css`                    | 玻璃质感样式（.kb-* 类，--kb-* token）                      |
-| `ai/aiService.ts`              | 统一 AI 服务入口                                          |
-| `ai/blindSpotAnalyzer.ts`      | 知识盲区分析（标签覆盖度 + TF-IDF）                              |
-| `ai/kbChat.ts`                 | KB 问答（RAG 检索 + 上下文拼接）                               |
-| `ai/recommender.ts`            | 相似文件 / 关联笔记推荐                                       |
-| `ai/semanticSearch.ts`         | 语义搜索（@xenova/transformers 向量检索）                     |
-| `ai/topicClusterer.ts`         | 主题聚类（K-Means）                                       |
+| `ai/aiService.ts`              | 统一 AI 服务入口（本地引擎恒可用 + 远程引擎代码位）                      |
+| `ai/kbChat.ts`                 | KB 问答（段落向量化 + 余弦 top-5 + 抽取式回答）                     |
+| `ai/semanticSearch.ts`         | 相似检索（本地 hash 词袋向量，按内容 hash 增量更新）                   |
 | `components/KbManager.tsx`     | 知识库管理器（常驻挂载 + 覆盖层切换）                                |
-| `components/KbDashboard.tsx`   | 详情仪表盘（11 模块：概览/笔记/搜索/任务/目标/回顾/问答/依赖/MOC/盲区/导出）      |
+| `components/KbDashboard.tsx`   | 详情仪表盘（7 模块：概览 / 笔记 / 搜索 / 问答 / 依赖 / MOC / 导出）       |
 | `components/KbNoteViewer.tsx`  | 全屏笔记编辑器（H1 + TipTap/CodeMirror + 源码/WYSIWYG/预览切换）   |
 | `components/KbChatPanel.tsx`   | 问答面板（portal 到 #kb-overlay-root）                     |
 | `components/KbSearchPanel.tsx` | 搜索面板（高级筛选 + 保存查询）                                   |
@@ -1597,13 +1289,11 @@ MarkCraft/
 #### 知识图谱
 
 1. 按 `Ctrl+Shift+G` 或侧边栏按钮打开知识图谱
-2. 顶栏切换布局：力导向 / 径向 / 层次 / 圆形 / **3D 球体** / 时间线
-3. **3D 球体布局**：节点自动旋转，拖拽节点可自由移动，松开后从放置位置继续旋转
-4. **交互**：拖拽空白平移、滚轮缩放、Ctrl+拖拽框选、拖拽节点到另一节点创建链接
-5. **分析**：顶栏切换中心性模式（PageRank / Betweenness），查看 Top-10 排行榜
-6. **快照**：自动保存图谱快照，对比模式查看新增/删除/修改差异
-7. **报告**：一键生成 Markdown 分析报告，含优化建议
-8. **导出**：SVG / Mermaid / Graphviz / JSON
+2. 顶栏切换布局：**力导向 / 同心圆 / 树形 / 网格**（4 种）
+3. **交互**：拖拽节点、拖拽空白平移、滚轮缩放
+4. **局部展开**：点击节点展开其邻居（BFS）
+5. **快照**：图谱快照持久化到 IndexedDB（`graph-snapshots`）
+6. **导出**：SVG / PNG / JSON
 
 #### Canvas v2 白板
 
@@ -1623,19 +1313,15 @@ MarkCraft/
 1. 在侧边栏点击「知识库」入口，进入 KbManager 知识库管理器
 2. **创建知识库**：点击「新建知识库」→ 选择模板（学习计划 / 研究项目 / 读书笔记）或空白 → 输入名称 → 自动创建专属文件夹
 3. **进入知识库**：点击知识库卡片进入 KbDashboard 详情页
-4. **11 大模块**（左侧导航）：
-   - 📊 **概览** — 统计、健康度环形图、Top 标签、活动热力图
+4. **7 大模块**（左侧导航）：
+   - 📊 **概览** — 统计、健康度评分、迷你图谱、最近活动
    - 📝 **笔记** — 知识库笔记列表；点击「新建笔记」弹出名称输入弹窗 → 输入名称 → 进入编辑模式 → 退出时弹窗询问保存 / 不保存
-   - 🔍 **搜索** — 跨库搜索、高级筛选器、保存查询
-   - ✅ **任务** — 任务清单、关联笔记、进度
-   - 🎯 **目标** — 写作目标（字数 / 篇数 / 截止日期）
-   - 📅 **回顾** — 间隔重复回顾计划
-   - 💬 **问答** — KB 问答面板（基于 RAG 本地向量检索）
+   - 🔍 **搜索** — 文本 / 正则 / 全词 / 相似 四种模式 + 高级筛选 + 保存查询
+   - 💬 **问答** — KB 问答面板（本地向量检索 + 抽取式回答）
    - 🔗 **依赖** — 文件依赖关系图、循环引用检测
    - 🗺️ **MOC** — 自动生成内容地图（标签 / 中心文件模式）
-   - 💡 **盲区** — AI 知识盲区分析、推荐补充方向
    - 📤 **导出** — 文档 / 静态站点 / 分享打包
-5. **健康度评分**：0-100 分，综合评估覆盖度 / 链接密度 / 连通性 / 活跃度 / 标签均衡
+5. **健康度评分**：0-100 分，4 个维度各 25 分 —— 链接密度 / 孤立率 / 标签覆盖率 / 30 天内更新率
 6. **关联白板**：知识库可关联多个 Canvas v2 白板，白板中可引用知识库笔记
 7. **规则筛选**：设置 `#tag` / `path:xxx` / `name:xxx` 规则自动包含符合条件的文件
 
@@ -1720,7 +1406,7 @@ MarkCraft/
 
 #### 添加知识图谱布局算法
 
-在 `src/features/graph/GraphView.tsx` 中：
+在 `src/aurora/panels/kb/graph/` 中（布局算法见 `useGraphEngine.ts` / `graphModel.ts`）：
 
 1. 编写 `computeXxxLayout(nodes, width, height): Map<string, {x, y}>` 函数
 2. 在 `LayoutType` 联合类型中添加新 key
@@ -1732,7 +1418,7 @@ MarkCraft/
 
 知识图谱配色已统一跟随 MarkCraft 的全局深色/浅色主题，无需单独配置。如需自定义配色：
 
-1. 修改 `src/features/graph/GraphView.tsx` 中的 `colors` 对象（已基于 `isDark` 分支）
+1. 修改 `src/aurora/styles/panels/graph.css` 中的 `--mc-graph-*` CSS 变量（已按深色/浅色主题分支定义）
 2. `isDark` 由 MutationObserver 监听 `data-theme` 自动更新，无需手动管理
 
 #### 添加命令面板命令
@@ -1760,7 +1446,7 @@ MarkCraft/
 1. 创建 `xxxAnalyzer.ts`，实现分析逻辑
 2. 在 `aiService.ts` 中注册新能力
 3. 在 `KbDashboard.tsx` 对应模块面板中调用并展示结果
-4. 如需向量推理，使用 `@xenova/transformers` 在浏览器本地完成，避免引入后端依赖
+4. AI 检索默认走本地 TF-IDF 引擎（零依赖、离线可用）；如需更强语义效果，可在设置中配置 OpenAI 兼容的远程 API（`remoteBaseUrl`），无需自建后端
 
 #### 知识库扩展注意事项
 
@@ -1868,24 +1554,28 @@ type DeployPlatform = 'github' | 'gitee' | 'vercel' | 'cloudflare' | 'netlify'
 # 运行所有测试（watch 模式）
 npm run test
 
+# 单次运行（CI 环境）
+npm run test:run
+
 # 运行特定测试文件
-npx vitest src/features/outline/__tests__/outlineUtils.test.ts
+npx vitest run src/features/outline/__tests__/outlineUtils.test.ts
 
 # 生成覆盖率报告
 npm run test:coverage
-
-# 单次运行（CI 环境）
-npx vitest run
 ```
 
-### 📊 测试覆盖范围
+### 📊 测试规模
 
-| 模块   | 测试文件                      | 覆盖内容                  |
-| ---- | ------------------------- | --------------------- |
-| 大纲工具 | `outlineUtils.test.ts`    | 标题解析、嵌套结构、ID 生成、代码块过滤 |
-| 大纲组件 | `Outline.test.tsx`        | 渲染、折叠/展开、跳转、性能        |
-| 语法检查 | `markdownLinter.test.ts`  | 检测规则、修复函数             |
-| 工具栏  | `MarkdownToolbar.test.ts` | 渲染、交互                 |
+当前仓库共 **147 个测试文件、1800+ 条用例**，全量通过。
+
+| 层次     | 位置                                                    | 覆盖内容                                     |
+| ------ | ----------------------------------------------------- | ---------------------------------------- |
+| 单元 / 组件 | 与源码同级的 `__tests__/` 或 `*.test.ts(x)`                   | 编辑器、图谱、白板、知识库、博客、日记等各领域模块                |
+| 契约测试   | `src/aliasSync.test.ts`、`aurora/panels/__tests__/auroraNav.contract.test.ts` | 路径别名四处同步、导航 id ↔ 路由 id 契约                 |
+| 冒烟测试   | `aurora/panels/**/*.smoke.test.tsx`                   | 各主要面板挂载与关键交互                             |
+| 样式守卫   | `aurora/styles/*.test.ts`                             | 死 CSS 清理、指针门控、按压反馈等视觉约定                  |
+
+> 测试环境为 jsdom，缺少 IndexedDB 时 Dexie 会向 stderr 打印 `MissingAPIError` —— 这是**环境噪音**，不代表用例失败；确需真实 IndexedDB 的用例会显式引入 `fake-indexeddb`。
 
 ---
 
@@ -1947,11 +1637,12 @@ docker run -p 8080:80 markdown-editor
 
 <details>
 
-<summary>📖 点击查看已知问题（4 项）</summary>
+<summary>📖 点击查看已知问题（5 项）</summary>
 
 - 🌐 部分浏览器不支持 File System Access API，「另存为」功能降级为 Blob 下载
 - 📄 PDF 导出依赖 html2pdf.js，复杂布局可能出现分页问题
 - 🐌 大规模图谱（>500 节点）在低端设备可能卡顿，已通过 LOD / 视口裁剪 / 空间索引优化
+- 🤖 AI 检索默认使用本地 TF-IDF 统计引擎，反映的是**关键词/词频分布而非深层语义**；如需语义级效果，请在设置中配置 OpenAI 兼容的远程 API
 - ⚠️ Tiptap 与 CodeMirror 切换时部分扩展可能产生 Duplicate extension 警告（不影响功能）
 
 </details>
@@ -1970,7 +1661,7 @@ docker run -p 8080:80 markdown-editor
 |     ✅ 导出格式     | `██████████` 100% |
 | ✅ Canvas v2 白板 | `██████████` 100% |
 |     ✅ 知识库系统    | `██████████` 100% |
-|  ✅ AI 能力（本地推理） | `████████░░` 80%  |
+|  ✅ AI 能力（双引擎）  | `████████░░` 80%  |
 |    🚧 移动端适配    | `██░░░░░░░░` 20%  |
 |     🚧 协作编辑    | `░░░░░░░░░░` 0%   |
 |     🚧 云端同步    | `░░░░░░░░░░` 0%   |
@@ -1992,17 +1683,19 @@ docker run -p 8080:80 markdown-editor
 
 - [x] 🌍 国际化（i18n）— 已支持中英双语
 - [x] 🔗 知识链接体系 — WikiLink / 反链 / 标签 / 图谱 / MOC
-- [x] 🌐 知识图谱 — 6 种布局 + 3D 球体 + 中心性分析 + 团簇发现
+- [x] 🌐 知识图谱 — 4 种布局 + 度数统计 + 局部展开 + 快照/导出
 - [x] 🎨 64 种博客主题
 - [x] 📤 12 种导出格式
-- [x] 📋 命令面板（25 项命令）
+- [x] 📋 命令面板（47 条命令）
 - [x] 📅 日记功能
-- [x] 🪧 **Canvas v2 白板** — Excalidraw 混合引擎 + 30+ 组件 + 7 种卡片形状
-- [x] 📚 **知识库系统** — 11 大模块 + 多库管理 + 健康度评分 + IndexedDB 持久化
-- [x] 🤖 **AI 能力** — 盲区分析 / KB 问答 / 推荐 / 语义搜索 / 主题聚类（本地推理）
+- [x] 🪧 **Canvas v2 白板** — Excalidraw 渲染 + 自研 CanvasEngine 兼容层 + HTML 卡片浮层 + 8 种卡片类型
+- [x] 📚 **知识库系统** — 7 大模块 + 多库管理 + 健康度评分 + IndexedDB 持久化
+- [x] 🤖 **AI 能力** — 盲区分析 / KB 问答 / 推荐 / 相似检索 / 主题聚类（本地 TF-IDF + 可选远程 API）
 - [x] 💾 **IndexedDB 存储层** — Dexie 封装，知识库/白板/向量索引分离存储
 - [x] 🔖 书签系统
 - [x] 📋 模板系统
+- [x] 📥 **导入保真** — docx / html 导入启用 GFM 表格转换，统一产出高质量 Markdown
+- [x] 🔍 **代码审查闭环** — Critical / High / Medium / Low 全层级修复，测试 147/147 全绿
 
 ---
 
@@ -2075,9 +1768,9 @@ Copyright © 2026 MarkCraft Contributors
 | [morphdom](https://github.com/patrick-steele-idem/morphdom)        | 高效 DOM diff 与更新                   |
 | [Vitest](https://vitest.dev/)                                      | Vite 原生测试框架                       |
 | [Excalidraw](https://excalidraw.com/)                              | 手绘风格白板绘制（Canvas v2 底层）            |
-| [tldraw](https://tldraw.dev/)                                      | 白板引擎（CanvasEngine 适配器目标 API）      |
 | [Dexie](https://dexie.org/)                                        | IndexedDB 封装（知识库/白板/向量索引持久化）      |
-| [Transformers.js](https://huggingface.co/docs/transformers.js)     | 浏览器本地 AI 推理（@xenova/transformers） |
+| [pdfjs-dist](https://mozilla.github.io/pdf.js/)                    | 笔记内嵌 PDF 渲染                       |
+| [pako](https://github.com/nodeca/pako)                             | gzip 压缩（备份 / 分享包解压）                 |
 | [JSZip](https://stuk.github.io/jszip/)                             | ZIP 打包（博客/白板多文件导出）                |
 | [react-window](https://github.com/bvaughn/react-window)            | 虚拟列表滚动                            |
 
@@ -2100,16 +1793,16 @@ Copyright © 2026 MarkCraft Contributors
 |    📊    | 项目统计                              |
 | :------: | :-------------------------------- |
 |  📝 编辑器  | 2 引擎（CodeMirror 6 + Tiptap 3）     |
-|   🪧 白板  | Excalidraw 混合引擎 / 30+ 组件 / 7 卡片形状 |
-|  📚 知识库  | 11 模块 / 多库管理 / 健康度评分              |
-| 🤖 AI 能力 | 6 项 / 本地推理 / 无需后端                 |
-|  🔗 知识链接 | 13 项功能                            |
-|  🌐 知识图谱 | 6 布局 / 跟随主主题                      |
+|   🪧 白板  | Excalidraw 渲染 + 自研 CanvasEngine / 8 种卡片类型 |
+|  📚 知识库  | 7 模块 / 多库管理 / 健康度评分                 |
+| 🤖 AI 能力 | 3 项 / 本地检索引擎 / 无需后端               |
+|  🔗 知识链接 | 双向链接 / 反链 / 提及 / 块引用               |
+|  🌐 知识图谱 | 4 布局 / 跟随主主题                       |
 |  🎨 博客主题 | 64 种 / 5 批                        |
 |  📤 导出格式 | 12 种                              |
-|  ⌨️ 快捷键  | 28 项                              |
-|  🎴 主题样式 | 5 编辑器 + 6 代码                      |
-|  📋 命令面板 | 25 项                              |
+|  ⌨️ 快捷键  | 三套绑定                              |
+|  🎴 主题样式 | 6 编辑器 + 6 代码                      |
+|  📋 命令面板 | 47 条                              |
 |   💾 存储  | localStorage + IndexedDB（Dexie）   |
 
 
