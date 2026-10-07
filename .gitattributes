@@ -1,0 +1,27 @@
+# ============================================================
+# 行尾符统一：文本文件一律 LF
+# ------------------------------------------------------------
+# 背景：此前仓库行尾处于 mixed 状态（774 CRLF + 54 mixed + 361 LF），
+# 反复导致「改一个文件 → 整文件虚假 diff」（如 EditorLayout.tsx 的 585 行假变更）。
+# text=auto 让 git 自动识别文本/二进制；二进制文件不会被做任何转换。
+# ============================================================
+* text=auto eol=lf
+
+# 显式声明二进制，杜绝任何行尾/编码转换
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.avif  binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.eot   binary
+*.pdf   binary
+*.zip   binary
+*.gz    binary
+*.mp4   binary
+*.webm  binary
