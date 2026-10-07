@@ -57,7 +57,7 @@ interface EditorLayoutProps {
   activeFileId: string | undefined
   gridColumns: string
   showModeToolbar: boolean
-  onOpenImportDialog?: () => void
+  onImportFile?: () => void
   onBrokenLinkClick?: (target: string) => void
   onOpenDailyNote?: () => void
   isDiary?: boolean
@@ -114,7 +114,7 @@ export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(fu
   activeFileId,
   gridColumns,
   showModeToolbar,
-  onOpenImportDialog,
+  onImportFile,
   onBrokenLinkClick,
   onOpenDailyNote,
   isDiary,
@@ -497,7 +497,7 @@ export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(fu
         >
           <LinkBreadcrumb activeFileId={activeFileId ?? null} onOpenFile={openFile} />
           <ErrorBoundary name="WYSIWYG" errorTitle={t.errorBoundary.wysiwygError} retryText={t.errorBoundary.retry}>
-            <TiptapEditor value={localContent} onChange={onChange} theme={theme} fileId={activeFileId ?? undefined} onActiveHeadingChange={setTiptapActiveHeading} ref={tiptapRef} focusMode={focusMode} typewriterMode={typewriterMode} livePreview={livePreview} onToggleFocusMode={onToggleFocusMode} onToggleTypewriterMode={onToggleTypewriterMode} onToggleLivePreview={onToggleLivePreview} onOpenFile={onOpenImportDialog} onBrokenLinkClick={onBrokenLinkClick} onUseTemplate={onUseTemplate} />
+            <TiptapEditor value={localContent} onChange={onChange} theme={theme} fileId={activeFileId ?? undefined} onActiveHeadingChange={setTiptapActiveHeading} ref={tiptapRef} focusMode={focusMode} typewriterMode={typewriterMode} livePreview={livePreview} onToggleFocusMode={onToggleFocusMode} onToggleTypewriterMode={onToggleTypewriterMode} onToggleLivePreview={onToggleLivePreview} onOpenFile={onImportFile} onBrokenLinkClick={onBrokenLinkClick} onUseTemplate={onUseTemplate} />
           </ErrorBoundary>
         </div>
       ) : (
@@ -510,7 +510,7 @@ export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(fu
               }}
             >
               <ErrorBoundary name="Source" errorTitle={t.errorBoundary.sourceError} retryText={t.errorBoundary.retry}>
-                <CodeMirrorEditor value={localContent} onChange={onChange} ref={editorRef} onScroll={handleEditorScroll} showPreview={effectiveShowPreview} onTogglePreview={onTogglePreview} focusMode={focusMode} typewriterMode={typewriterMode} onToggleFocusMode={onToggleFocusMode} onToggleTypewriterMode={onToggleTypewriterMode} autocompleteEnabled={autocompleteEnabled} onToggleAutocomplete={onToggleAutocomplete} fileId={activeFileId} theme={theme} useRelativeImagePath={appSettings.useRelativeImagePath} onOpenImportDialog={onOpenImportDialog} onPrint={onPrint} onUseTemplate={onUseTemplate} />
+                <CodeMirrorEditor value={localContent} onChange={onChange} ref={editorRef} onScroll={handleEditorScroll} showPreview={effectiveShowPreview} onTogglePreview={onTogglePreview} focusMode={focusMode} typewriterMode={typewriterMode} onToggleFocusMode={onToggleFocusMode} onToggleTypewriterMode={onToggleTypewriterMode} autocompleteEnabled={autocompleteEnabled} onToggleAutocomplete={onToggleAutocomplete} fileId={activeFileId} theme={theme} useRelativeImagePath={appSettings.useRelativeImagePath} onImportFile={onImportFile} onPrint={onPrint} onUseTemplate={onUseTemplate} />
               </ErrorBoundary>
             </div>
           )}

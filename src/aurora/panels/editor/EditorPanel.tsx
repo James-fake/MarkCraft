@@ -382,7 +382,7 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
       isVersionHistoryOpen={versionHistory.isOpen}
       isDiary={isDiary}
       onPrint={() => window.print()}
-      onOpenImportDialog={openImport}
+      onImportFile={openImport}
       onBrokenLinkClick={openLinkRedirect}
       onUseTemplate={() => auroraModal?.open('templateInsert')}
     />
@@ -529,6 +529,7 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
                 value={newFileName}
                 onChange={setNewFileName}
                 onCreate={handleCreateNote}
+                onImportFile={openImport}
               />
             ) : isUsageDoc ? (
               /* 内置「使用文档」→ 只读简介页（需求②）：不挂 EditorLayout，因此没有编辑区、

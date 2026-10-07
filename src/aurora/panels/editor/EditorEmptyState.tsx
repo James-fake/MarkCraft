@@ -1,6 +1,6 @@
 /**
  * 空态「新建笔记」引导界面（EditorPanel 主区 `!activeFileId` 分支的整块 JSX）：
- * 文件名输入 + 新建按钮 + 内嵌文件列表。
+ * 文件名输入 + 新建按钮 + 打开文件按钮 + 内嵌文件列表。
  * 文件列表直接内嵌于引导界面：轻量定制列表（非侧栏 FileTree），点文件即打开，无需再点按钮唤起侧栏。
  * 文件名状态由宿主持有（新建后需清空输入），本组件纯展示 + 回调。
  */
@@ -16,9 +16,11 @@ interface EditorEmptyStateProps {
   onChange: (v: string) => void
   /** 提交新建（宿主 handleCreateNote：留空回退未命名 + 同名去重） */
   onCreate: () => void
+  /** 打开文件（宿主 openImport：直达系统文件框并导入，与「新建」并列的次级入口） */
+  onImportFile: () => void
 }
 
-export function EditorEmptyState({ value, onChange, onCreate }: EditorEmptyStateProps) {
+export function EditorEmptyState({ value, onChange, onCreate, onImportFile }: EditorEmptyStateProps) {
   const { t } = useLanguage()
   const inputRef = useRef<HTMLInputElement>(null)
   return (
@@ -52,6 +54,14 @@ export function EditorEmptyState({ value, onChange, onCreate }: EditorEmptyState
             {t.auroraEditor.emptyCreate}
           </button>
         </div>
+        <button
+          type="button"
+          className="aurora-editor__openfile-btn"
+          onClick={onImportFile}
+        >
+          <Icon.folderOpen size={15} />
+          {t.auroraEditor.emptyOpenFile}
+        </button>
       </div>
       <div className="aurora-editor__empty-files">
         <EmptyFileBrowser />

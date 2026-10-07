@@ -1160,6 +1160,7 @@ export const en: Translations = {
     emptyNamePlaceholder: 'Give this note a name…',
     emptyNameAria: 'New file name',
     emptyCreate: 'New note',
+    emptyOpenFile: 'Open file',
     allFiles: 'All files',
     noFilesHint: 'No files yet — click “New note” above to start writing',
     rootFolder: 'Root',

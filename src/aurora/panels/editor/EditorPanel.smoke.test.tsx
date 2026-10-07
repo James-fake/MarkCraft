@@ -85,6 +85,8 @@ describe('Aurora EditorPanel 换芯（D8）烟雾测试', () => {
     // 空态：未打开文档 + 文件名输入框 + 新建笔记 + 内嵌轻量文件列表（EmptyFileBrowser）；浏览文件按钮已删除、成长概览已移除
     expect(container.querySelector('.aurora-editor__empty-title')?.textContent).toBe('未打开文档')
     expect(container.querySelector('.aurora-editor__filename-input')).toBeTruthy()
+    // 空态「打开文件」次级入口：newfile 组下方，复用宿主 openImport
+    expect(container.querySelector('.aurora-editor__openfile-btn')?.textContent).toBe('打开文件')
     expect(screen.queryByText('浏览文件')).toBeNull()
     expect(container.querySelector('.aurora-editor__empty-files')).toBeTruthy()
     expect(container.querySelector('.aurora-emptyfiles')).toBeTruthy()

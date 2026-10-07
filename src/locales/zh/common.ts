@@ -1420,6 +1420,7 @@ export const auroraEditor = {
   emptyNamePlaceholder: '为这篇笔记起个名字…',
   emptyNameAria: '新文件名',
   emptyCreate: '新建笔记',
+  emptyOpenFile: '打开文件',
   // 空态文件列表（EmptyFileBrowser）
   allFiles: '全部文件',
   noFilesHint: '还没有文件，点击上方「新建笔记」开始写作',

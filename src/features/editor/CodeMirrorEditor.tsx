@@ -42,7 +42,7 @@ interface CodeMirrorEditorProps {
   fileId?: string | null
   theme?: ThemeType
   useRelativeImagePath?: boolean
-  onOpenImportDialog?: () => void
+  onImportFile?: () => void
   // 打印当前文件内容（由 EditorLayout 注入，使用渲染后的 HTML；缺省回退到 window.print）
   onPrint?: () => void
   /** 打开模板选择器（由 EditorLayout 透传，Aurora 注入） */
@@ -52,7 +52,7 @@ interface CodeMirrorEditorProps {
 }
 
 const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProps>(function CodeMirrorEditor(
-  { value, onChange, onScroll, showPreview = true, onTogglePreview, focusMode = false, typewriterMode = false, onToggleFocusMode, onToggleTypewriterMode, autocompleteEnabled = true, onToggleAutocomplete, fileId, theme = 'light', useRelativeImagePath = false, onOpenImportDialog, onPrint, onUseTemplate, onSelectionChange }: CodeMirrorEditorProps,
+  { value, onChange, onScroll, showPreview = true, onTogglePreview, focusMode = false, typewriterMode = false, onToggleFocusMode, onToggleTypewriterMode, autocompleteEnabled = true, onToggleAutocomplete, fileId, theme = 'light', useRelativeImagePath = false, onImportFile, onPrint, onUseTemplate, onSelectionChange }: CodeMirrorEditorProps,
   ref
 ) {
   const state = useCM6State({
@@ -319,7 +319,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     onOptimizeImages: () => state.setShowOptimizeModal(true),
     onOpenFrontMatter: () => state.setShowFrontMatter(true),
     onUploadImage: handleOpenImageFile,
-    onOpenFile: onOpenImportDialog ?? handleOpenFile,
+    onOpenFile: onImportFile ?? handleOpenFile,
     onPrint: onPrint ?? (() => window.print()),
     onUseTemplate: onUseTemplate ?? (() => {}),
     onInsertFootnote: handleInsertFootnote,
@@ -372,7 +372,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
     handleOpenImageFile, handleOpenFile,
     handleInsertFootnote, handleInsertInlineMath, handleInsertBlockMath, handleInsertMathTemplate, handleInsertMermaid,
     state.error, state.success, state.largeImageConfirm,
-    onPrint, onUseTemplate, onOpenImportDialog,
+    onPrint, onUseTemplate, onImportFile,
   ])
 
   return (

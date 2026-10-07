@@ -2547,6 +2547,7 @@ export interface Translations {
     emptyNamePlaceholder: string
     emptyNameAria: string
     emptyCreate: string
+    emptyOpenFile: string
     allFiles: string
     noFilesHint: string
     rootFolder: string
