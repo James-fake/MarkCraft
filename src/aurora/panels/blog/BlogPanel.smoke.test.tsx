@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest'
-import { render, screen, cleanup, fireEvent, act } from '@testing-library/react'
+import { render, screen, cleanup, fireEvent, act, waitFor } from '@testing-library/react'
 import { useEffect } from 'react'
 
 // 知识库来源 stub：保留 kbStore 其余导出，仅覆盖 loadKb，使 BlogPanel 在传入 kbId 时可确定性加载「库名 + folderId」
@@ -151,10 +151,15 @@ describe('BlogPanel 接真实数据（FileStore 文档 + 真实主题市场）',
     expect(terminalCard, '主题市场应渲染「终端」主题卡').toBeTruthy()
     fireEvent.click(terminalCard!)
 
+    // ⚠️ 预览生成对 cfg/friends/series 做了 ~300ms 防抖（M5 性能优化，见 BlogPanel 的
+    // useDebouncedValue）；主题切换写入 cfg，故 srcdoc 不会同步更新 —— 必须等待防抖生效
+    // 后再断言，否则会误判为「主题切换无效」。
+    await waitFor(() => {
+      expect(iframe.getAttribute('srcdoc') || '').toContain('hero-cursor')
+    })
     const after = iframe.getAttribute('srcdoc') || ''
     // 切换后预览必须变化，且渲染出 terminal 新主题模板的专属特征（hero-cursor / 终端命令文案）
     expect(after).not.toBe(before)
-    expect(after).toContain('hero-cursor')
     expect(after).toContain('ls home')
   })
 
