@@ -26,8 +26,23 @@ describe('uniqueFileName（新建/导入同名去重）', () => {
     expect(uniqueFileName(root([]), '笔记.md')).toBe('笔记.md')
   })
 
-  it('仅按文件判重，文件夹同名不算冲突', () => {
+  it('仅按文件判重，文件夹同名不算冲突（有意设计）', () => {
     const folder: FileNode = { id: 'f', name: '笔记.md', type: 'folder', children: [], createdAt: 0, updatedAt: 0 }
     expect(uniqueFileName(root([folder]), '笔记')).toBe('笔记.md')
+  })
+
+  it('extraTaken 参与判重：批量场景下连续生成不重名', () => {
+    const taken = new Set<string>()
+    const names = ['笔记', '笔记', '笔记'].map((b) => {
+      const n = uniqueFileName(root([]), b, taken)
+      taken.add(n)
+      return n
+    })
+    expect(names).toEqual(['笔记.md', '笔记 (1).md', '笔记 (2).md'])
+  })
+
+  it('extraTaken 与快照中已有文件合并判重', () => {
+    const taken = new Set(['笔记 (1).md'])
+    expect(uniqueFileName(root([file('笔记.md')]), '笔记', taken)).toBe('笔记 (2).md')
   })
 })

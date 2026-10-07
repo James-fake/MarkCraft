@@ -64,6 +64,10 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   // 注：isAnyTabDirty 不再由此处透传——beforeunload 守卫已上提到应用级 useAppGlobalEffects，
   // 它自己从 FileStore 取脏标记（视图无关）。
   const { rootFolder, getActiveFileId, getActiveFileContent, updateFileContent, createFile, openFile, activeTabId, tabs, markTabDirty, closeTransientTabs } = useFileManager()
+  // 导入流程需在「用户选完文件」的回调里读**最新** root（而非点击时的快照），否则第一次
+  // 导入未完成时再次触发并选中同名文件会重名（审查 L1-2026-10-07）。
+  const rootFolderRef = useRef(rootFolder)
+  rootFolderRef.current = rootFolder
   const { settings, updateSetting } = useSettings()
   const { t, language, toggleLanguage } = useLanguage()
   const toast = useToast()
@@ -339,8 +343,12 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   // 弹层开关：只依赖壳层传入的 modal 控制器，与 feature 无关，故留在本层（布局/交互）
   // 「打开文件」：直达系统文件框（去掉中间弹窗）
   const openImport = useCallback(
-    () => pickAndImportFile({ rootFolder, createFile, onError: (m) => toast.show(m, 'error') }),
-    [rootFolder, createFile, toast],
+    () => pickAndImportFile({
+      getRootFolder: () => rootFolderRef.current,
+      createFile,
+      onError: (m) => toast.show(m, 'error'),
+    }),
+    [createFile, toast],
   )
   const openLinkRedirect = useCallback(() => auroraModal?.open('linkRedirect'), [auroraModal])
   // 弹层**回调**（导入 / 模板插入 / 快速捕捉）已随弹层一并迁入 useEditorIntegration。

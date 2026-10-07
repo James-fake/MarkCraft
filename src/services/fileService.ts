@@ -164,12 +164,17 @@ export function saveStateSync(state: FileManagerState): void {
  * 为「新建 / 导入」文件生成不冲突的 .md 文件名（VS Code 风格）。
  * 根目录下已有 `A.md` 时，依次尝试 `A (1).md`、`A (2).md` … 返回带 `.md` 的最终名。
  * 自 aurora/panels/editor/editorPanelShared 下沉（导入/拖拽等非 aurora 场景需复用）。
+ *
+ * @param extraTaken 额外的已占用文件名（可选）。用于**批量**创建场景：一次拖入多个同名文件时，
+ *   `root` 快照在循环内不会更新（`createFile` 只改 store，需重渲染才反映到闭包），
+ *   若只用快照判重，每个文件都会认为「不冲突」而产出重名。调用方需把本轮已生成的名字累积传入。
  */
-export function uniqueFileName(root: FileNode, base: string): string {
+export function uniqueFileName(root: FileNode, base: string, extraTaken?: Iterable<string>): string {
   const want = base.endsWith('.md') ? base : `${base}.md`;
   const names = new Set(
     (root.children ?? []).filter((c) => c.type === 'file').map((c) => c.name),
   );
+  if (extraTaken) for (const n of extraTaken) names.add(n);
   if (!names.has(want)) return want;
   const stem = base.endsWith('.md') ? base.slice(0, -3) : base;
   let i = 1;

@@ -15,13 +15,26 @@ export function openFilePicker(onPick: (file: File) => void): void {
   input.type = 'file'
   input.accept = SUPPORTED_ACCEPT
   input.style.display = 'none'
+
+  let done = false
+  const cleanup = () => {
+    if (done) return
+    done = true
+    input.remove()
+  }
+  // 兜底：不支持 `cancel` 事件的环境（Chrome <113 / Firefox <91 / Safari <16.4），系统文件框
+  // 关闭会让窗口重新获得焦点 —— 借此清理，避免隐藏 input 永久残留 <body>（审查 L2-2026-10-07）。
+  // 选中文件时 change 先触发 cleanup（幂等），此处再触发为 no-op；{ once: true } 自动摘除监听。
+  const onWindowFocus = () => { setTimeout(cleanup, 0) }
+
   input.addEventListener('change', () => {
     const file = input.files?.[0]
     if (file) onPick(file)
-    input.remove()
+    cleanup()
   })
-  // 用户取消选择时清理（现代浏览器支持 cancel 事件）
-  input.addEventListener('cancel', () => input.remove())
+  input.addEventListener('cancel', cleanup)
+  window.addEventListener('focus', onWindowFocus, { once: true })
+
   document.body.appendChild(input)
   input.click()
 }

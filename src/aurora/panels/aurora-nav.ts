@@ -64,14 +64,18 @@ export function resolveAuroraNav(idOrLabel: string): string {
  *
  * 分层：核心(编辑器)/高频(日记)常驻，差异化(博客)独立分组，辅助(白板/图谱/知识库)收进可折叠"更多"组。
  */
+// 静态结构基准：仅作**语言无关**的 id / 分组 / 顺序基准，供 contract 测试对照
+// `buildAuroraSidebarGroups(t)` 使用；生产渲染请走 buildAuroraSidebarGroups（label 随语言）。
+// 注：原有 count 角标为写死假数字（editor:256 / diary:365 / canvas:12），与实际数据无关，
+// 属误导性展示，已移除（审查 L4-2026-10-07）。
 export const AURORA_SIDEBAR_GROUPS: SidebarGroup[] = [
   {
     id: 'workspace',
     title: '工作区',
     items: [
       { id: 'welcome', icon: 'welcome', label: '欢迎页' },
-      { id: 'editor', icon: 'edit', label: '编辑器', count: 256 },
-      { id: 'diary', icon: 'calendar', label: '日记', count: 365 },
+      { id: 'editor', icon: 'edit', label: '编辑器' },
+      { id: 'diary', icon: 'calendar', label: '日记' },
     ],
   },
   {
@@ -87,7 +91,7 @@ export const AURORA_SIDEBAR_GROUPS: SidebarGroup[] = [
     collapsible: true,
     defaultCollapsed: true,
     items: [
-      { id: 'canvas', icon: 'square', label: '白板', count: 12 },
+      { id: 'canvas', icon: 'square', label: '白板' },
       { id: 'graph', icon: 'graph', label: '双链图谱' },
       { id: 'knowledge', icon: 'knowledge', label: '知识库' },
       { id: 'settings', icon: 'settings', label: '设置' },

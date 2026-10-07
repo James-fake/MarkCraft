@@ -4,8 +4,13 @@ import { importFileToMarkdown } from './importFile'
 import { openFilePicker } from './openFilePicker'
 
 export interface ImportFlowDeps {
-  /** 当前文件树根（用于同名去重） */
-  rootFolder: FileNode
+  /**
+   * 取**当前**文件树根（函数形式，在文件选中回调内延迟求值）。
+   * 不可用值快照：从「点击」到「用户选完文件、转换完成」期间应用会重渲染，快照会过期 ——
+   * 若用户在第一次导入完成前再次触发并选中同名文件，两次都基于同一旧树判定「不冲突」而重名
+   * （审查 L1-2026-10-07）。
+   */
+  getRootFolder: () => FileNode
   /** 新建文件的落点父节点 id，默认 'root' */
   parentId?: string
   /** 新建文件（openAfterCreate=true 时创建后自动打开） */
@@ -21,12 +26,12 @@ export interface ImportFlowDeps {
  * `importFileToMarkdown` + `uniqueFileName`，只是入口不同。
  */
 export function pickAndImportFile(deps: ImportFlowDeps): void {
-  const { rootFolder, parentId = 'root', createFile, onError } = deps
+  const { getRootFolder, parentId = 'root', createFile, onError } = deps
   openFilePicker((file) => {
     void (async () => {
       try {
         const { baseName, content } = await importFileToMarkdown(file)
-        const name = uniqueFileName(rootFolder, baseName)
+        const name = uniqueFileName(getRootFolder(), baseName)
         createFile(parentId, name, content, true)
       } catch (err) {
         onError?.(err instanceof Error ? err.message : String(err))

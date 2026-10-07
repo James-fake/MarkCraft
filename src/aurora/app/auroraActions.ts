@@ -19,6 +19,8 @@ import { findNode } from '@core/files/fileTree'
 
 export interface AuroraActionDeps {
   rootFolder: ReturnType<typeof useFileManager>['rootFolder']
+  /** 延迟取最新 root —— 导入流程专用：在文件选中回调内求值，避免用点击时的过期快照（审查 L1-2026-10-07） */
+  getRootFolder: () => ReturnType<typeof useFileManager>['rootFolder']
   createFile: ReturnType<typeof useFileManager>['createFile']
   createFolder: ReturnType<typeof useFileManager>['createFolder']
   openFile: ReturnType<typeof useFileManager>['openFile']
@@ -52,7 +54,7 @@ export interface AuroraActionDeps {
 }
 
 export function buildAuroraActions(deps: AuroraActionDeps): Record<string, (() => void) | undefined> {
-  const { rootFolder, createFile, createFolder, openFile, getActiveFileId, tabs, closeTab, updateSetting, theme, focusMode, typewriterMode, getOutgoingLinks, toggleLanguage, nav, modalOpen, cmdBridge, viewRef, toast, labels } = deps
+  const { rootFolder, getRootFolder, createFile, createFolder, openFile, getActiveFileId, tabs, closeTab, updateSetting, theme, focusMode, typewriterMode, getOutgoingLinks, toggleLanguage, nav, modalOpen, cmdBridge, viewRef, toast, labels } = deps
 
   // 非编辑器视图下，先跳编辑器并延迟执行，待 EditorPanel 挂载并注册 cmdBridge 后再触达编辑器内部动作。
   const runInEditor = (fn: () => void) => () => {
@@ -77,7 +79,7 @@ export function buildAuroraActions(deps: AuroraActionDeps): Record<string, (() =
     'tools.openBlogStudio': () => nav('blog'),
     // —— Phase 3d：弹层触发型命令（此前无 auroraAction → 命令面板缺失 + 弹层不可达）——
     // 「打开文件」：直达系统文件框（去掉中间弹窗，遵循 macOS HIG「不为简单操作弹 sheet」/ Cmd+O 惯例）
-    'file.importFile': () => { nav('editor'); pickAndImportFile({ rootFolder, createFile, onError: toast }) },
+    'file.importFile': () => { nav('editor'); pickAndImportFile({ getRootFolder, createFile, onError: toast }) },
     'tools.linkRedirect': () => { nav('editor'); modalOpen('linkRedirect') },
     'tools.openBlockBacklinks': () => {
       if (!getActiveFileId()) { toast(labels.openNoteFirst); return }

@@ -104,6 +104,9 @@ function ShellInner() {
 
   // 命令：从共享 COMMAND_CATALOG 注册真实命令（D4 单一数据源），Aurora 接真实 action
   const { rootFolder, hydrated, createFile, createFolder, openFile, updateFileContent, getActiveFileId, tabs, closeTab, moveNode, closeTransientTabs } = useFileManager()
+  // 供导入流程在「文件选中」回调里读最新 root（避免过期快照，审查 L1-2026-10-07）
+  const rootFolderRef = useRef(rootFolder)
+  rootFolderRef.current = rootFolder
   const { settings, updateSetting } = useSettings()
   const theme = settings.theme
   const focusMode = !!settings.focusMode
@@ -224,13 +227,18 @@ function ShellInner() {
       setIsDragOver(false)
       const files = e.dataTransfer?.files
       if (!files || files.length === 0) return
+      // 批量去重（审查 M1-2026-10-07）：rootFolder 是 effect 闭包快照，循环内 createFile
+      // 只改 store、不会更新它；故用 taken 累积本轮已生成的名字一并判重，
+      // 否则一次拖入多个同名文件会各自基于旧快照判定「不冲突」而产出重名。
+      const taken = new Set<string>()
       for (const file of Array.from(files)) {
         // 仅处理受支持的**文档**格式；图片等仍由编辑器内的图片拖放处理器接管。
         // 白名单与「打开文件」共用 SUPPORTED_EXT（单一来源），不再各自硬编码。
         if (!isSupportedFile(file.name)) continue
         try {
           const { baseName, content } = await importFileToMarkdown(file)
-          const name = uniqueFileName(rootFolder, baseName)
+          const name = uniqueFileName(rootFolder, baseName, taken)
+          taken.add(name)
           createFile('root', name, content)
         } catch (err) {
           toast.show(err instanceof Error ? err.message : String(err), 'error')
@@ -251,6 +259,7 @@ function ShellInner() {
 
   const auroraActions = buildAuroraActions({
     rootFolder,
+    getRootFolder: () => rootFolderRef.current,
     createFile,
     createFolder,
     openFile,
