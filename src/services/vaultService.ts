@@ -185,7 +185,15 @@ async function doSync(rootFolder: FileNode, vaultRoot: string): Promise<void> {
         await fs.mkdir(cur.path).catch(() => {})
         synced.set(id, cur)
       } else if (prev.path !== cur.path) {
-        await fs.mkdir(cur.path).catch(() => {})
+        // 目录改名 / 移动：连同子树 rename（walk 保证父先于子入 Map，故父目录先搬，
+        // 子节点随后各自标记为已同步；其 rename 会因旧路径已不在而静默跳过）。
+        await fs.mkdir(dirname(cur.path)).catch(() => {})
+        try {
+          await fs.rename(prev.path, cur.path)
+        } catch {
+          // 旧目录不在盘上（如外部已删/移走）→ 退化为新建，避免改名后目录整体消失
+          await fs.mkdir(cur.path).catch(() => {})
+        }
         synced.set(id, cur)
       }
       continue
@@ -195,7 +203,12 @@ async function doSync(rootFolder: FileNode, vaultRoot: string): Promise<void> {
       synced.set(id, cur)
     } else if (prev.path !== cur.path) {
       await fs.mkdir(dirname(cur.path)).catch(() => {})
-      await fs.rename(prev.path, cur.path).catch(() => {})
+      try {
+        await fs.rename(prev.path, cur.path)
+      } catch {
+        // 旧文件不在盘上（外部已删/移动）→ 直接在新路径写出内容，避免改名丢文件
+        await fs.writeFile(cur.path, cur.content).catch(() => {})
+      }
       synced.set(id, cur)
     } else if (prev.content !== cur.content) {
       await fs.writeFile(cur.path, cur.content).catch(() => {})

@@ -117,7 +117,7 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 | **P1** ✅ | `src/platform/` 抽象层（接口 + browser 实现 + 单例），把现有 11 处 FSA、下载、窗口控制收敛进去 | tsc ✓ · 现有 149 单测 + 43 E2E 全绿（行为不变） |
 | **P2** ✅ | Electron 骨架：main + preload + 编译脚本 + frameless 窗口 + 真实窗口控制 | `npm run electron:dev` 能起窗口；窗口控制可用（Electron E2E 5/5） |
 | **P3** ✅ | 打通 fs：`fs` IPC + 目录树读取 + 打开文件夹 + **打开原文件所在位置** | 真实桌面壳经 IPC 读写磁盘；readDirectory 读树（含递归）、writeFile 原子写、reveal 可用；Electron E2E 11/11（09+10）全绿 |
-| **P4** 🟡 | 存储切换（分 A/B/C/D）：A 核心 VaultService + 双后端分派 + 读写落盘；B rename/move/delete 全联动；C 文件监听（外部改动可感知）；D IndexedDB→Vault 迁移引导 | A+C：桌面端经 `platform.fs` 读 Vault 真实 `.md` 到文件树，编辑/重命名/删除/新建经 `syncTree` 落盘，外部增删改由 fs.watch 跟随刷新；B/D 后续 |
+| **P4** 🟡 | 存储切换（分 A/B/C/D）：A 核心 VaultService + 双后端分派 + 读写落盘；B rename/move/delete 全联动；C 文件监听（外部改动可感知）；D IndexedDB→Vault 迁移引导 | A+B+C：桌面端经 `platform.fs` 读 Vault 真实 `.md` 到文件树，编辑/重命名/删除/移动经 `syncTree` 落盘，外部增删改由 fs.watch 跟随刷新；D 后续 |
 | **P5** ✅ | 打包分发：`electron-builder` → 绿色版 exe + NSIS 安装包 + `.md` 文件关联 | `electron-builder` 产出 NSIS 安装包 + portable 绿色版 exe，`.md`/`.markdown` 文件关联；打包产物冒烟 E2E 通过 |
 | **P6**（可选） | 网络请求挪主进程（解 CORS）+ Pandoc sidecar（真 EPUB） | Cloudflare 部署可用；EPUB 走 Pandoc |
 
@@ -240,6 +240,27 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 - **待办（发布前）**：当前用默认 Electron 图标（日志 `default Electron icon is used`）；未配代码签名证书（signtool 走空签）。正式发布需补 `build/icon.ico`（≥256×256）与签名证书。
 
 **验证：** `npm run electron:pack`（--dir）产出 `win-unpacked/MarkCraft.exe`（246MB）并**真机起窗渲染**（`e2e/13-electron-packaged.spec.ts` 2/2：非白屏 + 无致命资源错误，证明 file:// 相对资源加载成功）；`electron-builder --win` 产出 NSIS 安装包 + portable 绿色版 exe。
+
+---
+
+### P4-B 完成情况（2026-10-08）
+
+**rename / move / delete 全链路回归 —— 修 2 个真实 bug + 补 8 个用例：**
+
+| 项 | 内容 |
+|---|---|
+| **Bug 1（修）** | `doSync` 对**目录改名/移动**只 `mkdir` 新路径、**不 rename 旧目录** → 旧空目录残留在磁盘。改为 `mkdir(dirname)` + `fs.rename(prev, cur)`（连同子树搬迁；walk 保证父先于子，子节点随后各自标记已同步）。 |
+| **Bug 2（修）** | 文件/目录 rename 失败（源已不在盘上，如外部已删）时被 `.catch` 静默吞掉 → **改名丢文件**。改为 fallback：文件走 `writeFile(cur.path, content)`，目录走 `mkdir(cur.path)`。 |
+| **Bug 3（修，P4-C 回填）** | **自身写入回显**：应用写盘 → fs.watch 把这次改动当「外部改动」回推 → 触发整 Vault reload，既浪费又**盖掉进行中的 UI 操作**（实测：改名后紧跟删除，reload 把刚删的节点从磁盘读回）。修法：主进程 `selfWrites` 记录自己刚写的路径，`classifyAndSend` 在 3s 窗口内忽略（`writeFile`/`rename`(双路径)/`remove`/`mkdir` 都标记）。 |
+| 单测 | `vaultService.test.ts` 6 → **12 个**：补 move 文件到子目录 / 文件夹改名 / 移动文件夹（整树）/ 删除文件夹（.md 移除、目录留盘）/ 改名去后缀 / 旧路径缺失退化。mock 的 `rename` 升级为**递归**（目录整树迁移）+ **源缺失抛 ENOENT**（贴近真实 fs）。 |
+| E2E | 新增 `e2e/14-electron-vault-crud.spec.ts` 3/3：空态新建 → 磁盘 .md；文件树右键重命名 → 磁盘改名；右键删除+确认 → 磁盘移除。覆盖「UI 动作 → FileStore → syncTree → 磁盘」完整链路。 |
+
+**关键设计决定：**
+- **删除文件夹「目录留盘」策略保留**（只删其中的 `.md`）：Vault 里可能有用户手放的非笔记目录/文件，loadVault 不纳管，删目录会误伤 → 保守留盘。
+- **回显抑制放在主进程**：只有主进程确切知道「这次写盘是不是自己发起的」，放渲染端只能靠 mtime 猜测 → 更准、更省。
+- **TTL 3s**：覆盖 watcher 200ms 去抖 + 渲染端 500ms reload 去抖的往返延迟；代价是「应用写某文件后 3s 内该文件的外部改动会被漏掉」——概率极低，可接受。
+
+**验证：** tsc 两套零错误；vaultService 12/12；Electron E2E 11/12/14 全绿（11=3、12=2、14=3）；全量见下方提交记录。
 
 ---
 

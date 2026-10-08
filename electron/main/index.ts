@@ -106,6 +106,28 @@ async function toDirEntry(fullPath: string): Promise<{
 }
 
 /** 文件系统（P3）：读目录树、读写文件、原子写、exists、stat、mkdir、rename、remove */
+// —— P4-C 自身写入回显抑制 ——
+// 应用自己经 mc:fs:writeFile/rename/remove 写盘后，fs.watch 会把这次改动当「外部改动」
+// 回推给渲染端 → 触发一次整 Vault reload，既浪费又会**盖掉用户正在进行中的 UI 操作**
+// （实测：改名后紧跟删除，reload 把刚删的节点又从磁盘读回来）。
+// 故主进程记录「刚由自己写过的路径」，watcher 在窗口期内忽略这些路径的事件。
+const SELF_WRITE_TTL_MS = 3000
+const selfWrites = new Map<string, number>()
+
+function markSelfWrite(p: string): void {
+  selfWrites.set(p, Date.now())
+  // 顺带清理过期项，避免 Map 无限增长
+  if (selfWrites.size > 512) {
+    const now = Date.now()
+    for (const [k, t] of selfWrites) if (now - t > SELF_WRITE_TTL_MS) selfWrites.delete(k)
+  }
+}
+
+function isSelfWrite(p: string): boolean {
+  const t = selfWrites.get(p)
+  return t !== undefined && Date.now() - t < SELF_WRITE_TTL_MS
+}
+
 function bindFsIpc(): void {
   ipcMain.handle('mc:fs:readDir', async (_e, root: string, options?: { recursive?: boolean; includeHidden?: boolean }) => {
     const entries = await fsp.readdir(root, { withFileTypes: true })
@@ -136,6 +158,7 @@ function bindFsIpc(): void {
     const tmp = `${p}.${process.pid}.${Date.now()}.tmp`
     await fsp.writeFile(tmp, content, 'utf-8')
     await fsp.rename(tmp, p)
+    markSelfWrite(p) // P4-C：抑制自身写入回显
   })
 
   ipcMain.handle('mc:fs:exists', async (_e, p: string) => {
@@ -151,14 +174,19 @@ function bindFsIpc(): void {
 
   ipcMain.handle('mc:fs:mkdir', async (_e, p: string) => {
     await fsp.mkdir(p, { recursive: true })
+    markSelfWrite(p)
   })
 
   ipcMain.handle('mc:fs:rename', async (_e, p: string, newPath: string) => {
     await fsp.rename(p, newPath)
+    // 旧路径（消失）与新路径（出现）都抑制，避免 watcher 把这次改名当外部改动
+    markSelfWrite(p)
+    markSelfWrite(newPath)
   })
 
   ipcMain.handle('mc:fs:remove', async (_e, p: string) => {
     await fsp.rm(p, { recursive: true, force: true })
+    markSelfWrite(p)
   })
 
   // 「打开原文件所在位置」（D3）：showItemInFolder 在路径不存在时不应崩
@@ -194,6 +222,8 @@ function isUnderHidden(fullPath: string): boolean {
 
 function classifyAndSend(rec: FsWatchRecord, fullPath: string): void {
   if (isUnderHidden(fullPath)) return
+  // 抑制自身写入回显：应用刚写过的路径，watcher 不再当外部改动推给渲染端
+  if (isSelfWrite(fullPath)) return
   let type: FsWatchKind
   if (!existsSync(fullPath)) {
     type = 'delete'
