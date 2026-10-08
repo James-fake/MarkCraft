@@ -10,6 +10,8 @@ out/
 release*/
 # 预解压的 Electron dist（绕开 Windows Defender 锁 electron.exe 导致 rename EPERM）
 .electron-dist/
+# 图标生成的临时 HTML（scripts/gen-icon.cjs 运行时产物，正常会自动清理）
+build/.icon-render.html
 
 # ===== 运行期与临时 =====
 *.log

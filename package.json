@@ -22,6 +22,7 @@
     "electron:compile": "esbuild electron/main/index.ts --bundle --platform=node --format=esm --external:electron --external:node:* --outfile=out/main/index.mjs && esbuild electron/preload/index.ts --bundle --platform=node --format=cjs --external:electron --external:node:* --outfile=out/preload/index.cjs",
     "electron:dev": "npm run electron:compile && node scripts/start-electron.cjs",
     "electron:start": "npm run build && npm run electron:compile && node scripts/start-electron.cjs --dist",
+    "electron:icon": "node scripts/gen-icon.cjs",
     "electron:prepare-dist": "node scripts/prepare-electron-dist.cjs",
     "electron:pack": "npm run build && npm run electron:compile && npm run electron:prepare-dist && electron-builder --dir",
     "electron:dist": "npm run build && npm run electron:compile && npm run electron:prepare-dist && electron-builder",
@@ -130,6 +131,7 @@
     "asar": true,
     "electronDist": ".electron-dist",
     "win": {
+      "icon": "build/icon.png",
       "target": [
         {
           "target": "nsis",
@@ -159,6 +161,7 @@
       "artifactName": "${productName}-Portable-${version}-${arch}.${ext}"
     },
     "mac": {
+      "icon": "build/icon.png",
       "target": [
         "dmg",
         "zip"
@@ -166,6 +169,7 @@
       "category": "public.app-category.productivity"
     },
     "linux": {
+      "icon": "build/icon.png",
       "target": [
         "AppImage"
       ],

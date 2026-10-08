@@ -237,7 +237,8 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 - **下载走 npmmirror**：electron / nsis / winCodeSign 等二进制默认从 GitHub 拉，国内易超时；设 `ELECTRON_MIRROR` + `ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/...` 秒下。
 - **nsis 与 portable 必须区分 artifactName**：两者都是 `.exe`，默认同名会互相覆盖（首轮实测 portable 覆盖了 nsis）→ `nsis.artifactName`/`portable.artifactName` 分别加 `-Setup` / `-Portable` 后缀。
 - **`files` 不含 node_modules**：因 main/renderer 均已全量 bundle，运行时零 node_modules 依赖 → 包体更小、无原生模块 ABI 问题（@electron/rebuild 会跑但无实际原生依赖）。
-- **待办（发布前）**：当前用默认 Electron 图标（日志 `default Electron icon is used`）；未配代码签名证书（signtool 走空签）。正式发布需补 `build/icon.ico`（≥256×256）与签名证书。
+- **应用图标 ✅（2026-10-08）**：`build/icon.svg`（品牌源图，M 用 path 免字体依赖）+ `scripts/gen-icon.cjs`（用**已装 Electron** 离屏渲染 → `build/icon.png` 1024×1024，零新增依赖）+ `npm run electron:icon`；`build.win/mac/linux.icon` 均指向它，electron-builder 自动转 ICO/ICNS。构建日志已无 `default Electron icon is used`。
+- **代码签名 📄（需真实证书）**：electron-builder 自动读 `CSC_LINK`/`CSC_KEY_PASSWORD`（Windows `.pfx`）/ `APPLE_ID` 等（macOS 公证），**无需改配置**。完整指引见 `docs/CODE_SIGNING.md`。⚠️ 自签名证书不能解决分发（SmartScreen 只认受信任 CA），拿到真实 OV/EV 证书前发布产物仍为未签名。
 
 **验证：** `npm run electron:pack`（--dir）产出 `win-unpacked/MarkCraft.exe`（246MB）并**真机起窗渲染**（`e2e/13-electron-packaged.spec.ts` 2/2：非白屏 + 无致命资源错误，证明 file:// 相对资源加载成功）；`electron-builder --win` 产出 NSIS 安装包 + portable 绿色版 exe。
 
