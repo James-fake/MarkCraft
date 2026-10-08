@@ -89,6 +89,8 @@ export interface ReadDirOptions {
  *  - writeFile 的父目录不存在时自动创建（recursive）；
  *  - readDirectory 返回项含 `isDirectory` / `isFile` / 绝对 `path`；
  *  - exists 对不存在路径返回 false 而非抛错。
+ *  - watch 跨平台差异（Windows ✓ / macOS Node 20+ ✓ / Linux 顶层 only）由
+ *    桌面实现内部吸收；业务只看到「对目录改动回调」，调用方据此 reload。
  */
 export interface FsAPI {
   readDirectory(path: string, options?: ReadDirOptions): Promise<DirEntry[]>
@@ -99,6 +101,15 @@ export interface FsAPI {
   mkdir(path: string): Promise<void>
   rename(path: string, newPath: string): Promise<void>
   remove(path: string): Promise<void>
+  /**
+   * 递归监听目录改动。返回**取消订阅**函数。
+   * 浏览器无此能力 → 立即返回 no-op 取消函数（不抛错，让调用方代码可双端复用）。
+   * type 语义：'create' = 目录新增/重命名入；'change' = .md 内容改；'delete' = 路径消失。
+   */
+  watch(
+    root: string,
+    onEvent: (event: { type: 'create' | 'change' | 'delete'; path: string }) => void,
+  ): () => void
 }
 
 export interface FileFilter {

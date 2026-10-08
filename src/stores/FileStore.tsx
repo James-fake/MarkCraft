@@ -117,6 +117,38 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     saveState(toPersist);
   }, [state, hydrated, vaultRoot]);
 
+  // —— P4-C：外部文件改动监听 ——
+  // 桌面端选中 Vault 后挂上 fs.watch；外部（资源管理器 / git / IDE）改了 .md 或
+  // 增删目录 → 防抖 500ms → loadVault 重建内存树 + resetSync（清基线，避免接下来
+  // save effect 把刚 reload 的全树再写一遍）→ setState。文件树立刻跟随。
+  // 已知限制：当前活动文件的**编辑器本地草稿**不会自动同步外部版本（P4-C+ 引入
+  // 「外部改动 vs 未保存编辑」的冲突解决再补）；保存会覆盖外部改动，接受为 MVP 权衡。
+  useEffect(() => {
+    if (platform.kind !== 'electron' || !vaultRoot) return
+    let cancelled = false
+    let reloadTimer: ReturnType<typeof setTimeout> | null = null
+    const reload = () => {
+      if (cancelled) return
+      loadVault(vaultRoot)
+        .then((tree) => {
+          if (cancelled) return
+          resetSync(tree, vaultRoot)
+          setState((prev) => ({ ...prev, rootFolder: tree }))
+          logger.info('[FileStore] 外部改动触发 Vault reload：', vaultRoot)
+        })
+        .catch((err) => logger.error('[FileStore] 外部改动 reload 失败：', err))
+    }
+    const unsubscribe = platform.fs.watch(vaultRoot, () => {
+      if (reloadTimer) clearTimeout(reloadTimer)
+      reloadTimer = setTimeout(reload, 500)
+    })
+    return () => {
+      cancelled = true
+      if (reloadTimer) clearTimeout(reloadTimer)
+      unsubscribe()
+    }
+  }, [vaultRoot]);
+
   // 一次性净化：清掉**历史遗留在「最近文件」里的内置使用文档条目**。
   //
   // 这些条目是旧版 openFile「无条件 addRecentFile」的产物。留着的危害不只是「最近列表多一条」：

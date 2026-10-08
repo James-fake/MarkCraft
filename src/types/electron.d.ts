@@ -78,6 +78,15 @@ export interface MarkCraftFsAPI {
   mkdir(path: string): Promise<void>
   rename(path: string, newPath: string): Promise<void>
   remove(path: string): Promise<void>
+  /**
+   * 监听目录（递归，跨平台差异见 `electron/main/index.ts#bindFsWatchIpc` 注释）。
+   * 事件经 per-path 去抖 200ms 过滤后回调；隐藏目录内的改动不会触发回调。
+   * 返回**取消订阅**函数 —— 调用后停止监听并解绑 IPC。
+   */
+  watch(
+    root: string,
+    onEvent: (event: { type: 'create' | 'change' | 'delete'; path: string }) => void,
+  ): () => void
 }
 
 /** 原生对话框（选文件 / 选目录 / 保存） */

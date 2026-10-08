@@ -37,6 +37,42 @@ const api = {
     mkdir: (path: string) => ipcRenderer.invoke('mc:fs:mkdir', path),
     rename: (path: string, newPath: string) => ipcRenderer.invoke('mc:fs:rename', path, newPath),
     remove: (path: string) => ipcRenderer.invoke('mc:fs:remove', path),
+    // —— P4-C：文件监听 ——
+    // 主进程开 fs.watch(root, {recursive:true})，事件经 per-path 去抖后 send 回来；
+    // 渲染端注册监听，关闭/卸载时调 unwatch 回收。闭包跨 contextBridge 合法。
+    watch: (
+      root: string,
+      onEvent: (event: { type: 'create' | 'change' | 'delete'; path: string }) => void,
+    ): (() => void) => {
+      let stopped = false
+      let watchId: string | null = null
+      const listener = (_e: unknown, payload: { type: 'create' | 'change' | 'delete'; path: string }) => {
+        if (stopped) return
+        onEvent(payload)
+      }
+      ipcRenderer.on('mc:fs:watch', listener)
+      ipcRenderer
+        .invoke('mc:fs:watch', root)
+        .then((id) => {
+          if (stopped) {
+            // invoke 期间被取消 → 立刻回收
+            ipcRenderer.invoke('mc:fs:unwatch', id)
+            ipcRenderer.removeListener('mc:fs:watch', listener)
+            return
+          }
+          watchId = id
+        })
+        .catch(() => {
+          // 启动失败也解绑监听
+          ipcRenderer.removeListener('mc:fs:watch', listener)
+        })
+      return () => {
+        if (stopped) return
+        stopped = true
+        ipcRenderer.removeListener('mc:fs:watch', listener)
+        if (watchId) ipcRenderer.invoke('mc:fs:unwatch', watchId)
+      }
+    },
   },
 
   // —— P3：原生对话框 ——

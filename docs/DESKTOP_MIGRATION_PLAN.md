@@ -117,7 +117,7 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 | **P1** ✅ | `src/platform/` 抽象层（接口 + browser 实现 + 单例），把现有 11 处 FSA、下载、窗口控制收敛进去 | tsc ✓ · 现有 149 单测 + 43 E2E 全绿（行为不变） |
 | **P2** ✅ | Electron 骨架：main + preload + 编译脚本 + frameless 窗口 + 真实窗口控制 | `npm run electron:dev` 能起窗口；窗口控制可用（Electron E2E 5/5） |
 | **P3** ✅ | 打通 fs：`fs` IPC + 目录树读取 + 打开文件夹 + **打开原文件所在位置** | 真实桌面壳经 IPC 读写磁盘；readDirectory 读树（含递归）、writeFile 原子写、reveal 可用；Electron E2E 11/11（09+10）全绿 |
-| **P4** 🟡 | 存储切换（分 A/B/C/D）：A 核心 VaultService + 双后端分派 + 读写落盘；B rename/move/delete 全联动；C 文件监听（外部改动可感知）；D IndexedDB→Vault 迁移引导 | A：桌面端经 `platform.fs` 读 Vault 真实 `.md` 到文件树，编辑/重命名/删除/新建经 `syncTree` 落盘；B/C/D 后续 |
+| **P4** 🟡 | 存储切换（分 A/B/C/D）：A 核心 VaultService + 双后端分派 + 读写落盘；B rename/move/delete 全联动；C 文件监听（外部改动可感知）；D IndexedDB→Vault 迁移引导 | A+C：桌面端经 `platform.fs` 读 Vault 真实 `.md` 到文件树，编辑/重命名/删除/新建经 `syncTree` 落盘，外部增删改由 fs.watch 跟随刷新；B/D 后续 |
 | **P5** | 打包分发：`electron-builder` → 绿色版 exe + NSIS 安装包 + `.md` 文件关联 | 双击安装包可装；双击 `.md` 用 MarkCraft 打开 |
 | **P6**（可选） | 网络请求挪主进程（解 CORS）+ Pandoc sidecar（真 EPUB） | Cloudflare 部署可用；EPUB 走 Pandoc |
 
@@ -189,8 +189,31 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 
 **P4 后续子阶段：**
 - **P4-B**：rename/move/delete 联动校验 + 文件名冲突去重（已部分经 `syncTree` 覆盖，需补回归用例）
-- **P4-C**：`mc:fs:watch` 主进程监听 → preload `platform.fs.watch(path, cb)` → FileStore 受控刷新
+- **P4-C** ✅：`mc:fs:watch` 主进程监听 → preload `platform.fs.watch(path, cb)` → FileStore 受控刷新（详见下文）
 - **P4-D**：首次启动检测到 IndexedDB 存量时弹一次性「迁移到 Vault」引导（导出 `.md` 副本到用户选定目录，保留 IDB 不破坏）
+
+### P4-C 完成情况（2026-10-08）
+
+**文件监听 —— 外部改动可感知（资源管理器 / git / IDE）：**
+
+| 层 | 改动 |
+|---|---|
+| `electron/main` | `bindFsWatchIpc`：`fs.watch(root, {recursive:true})` 零依赖（Windows ✓ / macOS Node 20+ ✓ / Linux 顶层 only 文档化）；per-path 200ms 防抖 + 隐藏段过滤（`split('.')` 跳过 `.markcraft` 等） + statSync 分类（create/change/delete，非 `.md`/非目录丢弃）；`webContents.send('mc:fs:watch')` 推送；`wc.once('destroyed')` 自动回收避免泄漏 |
+| `electron/preload` | `window.markcraft.fs.watch(root, cb)`：注册 `mc:fs:watch` 监听 + invoke 拿 id，返回**取消订阅函数**（闭包跨 contextBridge 合法；invoke 期间被取消也能补 invoke `mc:fs:unwatch`） |
+| `types/electron.d.ts` | `MarkCraftFsAPI.watch` 签名（`onEvent: ({type,path}) => void` → `() => void`） |
+| `src/platform/types` | `FsAPI.watch` 契约 + 跨平台差异注释 |
+| `src/platform/electron` | `desktopFs.watch` 委托 preload |
+| `src/platform/browser` | `watch: () => () => {}` no-op 取消函数（让调用方双端复用） |
+| `src/stores/FileStore` | 新增 `useEffect([vaultRoot])`：electron+vaultRoot → `platform.fs.watch`；事件 500ms 全局防抖 → `loadVault` + `resetSync(tree, root)`（清基线防 save effect 全树回写风暴）→ `setState` 换根 |
+
+**关键设计决定：**
+- **零依赖 `fs.watch`**：不引入 chokidar；用 Node 内置 recursive watch，主平台（Windows/macOS）可靠；Linux 顶层 only 限制在 main 注释文档化，P4-C+ 必要时再换 chokidar。
+- **per-path 200ms + 全局 500ms 双层防抖**：合并外部短时 burst（git pull 一秒内改几十个文件），避免 reload 风暴；loadVault 后必须 `resetSync` 清基线，否则 save effect 看到「全树变更」会回写所有文件。
+- **事件过滤在主进程**：非 `.md` 文件（如 `.tmp` / IDE 锁文件）和隐藏目录内的改动直接丢弃，不污染渲染端；节省 IPC。
+- **MVP 权衡 —— 编辑器本地草稿不同步**：watch 触发 reload 会刷新文件树和**内存树**（含打开文件的磁盘内容），但 `EditorPanel.localContent` 仍以用户最后编辑版为准；保存会覆盖外部改动。P4-C+ 引入「外部改动 vs 未保存编辑」的冲突解决（dirty 检测 + 提示）再补。
+- **`wc.once('destroyed')` 自动回收**：用户关闭窗口即停监听 + 清防抖 timer，零泄漏；多个窗口监同一根目录自然得多个 watcher（轻微冗余可接受）。
+
+**验证：** tsc --noEmit + tsc -p tsconfig.electron.json 零错误；vitest 1873 通过 / 2 跳过 / 0 失败断言（151 文件全过，2 unhandled Dexie 既有噪音）；playwright 59 通过 / 1 跳过（54 既有 + 3 新 11-vault + 2 新 12-watch）。
 
 ---
 

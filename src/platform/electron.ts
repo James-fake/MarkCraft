@@ -100,6 +100,15 @@ const desktopFs: FsAPI = {
   remove(path: string) {
     return api()?.fs.remove(path) ?? Promise.reject(new Error('fs 不可用'))
   },
+  // P4-C：文件监听 → 委托 preload；返回取消订阅函数。
+  watch(
+    root: string,
+    onEvent: (event: { type: 'create' | 'change' | 'delete'; path: string }) => void,
+  ): () => void {
+    const a = api()
+    if (!a?.fs.watch) return () => {}
+    return a.fs.watch(root, onEvent)
+  },
 }
 
 /** 原生对话框（读意图选目录/文件、写意图选保存路径） */

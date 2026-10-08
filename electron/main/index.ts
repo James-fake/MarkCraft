@@ -11,7 +11,7 @@
 import { app, BrowserWindow, ipcMain, shell, dialog, type IpcMainInvokeEvent } from 'electron'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { existsSync } from 'node:fs'
+import { existsSync, watch, statSync } from 'node:fs'
 import { promises as fsp } from 'node:fs'
 
 /**
@@ -173,6 +173,83 @@ function bindFsIpc(): void {
   })
 }
 
+// —— P4-C：文件监听（外部改动可感知）——
+// 用 Node 内置 `fs.watch(root, {recursive:true})`，零依赖：
+//   - Windows：✓ 自 Node 8+ 原生支持（ReadDirectoryChangesW）
+//   - macOS ：✓ Node 20+（FSEvents 启用 recursive）
+//   - Linux ：⚠️ inotify 不支持递归，仅顶层；接受此限制并文档化
+// 事件去抖：per-path 200ms（外部短时 burst 合并），过滤 .md + 目录 + 跳隐藏段。
+type FsWatchKind = 'create' | 'change' | 'delete'
+interface FsWatchEvent { type: FsWatchKind; path: string }
+interface FsWatchRecord {
+  watcher: import('node:fs').FSWatcher
+  debounce: Map<string, NodeJS.Timeout>
+  send: (payload: FsWatchEvent) => void
+}
+const fsWatchers = new Map<string, FsWatchRecord>()
+
+function isUnderHidden(fullPath: string): boolean {
+  return fullPath.split(/[\\/]/).some((seg) => seg.startsWith('.'))
+}
+
+function classifyAndSend(rec: FsWatchRecord, fullPath: string): void {
+  if (isUnderHidden(fullPath)) return
+  let type: FsWatchKind
+  if (!existsSync(fullPath)) {
+    type = 'delete'
+  } else {
+    let isDir = false
+    try { isDir = statSync(fullPath).isDirectory() } catch { return }
+    type = isDir ? 'create' : 'change'
+    if (!isDir && !fullPath.toLowerCase().endsWith('.md')) return
+  }
+  rec.send({ type, path: fullPath })
+}
+
+function bindFsWatchIpc(): void {
+  ipcMain.handle('mc:fs:watch', (e, root: string) => {
+    if (typeof root !== 'string' || !root) throw new Error('watch root required')
+    const id = `w_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+    const wc = e.sender
+    const send = (payload: FsWatchEvent) => {
+      if (wc.isDestroyed()) return
+      wc.send('mc:fs:watch', payload)
+    }
+    const debounce = new Map<string, NodeJS.Timeout>()
+    // recursive: true 跨平台差异见函数头注释
+    const watcher = watch(root, { recursive: true }, (_evt, filename) => {
+      if (!filename) return
+      const fullPath = join(root, filename)
+      const prev = debounce.get(fullPath)
+      if (prev) clearTimeout(prev)
+      const t = setTimeout(() => {
+        debounce.delete(fullPath)
+        classifyAndSend(rec, fullPath)
+      }, 200)
+      debounce.set(fullPath, t)
+    })
+    const rec: FsWatchRecord = { watcher, debounce, send }
+    fsWatchers.set(id, rec)
+    // 渲染端销毁（窗口关闭）→ 顺手回收监听，避免泄漏
+    wc.once('destroyed', () => {
+      const r = fsWatchers.get(id)
+      if (!r) return
+      r.watcher.close()
+      r.debounce.forEach((t) => clearTimeout(t))
+      fsWatchers.delete(id)
+    })
+    return id
+  })
+
+  ipcMain.handle('mc:fs:unwatch', (_e, id: string) => {
+    const r = fsWatchers.get(id)
+    if (!r) return
+    r.watcher.close()
+    r.debounce.forEach((t) => clearTimeout(t))
+    fsWatchers.delete(id)
+  })
+}
+
 /** 原生对话框（P3）：选目录 / 选文件 / 保存 */
 function bindDialogIpc(): void {
   // showOpenDialog/showSaveDialog 的首参是必需的 BaseWindow；无窗口时走「仅 options」重载
@@ -261,6 +338,7 @@ function createWindow(): void {
 void app.whenReady().then(() => {
   bindWindowIpc()
   bindFsIpc()
+  bindFsWatchIpc()
   bindDialogIpc()
   createWindow()
 

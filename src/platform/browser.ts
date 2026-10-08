@@ -156,5 +156,7 @@ function makeUnsupportedFs(): FsAPI {
     mkdir: noop,
     rename: noop,
     remove: noop,
+    // P4-C：浏览器无文件监听能力 → 返回 no-op 取消函数，调用方代码可双端复用而不抛错
+    watch: () => () => {},
   }
 }
