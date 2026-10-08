@@ -11,17 +11,18 @@ interface PandocResult {
 
 // Check if we're running in Electron
 function isElectron(): boolean {
-  return !!window.electronAPI?.pandoc
+  return !!window.markcraft?.pandoc
 }
 
 // Call Pandoc through Electron IPC
 async function callPandocElectron(content: string, fromFormat: string, toFormat: string): Promise<PandocResult> {
   try {
-    const electronAPI = window.electronAPI
-    if (!electronAPI?.pandoc) {
+    // 统一走 window.markcraft 命名空间（契约见 src/types/electron.d.ts）
+    const desktop = window.markcraft
+    if (!desktop?.pandoc) {
       return { success: false, error: 'Pandoc not available' }
     }
-    const result = await electronAPI.pandoc.convert(content, fromFormat, toFormat)
+    const result = await desktop.pandoc.convert(content, fromFormat, toFormat)
     if (result.error) {
       return { success: false, error: result.error }
     }

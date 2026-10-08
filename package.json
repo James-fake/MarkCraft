@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "out/main/index.mjs",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -14,6 +15,10 @@
     "e2e": "playwright test",
     "e2e:ui": "playwright test --ui",
     "e2e:report": "playwright show-report e2e-report/html",
+    "typecheck:electron": "tsc -p tsconfig.electron.json",
+    "electron:compile": "esbuild electron/main/index.ts --bundle --platform=node --format=esm --external:electron --external:node:* --outfile=out/main/index.mjs && esbuild electron/preload/index.ts --bundle --platform=node --format=cjs --external:electron --external:node:* --outfile=out/preload/index.cjs",
+    "electron:dev": "npm run electron:compile && node scripts/start-electron.cjs",
+    "electron:start": "npm run build && npm run electron:compile && node scripts/start-electron.cjs --dist",
     "prepare": "husky"
   },
   "dependencies": {
@@ -74,6 +79,7 @@
     "@testing-library/react": "^14.0.0",
     "@types/dompurify": "^3.0.5",
     "@types/katex": "^0.16.8",
+    "@types/node": "^22.20.5",
     "@types/pako": "^2.0.4",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
@@ -83,6 +89,8 @@
     "@vitejs/plugin-react": "^4.2.1",
     "@vitest/coverage-v8": "^1.0.0",
     "autoprefixer": "^10.4.19",
+    "electron": "^44.7.0",
+    "esbuild": "^0.21.5",
     "eslint": "^8.57.0",
     "eslint-plugin-local": "file:./scripts/eslint-plugin-local",
     "eslint-plugin-react-hooks": "^4.6.0",

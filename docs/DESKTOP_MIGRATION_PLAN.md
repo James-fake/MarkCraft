@@ -115,7 +115,7 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 | 阶段 | 内容 | 可验证产出 |
 |---|---|---|
 | **P1** ✅ | `src/platform/` 抽象层（接口 + browser 实现 + 单例），把现有 11 处 FSA、下载、窗口控制收敛进去 | tsc ✓ · 现有 149 单测 + 43 E2E 全绿（行为不变） |
-| **P2** | Electron 骨架：main + preload + 构建脚本（`electron-vite` 或 vite 插件）+ frameless 窗口 + 真实窗口控制 | `npm run electron:dev` 能起窗口；窗口控制可用 |
+| **P2** ✅ | Electron 骨架：main + preload + 编译脚本 + frameless 窗口 + 真实窗口控制 | `npm run electron:dev` 能起窗口；窗口控制可用（Electron E2E 5/5） |
 | **P3** | 打通 fs：`fs` IPC + 目录树读取 + 打开文件夹 + **打开原文件所在位置** | Electron E2E：打开真实文件夹、reveal 可用 |
 | **P4** | 存储切换：Vault 模式 + 写入/重命名/删除/移动 + 文件监听 + 老数据迁移引导 | 真实 `.md` 落盘；外部改动可感知 |
 | **P5** | 打包分发：`electron-builder` → 绿色版 exe + NSIS 安装包 + `.md` 文件关联 | 双击安装包可装；双击 `.md` 用 MarkCraft 打开 |

@@ -4,6 +4,8 @@ dist/
 dist-*/
 build-verify/
 .vite/
+# Electron 编译产物（out/main、out/preload；由 npm run electron:compile 生成）
+out/
 
 # ===== 运行期与临时 =====
 *.log

@@ -1,23 +1,26 @@
 import type { Platform } from './types'
 import { browserPlatform } from './browser'
+import { electronPlatform, initElectronPlatform } from './electron'
 
 /**
  * 平台单例 —— 业务代码统一从这里取能力。
  *
- * P1 阶段恒为浏览器实现（行为与迁移前完全一致）。
- * P2 接入 Electron 后，在此按运行环境分派到 `electronPlatform`（走 preload 暴露的 IPC），
+ * 分派依据：`window.markcraft` 由 Electron preload 经 contextBridge 注入，
+ * 只有桌面环境存在；jsdom 单测与浏览器 E2E 走 browser 实现。
+ * P3 打通 fs、P6 接 Pandoc 时，都只在 `electron.ts` 里补实现，
  * **业务代码无需改动** —— 这正是本层存在的意义。
  */
 function resolvePlatform(): Platform {
-  // 预留：桌面环境下 window.markcraft 由 preload 注入
-  // const desktop = (globalThis as { markcraft?: unknown }).markcraft
-  // if (desktop) return electronPlatform
-  return browserPlatform
+  const desktop = typeof window !== 'undefined' ? window.markcraft : undefined
+  if (!desktop) return browserPlatform
+  initElectronPlatform()
+  return electronPlatform
 }
 
 export const platform: Platform = resolvePlatform()
 
 export { browserPlatform } from './browser'
+export { electronPlatform } from './electron'
 export type {
   Platform,
   PlatformKind,
