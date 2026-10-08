@@ -1,9 +1,12 @@
 {
   "name": "markcraft",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "main": "out/main/index.mjs",
+  "description": "MarkCraft —— 本地优先的 Markdown 写作与知识管理桌面应用",
+  "author": "MarkCraft",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
@@ -19,6 +22,10 @@
     "electron:compile": "esbuild electron/main/index.ts --bundle --platform=node --format=esm --external:electron --external:node:* --outfile=out/main/index.mjs && esbuild electron/preload/index.ts --bundle --platform=node --format=cjs --external:electron --external:node:* --outfile=out/preload/index.cjs",
     "electron:dev": "npm run electron:compile && node scripts/start-electron.cjs",
     "electron:start": "npm run build && npm run electron:compile && node scripts/start-electron.cjs --dist",
+    "electron:prepare-dist": "node scripts/prepare-electron-dist.cjs",
+    "electron:pack": "npm run build && npm run electron:compile && npm run electron:prepare-dist && electron-builder --dir",
+    "electron:dist": "npm run build && npm run electron:compile && npm run electron:prepare-dist && electron-builder",
+    "electron:dist:win": "npm run build && npm run electron:compile && npm run electron:prepare-dist && electron-builder --win --x64",
     "prepare": "husky"
   },
   "dependencies": {
@@ -90,6 +97,7 @@
     "@vitest/coverage-v8": "^1.0.0",
     "autoprefixer": "^10.4.19",
     "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
     "esbuild": "^0.21.5",
     "eslint": "^8.57.0",
     "eslint-plugin-local": "file:./scripts/eslint-plugin-local",
@@ -105,5 +113,77 @@
     "vite": "^5.2.0",
     "vite-plugin-pwa": "^0.20.5",
     "vitest": "^1.0.0"
+  },
+  "build": {
+    "appId": "com.markcraft.app",
+    "productName": "MarkCraft",
+    "copyright": "Copyright © 2026 MarkCraft",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "out/**/*",
+      "dist/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "electronDist": ".electron-dist",
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "artifactName": "${productName}-Setup-${version}-${arch}.${ext}",
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "MarkCraft",
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}-${arch}.${ext}"
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Office"
+    },
+    "fileAssociations": [
+      {
+        "ext": "md",
+        "name": "Markdown Document",
+        "description": "Markdown 文档",
+        "role": "Editor"
+      },
+      {
+        "ext": "markdown",
+        "name": "Markdown Document",
+        "description": "Markdown 文档",
+        "role": "Editor"
+      }
+    ]
   }
 }

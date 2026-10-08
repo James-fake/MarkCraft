@@ -2,7 +2,8 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <!-- 图标：相对路径，兼容 Electron file:// 与 web 两种加载（原 /vite.svg 为模板残留死链） -->
+    <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- E2 PWA：主题色与 iOS 独立窗口支持（manifest / SW 注册由 vite-plugin-pwa 自动注入） -->
     <meta name="theme-color" content="#2563eb" />
@@ -10,7 +11,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="MarkCraft" />
-    <link rel="apple-touch-icon" href="/icon.svg" />
+    <link rel="apple-touch-icon" href="./icon.svg" />
     <title>MarkCraft</title>
     <script>
       // 在CSS渲染前同步设置主题，避免闪烁

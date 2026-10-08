@@ -6,6 +6,10 @@ build-verify/
 .vite/
 # Electron 编译产物（out/main、out/preload；由 npm run electron:compile 生成）
 out/
+# electron-builder 打包产物（NSIS 安装包 / portable exe / dmg 等，体积大不入库）
+release*/
+# 预解压的 Electron dist（绕开 Windows Defender 锁 electron.exe 导致 rename EPERM）
+.electron-dist/
 
 # ===== 运行期与临时 =====
 *.log

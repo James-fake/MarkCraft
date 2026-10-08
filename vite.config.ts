@@ -148,6 +148,10 @@ function excalidrawLocalAssets(): any {
 }
 
 export default defineConfig(({ mode }) => ({
+  // P5 打包：生产产物要能经 Electron `loadFile`（file:// 协议）加载，绝对路径
+  // `/assets/...` 在 file:// 下会 404 → 生产用相对 base。dev 保持 '/'（E2E 走
+  // dev server，不受影响）。
+  base: mode === 'production' ? './' : '/',
   plugins: [
     react(),
     excalidrawLocalAssets(),

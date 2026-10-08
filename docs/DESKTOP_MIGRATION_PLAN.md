@@ -118,7 +118,7 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 | **P2** ✅ | Electron 骨架：main + preload + 编译脚本 + frameless 窗口 + 真实窗口控制 | `npm run electron:dev` 能起窗口；窗口控制可用（Electron E2E 5/5） |
 | **P3** ✅ | 打通 fs：`fs` IPC + 目录树读取 + 打开文件夹 + **打开原文件所在位置** | 真实桌面壳经 IPC 读写磁盘；readDirectory 读树（含递归）、writeFile 原子写、reveal 可用；Electron E2E 11/11（09+10）全绿 |
 | **P4** 🟡 | 存储切换（分 A/B/C/D）：A 核心 VaultService + 双后端分派 + 读写落盘；B rename/move/delete 全联动；C 文件监听（外部改动可感知）；D IndexedDB→Vault 迁移引导 | A+C：桌面端经 `platform.fs` 读 Vault 真实 `.md` 到文件树，编辑/重命名/删除/新建经 `syncTree` 落盘，外部增删改由 fs.watch 跟随刷新；B/D 后续 |
-| **P5** | 打包分发：`electron-builder` → 绿色版 exe + NSIS 安装包 + `.md` 文件关联 | 双击安装包可装；双击 `.md` 用 MarkCraft 打开 |
+| **P5** ✅ | 打包分发：`electron-builder` → 绿色版 exe + NSIS 安装包 + `.md` 文件关联 | `electron-builder` 产出 NSIS 安装包 + portable 绿色版 exe，`.md`/`.markdown` 文件关联；打包产物冒烟 E2E 通过 |
 | **P6**（可选） | 网络请求挪主进程（解 CORS）+ Pandoc sidecar（真 EPUB） | Cloudflare 部署可用；EPUB 走 Pandoc |
 
 ### P1 完成情况（2026-10-08）
@@ -214,6 +214,32 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 - **`wc.once('destroyed')` 自动回收**：用户关闭窗口即停监听 + 清防抖 timer，零泄漏；多个窗口监同一根目录自然得多个 watcher（轻微冗余可接受）。
 
 **验证：** tsc --noEmit + tsc -p tsconfig.electron.json 零错误；vitest 1873 通过 / 2 跳过 / 0 失败断言（151 文件全过，2 unhandled Dexie 既有噪音）；playwright 59 通过 / 1 跳过（54 既有 + 3 新 11-vault + 2 新 12-watch）。
+
+---
+
+### P5 完成情况（2026-10-08）
+
+**打包分发 —— `electron-builder` 出真 exe：**
+
+| 项 | 内容 |
+|---|---|
+| 依赖 | `electron-builder@26.15.3`（devDependency） |
+| 配置 | `package.json` `build` 字段：`appId=com.markcraft.app`、`productName=MarkCraft`、`directories.output=release`、`files=[out/**, dist/**, package.json]`（**不含 node_modules** —— main 由 esbuild 全量 bundle、renderer 由 Vite 全量 bundle，均自包含）、`asar=true` |
+| 目标 | win：`nsis`（安装包）+ `portable`（绿色版）；mac：`dmg`/`zip`；linux：`AppImage` |
+| 文件关联 | `.md` / `.markdown` → `role: Editor`（双击用 MarkCraft 打开） |
+| 脚本 | `electron:pack`（--dir 快速验证）、`electron:dist`（全平台）、`electron:dist:win`（Windows x64） |
+| 产物 | `MarkCraft-Setup-0.1.0-x64.exe`（NSIS 安装包）+ `MarkCraft-Portable-0.1.0-x64.exe`（绿色版） |
+
+**关键设计决定 / 踩坑：**
+- **生产 `base: './'`**（vite.config）：打包后渲染进程经 `app.isPackaged` 走 `loadFile(dist/index.html)`（file:// 协议），绝对 `/assets/...` 会 404 白屏 → 生产改相对 base；dev 仍 '/'（E2E 走 dev server 不受影响）。
+- **`index.html` 相对图标**：原 `/vite.svg` 是模板残留死链（public/ 里根本没有），改 `./icon.svg` 并删除死链。
+- **⚠️ `EPERM rename` 陷阱（本环境实测）**：electron-builder 默认「解压 electron.zip 到 `win-unpacked.tmp` → rename 为 `win-unpacked`」，Windows Defender 实时扫描锁住 `electron.exe`（~240MB）句柄 → `rename` 抛 `EPERM: operation not permitted`。**规避**：`scripts/prepare-electron-dist.cjs` 预解压缓存 zip 到 `.electron-dist/`，配 `build.electronDist=.electron-dist` → electron-builder 走「**拷贝**」分支（copy 不触发独占锁）。已写进 `electron:pack/dist` 脚本链，可复现。
+- **下载走 npmmirror**：electron / nsis / winCodeSign 等二进制默认从 GitHub 拉，国内易超时；设 `ELECTRON_MIRROR` + `ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/...` 秒下。
+- **nsis 与 portable 必须区分 artifactName**：两者都是 `.exe`，默认同名会互相覆盖（首轮实测 portable 覆盖了 nsis）→ `nsis.artifactName`/`portable.artifactName` 分别加 `-Setup` / `-Portable` 后缀。
+- **`files` 不含 node_modules**：因 main/renderer 均已全量 bundle，运行时零 node_modules 依赖 → 包体更小、无原生模块 ABI 问题（@electron/rebuild 会跑但无实际原生依赖）。
+- **待办（发布前）**：当前用默认 Electron 图标（日志 `default Electron icon is used`）；未配代码签名证书（signtool 走空签）。正式发布需补 `build/icon.ico`（≥256×256）与签名证书。
+
+**验证：** `npm run electron:pack`（--dir）产出 `win-unpacked/MarkCraft.exe`（246MB）并**真机起窗渲染**（`e2e/13-electron-packaged.spec.ts` 2/2：非白屏 + 无致命资源错误，证明 file:// 相对资源加载成功）；`electron-builder --win` 产出 NSIS 安装包 + portable 绿色版 exe。
 
 ---
 
