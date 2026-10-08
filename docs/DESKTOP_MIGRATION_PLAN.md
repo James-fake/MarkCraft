@@ -116,7 +116,7 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 |---|---|---|
 | **P1** ✅ | `src/platform/` 抽象层（接口 + browser 实现 + 单例），把现有 11 处 FSA、下载、窗口控制收敛进去 | tsc ✓ · 现有 149 单测 + 43 E2E 全绿（行为不变） |
 | **P2** ✅ | Electron 骨架：main + preload + 编译脚本 + frameless 窗口 + 真实窗口控制 | `npm run electron:dev` 能起窗口；窗口控制可用（Electron E2E 5/5） |
-| **P3** | 打通 fs：`fs` IPC + 目录树读取 + 打开文件夹 + **打开原文件所在位置** | Electron E2E：打开真实文件夹、reveal 可用 |
+| **P3** ✅ | 打通 fs：`fs` IPC + 目录树读取 + 打开文件夹 + **打开原文件所在位置** | 真实桌面壳经 IPC 读写磁盘；readDirectory 读树（含递归）、writeFile 原子写、reveal 可用；Electron E2E 11/11（09+10）全绿 |
 | **P4** | 存储切换：Vault 模式 + 写入/重命名/删除/移动 + 文件监听 + 老数据迁移引导 | 真实 `.md` 落盘；外部改动可感知 |
 | **P5** | 打包分发：`electron-builder` → 绿色版 exe + NSIS 安装包 + `.md` 文件关联 | 双击安装包可装；双击 `.md` 用 MarkCraft 打开 |
 | **P6**（可选） | 网络请求挪主进程（解 CORS）+ Pandoc sidecar（真 EPUB） | Cloudflare 部署可用；EPUB 走 Pandoc |
@@ -141,6 +141,28 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 **新增测试：** `src/platform/browser.test.ts`（16 条契约测试）—— 它是 **P2 Electron 实现的对标基准**（「取消返回 null」「非取消错误上抛」「目录写入支持嵌套相对路径」等语义在此钉死）。
 
 **已知遗留（不影响 P1 目标）：** `BlogPanel` 有 1 处 `window.open(blobUrl)` 的**新标签预览**（非下载），桌面端应改为「系统浏览器打开」或内部预览窗口 —— 需产品决策，留待 P2。
+
+---
+
+### P3 完成情况（2026-10-08）
+
+**打通 fs，桌面端能真实读写磁盘 + 打开原文件所在位置：**
+
+| 层 | 改动 |
+|---|---|
+| `electron.d.ts` | 新增 `MarkCraftFsAPI` / `MarkCraftDialogAPI` / `MarkCraftShellAPI`，并入 `MarkCraftDesktopAPI` |
+| `electron/main` | `bindFsIpc`（readDir / readFile / writeFile 原子写 / exists / stat / mkdir / rename / remove / reveal）+ `bindDialogIpc`（openDirectory / openFile / saveFile） |
+| `electron/preload` | 暴露 `window.markcraft.fs` / `dialog` / `shell`，全部走 IPC |
+| `src/platform/types` | 新增 `FsAPI` / `DialogAPI` / `DirEntry` 契约，扩展 `Platform`（`fs` / `dialog` 必选） |
+| `src/platform/electron` | 真实 `fs` / `dialog` 实现 + `revealInFolder` 走 `shell.showItemInFolder`（D3） |
+| `src/platform/browser` | 诚实降级：浏览器 `fs` 一律拒绝（不静默吞）、`dialog` 一律返回 `null` |
+
+**关键设计决定：**
+- **原子写**：`writeFile` 先写 `<path>.<pid>.<ts>.tmp` 再 `rename`，避免崩溃留下半截文件（计划 §2.3.3）；父目录不存在自动 `mkdir -p`。
+- **递归读跳过隐藏目录**：`readDirectory({recursive:true})` 默认跳过 `.git` / `.markcraft`，避免万级 Vault 误扫；`includeHidden` 可显式开启（P4 用）。
+- **浏览器 `fs` 拒绝而非 no-op**：防止桌面专属逻辑在 web 路径被悄悄吞掉产生隐性回归（契约测试见 `browser.test.ts` 仅覆盖既有面；fs 行为由 Electron E2E 10 覆盖）。
+
+**验证：** vitest 1878 通过 / 2 跳过；playwright 54 通过（含 web 43 + electron 11）；electron:compile 与 `tsc -p tsconfig.electron.json` 零错误。
 
 ---
 

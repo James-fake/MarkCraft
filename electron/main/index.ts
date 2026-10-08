@@ -8,10 +8,11 @@
  * 通过 preload 用 `contextBridge` 暴露的白名单 API 触达系统能力。
  * ⚠️ 渲染进程地址：`--dist` 或打包态走 `dist/index.html`，否则走 Vite dev server。
  */
-import { app, BrowserWindow, ipcMain, type IpcMainInvokeEvent } from 'electron'
+import { app, BrowserWindow, ipcMain, shell, dialog, type IpcMainInvokeEvent } from 'electron'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { existsSync } from 'node:fs'
+import { promises as fsp } from 'node:fs'
 
 /**
  * ⚠️ 主进程必须走 ESM：Electron 新版（本项目为 v44）在 CJS 模式下
@@ -84,6 +85,131 @@ function bindWindowIpc(): void {
   ipcMain.handle('mc:window:is-maximized', (e) => windowOf(e)?.isMaximized() ?? false)
 }
 
+/** 把 node:fs 的 Dirent 规整成渲染进程约定的 DirEntry */
+async function toDirEntry(fullPath: string): Promise<{
+  name: string
+  path: string
+  isDirectory: boolean
+  isFile: boolean
+  size: number
+  mtimeMs: number
+}> {
+  const st = await fsp.stat(fullPath)
+  return {
+    name: fullPath.split(/[\\/]/).pop() ?? fullPath,
+    path: fullPath,
+    isDirectory: st.isDirectory(),
+    isFile: st.isFile(),
+    size: st.size,
+    mtimeMs: st.mtimeMs,
+  }
+}
+
+/** 文件系统（P3）：读目录树、读写文件、原子写、exists、stat、mkdir、rename、remove */
+function bindFsIpc(): void {
+  ipcMain.handle('mc:fs:readDir', async (_e, root: string, options?: { recursive?: boolean; includeHidden?: boolean }) => {
+    const entries = await fsp.readdir(root, { withFileTypes: true })
+    const top = await Promise.all(entries.map((d) => toDirEntry(join(root, d.name))))
+    if (!options?.recursive) return top
+    // 递归：跳过隐藏目录（除非显式要求），避免 .git/.markcraft 误扫拖垮大 Vault
+    const out: Awaited<ReturnType<typeof toDirEntry>>[] = [...top]
+    const stack = top.filter((d) => d.isDirectory && (options.includeHidden || !d.name.startsWith('.')))
+    while (stack.length > 0) {
+      const dir = stack.pop()!
+      const children = await fsp.readdir(dir.path, { withFileTypes: true })
+      for (const c of children) {
+        const child = await toDirEntry(join(dir.path, c.name))
+        out.push(child)
+        if (child.isDirectory && (options.includeHidden || !child.name.startsWith('.'))) stack.push(child)
+      }
+    }
+    return out
+  })
+
+  ipcMain.handle('mc:fs:readFile', async (_e, p: string) => {
+    return await fsp.readFile(p, 'utf-8')
+  })
+
+  ipcMain.handle('mc:fs:writeFile', async (_e, p: string, content: string) => {
+    // 原子写：先写临时文件再 rename，避免崩溃留下半截文件（计划 §2.3.3）
+    await fsp.mkdir(dirname(p), { recursive: true })
+    const tmp = `${p}.${process.pid}.${Date.now()}.tmp`
+    await fsp.writeFile(tmp, content, 'utf-8')
+    await fsp.rename(tmp, p)
+  })
+
+  ipcMain.handle('mc:fs:exists', async (_e, p: string) => {
+    try {
+      await fsp.access(p)
+      return true
+    } catch {
+      return false
+    }
+  })
+
+  ipcMain.handle('mc:fs:stat', async (_e, p: string) => toDirEntry(p))
+
+  ipcMain.handle('mc:fs:mkdir', async (_e, p: string) => {
+    await fsp.mkdir(p, { recursive: true })
+  })
+
+  ipcMain.handle('mc:fs:rename', async (_e, p: string, newPath: string) => {
+    await fsp.rename(p, newPath)
+  })
+
+  ipcMain.handle('mc:fs:remove', async (_e, p: string) => {
+    await fsp.rm(p, { recursive: true, force: true })
+  })
+
+  // 「打开原文件所在位置」（D3）：showItemInFolder 在路径不存在时不应崩
+  ipcMain.handle('mc:fs:reveal', async (_e, p: string) => {
+    if (!existsSync(p)) return false
+    try {
+      shell.showItemInFolder(p)
+      return true
+    } catch {
+      return false
+    }
+  })
+}
+
+/** 原生对话框（P3）：选目录 / 选文件 / 保存 */
+function bindDialogIpc(): void {
+  // showOpenDialog/showSaveDialog 的首参是必需的 BaseWindow；无窗口时走「仅 options」重载
+  const firstWin = (): BrowserWindow | undefined => BrowserWindow.getAllWindows()[0]
+
+  ipcMain.handle('mc:dialog:openDirectory', async () => {
+    const win = firstWin()
+    const res = win
+      ? await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] })
+      : await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
+    if (res.canceled || res.filePaths.length === 0) return null
+    return res.filePaths[0]
+  })
+
+  ipcMain.handle('mc:dialog:openFile', async (_e, options?: { filters?: Array<{ name: string; extensions: string[] }>; multiple?: boolean }) => {
+    const win = firstWin()
+    const opts = {
+      properties: (options?.multiple ? ['openFile', 'multiSelections'] : ['openFile']) as Array<'openFile' | 'multiSelections'>,
+      filters: options?.filters?.map((f) => ({ name: f.name, extensions: f.extensions })),
+    }
+    const res = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
+    if (res.canceled || res.filePaths.length === 0) return null
+    return res.filePaths
+  })
+
+  ipcMain.handle('mc:dialog:saveFile', async (_e, options?: { defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) => {
+    const win = firstWin()
+    const opts = {
+      defaultPath: options?.defaultPath,
+      filters: options?.filters?.map((f) => ({ name: f.name, extensions: f.extensions })),
+    }
+    const res = win ? await dialog.showSaveDialog(win, opts) : await dialog.showSaveDialog(opts)
+    if (res.canceled || !res.filePath) return null
+    return res.filePath
+  })
+}
+
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 1280,
@@ -134,6 +260,8 @@ function createWindow(): void {
 
 void app.whenReady().then(() => {
   bindWindowIpc()
+  bindFsIpc()
+  bindDialogIpc()
   createWindow()
 
   app.on('activate', () => {

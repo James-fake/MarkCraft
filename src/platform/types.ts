@@ -57,6 +57,76 @@ export interface WindowControls {
   isMaximized(): boolean
 }
 
+/** 目录项（fs.readDirectory 的返回元素） */
+export interface DirEntry {
+  /** 文件名（不含路径） */
+  name: string
+  /** 绝对路径 */
+  path: string
+  isDirectory: boolean
+  isFile: boolean
+  /** 字节大小（目录为 0） */
+  size: number
+  /** 最后修改时间（ms 时间戳） */
+  mtimeMs: number
+}
+
+export interface ReadDirOptions {
+  /** 递归读取子目录（默认 false）；递归时跳过隐藏目录（以 `.` 开头） */
+  recursive?: boolean
+  /**
+   * 递归读取时是否纳入隐藏目录（默认 false）。
+   * P3 默认跳过 `.git` / `.markcraft` 等，避免万级文件 Vault 误扫；P4 需要时可开。
+   */
+  includeHidden?: boolean
+}
+
+/**
+ * 真实文件系统能力（P3 接入，桌面为真实磁盘；浏览器无磁盘能力 → 抛不支持）。
+ *
+ * ⚠️ 语义契约（桌面实现必须逐条对齐，browser.test 不覆盖此处，P3 E2E 覆盖）：
+ *  - writeFile 必须**原子**（临时文件 + rename），避免崩溃留下半截文件；
+ *  - writeFile 的父目录不存在时自动创建（recursive）；
+ *  - readDirectory 返回项含 `isDirectory` / `isFile` / 绝对 `path`；
+ *  - exists 对不存在路径返回 false 而非抛错。
+ */
+export interface FsAPI {
+  readDirectory(path: string, options?: ReadDirOptions): Promise<DirEntry[]>
+  readFile(path: string): Promise<string>
+  writeFile(path: string, content: string): Promise<void>
+  exists(path: string): Promise<boolean>
+  stat(path: string): Promise<DirEntry>
+  mkdir(path: string): Promise<void>
+  rename(path: string, newPath: string): Promise<void>
+  remove(path: string): Promise<void>
+}
+
+export interface FileFilter {
+  name: string
+  extensions: string[]
+}
+
+export interface OpenFileOptions {
+  filters?: FileFilter[]
+  /** 允许多选（默认 false） */
+  multiple?: boolean
+}
+
+export interface SaveFileOptions {
+  defaultPath?: string
+  filters?: FileFilter[]
+}
+
+/** 原生对话框（选文件 / 选目录 / 保存）。浏览器无原生路径能力 → 一律返回 null。 */
+export interface DialogAPI {
+  /** 选一个文件夹（读意图，如「打开 Vault」），返回绝对路径或 null（取消） */
+  openDirectory(): Promise<string | null>
+  /** 选一个或多个文件（读意图），返回路径数组或 null（取消） */
+  openFile(options?: OpenFileOptions): Promise<string[] | null>
+  /** 选一个保存路径（写意图），返回绝对路径或 null（取消） */
+  saveFile(options?: SaveFileOptions): Promise<string | null>
+}
+
 export interface Platform {
   readonly kind: PlatformKind
 
@@ -89,4 +159,16 @@ export interface Platform {
   revealInFolder(path: string): Promise<boolean>
 
   readonly window: WindowControls
+
+  /**
+   * 真实文件系统（P3）。浏览器无磁盘能力 → 所有方法拒绝。
+   * 桌面端由 `electronPlatform` 经 IPC 实现。
+   */
+  readonly fs: FsAPI
+
+  /**
+   * 原生对话框（P3）。浏览器无法给出原生绝对路径 → 一律返回 `null`
+   * （诚实降级：不伪造路径，调用方据此提示「请升级桌面版」或走 FSA 落盘）。
+   */
+  readonly dialog: DialogAPI
 }

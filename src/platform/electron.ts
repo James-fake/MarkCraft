@@ -1,6 +1,11 @@
 import { browserPlatform } from './browser'
-import type { Platform, WindowControls } from './types'
-import type { MarkCraftDesktopAPI } from '../types/electron'
+import type { DialogAPI, FsAPI, Platform, WindowControls } from './types'
+import type {
+  MarkCraftDesktopAPI,
+  MarkCraftDirEntry,
+  MarkCraftOpenFileOptions,
+  MarkCraftSaveFileOptions,
+} from '../types/electron'
 
 /**
  * Electron 实现（P2 骨架）。
@@ -66,8 +71,61 @@ export function initElectronPlatform(): void {
   refreshMaximized()
 }
 
+/**
+ * 真实 fs 实现 —— 全部经 preload 的 `window.markcraft.fs`（主进程磁盘访问）。
+ * 语义严格对齐 `FsAPI` 契约：原子写、自动建父目录、exists 不抛。
+ */
+const desktopFs: FsAPI = {
+  readDirectory(path: string, options?: { recursive?: boolean; includeHidden?: boolean }) {
+    return (api()?.fs.readDirectory(path, options) as Promise<MarkCraftDirEntry[]>) ?? Promise.reject(new Error('fs 不可用'))
+  },
+  readFile(path: string) {
+    return api()?.fs.readFile(path) ?? Promise.reject(new Error('fs 不可用'))
+  },
+  writeFile(path: string, content: string) {
+    return api()?.fs.writeFile(path, content) ?? Promise.reject(new Error('fs 不可用'))
+  },
+  exists(path: string) {
+    return api()?.fs.exists(path) ?? Promise.resolve(false)
+  },
+  stat(path: string) {
+    return api()?.fs.stat(path) ?? Promise.reject(new Error('fs 不可用'))
+  },
+  mkdir(path: string) {
+    return api()?.fs.mkdir(path) ?? Promise.reject(new Error('fs 不可用'))
+  },
+  rename(path: string, newPath: string) {
+    return api()?.fs.rename(path, newPath) ?? Promise.reject(new Error('fs 不可用'))
+  },
+  remove(path: string) {
+    return api()?.fs.remove(path) ?? Promise.reject(new Error('fs 不可用'))
+  },
+}
+
+/** 原生对话框（读意图选目录/文件、写意图选保存路径） */
+const desktopDialog: DialogAPI = {
+  openDirectory() {
+    return api()?.dialog.openDirectory() ?? Promise.resolve(null)
+  },
+  openFile(options?: { filters?: import('./types').FileFilter[]; multiple?: boolean }) {
+    const opts = options as MarkCraftOpenFileOptions | undefined
+    return api()?.dialog.openFile(opts) ?? Promise.resolve(null)
+  },
+  saveFile(options?: { defaultPath?: string; filters?: import('./types').FileFilter[] }) {
+    const opts = options as MarkCraftSaveFileOptions | undefined
+    return api()?.dialog.saveFile(opts) ?? Promise.resolve(null)
+  },
+}
+
 export const electronPlatform: Platform = {
   ...browserPlatform,
   kind: 'electron',
   window: desktopWindowControls,
+  // 真实文件系统（P3）
+  fs: desktopFs,
+  dialog: desktopDialog,
+  // 真实「打开原文件所在位置」（D3）
+  async revealInFolder(path: string): Promise<boolean> {
+    return (await api()?.shell.showItemInFolder(path)) ?? false
+  },
 }

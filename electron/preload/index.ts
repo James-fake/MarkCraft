@@ -25,6 +25,33 @@ const api = {
       return () => ipcRenderer.removeListener('mc:window:state', handler)
     },
   },
+
+  // —— P3：真实文件系统（主进程磁盘访问）——
+  fs: {
+    readDirectory: (path: string, options?: { recursive?: boolean; includeHidden?: boolean }) =>
+      ipcRenderer.invoke('mc:fs:readDir', path, options),
+    readFile: (path: string) => ipcRenderer.invoke('mc:fs:readFile', path),
+    writeFile: (path: string, content: string) => ipcRenderer.invoke('mc:fs:writeFile', path, content),
+    exists: (path: string) => ipcRenderer.invoke('mc:fs:exists', path),
+    stat: (path: string) => ipcRenderer.invoke('mc:fs:stat', path),
+    mkdir: (path: string) => ipcRenderer.invoke('mc:fs:mkdir', path),
+    rename: (path: string, newPath: string) => ipcRenderer.invoke('mc:fs:rename', path, newPath),
+    remove: (path: string) => ipcRenderer.invoke('mc:fs:remove', path),
+  },
+
+  // —— P3：原生对话框 ——
+  dialog: {
+    openDirectory: (): Promise<string | null> => ipcRenderer.invoke('mc:dialog:openDirectory'),
+    openFile: (options?: { filters?: Array<{ name: string; extensions: string[] }>; multiple?: boolean }) =>
+      ipcRenderer.invoke('mc:dialog:openFile', options),
+    saveFile: (options?: { defaultPath?: string; filters?: Array<{ name: string; extensions: string[] }> }) =>
+      ipcRenderer.invoke('mc:dialog:saveFile', options),
+  },
+
+  // —— P3：系统 shell ——
+  shell: {
+    showItemInFolder: (path: string): Promise<boolean> => ipcRenderer.invoke('mc:fs:reveal', path),
+  },
 }
 
 contextBridge.exposeInMainWorld('markcraft', api)

@@ -28,4 +28,11 @@ export type {
   PickSaveFileOptions,
   FileTypeFilter,
   WindowControls,
+  DirEntry,
+  ReadDirOptions,
+  FsAPI,
+  FileFilter,
+  OpenFileOptions,
+  SaveFileOptions,
+  DialogAPI,
 } from './types'

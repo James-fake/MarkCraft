@@ -1,8 +1,11 @@
 import type {
   FileTypeFilter,
+  FsAPI,
+  OpenFileOptions,
   PickSaveFileOptions,
   Platform,
   SaveTarget,
+  SaveFileOptions,
   WindowControls,
 } from './types'
 
@@ -117,4 +120,41 @@ export const browserPlatform: Platform = {
   },
 
   window: browserWindowControls,
+
+  // —— P3：浏览器无真实磁盘能力，fs 一律拒绝 ——
+  fs: makeUnsupportedFs(),
+
+  // —— P3：浏览器无法给出原生绝对路径，dialog 一律返回 null（诚实降级）——
+  dialog: {
+    async openDirectory(): Promise<string | null> {
+      return null
+    },
+    async openFile(_options?: OpenFileOptions): Promise<string[] | null> {
+      return null
+    },
+    async saveFile(_options?: SaveFileOptions): Promise<string | null> {
+      return null
+    },
+  },
+}
+
+/**
+ * 浏览器环境没有真实文件系统：返回一个所有方法都拒绝 `FsAPI` 实现。
+ * 拒绝而非静默 no-op —— 防止桌面专属逻辑在浏览器路径被「悄悄吞掉」而产生隐性回归。
+ */
+function makeUnsupportedFs(): FsAPI {
+  const unsupported = (): never => {
+    throw new Error('FsAPI 在浏览器环境不可用：请使用 MarkCraft 桌面版以访问本地文件')
+  }
+  const noop = async (): Promise<never> => unsupported()
+  return {
+    readDirectory: noop,
+    readFile: noop,
+    writeFile: noop,
+    exists: async () => false,
+    stat: noop,
+    mkdir: noop,
+    rename: noop,
+    remove: noop,
+  }
 }
