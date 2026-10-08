@@ -41,3 +41,9 @@ screenshots/
 # ===== 环境 =====
 .env
 .DS_Store
+
+# ===== E2E（Playwright）产物 =====
+e2e-report/
+test-results/
+playwright-report/
+.playwright/

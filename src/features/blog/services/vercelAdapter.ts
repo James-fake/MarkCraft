@@ -3,6 +3,28 @@ import { fetchWithTimeout } from './fetchWithTimeout'
 
 const API_BASE = 'https://api.vercel.com'
 
+/**
+ * Vercel 上传接口要求 `x-vercel-digest` 为文件的 **SHA-1** 十六进制串。
+ *
+ * ⚠️ 官方文档明确：`x-vercel-digest` = "The file SHA1 used to check the integrity"，
+ * 且 `maxLength: 40` —— SHA-1 十六进制正好 40 字符，SHA-256 是 64 字符，超限会被
+ * 400 "Digest is not valid" 拒绝。原实现误用 SHA-256，必然上传失败。
+ */
+async function sha1Hex(text: string): Promise<string> {
+  const data = new TextEncoder().encode(text)
+  const hashBuffer = await crypto.subtle.digest('SHA-1', data)
+  return Array.from(new Uint8Array(hashBuffer))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+/** 引用已上传文件时，deployment 的 files 元素形状（官方：`{ file, sha, size }`） */
+interface VercelFileRef {
+  file: string
+  sha: string
+  size: number
+}
+
 export const vercelAdapter = {
   platformName: 'Vercel',
   defaultBranch: 'main',
@@ -28,32 +50,34 @@ export const vercelAdapter = {
     onProgress({ stage: 'authenticating', message: '验证 Vercel 身份...', messageKey: 'deployStageAuthenticating', messageParams: { platform: 'Vercel' }, progress: 5 })
     await this.validateToken(token)
 
-    // 2. 上传文件
+    // 2. 上传文件（以 SHA-1 摘要为标识；deployment 阶段按 { file, sha, size } 引用）
     onProgress({ stage: 'uploading', message: '上传文件到 Vercel...', messageKey: 'deployStagePreparing', progress: 15 })
-    const filePayloads = []
+    const filePayloads: VercelFileRef[] = []
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
       onProgress({ stage: 'uploading', message: `上传文件 (${i + 1}/${files.length}): ${file.path}`, messageKey: 'deployStageUploading', messageParams: { current: String(i + 1), total: String(files.length), path: file.path }, progress: 15 + Math.floor((i / files.length) * 40) })
+
+      const bytes = new TextEncoder().encode(file.content)
+      const digest = await sha1Hex(file.content)
 
       const res = await fetchWithTimeout(`${API_BASE}/v2/files`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/octet-stream',
-          'x-vercel-digest': await sha256(file.content),
+          'x-vercel-digest': digest,
+          'Content-Length': String(bytes.byteLength),
         },
-        body: new TextEncoder().encode(file.content),
+        body: bytes,
       })
-      // 200 or 409 (already exists) are both fine
+      // 200 = 上传成功；409 = 同摘要文件已存在（内容去重），二者皆可继续
       if (!res.ok && res.status !== 409) {
         throw new Error(`Failed to upload file ${file.path}: ${res.statusText}`)
       }
 
-      const data = res.status !== 409 ? await res.json() : null
-      filePayloads.push({
-        file: data?.uid || file.path,
-        path: file.path,
-      })
+      // ⚠️ 引用形状必须是 { file, sha, size }：原实现推的是 { file: data?.uid || path, path }，
+      //    而 /v2/files 的响应体是 { urls } —— 根本没有 uid，且缺 sha/size，部署必然失败。
+      filePayloads.push({ file: file.path, sha: digest, size: bytes.byteLength })
     }
 
     // 3. 创建或获取 Project
@@ -78,14 +102,20 @@ export const vercelAdapter = {
     }
 
     // 4. 创建 Deployment
+    // ⚠️ body 形状按官方文档校正：
+    //    - `name` 为必填（部署 URL 用的项目名）
+    //    - 项目标识参数是 `project`（接受 id 或名），**不是** `projectId`（原实现传的 `projectId` 会被忽略）
+    //    - `projectSettings` 为项目首次部署所需
     onProgress({ stage: 'committing', message: '创建部署...', messageKey: 'deployStageCreatingDeployment', progress: 75 })
     const deployRes = await fetchWithTimeout(`${API_BASE}/v13/deployments`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        projectId,
+        name: projectName,
+        project: projectId,
         files: filePayloads,
         target: 'production',
+        projectSettings: { framework: null },
       }),
     })
     if (!deployRes.ok) throw new Error(`Failed to create deployment: ${(await deployRes.json()).message}`)
@@ -105,13 +135,15 @@ export const vercelAdapter = {
         throw new Error(`Failed to check deployment status: ${checkRes.statusText}`)
       }
       const checkData = await checkRes.json()
-      if (checkData.state === 'READY') {
+      // 新版接口用 readyState（旧字段 state 作兼容兜底）
+      const state = checkData.readyState ?? checkData.state
+      if (state === 'READY') {
         deploymentUrl = `https://${checkData.url}`
         ready = true
         break
       }
-      if (checkData.state === 'ERROR') {
-        throw new Error('Vercel deployment failed')
+      if (state === 'ERROR' || state === 'CANCELED') {
+        throw new Error(`Vercel deployment failed (${state}): ${checkData.errorMessage || ''}`)
       }
     }
     // 轮询耗尽仍未 READY → 不能报成功（原实现会带着旧 URL 直接宣布部署成功）
@@ -122,11 +154,4 @@ export const vercelAdapter = {
     onProgress({ stage: 'done', message: 'Vercel 部署成功！', messageKey: 'deployStageDone', messageParams: { platform: 'Vercel' }, progress: 100, url: deploymentUrl })
     return deploymentUrl
   },
-}
-
-async function sha256(text: string): Promise<string> {
-  const data = new TextEncoder().encode(text)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
 }

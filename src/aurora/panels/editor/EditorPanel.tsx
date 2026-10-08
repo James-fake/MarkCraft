@@ -263,6 +263,8 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
     bridge.redo = () => editorLayoutRef.current?.redo()
     bridge.find = () => editorLayoutRef.current?.find()
     bridge.deleteSelection = () => editorLayoutRef.current?.deleteSelection()
+    // —— 文件菜单：另存为（此前只挂在工具栏「更多」里，命令面板无法触达 → E2E 报告 L-2）——
+    bridge.saveAs = () => editorLayoutRef.current?.openSaveAs()
     return () => {
       bridge.save = undefined
       bridge.togglePreview = undefined
@@ -277,6 +279,7 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
       bridge.redo = undefined
       bridge.find = undefined
       bridge.deleteSelection = undefined
+      bridge.saveAs = undefined
     }
   }, [cmdBridge, handleManualSave, togglePreview, toggleWysiwyg, handleChange, handlePublish, openKbMenu, isUsageDoc, versionHistory.open])
 

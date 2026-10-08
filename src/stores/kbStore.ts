@@ -109,6 +109,46 @@ export async function getKbList(): Promise<KnowledgeBaseListItem[]> {
   return list.sort((a, b) => b.updatedAt - a.updatedAt)
 }
 
+// ─── 列表变化订阅 ───
+
+/** 知识库列表订阅者 */
+export type KbListListener = (list: KnowledgeBaseListItem[]) => void
+const kbListListeners = new Set<KbListListener>()
+
+/**
+ * 订阅知识库列表变化，返回取消订阅函数。
+ *
+ * 背景（E2E 报告 M-1）：面板若只在挂载时 `getKbList()` 取一次，而内置「使用文档」的播种是
+ * **异步**完成、完成时间在面板挂载之后，列表就会永久停在空态 —— 直接深链 `#view=kb` 首启即复现
+ * （播种日志已打印「播种完成」，UI 仍显示 0 个）。故提供订阅：写入列表时主动推送，
+ * 订阅瞬间再补推一次当前值（覆盖「订阅动作发生在首次写入之后」的情况）。
+ */
+export function subscribeKbList(listener: KbListListener): () => void {
+  kbListListeners.add(listener)
+  void getKbList()
+    .then((list) => listener(list))
+    .catch(() => listener([]))
+  return () => {
+    kbListListeners.delete(listener)
+  }
+}
+
+function notifyKbListChanged(list: KnowledgeBaseListItem[]): void {
+  for (const listener of kbListListeners) {
+    try {
+      listener(list)
+    } catch {
+      /* 单个订阅者异常不应影响其它订阅者 */
+    }
+  }
+}
+
+/** 列表的唯一写入口：落盘 + 广播 */
+async function writeKbList(list: KnowledgeBaseListItem[]): Promise<void> {
+  await idbSet(KB_LIST_KEY, JSON.stringify(list))
+  notifyKbListChanged(list)
+}
+
 /** 更新/插入列表条目 */
 async function upsertListItem(item: KnowledgeBaseListItem): Promise<void> {
   const list = await getKbList()
@@ -118,14 +158,13 @@ async function upsertListItem(item: KnowledgeBaseListItem): Promise<void> {
   } else {
     list.push(item)
   }
-  await idbSet(KB_LIST_KEY, JSON.stringify(list))
+  await writeKbList(list)
 }
 
 /** 从列表中删除条目 */
 async function removeListItem(id: string): Promise<void> {
   const list = await getKbList()
-  const filtered = list.filter(i => i.id !== id)
-  await idbSet(KB_LIST_KEY, JSON.stringify(filtered))
+  await writeKbList(list.filter(i => i.id !== id))
 }
 
 // ─── 文档 CRUD ───

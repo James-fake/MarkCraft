@@ -31,6 +31,9 @@ export const COMMAND_CATALOG: CommandMeta[] = [
   { id: 'file.newFile', labelZh: '新建笔记', labelEn: 'New Note', icon: 'file', category: 'file', keywords: ['create', 'note', '文件', '创建', '新建'], shortcut: 'Ctrl+N' },
   { id: 'file.importFile', labelZh: '打开文件', labelEn: 'Open File', icon: 'folder', category: 'file', keywords: ['open', 'import', '打开', '导入', '文件'] },
   { id: 'file.save', labelZh: '保存', labelEn: 'Save', icon: 'check', category: 'file', keywords: ['save', '保存', '存储'], shortcut: 'Ctrl+S' },
+  // L-2 修复：另存为此前只挂在编辑器工具栏「更多」里，命令面板无入口（内置《使用文档》却写着
+  // 「点击工具栏『另存为』」且声明了 Ctrl+Shift+S）→ 现补入命令面板并绑定该键位。
+  { id: 'file.saveAs', labelZh: '另存为', labelEn: 'Save As', icon: 'download', category: 'file', keywords: ['save as', 'export', '另存为', '导出', '保存'], shortcut: 'Ctrl+Shift+S' },
   { id: 'file.newFolder', labelZh: '新建文件夹', labelEn: 'New Folder', icon: 'folder', category: 'file', keywords: ['folder', '文件夹', '新建', '目录'] },
   { id: 'file.openDailyNote', labelZh: '打开今日笔记', labelEn: 'Open Daily Note', icon: 'calendar', category: 'file', keywords: ['daily', 'note', '日记', '今日', '笔记'] },
   { id: 'file.quickCapture', labelZh: '快速记一笔', labelEn: 'Quick Capture', icon: 'pen', category: 'file', keywords: ['capture', 'quick', '记一笔', '速记', '灵感'], shortcut: 'Ctrl+Shift+N' },

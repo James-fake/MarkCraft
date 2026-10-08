@@ -52,7 +52,11 @@ export async function deployToPages(
   await adapter.ensureRepo(config.owner, config.repo, config.token)
 
   onProgress({ stage: 'uploading', message: '准备上传...', messageKey: 'deployStagePreparing', progress: 20 })
-  const baseTreeSha = await adapter.getBranchRef(config.owner, config.repo, branch, config.token)
+  // ⚠️ 基准分支尖端要区分两个 SHA：
+  //    - treeSha  → createTree 的 base_tree（文档要求 tree 对象）
+  //    - commitSha→ createCommit 的 parent（文档要求 commit 对象）
+  //    仓库为空（无任何分支）时 head 为 null → 走「无 base、无 parent」的首次提交。
+  const head = await adapter.getBranchHead(config.owner, config.repo, branch, config.token)
 
   const treeItems: GitTreeItem[] = []
   const totalFiles = files.length
@@ -65,17 +69,25 @@ export async function deployToPages(
   }
 
   onProgress({ stage: 'committing', message: '创建提交...', messageKey: 'deployStageCommitting', progress: 75 })
-  const treeSha = await adapter.createTree(config.owner, config.repo, treeItems, baseTreeSha, config.token)
-  const commitSha = await adapter.createCommit(config.owner, config.repo, `Deploy blog - ${new Date().toISOString()}`, treeSha, baseTreeSha, config.token)
+  const treeSha = await adapter.createTree(config.owner, config.repo, treeItems, head?.treeSha ?? null, config.token)
+  const commitSha = await adapter.createCommit(config.owner, config.repo, `Deploy blog - ${new Date().toISOString()}`, treeSha, head?.commitSha ?? null, config.token)
 
   onProgress({ stage: 'committing', message: '更新分支...', messageKey: 'deployStageUpdatingBranch', progress: 90 })
   await adapter.updateBranchRef(config.owner, config.repo, branch, commitSha, config.token)
 
+  // Pages 配置失败不致命（内容已推送、Pages 启用是幂等且可重试的）：
+  // 但**不能静默吞掉** —— 否则用户会看到「部署成功 + URL」而站点实际不可访问。
+  // 改为成功态附带 warning，UI 一并展示，让用户知道需要手动开启 Pages。
+  let pagesWarningKey: string | undefined
   onProgress({ stage: 'configuring-pages', message: '配置 Pages...', messageKey: 'deployStageConfiguringPages', progress: 95 })
-  await adapter.configurePages(config.owner, config.repo, branch, config.token)
+  try {
+    await adapter.configurePages(config.owner, config.repo, branch, config.token)
+  } catch {
+    pagesWarningKey = 'deployPagesManualHint'
+  }
 
   const deployUrl = adapter.getPagesUrl(config.owner, config.repo)
-  onProgress({ stage: 'done', message: `${adapter.platformName} 部署成功！`, messageKey: 'deployStageDone', messageParams: { platform: adapter.platformName }, progress: 100, url: deployUrl })
+  onProgress({ stage: 'done', message: `${adapter.platformName} 部署成功！`, messageKey: 'deployStageDone', messageParams: { platform: adapter.platformName }, progress: 100, url: deployUrl, warningKey: pagesWarningKey })
   return deployUrl
 }
 

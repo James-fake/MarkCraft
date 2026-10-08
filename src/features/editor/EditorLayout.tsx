@@ -82,6 +82,8 @@ export interface EditorLayoutHandle {
   find: () => void
   /** 删除选区（编辑菜单 · 命令桥） */
   deleteSelection: () => void
+  /** 打开「另存为」弹层（文件菜单 · 命令桥） */
+  openSaveAs: () => void
 }
 
 export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(function EditorLayout({
@@ -288,6 +290,15 @@ export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(fu
         if (view) view.dispatch(view.state.replaceSelection(''))
       } else {
         tiptapRef.current?.getEditor()?.commands.deleteSelection()
+      }
+    },
+    // 「另存为」弹层由各编辑器内核自持（CM6 的 useCM6State / Tiptap 的 useTiptapFileOps），
+    // 故此处按当前内核转发到对应句柄。
+    openSaveAs: () => {
+      if (editorMode === 'source') {
+        editorRef.current?.openSaveAs()
+      } else {
+        tiptapRef.current?.openSaveAs()
       }
     },
   }), [editorMode])

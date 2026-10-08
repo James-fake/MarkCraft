@@ -305,6 +305,8 @@ function ShellInner() {
     onNavigateForward: () => { const id = navigationTracker.forward(); if (id) openFile(id) },
     onQuickSwitcher: () => modalOpen('quickSwitcher'),
     onSave: () => cmdBridge.current.save?.(),
+    // ⌘⇧S / Ctrl+Shift+S → 另存为（内置《使用文档》已声明该键位，此前未绑定）
+    onSaveAs: () => cmdBridge.current.saveAs?.(),
     // —— 批次② P0-B：⌘Q/⌘W/⌘N/⌘F 应用层拦截（与菜单命令同一动作源）——
     onNewFile: () => auroraActions['file.newFile']?.(),
     onCloseFile: () => auroraActions['file.close']?.(),

@@ -26,6 +26,8 @@ describe('Phase 3 命令接线（共享 catalog + 适配器，D4 单一数据源
     for (const real of ['file.newFile', 'view.toggleTheme', 'settings.switchLanguage', 'tools.openBlogStudio']) {
       expect(ids, `应含真实命令 ${real}`).toContain(real)
     }
+    // L-2 修复回归：另存为此前只挂工具栏「更多」，命令面板无入口 → 现须在目录中
+    expect(ids, '命令面板应含 file.saveAs（L-2）').toContain('file.saveAs')
     // 字段完整
     for (const c of COMMAND_CATALOG) {
       expect(c.id).toBeTruthy()
@@ -72,6 +74,13 @@ describe('Phase 3 命令接线（共享 catalog + 适配器，D4 单一数据源
     expect(newFolder.title).toBe('新建文件夹')
     expect(newFolder.group).toBe('file')
     expect(newFolder.shortcut).toBeUndefined()
+
+    // L-2 修复回归：file.saveAs 在 catalog 中带 shortcut 'Ctrl+Shift+S' → 解析为 ['Ctrl','Shift','S']
+    // （内置《使用文档》一直声明该键位，但此前既无命令、也未绑定快捷键）
+    const saveAs = adapted.find((c) => c.id === 'file.saveAs')!
+    expect(saveAs.title).toBe('另存为')
+    expect(saveAs.group).toBe('file')
+    expect(saveAs.shortcut).toEqual(['Ctrl', 'Shift', 'S'])
 
     const theme = adapted.find((c) => c.id === 'view.toggleTheme')!
     expect(theme.group).toBe('view')

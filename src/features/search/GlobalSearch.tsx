@@ -112,6 +112,23 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
     }
   }, [isOpen]);
 
+  // Escape 关闭：**window 级**监听，不依赖浮层内焦点。
+  // 原因（E2E 报告 L-3）：原先只有容器上的 React onKeyDown，而输入框自动聚焦是
+  // `setTimeout(..., 50)` 延迟执行的 —— 这 50ms 窗口内按 Escape，事件目标不在浮层内，
+  // 组件内 onKeyDown 收不到，Escape 会穿透到编辑器、浮层关不掉。
+  // 提升为 window 级后，无论焦点在哪都能关闭（与其它浮层的做法一致）。
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isOpen, onClose]);
+
   useEffect(() => {
     setSelectedIndex(0);
   }, [query, caseSensitive, useRegex, wholeWord, booleanMode, filters]);
@@ -145,12 +162,10 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
           handleSelect(flatItems[selectedIndex].fileId);
         }
         break;
-      case 'Escape':
-        e.preventDefault();
-        onClose();
-        break;
+      // Escape 不在此处理：已提升为 window 级监听（见上方 effect），
+      // 以免依赖「事件目标落在浮层内」而在自动聚焦完成前失效。
     }
-  }, [flatItems, selectedIndex, handleSelect, onClose]);
+  }, [flatItems, selectedIndex, handleSelect]);
 
   // P1.2: 全局替换 —— 先显示 diff 预览，用户确认后再执行
   const handleReplaceAll = useCallback(() => {

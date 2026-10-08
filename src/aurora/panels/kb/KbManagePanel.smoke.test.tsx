@@ -1,17 +1,34 @@
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
-// 真实数据桩：替换 stores/kbStore，使 jsdom 下可确定性验证
-vi.mock('../../../stores/kbStore', () => ({
-  getKbList: vi.fn(async () => [
+// 真实数据桩：替换 stores/kbStore，使 jsdom 下可确定性验证。
+// ⚠️ 必须同时提供 subscribeKbList —— 面板已从「挂载时取一次」改为**订阅**（E2E 报告 M-1）。
+vi.mock('../../../stores/kbStore', () => {
+  const listeners = new Set<(l: unknown[]) => void>()
+  const getKbList = vi.fn(async () => [
     { id: 'kb-a', name: '真实库A', description: '', folderId: 'f', fileCount: 3, canvasCount: 1, createdAt: Date.now(), updatedAt: Date.now() },
     { id: 'kb-b', name: '真实库B', description: '', folderId: 'f', fileCount: 5, canvasCount: 2, createdAt: Date.now(), updatedAt: Date.now() },
-  ]),
-  createKb: vi.fn(async (name: string) => ({
-    id: 'kb-new', name, description: '', folderId: 'f',
-    createdAt: Date.now(), updatedAt: Date.now(), canvasIds: [], fileIds: [], rules: [],
-  })),
-}))
+  ])
+  return {
+    getKbList,
+    createKb: vi.fn(async (name: string) => ({
+      id: 'kb-new', name, description: '', folderId: 'f',
+      createdAt: Date.now(), updatedAt: Date.now(), canvasIds: [], fileIds: [], rules: [],
+    })),
+    subscribeKbList: vi.fn((listener: (l: unknown[]) => void) => {
+      listeners.add(listener)
+      // 与真实实现一致：订阅瞬间补推一次当前值
+      void getKbList().then(listener).catch(() => listener([]))
+      return () => {
+        listeners.delete(listener)
+      }
+    }),
+    /** 测试专用：模拟「订阅之后」列表才被写入（即 M-1 的播种晚于挂载场景） */
+    __pushKbList: (list: unknown[]) => {
+      for (const l of [...listeners]) l(list)
+    },
+  }
+})
 
 import { RealProviders } from '../../providers/RealProviders'
 import { KbManagePanel } from './KbManagePanel'
@@ -33,6 +50,26 @@ describe('KbManagePanel 接真实知识库列表（getKbList / createKb）', () 
     expect(screen.getByText('知识库 2')).toBeTruthy()
     // 旧 MOCK_KBS 残留不应出现
     expect(screen.queryByText('Aurora 设计系统')).toBeNull()
+  })
+
+  it('🚨 M-1 回归：挂载后列表才被写入（播种晚于挂载）也能自动刷新，不停留空态', async () => {
+    const kbStore = (await import('@stores/kbStore')) as unknown as {
+      getKbList: ReturnType<typeof vi.fn>
+      __pushKbList: (list: unknown[]) => void
+    }
+    // 挂载时列表为空 —— 复现「直接深链 #view=kb，播种尚未完成」
+    vi.mocked(kbStore.getKbList).mockResolvedValueOnce([])
+    renderPanel()
+    expect(await screen.findByText('还没有知识库')).toBeTruthy()
+
+    // 播种随后完成 → store 广播新列表（真实实现里由 upsertListItem → notifyKbListChanged 触发）
+    kbStore.__pushKbList([
+      { id: 'kb-seeded', name: 'MarkCraft 使用文档', description: '', folderId: 'f', fileCount: 16, canvasCount: 0, createdAt: Date.now(), updatedAt: Date.now() },
+    ])
+
+    // 面板应自动跟上，而不是永久停在空态（修复前正是停在这里）
+    expect(await screen.findByText('MarkCraft 使用文档')).toBeTruthy()
+    expect(screen.queryByText('还没有知识库')).toBeNull()
   })
 
   it('主创建动作进头部操作区：副标题/图标与「导入」按钮删除，头部保留主创建按钮，卡片末尾磁贴移除', async () => {

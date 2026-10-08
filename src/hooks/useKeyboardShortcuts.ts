@@ -14,6 +14,8 @@ export interface KeyboardShortcutHandlers {
   onNavigateForward?: () => void
   onQuickSwitcher?: () => void
   onSave?: () => void
+  /** ⌘⇧S / Ctrl+Shift+S → 另存为（内置《使用文档》已如此声明，此前未绑定） */
+  onSaveAs?: () => void
   /** ⌘N / Ctrl+N → 新建笔记（阻止浏览器新窗口） */
   onNewFile?: () => void
   /** ⌘W / Ctrl+W → 关闭当前文档（Web 无法关窗，语义为关闭标签 / 回欢迎） */
@@ -41,6 +43,7 @@ export function useKeyboardShortcuts({
   onNavigateForward,
   onQuickSwitcher,
   onSave,
+  onSaveAs,
   onNewFile,
   onCloseFile,
   onQuit,
@@ -110,6 +113,11 @@ export function useKeyboardShortcuts({
         e.preventDefault()
         onSave?.()
       }
+      // Ctrl+Shift+S → 另存为（阻止浏览器默认「网页另存为」）
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.key.toLowerCase() === 's') {
+        e.preventDefault()
+        onSaveAs?.()
+      }
       // ⌘N → 新建笔记（阻止浏览器新开窗口）
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'n') {
         e.preventDefault()
@@ -143,5 +151,5 @@ export function useKeyboardShortcuts({
     }
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onQuickOpen, onGlobalSearch, onToggleTypewriter, onToggleFullscreen, onSettings, onPrint, onGraphView, onCommandPalette, onTemplateInsert, onNavigateBack, onNavigateForward, onQuickSwitcher, onSave, onNewFile, onCloseFile, onQuit, onFind, onUndo, onRedo])
+  }, [onQuickOpen, onGlobalSearch, onToggleTypewriter, onToggleFullscreen, onSettings, onPrint, onGraphView, onCommandPalette, onTemplateInsert, onNavigateBack, onNavigateForward, onQuickSwitcher, onSave, onSaveAs, onNewFile, onCloseFile, onQuit, onFind, onUndo, onRedo])
 }

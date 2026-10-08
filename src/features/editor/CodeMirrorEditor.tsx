@@ -25,6 +25,8 @@ export interface CodeMirrorEditorHandle {
   scrollToHeading: (headingId: string) => void
   /** 打开编辑器内查找（编辑菜单 · 命令桥，复用应用自定义 SearchReplaceBar） */
   openSearch: () => void
+  /** 打开「另存为」弹层（文件菜单 · 命令桥） */
+  openSaveAs: () => void
 }
 
 interface CodeMirrorEditorProps {
@@ -97,6 +99,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
       view.focus()
     },
     openSearch: () => state.setSearchMode('search'),
+    openSaveAs: () => state.setShowSaveAsModal(true),
   }))
 
   const { t } = state

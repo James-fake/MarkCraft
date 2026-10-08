@@ -44,6 +44,8 @@ export interface EditorCommandBridge {
   find?: () => void
   /** 删除选区（编辑菜单 · 命令桥） */
   deleteSelection?: () => void
+  /** 打开「另存为」弹层（文件菜单 · 命令面板 `file.saveAs` 触达） */
+  saveAs?: () => void
 }
 
 export interface EditorPanelProps {

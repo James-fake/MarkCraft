@@ -97,6 +97,8 @@ export function buildAuroraActions(deps: AuroraActionDeps): Record<string, (() =
     'file.newFolder': () => { createFolder('root', labels.newFolder) },
     // —— P1-3：依赖命令桥的编辑器内部动作，非编辑器视图下先跳编辑器再执行 ——
     'file.save': runInEditor(() => cmdBridge.current.save?.()),
+    // L-2 修复：另存为补入命令面板（此前只挂工具栏「更多」，命令面板不可达）
+    'file.saveAs': runInEditor(() => cmdBridge.current.saveAs?.()),
     'view.togglePreview': runInEditor(() => cmdBridge.current.togglePreview?.()),
     'view.toggleSidebar': runInEditor(() => cmdBridge.current.toggleSidebar?.()),
     'view.focusMode': () => updateSetting('focusMode', !focusMode),

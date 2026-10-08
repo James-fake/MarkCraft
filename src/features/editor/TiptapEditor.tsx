@@ -69,6 +69,8 @@ export interface TiptapEditorHandle {
   restoreScroll: (scrollTop: number) => void
   /** 编辑器内查找（编辑菜单 · 命令桥） */
   find: () => void
+  /** 打开「另存为」弹层（文件菜单 · 命令桥） */
+  openSaveAs: () => void
 }
 
 const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value, onChange, onPushUndo, onUndoRedoStateChange, onActiveHeadingChange, fileId, theme, focusMode, typewriterMode, livePreview, onToggleFocusMode, onToggleTypewriterMode, onToggleLivePreview, onOpenFile, onSaveAs, onBrokenLinkClick, onUseTemplate, showToolbar = true, showStatusBar = true }, ref) => {
@@ -280,9 +282,10 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
     undo: () => undoFnRef.current(),
     redo: () => redoFnRef.current(),
     find: () => openSearchRef.current('search'),
+    openSaveAs: () => setShowSaveAsModal(true),
     scrollToHeading,
     restoreScroll,
-  }), [editor, fileId, undoRedo, scrollToHeading, restoreScroll])
+  }), [editor, fileId, undoRedo, scrollToHeading, restoreScroll, setShowSaveAsModal])
 
   // Sync undo/redo state
   useEffect(() => {

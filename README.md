@@ -1562,6 +1562,13 @@ npx vitest run src/features/outline/__tests__/outlineUtils.test.ts
 
 # 生成覆盖率报告
 npm run test:coverage
+
+# 真机 E2E（Playwright 驱动系统 Edge，真实浏览器跑通全链路）
+npm run e2e
+
+# E2E 可视化调试 / 查看报告
+npm run e2e:ui
+npm run e2e:report
 ```
 
 ### 📊 测试规模
@@ -1574,8 +1581,25 @@ npm run test:coverage
 | 契约测试   | `src/aliasSync.test.ts`、`aurora/panels/__tests__/auroraNav.contract.test.ts` | 路径别名四处同步、导航 id ↔ 路由 id 契约                 |
 | 冒烟测试   | `aurora/panels/**/*.smoke.test.tsx`                   | 各主要面板挂载与关键交互                             |
 | 样式守卫   | `aurora/styles/*.test.ts`                             | 死 CSS 清理、指针门控、按压反馈等视觉约定                  |
+| 真机 E2E  | `e2e/*.spec.ts`                                       | 真实浏览器下的启动、编辑器、文件、导入导出、知识库、白板、博客等全链路 |
 
 > 测试环境为 jsdom，缺少 IndexedDB 时 Dexie 会向 stderr 打印 `MissingAPIError` —— 这是**环境噪音**，不代表用例失败；确需真实 IndexedDB 的用例会显式引入 `fake-indexeddb`。
+
+### 🌐 真机 E2E（Playwright）
+
+jsdom 单测覆盖不到的「真实运行」由 Playwright 补齐：真实布局与渲染、真实 canvas / Excalidraw 绘制、
+真实 IndexedDB、文件下载落盘、首屏开屏动画与主题防闪烁、PWA 等。
+
+```bash
+npm run e2e          # 全量 E2E（自动复用 / 拉起 dev server）
+npm run e2e:ui       # 可视化调试
+npm run e2e:report   # 打开 HTML 报告
+```
+
+- 用例位于 `e2e/`，按模块分文件（`00-boot` … `08-longtail`），说明见 `e2e/README.md`。
+- 使用**系统已安装的 Edge**（`channel: 'msedge'`），无需下载浏览器内核。
+- 当前规模：**41 个用例 · 40 通过 · 1 跳过（PWA 需生产构建）**。
+- 首轮全真测试结论与缺陷清单见 [`docs/E2E_TEST_REPORT_2026-10-08.md`](docs/E2E_TEST_REPORT_2026-10-08.md)。
 
 ---
 

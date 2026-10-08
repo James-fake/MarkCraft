@@ -2180,6 +2180,7 @@ export interface Translations {
     deploySuccess: string
     deployFailed: string
     deployValidateFailed: string
+    deployPagesManualHint: string
     deployStageAuthenticating: string
     deployStageCreatingRepo: string
     deployStagePreparing: string

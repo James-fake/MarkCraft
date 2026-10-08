@@ -13,6 +13,8 @@ const MIGRATED_LINK_GUIDE_KEY = 'markcraft-migrated-link-guide-v2';
 
 // 防抖保存到 IndexedDB
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
+/** 防抖窗口内暂存的待写状态（卸载时据此补写，见 flushPendingSave） */
+let pendingState: FileManagerState | null = null;
 const SAVE_DEBOUNCE = 300;
 
 // 启动时触发后台迁移（不阻塞 UI）
@@ -145,19 +147,64 @@ export async function loadStateAsync(lang: 'zh' | 'en' = 'zh'): Promise<FileMana
   return null;
 }
 
-/** 保存状态到 IndexedDB（防抖 300ms，避免高频写入阻塞） */
+/** 把暂存的待写状态立即落盘（无防抖）。幂等：无待写内容时零写入。 */
+function writePendingNow(): void {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  const state = pendingState;
+  if (!state) return;
+  pendingState = null;
+  saveLargeData(STORAGE_KEY, JSON.stringify(state)).catch(e => logger.error('IDB save failed:', e));
+}
+
+/**
+ * 立即落盘挂起的变更（供「页面卸载 / 切到后台」时机调用）。
+ *
+ * ⚠️ 为什么必须有（E2E 报告 L-1）：`saveState` 是 **300ms 防抖**，用户若在这 300ms 内
+ * 刷新或关闭标签，定时器根本不会触发 —— 这次变更**连写都没开始**，而不是「写了一半」。
+ * 真机复现：新建笔记后立即 reload，文件消失（等约 2s 再刷新则正常）。
+ */
+export function flushPendingSave(): void {
+  writePendingNow();
+}
+
+// 卸载期补写：pagehide / beforeunload / 切到后台，三条路径都覆盖（注册幂等，模块加载时一次）
+let unloadFlushRegistered = false;
+function registerUnloadFlush(): void {
+  if (unloadFlushRegistered || typeof window === 'undefined') return;
+  unloadFlushRegistered = true;
+  const flush = () => flushPendingSave();
+  window.addEventListener('pagehide', flush);
+  window.addEventListener('beforeunload', flush);
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') flush();
+    });
+  }
+}
+registerUnloadFlush();
+
+/**
+ * 保存状态到 IndexedDB（防抖 300ms，避免高频写入阻塞）。
+ * 防抖窗口内的变更由 `flushPendingSave` 在卸载时补写，故不会丢。
+ */
 export function saveState(state: FileManagerState): void {
+  pendingState = state;
   if (saveTimer) clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    const data = JSON.stringify(state);
-    saveLargeData(STORAGE_KEY, data).catch(e => logger.error('IDB save failed:', e));
-  }, SAVE_DEBOUNCE);
+  saveTimer = setTimeout(writePendingNow, SAVE_DEBOUNCE);
 }
 
 /** 立即保存（无防抖，用于文件切换等关键时机） */
 export function saveStateSync(state: FileManagerState): void {
-  const data = JSON.stringify(state);
-  saveLargeData(STORAGE_KEY, data).catch(e => logger.error('IDB save sync failed:', e));
+  // 先作废防抖中的旧快照，避免它随后把更新的数据覆盖回旧的
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  pendingState = null;
+  saveLargeData(STORAGE_KEY, JSON.stringify(state)).catch(e => logger.error('IDB save sync failed:', e));
 }
 
 /**

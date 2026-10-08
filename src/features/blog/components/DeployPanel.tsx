@@ -40,6 +40,12 @@ function resolveProgressMessage(progress: DeployProgress, t: Translations): stri
   )
 }
 
+/** 解析非致命警告（语言包键 → 文案）；无键或键缺失时返回 null */
+function resolveWarning(progress: DeployProgress, t: Translations): string | null {
+  if (!progress.warningKey) return null
+  return (t.blogCss as unknown as Record<string, string>)[progress.warningKey] ?? null
+}
+
 export default function DeployPanel({ result, t }: DeployPanelProps) {
   const { isDark } = useStudioTheme()
   const d = isDark
@@ -354,6 +360,22 @@ export default function DeployPanel({ result, t }: DeployPanelProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                 </svg>
               </a>
+            </div>
+          )}
+
+          {/* 非致命警告：部署已成功，但有环节未达成（如 Pages 未能自动启用） */}
+          {progress.stage === 'done' && resolveWarning(progress, t) && (
+            <div style={{
+              marginTop: 6, padding: '8px 10px', borderRadius: 8,
+              background: 'rgba(250,204,21,0.06)',
+              border: '1px solid rgba(250,204,21,0.18)',
+              fontSize: 10, lineHeight: 1.5, color: 'rgba(250,204,21,0.85)',
+              display: 'flex', alignItems: 'flex-start', gap: 5,
+            }}>
+              <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+              </svg>
+              <span>{resolveWarning(progress, t)}</span>
             </div>
           )}
 

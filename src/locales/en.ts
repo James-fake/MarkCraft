@@ -2235,6 +2235,7 @@ export const en: Translations = {
     deploySuccess: 'Deployed successfully',
     deployFailed: 'Deployment failed',
     deployValidateFailed: 'Verification failed',
+    deployPagesManualHint: 'Content pushed, but Pages could not be enabled automatically — please enable it manually in the repository Settings → Pages.',
     deployStageAuthenticating: 'Verifying {platform} identity...',
     deployStageCreatingRepo: 'Checking repository...',
     deployStagePreparing: 'Preparing upload...',

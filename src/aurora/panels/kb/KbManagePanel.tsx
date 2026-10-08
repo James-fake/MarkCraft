@@ -6,7 +6,7 @@ import { resolveAuroraNav, buildAuroraSidebarGroups } from '../aurora-nav'
 import { formatKbTime } from './kbData'
 import { useFileManager } from '@stores/FileStore'
 import { useLanguage } from '@stores/LanguageStore'
-import { getKbList, createKb } from '@stores/kbStore'
+import { getKbList, createKb, subscribeKbList } from '@stores/kbStore'
 import { KbCreateModal } from './KbCreateModal'
 import type { KnowledgeBaseListItem } from '@stores/kbTypes'
 import '../../styles/panels/kb.css'
@@ -40,21 +40,12 @@ export function KbManagePanel({ nav, toast }: KbManagePanelProps) {
   const [kbList, setKbList] = useState<KnowledgeBaseListItem[]>([])
   const [modalOpen, setModalOpen] = useState(false)
 
-  // 加载真实知识库列表
-  useEffect(() => {
-    let alive = true
-    ;(async () => {
-      try {
-        const list = await getKbList()
-        if (alive) setKbList(list)
-      } catch {
-        if (alive) setKbList([])
-      }
-    })()
-    return () => {
-      alive = false
-    }
-  }, [])
+  // 加载真实知识库列表：走**订阅**而非「挂载时取一次」。
+  // 原因（E2E 报告 M-1）：内置「使用文档」知识库的播种是异步的，可能晚于本面板挂载完成；
+  // 一次性拉取会让列表永久停在空态 —— 直接深链 #view=kb 首启即可复现
+  // （播种日志已打印「播种完成」，UI 仍显示「还没有知识库」）。
+  // 订阅在写入列表时主动推送，订阅瞬间也会补推一次当前值，两条路径都覆盖。
+  useEffect(() => subscribeKbList(setKbList), [])
 
   const handleNav = (id: string) => nav?.(resolveAuroraNav(id))
 
