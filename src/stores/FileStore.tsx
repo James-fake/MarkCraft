@@ -2,6 +2,14 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import { FileNode } from '../types/fileManager';
 import type { FileManagerState } from '../types/fileManager';
 import { loadState, loadStateAsync, saveState, generateId, findNode, searchFiles } from '../services/fileService';
+import { platform } from '../platform';
+import {
+  loadVault,
+  syncTree,
+  resetSync,
+  readLastVault,
+  persistVaultRoot,
+} from '../services/vaultService';
 import { useLanguage } from './LanguageStore';
 import { useUndoRedo } from './UndoRedoStore';
 import { getRecentFiles, removeRecentFile } from '@core/files/recentFiles';
@@ -32,6 +40,8 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // 该窗口内 state 可能只是 T0（同步兜底树），故：① 不可据此做程序化写入（会落在随后
   // 被丢弃的幽灵节点上）；② 不可回存 IDB（会以 T0 覆盖用户真实的旧树）。
   const [hydrated, setHydrated] = useState(false);
+  // 当前打开的 Vault 根路径（桌面端）；首次从 localStorage 恢复上次打开的 Vault
+  const [vaultRoot, setVaultRoot] = useState<string | null>(() => readLastVault());
   const stateRef = useRef(state)
   stateRef.current = state
 
@@ -49,9 +59,33 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     removeTabsByFileIds: tabActions.removeTabsByFileIds,
   });
 
-  // 启动后异步从 IndexedDB 加载最新数据（覆盖 localStorage 的同步初始值）
+  // 启动后异步加载最新数据：
+  //  - 桌面端且已选 Vault → 从**真实磁盘**读（P4，磁盘为真相源）；
+  //  - 其余（浏览器 / jsdom / 桌面未选 Vault）→ 从 IndexedDB 读（既有行为不变）。
   useEffect(() => {
     let cancelled = false
+    const lastVault = readLastVault()
+    if (platform.kind === 'electron' && lastVault) {
+      loadVault(lastVault)
+        .then((tree) => {
+          if (cancelled) return
+          setVaultRoot(lastVault)
+          // 磁盘来源无需 stripLegacyUsageDocTabs（说明书不落盘）；rootFolder 直接替换
+          setState((prev) => ({ ...prev, rootFolder: tree }))
+          setHydrated(true)
+          logger.info('[FileStore] hydrated=true；来源 = 磁盘 Vault', lastVault)
+        })
+        .catch((err) => {
+          logger.error('[FileStore] 读取 Vault 失败，回退 IndexedDB：', err)
+          // 读取失败不致命：回退到既有 IndexedDB 路径，保证可用
+          loadStateAsync(language).then((asyncState) => {
+            if (cancelled) return
+            if (asyncState) setState(stripLegacyUsageDocTabs(asyncState))
+            setHydrated(true)
+          })
+        })
+      return () => { cancelled = true }
+    }
     loadStateAsync(language).then(asyncState => {
       if (cancelled) return
       if (asyncState) {
@@ -74,8 +108,14 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (!hydrated) return;
     // ⚠️ 落盘前剥掉瞬态标签（内置使用文档，见 stripTransientTabs 的说明）——
     //    「看着说明书时刷新」不得把说明书记成「上次打开的文档」。
-    saveState(stripTransientTabs(state));
-  }, [state, hydrated]);
+    const toPersist = stripTransientTabs(state)
+    if (platform.kind === 'electron' && vaultRoot) {
+      // 桌面 Vault 模式：内存树增量写回真实磁盘（P4，磁盘为真相源，不再写 IndexedDB）
+      syncTree(toPersist.rootFolder, vaultRoot)
+      return
+    }
+    saveState(toPersist);
+  }, [state, hydrated, vaultRoot]);
 
   // 一次性净化：清掉**历史遗留在「最近文件」里的内置使用文档条目**。
   //
@@ -183,9 +223,29 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }));
   }, []);
 
+  /** 打开一个文件夹作为 Vault（桌面端）；浏览器 / 取消选择时无副作用 */
+  const openVault = useCallback(async (): Promise<void> => {
+    if (platform.kind !== 'electron') return
+    const root = await platform.dialog.openDirectory()
+    if (!root) return
+    try {
+      const tree = await loadVault(root)
+      setVaultRoot(root)
+      persistVaultRoot(root)
+      resetSync(tree, root)
+      setState((prev) => ({ ...prev, rootFolder: tree }))
+      setHydrated(true)
+      logger.info('[FileStore] 已打开 Vault：', root)
+    } catch (err) {
+      logger.error('[FileStore] 打开 Vault 失败：', err)
+    }
+  }, [setState]);
+
   const contextValue: FileManagerContextType = {
     rootFolder: state.rootFolder,
     hydrated,
+    vaultRoot,
+    openVault,
     searchQuery: state.searchQuery,
     sidebarVisible: state.sidebarVisible,
     tabs: state.tabs,

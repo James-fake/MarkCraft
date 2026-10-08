@@ -84,6 +84,13 @@ export interface FileManagerContextType {
    * 「进库 0 篇」缺陷）。需要按树写入的调用方（如内置使用文档播种）必须等它为 true。
    */
   hydrated: boolean;
+  /**
+   * 当前打开的 Vault 根路径（桌面端）。浏览器 / 未选 Vault 时为 `null`。
+   * 消费方据此判断「是否处于真实磁盘 Vault 模式」（如显示完整路径、启用 reveal 等）。
+   */
+  vaultRoot: string | null;
+  /** 打开一个文件夹作为 Vault（桌面端）；浏览器无此能力 → 调用无副作用 */
+  openVault: () => Promise<void>;
   searchQuery: string;
   sidebarVisible: boolean;
   tabs: Tab[];

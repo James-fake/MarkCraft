@@ -117,7 +117,7 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 | **P1** ✅ | `src/platform/` 抽象层（接口 + browser 实现 + 单例），把现有 11 处 FSA、下载、窗口控制收敛进去 | tsc ✓ · 现有 149 单测 + 43 E2E 全绿（行为不变） |
 | **P2** ✅ | Electron 骨架：main + preload + 编译脚本 + frameless 窗口 + 真实窗口控制 | `npm run electron:dev` 能起窗口；窗口控制可用（Electron E2E 5/5） |
 | **P3** ✅ | 打通 fs：`fs` IPC + 目录树读取 + 打开文件夹 + **打开原文件所在位置** | 真实桌面壳经 IPC 读写磁盘；readDirectory 读树（含递归）、writeFile 原子写、reveal 可用；Electron E2E 11/11（09+10）全绿 |
-| **P4** | 存储切换：Vault 模式 + 写入/重命名/删除/移动 + 文件监听 + 老数据迁移引导 | 真实 `.md` 落盘；外部改动可感知 |
+| **P4** 🟡 | 存储切换（分 A/B/C/D）：A 核心 VaultService + 双后端分派 + 读写落盘；B rename/move/delete 全联动；C 文件监听（外部改动可感知）；D IndexedDB→Vault 迁移引导 | A：桌面端经 `platform.fs` 读 Vault 真实 `.md` 到文件树，编辑/重命名/删除/新建经 `syncTree` 落盘；B/C/D 后续 |
 | **P5** | 打包分发：`electron-builder` → 绿色版 exe + NSIS 安装包 + `.md` 文件关联 | 双击安装包可装；双击 `.md` 用 MarkCraft 打开 |
 | **P6**（可选） | 网络请求挪主进程（解 CORS）+ Pandoc sidecar（真 EPUB） | Cloudflare 部署可用；EPUB 走 Pandoc |
 
@@ -166,16 +166,47 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 
 ---
 
-## 6. 待定决策
+### P4-A 完成情况（2026-10-08）
 
-| # | 问题 | 我的建议 |
+**核心 VaultService + FileStore 双后端分派（桌面端真实磁盘落盘）：**
+
+| 层 | 改动 |
+|---|---|
+| `src/services/vaultService.ts`（新） | `loadVault(root)` 经 `platform.fs.readDirectory` 建文件树（递归 + 跳点文件）+ 读 `.md` 内容到节点；`syncTree(folder, root)` 300ms 防抖增量对账（新增/重命名/删除/内容改 → 落盘）；`readLastVault / persistVaultRoot`（`localStorage.markcraft.lastVault`，仅桌面端） |
+| `src/stores/FileStore.tsx` | 加载分支：`platform.kind==='electron' && lastVault` → `loadVault`；否则保持 IndexedDB。保存分支：同上条件 → `syncTree` 落盘；否则 `saveState`（IDB）。新增 `openVault()`：原生目录选择 → `loadVault` → 记最近 Vault。上下文暴露 `vaultRoot / openVault` |
+| `src/stores/fileStoreShared.ts` | `FileManagerContextType` 扩展 `vaultRoot / openVault` |
+| `src/services/vaultService.test.ts`（新） | 6 用例：建树、跳点文件、edit→write、rename→rename、delete→remove、create→write、无变更不写盘（用 in-memory fs mock） |
+
+**关键设计决定：**
+- **双后端分派**：以 `platform.kind` 为唯一分派点（`@platform` 已是 P1 抽象），加载/保存两个 effect 各分支一条，零业务代码感知。
+- **内容内联进文件树**：`FileNode.content` 保留（备份/渲染/搜索/双链/MOC 全部直接读，零下游改造），P4 集中只改 FileStore 两个 effect。
+- **增量对账 `syncTree`**：以 `id → {path, mtime}` 的快照为基线，与当前 `rootFolder` 求差集（add/delete/rename/contentChanged）再分别调 `platform.fs.writeFile / rename / remove`；单点对账比"对每个节点 diff 路径"省 IPC。
+- **隐藏目录过滤**：`loadVault` 不传 `includeHidden`，自动跳过 `.markcraft/` 等，与 P3 `readDirectory` 默认行为一致。
+- **最近 Vault 用 `localStorage` 而非 `electron-store`**：与 P2 `markcraft.kind` 探测同源（preload 注入即有 localStorage），零新依赖；将来要迁 `electron-store` 只换实现。
+- **P4 关键约束守住**：网页/jsdom 单测与 web E2E 仍走 IndexedDB，FileStore 加载/保存两 effect 的 else 分支逐字节不变 → 既有 54 用例零回归。
+
+**验证：** tsc --noEmit ✓；tsc -p tsconfig.electron.json ✓；vaultService 6/6 ✓；Electron Vault E2E 3/3 ✓（`e2e/11-electron-vault.spec.ts`：根目录/子目录 `.md` 真实读入 + `.markcraft` 不渲染）。
+
+**P4 后续子阶段：**
+- **P4-B**：rename/move/delete 联动校验 + 文件名冲突去重（已部分经 `syncTree` 覆盖，需补回归用例）
+- **P4-C**：`mc:fs:watch` 主进程监听 → preload `platform.fs.watch(path, cb)` → FileStore 受控刷新
+- **P4-D**：首次启动检测到 IndexedDB 存量时弹一次性「迁移到 Vault」引导（导出 `.md` 副本到用户选定目录，保留 IDB 不破坏）
+
+---
+
+## 6. 待定决策（状态）
+
+| # | 问题 | 结论（用户拍板） |
 |---|---|---|
-| Q1 | 导入外部文件时，是**复制进 Vault** 还是**原地引用**？ | 复制进 Vault（可预期、可迁移）；提供「引用外部文件」为高级选项 |
-| Q2 | Vault 级配置放隐藏目录 `.markcraft/` 还是散落 `*.json`？ | `.markcraft/`（不污染用户视野，可整体忽略） |
-| Q3 | 是否支持多 Vault 同时打开？ | 先单 Vault，多 Vault 留到后续 |
-| Q4 | 打包工具：`electron-vite` / `electron-forge` / 手写 vite 插件？ | `electron-vite`（与现有 Vite 5 配置最贴近，改动最小） |
-| Q5 | 首发是否签名？ | **先不签**（见 §7） |
-| Q6 | 版本号从 `0.0.0` 起什么策略？ | 首个可分发版本定 `0.1.0`，之后语义化 |
+| Q1 | 导入外部文件时，复制进 Vault 还是原地引用？ | **复制进 Vault**（可预期、可迁移；原文件不受影响） |
+| Q2 | Vault 级配置放隐藏目录 `.markcraft/` 还是散落 `*.json`？ | **`.markcraft/`**（不污染用户视野，可整体忽略） |
+| Q3 | 是否支持多 Vault 同时打开？ | **先单 Vault**（最近打开列表记忆，多 Vault 留后续） |
+| Q4 | 打包工具 | 已改：弃 `electron-vite`（安装 EBUSY），改用项目既有 **esbuild** 直接编译 main/preload |
+| Q5 | 首发是否签名？ | **先不签**（见 §7，下载页附 SHA256） |
+| Q6 | 版本号策略 | 首个可分发版本定 **`0.1.0`**，之后语义化 |
+
+> ⚠️ P4 关键约束（实现时务必遵守）：网页 / jsdom 单测 / 浏览器 E2E 仍走 **IndexedDB 后端**（既有行为不变，54 用例全绿为回归证据）；
+> 只有 `platform.kind === 'electron'` 才走**真实磁盘后端**。即 FileStore 必须支持双后端分派，不能让 `platform.fs` 在浏览器路径被硬依赖。
 
 ---
 
