@@ -2,6 +2,7 @@
 // Falls back to a simple HTML-based EPUB if Pandoc is unavailable
 
 import { renderMarkdown } from '@services/sanitizeHtml'
+import { platform } from '@platform'
 
 interface PandocResult {
   success: boolean
@@ -9,20 +10,13 @@ interface PandocResult {
   error?: string
 }
 
-// Check if we're running in Electron
-function isElectron(): boolean {
-  return !!window.markcraft?.pandoc
-}
-
-// Call Pandoc through Electron IPC
-async function callPandocElectron(content: string, fromFormat: string, toFormat: string): Promise<PandocResult> {
+// Call Pandoc through the platform layer (desktop = main-process sidecar; browser = unavailable)
+async function callPandoc(content: string, fromFormat: string, toFormat: string): Promise<PandocResult> {
   try {
-    // 统一走 window.markcraft 命名空间（契约见 src/types/electron.d.ts）
-    const desktop = window.markcraft
-    if (!desktop?.pandoc) {
+    if (!(await platform.pandoc.available())) {
       return { success: false, error: 'Pandoc not available' }
     }
-    const result = await desktop.pandoc.convert(content, fromFormat, toFormat)
+    const result = await platform.pandoc.convert(content, fromFormat, toFormat)
     if (result.error) {
       return { success: false, error: result.error }
     }
@@ -262,12 +256,10 @@ function crc32(data: Uint8Array): number {
 }
 
 export async function generateEpubBlob(content: string): Promise<Blob> {
-  // Try Pandoc first (Electron environment)
-  if (isElectron()) {
-    const result = await callPandocElectron(content, 'markdown', 'epub')
-    if (result.success && result.buffer) {
-      return new Blob([new Uint8Array(result.buffer as ArrayBuffer)], { type: 'application/epub+zip' })
-    }
+  // Try Pandoc first (desktop sidecar; unavailable in browser)
+  const result = await callPandoc(content, 'markdown', 'epub')
+  if (result.success && result.buffer) {
+    return new Blob([new Uint8Array(result.buffer as ArrayBuffer)], { type: 'application/epub+zip' })
   }
 
   // Fallback: generate simple EPUB without Pandoc

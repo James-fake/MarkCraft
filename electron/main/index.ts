@@ -13,6 +13,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { existsSync, watch, statSync } from 'node:fs'
 import { promises as fsp } from 'node:fs'
+import { spawn } from 'node:child_process'
 
 /**
  * ⚠️ 主进程必须走 ESM：Electron 新版（本项目为 v44）在 CJS 模式下
@@ -320,6 +321,137 @@ function bindDialogIpc(): void {
   })
 }
 
+// —— P6：主进程网络代理 ——
+// 渲染进程是 Chromium（跨域受 CORS 约束），主进程是 Node（不受）。跨域 API
+// （GitHub / Vercel / Cloudflare / 自建 AI 端点等）经此发出即不被拦。
+function bindNetIpc(): void {
+  ipcMain.handle(
+    'mc:net:fetch',
+    async (
+      _e,
+      req: {
+        url: string
+        method?: string
+        headers?: Record<string, string>
+        bodyText?: string
+        bodyBytes?: Uint8Array
+        timeoutMs?: number
+      },
+    ) => {
+      const { url, method = 'GET', headers, bodyText, bodyBytes, timeoutMs = 30_000 } = req || {}
+      if (typeof url !== 'string' || !url) throw new Error('net.fetch: url required')
+
+      let res: Response
+      try {
+        res = await fetch(url, {
+          method,
+          headers,
+          body: bodyBytes ?? bodyText,
+          redirect: 'follow',
+          signal: timeoutMs > 0 ? AbortSignal.timeout(timeoutMs) : undefined,
+        })
+      } catch (err) {
+        // 超时 → 给渲染端可识别的标记（Electron IPC 只可靠保留 Error.message）
+        const name = (err as Error)?.name
+        if (name === 'TimeoutError' || name === 'AbortError') {
+          throw new Error(`NET_TIMEOUT:${timeoutMs}`)
+        }
+        throw err
+      }
+
+      const body = new Uint8Array(await res.arrayBuffer())
+      const outHeaders: Record<string, string> = {}
+      res.headers.forEach((v, k) => {
+        outHeaders[k] = v
+      })
+      return { status: res.status, statusText: res.statusText, headers: outHeaders, body, url: res.url }
+    },
+  )
+}
+
+// —— P6.2：Pandoc sidecar（真 EPUB）——
+// 二进制由 `npm run fetch:pandoc` 下到 `resources/pandoc/<platform>/`（不入库），打包时
+// 经 electron-builder 的 extraResources 落到 `process.resourcesPath/pandoc/`。
+// 解析顺序：打包内 → 开发态 resources/ → 系统 PATH；都没有则 exportEpub 回退内置生成器。
+function pandocBinName(): string {
+  return process.platform === 'win32' ? 'pandoc.exe' : 'pandoc'
+}
+function pandocPlatformDir(): string {
+  return process.platform === 'win32' ? 'win' : process.platform === 'darwin' ? 'mac' : 'linux'
+}
+function resolvePandocCommand(): string {
+  const bin = pandocBinName()
+  const dir = pandocPlatformDir()
+  const candidates: string[] = []
+  if (app.isPackaged) {
+    candidates.push(join(process.resourcesPath, 'pandoc', dir, bin))
+  } else {
+    // 开发态：主进程产物在 out/main/，故项目根 = HERE/../..（与 DIST_INDEX 同一基准）
+    candidates.push(join(HERE, '..', '..', 'resources', 'pandoc', dir, bin))
+    candidates.push(join(process.cwd(), 'resources', 'pandoc', dir, bin))
+  }
+  for (const c of candidates) if (existsSync(c)) return c
+  return bin // 回退：交给 spawn 在系统 PATH 上找
+}
+
+function bindPandocIpc(): void {
+  ipcMain.handle('mc:pandoc:available', async () => {
+    const cmd = resolvePandocCommand()
+    return await new Promise<boolean>((resolve) => {
+      let child: import('node:child_process').ChildProcess
+      try {
+        child = spawn(cmd, ['--version'], { stdio: 'ignore' })
+      } catch {
+        resolve(false)
+        return
+      }
+      child.on('error', () => resolve(false))
+      child.on('close', (code) => resolve(code === 0))
+    })
+  })
+
+  ipcMain.handle(
+    'mc:pandoc:convert',
+    async (_e, req: { content: string; fromFormat?: string; toFormat?: string }) => {
+      const { content = '', fromFormat = 'markdown', toFormat = 'epub' } = req || {}
+      const cmd = resolvePandocCommand()
+      return await new Promise<{ buffer?: ArrayBuffer; error?: string }>((resolve) => {
+        let child: import('node:child_process').ChildProcess
+        try {
+          // `-o -` 强制输出到 stdout —— 否则 pandoc 对 epub 等二进制格式会拒绝写终端
+          child = spawn(cmd, ['-f', fromFormat, '-t', toFormat, '-o', '-'], { stdio: ['pipe', 'pipe', 'pipe'] })
+        } catch (err) {
+          resolve({ error: `Pandoc 不可用：${(err as Error).message}` })
+          return
+        }
+        const out: Buffer[] = []
+        let errText = ''
+        const timer = setTimeout(() => {
+          try { child.kill() } catch { /* 已退出 */ }
+          resolve({ error: 'Pandoc 转换超时' })
+        }, 60_000)
+        child.stdout?.on('data', (c: Buffer) => out.push(c))
+        child.stderr?.on('data', (c: Buffer) => { errText += c.toString() })
+        child.on('error', (err) => {
+          clearTimeout(timer)
+          resolve({ error: `Pandoc 不可用：${err.message}` })
+        })
+        child.on('close', (code) => {
+          clearTimeout(timer)
+          if (code === 0) {
+            const buf = Buffer.concat(out)
+            resolve({ buffer: buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength) })
+          } else {
+            resolve({ error: errText.trim() || `Pandoc 退出码 ${code}` })
+          }
+        })
+        child.stdin?.write(content, 'utf-8')
+        child.stdin?.end()
+      })
+    },
+  )
+}
+
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 1280,
@@ -373,6 +505,8 @@ void app.whenReady().then(() => {
   bindFsIpc()
   bindFsWatchIpc()
   bindDialogIpc()
+  bindNetIpc()
+  bindPandocIpc()
   createWindow()
 
   app.on('activate', () => {

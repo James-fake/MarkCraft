@@ -243,4 +243,38 @@ describe('browserPlatform', () => {
   it('kind 标识为 browser（供运行时分派与断言）', () => {
     expect(browserPlatform.kind).toBe('browser')
   })
+
+  // —— P6：网络能力契约 ——
+  // 浏览器端直连全局 fetch（仍受 CORS）；调用时读全局，保证测试桩可替换。
+  describe('net.fetch（P6）', () => {
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    it('直连全局 fetch，参数原样透传（含 method/headers/body）', async () => {
+      const fake = { ok: true, status: 200 } as unknown as Response
+      const mock = vi.fn(async () => fake)
+      vi.stubGlobal('fetch', mock)
+
+      const res = await browserPlatform.net.fetch('https://example.com/api', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{"a":1}',
+      })
+
+      expect(mock).toHaveBeenCalledTimes(1)
+      const [calledUrl, calledInit] = mock.mock.calls[0] as unknown as [string, RequestInit]
+      expect(calledUrl).toBe('https://example.com/api')
+      expect(calledInit.method).toBe('POST')
+      expect(calledInit.body).toBe('{"a":1}')
+      expect(res).toBe(fake)
+    })
+
+    it('无 init 时也能调用（GET 语义）', async () => {
+      const mock = vi.fn(async () => ({ ok: true, status: 200 }) as unknown as Response)
+      vi.stubGlobal('fetch', mock)
+      await browserPlatform.net.fetch('https://example.com/x')
+      expect(mock).toHaveBeenCalledWith('https://example.com/x', undefined)
+    })
+  })
 })

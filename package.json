@@ -23,6 +23,7 @@
     "electron:dev": "npm run electron:compile && node scripts/start-electron.cjs",
     "electron:start": "npm run build && npm run electron:compile && node scripts/start-electron.cjs --dist",
     "electron:icon": "node scripts/gen-icon.cjs",
+    "fetch:pandoc": "node scripts/fetch-pandoc.cjs",
     "electron:prepare-dist": "node scripts/prepare-electron-dist.cjs",
     "electron:pack": "npm run build && npm run electron:compile && npm run electron:prepare-dist && electron-builder --dir",
     "electron:dist": "npm run build && npm run electron:compile && npm run electron:prepare-dist && electron-builder",
@@ -130,6 +131,15 @@
     ],
     "asar": true,
     "electronDist": ".electron-dist",
+    "extraResources": [
+      {
+        "from": "resources/pandoc",
+        "to": "pandoc",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
     "win": {
       "icon": "build/icon.png",
       "target": [

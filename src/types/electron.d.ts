@@ -19,10 +19,15 @@ export interface MarkCraftWindowControls {
 }
 
 /**
- * Pandoc sidecar（P6 才接线）。
- * 契约先留位：避免 `exportEpub` 再引入第二套 window 全局命名空间。
+ * Pandoc sidecar（P6.2）。
+ * 二进制由 `npm run fetch:pandoc` 下到 `resources/pandoc/<platform>/`，打包时随
+ * `extraResources` 进入 `process.resourcesPath/pandoc/`；主进程解析「打包内 → 开发态
+ * → 系统 PATH」。不可用时 `available()` 返回 false、`convert()` 返回 `error`，
+ * 调用方（exportEpub）据此回退内置 EPUB 生成器。
  */
 export interface MarkCraftPandocAPI {
+  /** Pandoc 是否可用（探测 `pandoc --version`） */
+  available(): Promise<boolean>
   convert(content: string, fromFormat: string, toFormat: string): Promise<{
     error?: string
     buffer?: ArrayBuffer
@@ -105,11 +110,43 @@ export interface MarkCraftShellAPI {
   showItemInFolder(path: string): Promise<boolean>
 }
 
+/** 主进程网络请求参数（P6：渲染端 → 主进程代理，绕过 CORS） */
+export interface MarkCraftNetRequest {
+  url: string
+  method?: string
+  headers?: Record<string, string>
+  /** 文本请求体（与 bodyBytes 二选一） */
+  bodyText?: string
+  /** 二进制请求体（结构化克隆，保留字节） */
+  bodyBytes?: Uint8Array
+  /** 超时（毫秒），主进程用 AbortSignal.timeout 执行 */
+  timeoutMs?: number
+}
+
+/** 主进程网络响应（P6） */
+export interface MarkCraftNetResponse {
+  status: number
+  statusText: string
+  headers: Record<string, string>
+  /** 响应体字节（渲染端据此构造标准 Response，二进制安全） */
+  body: Uint8Array
+  url: string
+}
+
+/**
+ * 主进程网络代理（P6）。渲染进程是 Chromium（受 CORS 约束），主进程是 Node（不受）——
+ * 跨域 API（GitHub / Vercel / Cloudflare 等）经此发出即不被拦。
+ */
+export interface MarkCraftNetAPI {
+  fetch(req: MarkCraftNetRequest): Promise<MarkCraftNetResponse>
+}
+
 export interface MarkCraftDesktopAPI {
   window: MarkCraftWindowControls
   fs: MarkCraftFsAPI
   dialog: MarkCraftDialogAPI
   shell: MarkCraftShellAPI
+  net: MarkCraftNetAPI
   pandoc?: MarkCraftPandocAPI
 }
 

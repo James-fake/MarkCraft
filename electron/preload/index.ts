@@ -88,6 +88,35 @@ const api = {
   shell: {
     showItemInFolder: (path: string): Promise<boolean> => ipcRenderer.invoke('mc:fs:reveal', path),
   },
+
+  // —— P6：主进程网络代理（绕过渲染进程 CORS）——
+  net: {
+    fetch: (req: {
+      url: string
+      method?: string
+      headers?: Record<string, string>
+      bodyText?: string
+      bodyBytes?: Uint8Array
+      timeoutMs?: number
+    }): Promise<{
+      status: number
+      statusText: string
+      headers: Record<string, string>
+      body: Uint8Array
+      url: string
+    }> => ipcRenderer.invoke('mc:net:fetch', req),
+  },
+
+  // —— P6.2：Pandoc sidecar（真 EPUB）——
+  pandoc: {
+    available: (): Promise<boolean> => ipcRenderer.invoke('mc:pandoc:available'),
+    convert: (
+      content: string,
+      fromFormat: string,
+      toFormat: string,
+    ): Promise<{ error?: string; buffer?: ArrayBuffer }> =>
+      ipcRenderer.invoke('mc:pandoc:convert', { content, fromFormat, toFormat }),
+  },
 }
 
 contextBridge.exposeInMainWorld('markcraft', api)

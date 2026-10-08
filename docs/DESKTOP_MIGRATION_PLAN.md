@@ -119,7 +119,7 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 | **P3** ✅ | 打通 fs：`fs` IPC + 目录树读取 + 打开文件夹 + **打开原文件所在位置** | 真实桌面壳经 IPC 读写磁盘；readDirectory 读树（含递归）、writeFile 原子写、reveal 可用；Electron E2E 11/11（09+10）全绿 |
 | **P4** ✅ | 存储切换（分 A/B/C/D）：A 核心 VaultService + 双后端分派 + 读写落盘；B rename/move/delete 全联动；C 文件监听（外部改动可感知）；D IndexedDB→Vault 迁移引导 | 桌面端经 `platform.fs` 读 Vault 真实 `.md` 到文件树，编辑/重命名/删除/移动经 `syncTree` 落盘，外部增删改由 fs.watch 跟随刷新（含自身回显抑制），旧 IDB 笔记可一次性迁移到 Vault |
 | **P5** ✅ | 打包分发：`electron-builder` → 绿色版 exe + NSIS 安装包 + `.md` 文件关联 | `electron-builder` 产出 NSIS 安装包 + portable 绿色版 exe，`.md`/`.markdown` 文件关联；打包产物冒烟 E2E 通过 |
-| **P6**（可选） | 网络请求挪主进程（解 CORS）+ Pandoc sidecar（真 EPUB） | Cloudflare 部署可用；EPUB 走 Pandoc |
+| **P6** ✅ | 网络请求挪主进程（解 CORS）+ Pandoc sidecar（真 EPUB） | 跨域 API（GitHub/Vercel/Cloudflare/AI 端点）经主进程发出不被拦；EPUB 有 Pandoc 时走真转换、无则回退内置生成器 |
 
 ### P1 完成情况（2026-10-08）
 
@@ -286,6 +286,45 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 - **测试钩子最小化**：只在 `openDirectory` 一处、只在显式 env 下短路，生产路径逐字节不变。
 
 **验证：** tsc 两套零错误；vaultService 14/14（含 `flattenNotes` 2 例）；Electron E2E 11/12/14/15 全绿（15 = 检测弹窗 + 迁移落盘 2 例，用 `--user-data-dir` 隔离 IDB 并 `evaluate` 种入旧数据）。
+
+---
+
+### P6 完成情况（2026-10-08）
+
+#### P6.1 网络请求挪主进程（解 CORS）
+
+渲染进程是 Chromium（跨域受 CORS 约束），主进程是 Node（**不受限**）—— 跨域 API 经主进程发出即不被拦。
+
+| 层 | 改动 |
+|---|---|
+| `src/platform/types` | 新增 `NetAPI` / `NetFetchInit`（`fetch(url, init?) → Response`，额外支持 `timeoutMs`），并入 `Platform` |
+| `src/platform/browser` | `net.fetch` 直连全局 fetch（浏览器仍受 CORS）；调用时读全局，测试桩可替换 |
+| `src/platform/electron` | `net.fetch` 把 `RequestInit` 归一化（string / Uint8Array / ArrayBuffer / Blob / URLSearchParams）→ IPC → 主进程 fetch → **重建标准 `Response`**（含 204/205/304 无 body 处理） |
+| `electron/main` | `bindNetIpc`：`mc:net:fetch` 用 Node 全局 `fetch` + `AbortSignal.timeout`；超时抛 `NET_TIMEOUT:<ms>` 供渲染端识别 |
+| `electron/preload` | 暴露 `window.markcraft.net.fetch` |
+| 消费方迁移 | `fetchWithTimeout`（**5 个 deploy 适配器的统一出口**，零调用方改动）、`ThemeMarket`、`externalImporter`、`aiService`（3 处） |
+
+**关键设计：**
+- **返回标准 `Response`** → 调用方零改动（`fetchWithTimeout` 签名不变，5 个适配器无感）。
+- **超时语义保留**：改由主进程执行（`timeoutMs` 经 IPC 传入），渲染端把 `NET_TIMEOUT` 映射回 `FetchTimeoutError`。
+- **不支持的 body 形态回退渲染端 fetch**，行为与迁移前逐字一致。
+
+#### P6.2 Pandoc sidecar（真 EPUB）
+
+| 层 | 改动 |
+|---|---|
+| `scripts/fetch-pandoc.cjs` | 下载 Pandoc（默认 3.12.1）→ `resources/pandoc/<platform>/`；`npm run fetch:pandoc` |
+| `electron/main` | `resolvePandocCommand`（打包内 `process.resourcesPath/pandoc/` → 开发态 `resources/pandoc/` → 系统 PATH）；`bindPandocIpc`（`mc:pandoc:available` 探测 `--version`、`mc:pandoc:convert` spawn + stdin/stdout，60s 超时） |
+| `electron/preload` | 暴露 `window.markcraft.pandoc.{available,convert}` |
+| `src/platform` | 新增 `PandocAPI` 并入 `Platform`（browser 恒不可用）；**`exportEpub.ts` 从直接读 `window.markcraft` 改为走 `@platform`**（补齐 P1 遗留的越层访问） |
+| `package.json` | `build.extraResources` 把 `resources/pandoc` 打进 `process.resourcesPath/pandoc` |
+
+**关键设计决定 —— 二进制「可选下载」而非入库：**
+- `pandoc.exe` **解压后 224.6MB**（静态链接 Haskell），入库会让仓库爆炸、打进安装包会让体积从 ~185MB 涨到 ~410MB。
+- 故：二进制 **gitignore**（`resources/pandoc/*`，仅留 `.gitkeep`）；需要真 EPUB 时 `npm run fetch:pandoc` 再打包；**没跑也不影响** —— `exportEpub` 回退内置最小 EPUB 生成器（行为与 P6 前一致）。
+- 三级解析（打包内 → 开发态 → 系统 PATH）让「自带」与「用系统装的 pandoc」都能工作。
+
+**验证：** tsc 两套零错误；E2E 16（主进程网络代理 3/3，用本地 HTTP 服务器做确定性目标 + 超时用例）、E2E 17（Pandoc 转换 2/2：Markdown→EPUB 返回真 ZIP + mimetype；无二进制时 skip）；browser.test 18/18（含 net 2 例）。
 
 ---
 

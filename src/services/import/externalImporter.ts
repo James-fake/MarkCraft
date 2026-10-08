@@ -8,6 +8,7 @@
  */
 import JSZip from 'jszip'
 import { buildMaterialNote, type ClipSource } from '@services/clipMaterial'
+import { platform } from '@platform'
 
 /** 导入相关用户可见文案（可被调用方以目标语言覆盖） */
 export interface ImportMessages {
@@ -231,7 +232,11 @@ export async function importWebClipper(
   // 先校验（在 try 之外抛出，urlBlocked 直接冒泡，不被下方 catch 二次包裹）
   const safeUrl = assertFetchableUrl(url, messages)
   try {
-    const res = await fetch(safeUrl.toString(), { credentials: 'omit' })
+    // P6：桌面端经主进程抓取（无 CORS）；浏览器端直连（credentials: 'omit' 仅浏览器有意义）
+    const res = await platform.net.fetch(
+      safeUrl.toString(),
+      platform.kind === 'browser' ? { credentials: 'omit' } : undefined,
+    )
     if (!res.ok) {
       throw new Error(messages.requestFailed.replace('{status}', String(res.status)))
     }

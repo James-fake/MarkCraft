@@ -138,6 +138,36 @@ export interface DialogAPI {
   saveFile(options?: SaveFileOptions): Promise<string | null>
 }
 
+/** `net.fetch` 的 init：标准 RequestInit + 超时（桌面端由主进程执行超时） */
+export interface NetFetchInit extends RequestInit {
+  /** 请求超时（毫秒）；桌面端由主进程用 `AbortSignal.timeout` 执行 */
+  timeoutMs?: number
+}
+
+/**
+ * 网络请求（P6）：桌面端经**主进程**发出，绕过渲染进程的 CORS 限制。
+ *
+ * 为什么需要：渲染进程是 Chromium，跨域请求受 CORS 约束 —— GitHub / Vercel /
+ * Cloudflare 等 API 不保证返回宽松的 `Access-Control-Allow-Origin`，浏览器里会被拦。
+ * 主进程是 Node，**不受 CORS 约束**，故把请求挪过去即可。
+ *
+ * 契约：与 `fetch` 同签名（额外支持 `timeoutMs`），返回**标准 `Response`** —— 调用方
+ * 零改动。浏览器端直连（仍受 CORS），保证双端可复用同一份调用代码。
+ */
+export interface NetAPI {
+  fetch(url: string, init?: NetFetchInit): Promise<Response>
+}
+
+/**
+ * Pandoc sidecar（P6.2）：桌面端把 Markdown 转成「真 EPUB」等格式。
+ * 二进制可选（`npm run fetch:pandoc`）；不可用时 `available()` 为 false、
+ * `convert()` 返回 `error`，调用方据此回退内置生成器。浏览器端恒不可用。
+ */
+export interface PandocAPI {
+  available(): Promise<boolean>
+  convert(content: string, fromFormat: string, toFormat: string): Promise<{ error?: string; buffer?: ArrayBuffer }>
+}
+
 export interface Platform {
   readonly kind: PlatformKind
 
@@ -182,4 +212,14 @@ export interface Platform {
    * （诚实降级：不伪造路径，调用方据此提示「请升级桌面版」或走 FSA 落盘）。
    */
   readonly dialog: DialogAPI
+
+  /**
+   * 网络请求（P6）。桌面端走主进程（无 CORS）；浏览器端直连（受 CORS 约束）。
+   */
+  readonly net: NetAPI
+
+  /**
+   * Pandoc sidecar（P6.2）。桌面端可选（二进制需单独下载）；浏览器端恒不可用。
+   */
+  readonly pandoc: PandocAPI
 }

@@ -1,4 +1,5 @@
 import { importThemeCSS, sanitizeThemeCSS, saveCustomTheme, applyTheme, type EditorTheme } from './ThemeManager'
+import { platform } from '@platform'
 
 /**
  * B2：主题市场远程拉取。
@@ -21,7 +22,8 @@ export async function fetchMarketThemes(endpoint: string): Promise<EditorTheme[]
   const url = endpoint.trim()
   if (!url) throw new Error('主题市场地址未配置')
 
-  const res = await fetch(url, { mode: 'cors' })
+  // P6：桌面端经主进程拉取（无 CORS）；浏览器端直连（mode: 'cors' 仅浏览器有意义）
+  const res = await platform.net.fetch(url, platform.kind === 'browser' ? { mode: 'cors' } : undefined)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const data = (await res.json()) as MarketThemeMeta[] | { themes?: MarketThemeMeta[] }
   const list = Array.isArray(data) ? data : data.themes ?? []

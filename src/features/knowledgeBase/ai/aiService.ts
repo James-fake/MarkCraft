@@ -6,6 +6,7 @@
  * 所有 AI 功能在本地引擎不可用时降级为关键词/统计方案。
  */
 import type { AiSettings } from '@stores/kbTypes'
+import { platform } from '@platform'
 
 // ─── 接口定义 ───
 
@@ -169,7 +170,7 @@ class RemoteEngine implements AiService {
   async embed(text: string): Promise<number[]> {
     if (!this.isReady()) return new TfidfEngine().embed(text)
     try {
-      const response = await fetch(`${this.settings.remoteBaseUrl}/embeddings`, {
+      const response = await platform.net.fetch(`${this.settings.remoteBaseUrl}/embeddings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -190,7 +191,7 @@ class RemoteEngine implements AiService {
   async summarize(text: string, maxLen = 200): Promise<string> {
     if (!this.isReady()) return new TfidfEngine().summarize(text, maxLen)
     try {
-      const response = await fetch(`${this.settings.remoteBaseUrl}/chat/completions`, {
+      const response = await platform.net.fetch(`${this.settings.remoteBaseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -215,7 +216,7 @@ class RemoteEngine implements AiService {
   async chat(question: string, context: string): Promise<{ answer: string; sources: string[] }> {
     if (!this.isReady()) return new TfidfEngine().chat(question, context)
     try {
-      const response = await fetch(`${this.settings.remoteBaseUrl}/chat/completions`, {
+      const response = await platform.net.fetch(`${this.settings.remoteBaseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

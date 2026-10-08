@@ -1,6 +1,7 @@
 import type {
   FileTypeFilter,
   FsAPI,
+  NetFetchInit,
   OpenFileOptions,
   PickSaveFileOptions,
   Platform,
@@ -134,6 +135,23 @@ export const browserPlatform: Platform = {
     },
     async saveFile(_options?: SaveFileOptions): Promise<string | null> {
       return null
+    },
+  },
+
+  // —— P6：浏览器直连（仍受 CORS 约束）；调用时读全局 fetch，保证测试桩可替换 ——
+  net: {
+    fetch(url: string, init?: NetFetchInit): Promise<Response> {
+      return fetch(url, init)
+    },
+  },
+
+  // —— P6.2：浏览器无 Pandoc sidecar（诚实降级：不可用 + 转换返回错误）——
+  pandoc: {
+    async available(): Promise<boolean> {
+      return false
+    },
+    async convert(): Promise<{ error?: string; buffer?: ArrayBuffer }> {
+      return { error: 'Pandoc 仅桌面版可用' }
     },
   },
 }

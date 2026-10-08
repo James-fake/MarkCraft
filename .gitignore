@@ -12,6 +12,9 @@ release*/
 .electron-dist/
 # 图标生成的临时 HTML（scripts/gen-icon.cjs 运行时产物，正常会自动清理）
 build/.icon-render.html
+# Pandoc sidecar 二进制（~180MB，由 npm run fetch:pandoc 下载，不入库；.gitkeep 保留目录）
+resources/pandoc/*
+!resources/pandoc/.gitkeep
 
 # ===== 运行期与临时 =====
 *.log

@@ -1,5 +1,5 @@
 import { browserPlatform } from './browser'
-import type { DialogAPI, FsAPI, Platform, WindowControls } from './types'
+import type { DialogAPI, FsAPI, NetAPI, NetFetchInit, Platform, WindowControls } from './types'
 import type {
   MarkCraftDesktopAPI,
   MarkCraftDirEntry,
@@ -126,6 +126,47 @@ const desktopDialog: DialogAPI = {
   },
 }
 
+/**
+ * 主进程网络代理（P6）。把标准 `RequestInit` 归一化为可 IPC 传递的形态，
+ * 主进程执行后返回标准 `Response` —— 调用方零改动。
+ * 不支持的 body 形态（FormData 等）回退渲染端 `fetch`，行为与迁移前逐字一致。
+ */
+const desktopNet: NetAPI = {
+  async fetch(url: string, init?: NetFetchInit): Promise<Response> {
+    const a = api()
+    if (!a?.net) return fetch(url, init)
+
+    const { method, headers, body, timeoutMs } = init ?? {}
+    let bodyText: string | undefined
+    let bodyBytes: Uint8Array | undefined
+    if (typeof body === 'string') {
+      bodyText = body
+    } else if (body instanceof Uint8Array) {
+      bodyBytes = body
+    } else if (body instanceof ArrayBuffer) {
+      bodyBytes = new Uint8Array(body)
+    } else if (typeof Blob !== 'undefined' && body instanceof Blob) {
+      bodyBytes = new Uint8Array(await body.arrayBuffer())
+    } else if (typeof URLSearchParams !== 'undefined' && body instanceof URLSearchParams) {
+      bodyText = body.toString()
+    } else if (body != null) {
+      return fetch(url, init) // 其它形态（如 FormData）→ 回退渲染端
+    }
+
+    const h: Record<string, string> = {}
+    if (headers) new Headers(headers).forEach((v, k) => { h[k] = v })
+
+    const r = await a.net.fetch({ url, method, headers: h, bodyText, bodyBytes, timeoutMs })
+    // 204/205/304 是「无 body」状态码，构造 Response 时不能带 body
+    const nullBody = r.status === 204 || r.status === 205 || r.status === 304
+    return new Response(nullBody ? null : (r.body as unknown as BodyInit), {
+      status: r.status,
+      statusText: r.statusText,
+      headers: r.headers,
+    })
+  },
+}
+
 export const electronPlatform: Platform = {
   ...browserPlatform,
   kind: 'electron',
@@ -133,6 +174,19 @@ export const electronPlatform: Platform = {
   // 真实文件系统（P3）
   fs: desktopFs,
   dialog: desktopDialog,
+  // 主进程网络代理（P6）
+  net: desktopNet,
+  // Pandoc sidecar（P6.2）：委托 preload；不可用时回退 browser 的「不可用」实现
+  pandoc: {
+    async available(): Promise<boolean> {
+      return (await api()?.pandoc?.available()) ?? false
+    },
+    async convert(content: string, fromFormat: string, toFormat: string) {
+      const a = api()
+      if (!a?.pandoc) return { error: 'Pandoc 不可用' }
+      return a.pandoc.convert(content, fromFormat, toFormat)
+    },
+  },
   // 真实「打开原文件所在位置」（D3）
   async revealInFolder(path: string): Promise<boolean> {
     return (await api()?.shell.showItemInFolder(path)) ?? false

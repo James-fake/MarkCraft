@@ -35,4 +35,7 @@ export type {
   OpenFileOptions,
   SaveFileOptions,
   DialogAPI,
+  NetAPI,
+  NetFetchInit,
+  PandocAPI,
 } from './types'
