@@ -91,6 +91,15 @@ export interface FileManagerContextType {
   vaultRoot: string | null;
   /** 打开一个文件夹作为 Vault（桌面端）；浏览器无此能力 → 调用无副作用 */
   openVault: () => Promise<void>;
+  /**
+   * P4-D：桌面端检测到 IndexedDB 有旧笔记、尚未选 Vault 时的迁移提示。
+   * `null` = 无需提示（已迁移 / 已忽略 / 无旧数据 / 浏览器环境）；`{count}` = 可迁移笔记数。
+   */
+  legacyMigration: { count: number } | null;
+  /** 把当前 IDB 树里的全部笔记写成真实 `.md` 到用户选定文件夹并采用为 Vault（保留 IDB） */
+  migrateLegacyToVault: () => Promise<void>;
+  /** 忽略迁移提示（不再弹；不影响已有数据） */
+  dismissLegacyMigration: () => void;
   searchQuery: string;
   sidebarVisible: boolean;
   tabs: Tab[];

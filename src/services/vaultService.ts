@@ -91,6 +91,30 @@ function walk(
 }
 
 /**
+ * 收集树中所有笔记的**相对路径 + 内容**（P4-D 旧数据迁移用）。
+ * - 跳过 `skipIds`（内置「使用文档」，它们不该落成真实文件）；
+ * - 文件名补 `.md`（与 createFile / diskName 一致）；
+ * - 路径统一用 `/` 分隔，由调用方按平台拼根（不在纯函数里掺平台判断）。
+ */
+export function flattenNotes(
+  rootFolder: FileNode,
+  skipIds: Set<string> = new Set(),
+): Array<{ relPath: string; content: string }> {
+  const out: Array<{ relPath: string; content: string }> = []
+  const walk = (node: FileNode, prefix: string): void => {
+    for (const c of node.children || []) {
+      if (skipIds.has(c.id)) continue
+      const name = diskName(c)
+      const rel = prefix ? `${prefix}/${name}` : name
+      if (c.type === 'folder') walk(c, rel)
+      else out.push({ relPath: rel, content: c.content || '' })
+    }
+  }
+  walk(rootFolder, '')
+  return out
+}
+
+/**
  * 从磁盘读取一个 Vault 目录，构建 FileNode 树（content 内联）。
  * 仅纳入 `.md`/`.markdown` 文件与文件夹；跳过所有点开头项（含 `.markcraft` 配置目录）。
  */

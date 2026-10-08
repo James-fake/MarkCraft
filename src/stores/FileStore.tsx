@@ -9,6 +9,7 @@ import {
   resetSync,
   readLastVault,
   persistVaultRoot,
+  flattenNotes,
 } from '../services/vaultService';
 import { useLanguage } from './LanguageStore';
 import { useUndoRedo } from './UndoRedoStore';
@@ -29,6 +30,9 @@ export type { FileManagerContextType } from './fileStoreShared';
 
 const FileManagerContext = createContext<FileManagerContextType | undefined>(undefined);
 
+/** P4-D：用户点过「暂不迁移」后置位，避免每次启动都弹（localStorage 级，仅桌面端） */
+const LEGACY_MIGRATION_DISMISSED = 'markcraft.legacyMigrationDismissed';
+
 export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { language } = useLanguage();
   const undoRedo = useUndoRedo();
@@ -42,6 +46,8 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [hydrated, setHydrated] = useState(false);
   // 当前打开的 Vault 根路径（桌面端）；首次从 localStorage 恢复上次打开的 Vault
   const [vaultRoot, setVaultRoot] = useState<string | null>(() => readLastVault());
+  // P4-D：桌面端检测到 IndexedDB 有旧笔记、但尚未选 Vault → 提示一次性迁移（count = 可迁移笔记数）
+  const [legacyMigration, setLegacyMigration] = useState<{ count: number } | null>(null);
   const stateRef = useRef(state)
   stateRef.current = state
 
@@ -88,14 +94,21 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
     loadStateAsync(language).then(asyncState => {
       if (cancelled) return
-      if (asyncState) {
+      const cleaned = asyncState ? stripLegacyUsageDocTabs(asyncState) : null
+      if (cleaned) {
         // ⚠️ setState 前剥掉旧版永久落盘的使用文档标签（stripLegacyUsageDocTabs 的说明）。
         //    必须在 setState 之前：随后 hydrated 翻转会触发 save effect 把净化版回写 IndexedDB，
         //    落盘里的旧标签借此一并清掉 —— 若在 setState 之后修，则要再补一次显式回写。
-        setState(stripLegacyUsageDocTabs(asyncState))
+        setState(cleaned)
       }
       // 无论读没读到，都算「水合完成」：读不到时 T0 本身就是应然状态（新用户首启 / 版本升级重建）
       setHydrated(true)
+      // P4-D：桌面端 + 尚未选 Vault + IDB 里确有旧笔记 + 用户未忽略过 → 提示一次性迁移
+      if (platform.kind === 'electron' && cleaned && !localStorage.getItem(LEGACY_MIGRATION_DISMISSED)) {
+        const builtin = resolveUsageDocsScope(cleaned.rootFolder).builtinFileIds
+        const count = flattenNotes(cleaned.rootFolder, builtin).length
+        if (count > 0) setLegacyMigration({ count })
+      }
       logger.info('[FileStore] hydrated=true；来源 =', asyncState ? 'IndexedDB 权威树' : '无（新用户首启或已清空，沿用同步树）')
     })
     return () => { cancelled = true }
@@ -273,11 +286,51 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
   }, [setState]);
 
+  /** 忽略旧数据迁移提示（不再弹；不影响已有 IDB 数据） */
+  const dismissLegacyMigration = useCallback((): void => {
+    try { localStorage.setItem(LEGACY_MIGRATION_DISMISSED, '1') } catch { /* localStorage 不可用则忽略 */ }
+    setLegacyMigration(null)
+  }, [])
+
+  /**
+   * P4-D：把当前（IndexedDB）树里的全部笔记写成真实 `.md` 落到用户选定文件夹，并采用为 Vault。
+   * - **保留 IDB 不破坏**：只读内存树写盘，不删 IDB（迁移失败/后悔都可回退）。
+   * - 跳过内置「使用文档」（builtinFileIds），它们不该落成真实文件。
+   */
+  const migrateLegacyToVault = useCallback(async (): Promise<void> => {
+    if (platform.kind !== 'electron') return
+    const root = await platform.dialog.openDirectory()
+    if (!root) return
+    try {
+      const builtin = resolveUsageDocsScope(stateRef.current.rootFolder).builtinFileIds
+      const notes = flattenNotes(stateRef.current.rootFolder, builtin)
+      const sep = root.includes('\\') ? '\\' : '/'
+      await platform.fs.mkdir(root).catch(() => {})
+      for (const n of notes) {
+        await platform.fs.writeFile(`${root}${sep}${n.relPath.split('/').join(sep)}`, n.content)
+      }
+      // 采用为 Vault：从磁盘回读建树（与 openVault 同一收尾路径）
+      const tree = await loadVault(root)
+      setVaultRoot(root)
+      persistVaultRoot(root)
+      resetSync(tree, root)
+      setState((prev) => ({ ...prev, rootFolder: tree }))
+      setLegacyMigration(null)
+      try { localStorage.setItem(LEGACY_MIGRATION_DISMISSED, '1') } catch { /* ignore */ }
+      logger.info('[FileStore] 旧笔记已迁移到 Vault：', root, `(${notes.length} 篇)`)
+    } catch (err) {
+      logger.error('[FileStore] 迁移到 Vault 失败：', err)
+    }
+  }, [setState]);
+
   const contextValue: FileManagerContextType = {
     rootFolder: state.rootFolder,
     hydrated,
     vaultRoot,
     openVault,
+    legacyMigration,
+    migrateLegacyToVault,
+    dismissLegacyMigration,
     searchQuery: state.searchQuery,
     sidebarVisible: state.sidebarVisible,
     tabs: state.tabs,

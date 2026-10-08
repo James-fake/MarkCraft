@@ -286,6 +286,9 @@ function bindDialogIpc(): void {
   const firstWin = (): BrowserWindow | undefined => BrowserWindow.getAllWindows()[0]
 
   ipcMain.handle('mc:dialog:openDirectory', async () => {
+    // E2E 测试钩子：原生目录对话框无法在无头环境驱动（会挂住），测试经此 env 注入固定目录。
+    // 仅在显式设置该环境变量时生效，生产不受影响。
+    if (process.env.MARKCRAFT_TEST_OPEN_DIR) return process.env.MARKCRAFT_TEST_OPEN_DIR
     const win = firstWin()
     const res = win
       ? await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] })

@@ -117,7 +117,7 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 | **P1** ✅ | `src/platform/` 抽象层（接口 + browser 实现 + 单例），把现有 11 处 FSA、下载、窗口控制收敛进去 | tsc ✓ · 现有 149 单测 + 43 E2E 全绿（行为不变） |
 | **P2** ✅ | Electron 骨架：main + preload + 编译脚本 + frameless 窗口 + 真实窗口控制 | `npm run electron:dev` 能起窗口；窗口控制可用（Electron E2E 5/5） |
 | **P3** ✅ | 打通 fs：`fs` IPC + 目录树读取 + 打开文件夹 + **打开原文件所在位置** | 真实桌面壳经 IPC 读写磁盘；readDirectory 读树（含递归）、writeFile 原子写、reveal 可用；Electron E2E 11/11（09+10）全绿 |
-| **P4** 🟡 | 存储切换（分 A/B/C/D）：A 核心 VaultService + 双后端分派 + 读写落盘；B rename/move/delete 全联动；C 文件监听（外部改动可感知）；D IndexedDB→Vault 迁移引导 | A+B+C：桌面端经 `platform.fs` 读 Vault 真实 `.md` 到文件树，编辑/重命名/删除/移动经 `syncTree` 落盘，外部增删改由 fs.watch 跟随刷新；D 后续 |
+| **P4** ✅ | 存储切换（分 A/B/C/D）：A 核心 VaultService + 双后端分派 + 读写落盘；B rename/move/delete 全联动；C 文件监听（外部改动可感知）；D IndexedDB→Vault 迁移引导 | 桌面端经 `platform.fs` 读 Vault 真实 `.md` 到文件树，编辑/重命名/删除/移动经 `syncTree` 落盘，外部增删改由 fs.watch 跟随刷新（含自身回显抑制），旧 IDB 笔记可一次性迁移到 Vault |
 | **P5** ✅ | 打包分发：`electron-builder` → 绿色版 exe + NSIS 安装包 + `.md` 文件关联 | `electron-builder` 产出 NSIS 安装包 + portable 绿色版 exe，`.md`/`.markdown` 文件关联；打包产物冒烟 E2E 通过 |
 | **P6**（可选） | 网络请求挪主进程（解 CORS）+ Pandoc sidecar（真 EPUB） | Cloudflare 部署可用；EPUB 走 Pandoc |
 
@@ -261,6 +261,30 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 - **TTL 3s**：覆盖 watcher 200ms 去抖 + 渲染端 500ms reload 去抖的往返延迟；代价是「应用写某文件后 3s 内该文件的外部改动会被漏掉」——概率极低，可接受。
 
 **验证：** tsc 两套零错误；vaultService 12/12；Electron E2E 11/12/14 全绿（11=3、12=2、14=3）；全量见下方提交记录。
+
+---
+
+### P4-D 完成情况（2026-10-08）
+
+**IndexedDB 旧笔记 → 本地 Vault 一次性迁移引导：**
+
+| 层 | 改动 |
+|---|---|
+| `vaultService.ts` | 新增纯函数 `flattenNotes(rootFolder, skipIds)` —— 收集全树笔记的**相对路径 + 内容**（文件名补 `.md`，跳过内置说明书），供迁移落盘 |
+| `FileStore` | 加载分支新增检测：`electron` + 未选 Vault + IDB 有笔记 + 未忽略过 → `legacyMigration = {count}`；新增 `migrateLegacyToVault()`（选目录 → `flattenNotes` 逐篇 `writeFile` → `loadVault` 回读 → 采用为 Vault）与 `dismissLegacyMigration()`（localStorage 置位，不再弹） |
+| `fileStoreShared.ts` | `FileManagerContextType` 扩展 `legacyMigration / migrateLegacyToVault / dismissLegacyMigration` |
+| `aurora/components/LegacyMigrationPrompt.tsx`（新） | 复用共享 `Modal` + `Button` 呈现引导；挂载于 `AuroraShell`（全局） |
+| i18n | 新增 `legacyMigration` 段（`zh/common.ts` + `en.ts` + `zh/index.ts` 类型声明） |
+| `electron/main` | `mc:dialog:openDirectory` 加 `MARKCRAFT_TEST_OPEN_DIR` 测试钩子（原生目录对话框无法无头驱动；仅显式设 env 时生效） |
+
+**关键设计决定：**
+- **保留 IDB 不破坏**：迁移只读内存树写盘，绝不删 IDB → 失败/后悔都能回退。
+- **跳过内置「使用文档」**（`builtinFileIds`）：它们不该落成真实文件。
+- **一次性 + 可忽略**：`markcraft.legacyMigrationDismissed` 置位后不再弹；迁移成功同样置位。
+- **仅桌面端**：浏览器环境 IDB 就是「家」，无需迁移。
+- **测试钩子最小化**：只在 `openDirectory` 一处、只在显式 env 下短路，生产路径逐字节不变。
+
+**验证：** tsc 两套零错误；vaultService 14/14（含 `flattenNotes` 2 例）；Electron E2E 11/12/14/15 全绿（15 = 检测弹窗 + 迁移落盘 2 例，用 `--user-data-dir` 隔离 IDB 并 `evaluate` 种入旧数据）。
 
 ---
 

@@ -5,6 +5,17 @@ export const app = {
   switchToZhDesc: '切换到中文界面',
 }
 
+// P4-D：IndexedDB 旧笔记 → 本地 Vault 一次性迁移引导
+export const legacyMigration = {
+  title: '把笔记迁移到本地文件夹',
+  body: '检测到 {n} 篇笔记仍保存在浏览器数据库中。迁移后它们会写成真实的 .md 文件，存到你选定的文件夹，可用任意编辑器打开。原数据会保留，不会删除。',
+  migrate: '选择文件夹并迁移',
+  later: '暂不迁移',
+  migrating: '正在迁移…',
+  done: '已迁移 {n} 篇笔记到本地文件夹',
+  failed: '迁移失败，请重试',
+}
+
 // ---- 书脊侧边栏导航（Sidebar / aurora-nav）----
 // key 为稳定的导航 id（不随语言变化）；显示文案在此按语言解析。
 export const nav = {

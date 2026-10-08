@@ -1887,6 +1887,15 @@ export const en: Translations = {
     switchToEnDesc: 'Switch to English interface',
     switchToZhDesc: 'Switch to Chinese interface',
   },
+  legacyMigration: {
+    title: 'Move notes to a local folder',
+    body: '{n} notes are still stored in the browser database. After migrating, they will be written as real .md files into the folder you pick, openable in any editor. The original data is kept, not deleted.',
+    migrate: 'Pick folder & migrate',
+    later: 'Not now',
+    migrating: 'Migrating…',
+    done: 'Migrated {n} notes to the local folder',
+    failed: 'Migration failed, please retry',
+  },
   fileTreeNode: {
     newFile: 'New File',
     newFolder: 'New Folder',

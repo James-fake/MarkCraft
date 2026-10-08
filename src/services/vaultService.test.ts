@@ -83,7 +83,7 @@ const { disk, mockFs, mockPlatform } = vi.hoisted(() => {
 
 vi.mock('../platform', () => ({ platform: mockPlatform }))
 
-import { loadVault, syncTree } from './vaultService'
+import { loadVault, syncTree, flattenNotes } from './vaultService'
 import type { FileNode } from '../types/fileManager'
 
 const ROOT = '/vault'
@@ -288,5 +288,37 @@ describe('vaultService.syncTree（rename / move / delete 联动 · P4-B）', () 
     await waitSync()
 
     expect(disk.get(`${ROOT}/kept.md`)?.content).toBe('keep')
+  })
+})
+
+describe('vaultService.flattenNotes（P4-D 迁移收集）', () => {
+  it('收集全部笔记的相对路径与内容；跳过 skipIds；文件名补 .md', () => {
+    const tree: FileNode = {
+      id: 'root', name: 'Root', type: 'folder', createdAt: 1, updatedAt: 1,
+      children: [
+        { id: 'a', name: 'a.md', type: 'file', content: 'A', createdAt: 1, updatedAt: 1 },
+        { id: 'b', name: 'b.md', type: 'file', content: 'B', createdAt: 1, updatedAt: 1 },
+        {
+          id: 'd', name: 'sub', type: 'folder', createdAt: 1, updatedAt: 1,
+          children: [
+            { id: 'c', name: 'c', type: 'file', content: 'C', createdAt: 1, updatedAt: 1 },
+            { id: 'e', name: 'e.md', type: 'file', content: 'E', createdAt: 1, updatedAt: 1 },
+          ],
+        },
+      ],
+    }
+
+    const out = flattenNotes(tree, new Set(['b']))
+
+    expect(out).toEqual([
+      { relPath: 'a.md', content: 'A' },
+      { relPath: 'sub/c.md', content: 'C' }, // 无 .md 后缀 → 补
+      { relPath: 'sub/e.md', content: 'E' },
+    ])
+  })
+
+  it('空树 → 空数组', () => {
+    const tree: FileNode = { id: 'r', name: 'R', type: 'folder', createdAt: 1, updatedAt: 1, children: [] }
+    expect(flattenNotes(tree)).toEqual([])
   })
 })
