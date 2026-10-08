@@ -22,6 +22,7 @@ const alias = {
   '@hooks': join(SRC, 'hooks'),
   '@locales': join(SRC, 'locales'),
   '@styles': join(SRC, 'styles'),
+  '@platform': join(SRC, 'platform'),
   '@src': SRC,
 }
 

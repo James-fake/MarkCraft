@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { platform } from '@platform'
 import { generateBlog, downloadBlogAsZip, generateSingleFileBlog, BlogGenerationResult } from './blogGenerator'
 import { BlogConfig, DEFAULT_BLOG_CONFIG } from './templates'
 import { parseFrontMatter } from '@utils/frontMatter'
@@ -24,7 +25,8 @@ interface FileInfo {
   draft: boolean
 }
 
-const fsAccessSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window
+// P1：能力判定统一走平台抽象层（浏览器 = showDirectoryPicker 可用；桌面 = 原生目录对话框）
+const fsAccessSupported = platform.canPickDirectory()
 
 function extractFileInfo(file: { name: string; content: string }): FileInfo {
   const { frontMatter, content } = parseFrontMatter(file.content)
@@ -145,14 +147,7 @@ export default function BlogModal({ isOpen, onClose, files, onSuccess, onError }
         result.config
       )
       const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'blog.html'
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      void platform.saveBlob(blob, 'blog.html').catch(() => {})
       onSuccess(t.blogModal.singleDownloadSuccess)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : t.blogModal.unknownError

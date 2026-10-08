@@ -1,3 +1,5 @@
+import { platform } from '@platform'
+
 // Re-export from split modules for backward compatibility
 export { generateMarkdownBlob } from './utils/exportMarkdown'
 export { generateHtmlBlob, EXPORT_CSS } from './utils/exportHtml'
@@ -15,20 +17,18 @@ export type { ExportStylePreset } from './exportStyleManager'
 export { exportToImage, downloadImage } from './utils/exportImage'
 export type { ExportImageOptions } from './utils/exportImage'
 
+/**
+ * 保存二进制产物（导出 / 下载）。
+ *
+ * P1 起统一走平台抽象层：浏览器 = 触发下载（原行为）；桌面 = 原生保存对话框 + 写文件。
+ * **签名保持同步 `void`**，故既有调用点无需改动。
+ */
 export function downloadBlob(blob: Blob, fileName: string): void {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  // V6-H1: Delay revocation to allow browser download manager to read the blob
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  void platform.saveBlob(blob, fileName)
 }
 
 export function isFileSystemAccessSupported(): boolean {
-  return 'showSaveFilePicker' in window;
+  return platform.canPickFiles();
 }
 
 export const FORMAT_EXTENSIONS: Record<string, string> = {

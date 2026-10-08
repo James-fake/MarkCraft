@@ -1,3 +1,5 @@
+import { platform } from '@platform'
+
 export interface ImageMarkRange {
   start: number
   end: number
@@ -79,39 +81,30 @@ export async function saveBase64ToFile(
   dataUrl: string,
   suggestedName: string
 ): Promise<{ filePath: string; fileName: string } | null> {
-  if (!('showSaveFilePicker' in window)) {
-    return null
-  }
-
   const info = extractBase64Info(dataUrl)
   if (!info) return null
 
-  try {
-    const handle = await window.showSaveFilePicker({
-      suggestedName: suggestedName || `image.${info.extension}`,
-      types: [{
-        description: 'Image file',
-        accept: { [info.mimeType]: [`.${info.extension}`] },
-      }],
-    })
+  const target = await platform.pickSaveFile({
+    suggestedName: suggestedName || `image.${info.extension}`,
+    types: [{
+      description: 'Image file',
+      accept: { [info.mimeType]: [`.${info.extension}`] },
+    }],
+  })
+  // 能力不可用或用户取消 → null（调用方据此回退）
+  if (!target) return null
 
-    const binaryStr = atob(info.base64)
-    const bytes = new Uint8Array(binaryStr.length)
-    for (let i = 0; i < binaryStr.length; i++) {
-      bytes[i] = binaryStr.charCodeAt(i)
-    }
+  const binaryStr = atob(info.base64)
+  const bytes = new Uint8Array(binaryStr.length)
+  for (let i = 0; i < binaryStr.length; i++) {
+    bytes[i] = binaryStr.charCodeAt(i)
+  }
 
-    const writable = await handle.createWritable()
-    await writable.write(new Blob([bytes], { type: info.mimeType }))
-    await writable.close()
+  await target.write(new Blob([bytes], { type: info.mimeType }))
 
-    return {
-      filePath: handle.name,
-      fileName: handle.name,
-    }
-  } catch (err: unknown) {
-    if (err instanceof Error && err.name === 'AbortError') return null
-    throw err
+  return {
+    filePath: target.name,
+    fileName: target.name,
   }
 }
 

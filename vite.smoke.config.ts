@@ -17,6 +17,7 @@ const alias = {
   '@hooks': resolve(SRC, 'hooks'),
   '@locales': resolve(SRC, 'locales'),
   '@styles': resolve(SRC, 'styles'),
+  '@platform': resolve(SRC, 'platform'),
   '@src': SRC,
 }
 

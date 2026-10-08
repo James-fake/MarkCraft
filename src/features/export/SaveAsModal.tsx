@@ -25,6 +25,7 @@ import type { PdfExportOptions, PdfExportMessages } from './exportUtils'
 import type { ExportStylePreset, ExportStyleMessages } from './exportStyleManager'
 import { useLanguage } from '../../stores/LanguageStore'
 import { AuroraSelect } from '@components/ui/AuroraSelect'
+import { platform } from '@platform'
 // —— P5-4 拆分：常量/类型下沉 saveAsShared，样式编辑器对话框拆 StyleEditorDialog ——
 import { FORMAT_OPTIONS, MIME_TYPES, STYLE_SUPPORTED_FORMATS } from './saveAsShared'
 import type { SaveLocationState, SaveAsModalProps } from './saveAsShared'
@@ -104,14 +105,12 @@ export default function SaveAsModal({
 
   const locationDisplayText = (() => {
     if (!fsAccessSupported) return t.saveAs.browserDefaultLocation
-    switch (saveLocation.type) {
-      case 'file':
-        return saveLocation.name
-      case 'directory':
-        return `${saveLocation.name}/`
-      default:
-        return t.saveAs.notSelected
+    if (saveLocation.type === 'target') {
+      return saveLocation.target.kind === 'directory'
+        ? `${saveLocation.target.name}/`
+        : saveLocation.target.name
     }
+    return t.saveAs.notSelected
   })()
 
   const handleSelectFileLocation = useCallback(async () => {
@@ -119,19 +118,20 @@ export default function SaveAsModal({
 
     setIsSelectingLocation(true)
     try {
-      const handle = await window.showSaveFilePicker({
+      const target = await platform.pickSaveFile({
         suggestedName: fullFileName,
         types: [{
           description: FORMAT_OPTIONS.find(f => f.value === format)?.label || 'File',
           accept: { [MIME_TYPES[format]]: [FORMAT_EXTENSIONS[format]] },
         }],
       })
+      // null = 用户取消 或 平台不具备该能力
+      if (!target) return
 
-      setSaveLocation({ type: 'file', handle, name: handle.name })
-      const pickedName = handle.name
+      setSaveLocation({ type: 'target', target })
       const ext = FORMAT_EXTENSIONS[format]
-      if (pickedName.endsWith(ext)) {
-        setFileName(pickedName.slice(0, -ext.length))
+      if (target.name.endsWith(ext)) {
+        setFileName(target.name.slice(0, -ext.length))
       }
       setError(null)
     } catch (err: unknown) {
@@ -148,8 +148,9 @@ export default function SaveAsModal({
 
     setIsSelectingLocation(true)
     try {
-      const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' })
-      setSaveLocation({ type: 'directory', handle: dirHandle, name: dirHandle.name })
+      const target = await platform.pickSaveDirectory()
+      if (!target) return
+      setSaveLocation({ type: 'target', target })
       setError(null)
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name !== 'AbortError') {
@@ -217,19 +218,15 @@ export default function SaveAsModal({
         ? await generatePdf(content, fullOutputName, t.saveAs.popupBlocked, customCss, pdfOptions, pdfMessages)
         : await generateBlob(format, content)
 
-      if (saveLocation.type === 'file') {
-        // File System Access：写入所选具体文件（先生成真实内容再落盘）
-        const writable = await saveLocation.handle.createWritable()
-        await writable.write(blob)
-        await writable.close()
-        onSuccess(t.saveAs.savedAs.replace('{name}', saveLocation.name))
-        onClose()
-      } else if (saveLocation.type === 'directory') {
-        const fileHandle = await saveLocation.handle.getFileHandle(fullOutputName, { create: true })
-        const writable = await fileHandle.createWritable()
-        await writable.write(blob)
-        await writable.close()
-        onSuccess(t.saveAs.savedTo.replace('{name}', `${saveLocation.name}/${fullOutputName}`))
+      if (saveLocation.type === 'target') {
+        // 平台抽象层写入：file 目标直接覆盖该文件；directory 目标在其中创建 fullOutputName
+        const { target } = saveLocation
+        await target.write(blob, target.kind === 'directory' ? fullOutputName : undefined)
+        onSuccess(
+          target.kind === 'directory'
+            ? t.saveAs.savedTo.replace('{name}', `${target.name}/${fullOutputName}`)
+            : t.saveAs.savedAs.replace('{name}', target.name),
+        )
         onClose()
       } else {
         // 浏览器模式：下载真实文件
@@ -529,12 +526,12 @@ export default function SaveAsModal({
               </label>
               <div className="save-as-location-row">
                 <div className="save-as-location-display" title={locationDisplayText}>
-                  {saveLocation.type === 'directory' && (
+                  {saveLocation.type === 'target' && saveLocation.target.kind === 'directory' && (
                     <svg className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--link-color)', opacity: 0.7 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                     </svg>
                   )}
-                  {saveLocation.type === 'file' && (
+                  {saveLocation.type === 'target' && saveLocation.target.kind === 'file' && (
                     <svg className="w-3.5 h-3.5 flex-shrink-0" style={{ color: 'var(--link-color)', opacity: 0.7 }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>

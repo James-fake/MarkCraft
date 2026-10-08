@@ -11,6 +11,16 @@ const STORAGE_KEY = 'markcraft-file-manager';
 const STORAGE_VERSION = 'v5';
 const MIGRATED_LINK_GUIDE_KEY = 'markcraft-migrated-link-guide-v2';
 
+/**
+ * 「卸载安全副本」的 localStorage 键。
+ *
+ * ⚠️ 为什么需要它（真机复现，E2E 03-files）：卸载期发起的 IndexedDB 写入是**异步**的，
+ * reload 可能在它提交前就拆掉页面 → 数据丢失。`pagehide` 里仅「发起写入」并不够。
+ * localStorage 是卸载期唯一**同步且保证落地**的存储，故卸载时额外同步写一份副本；
+ * 加载时若发现副本存在，说明上次 IDB 写入可能未落地 → 优先采用副本并补写回 IDB。
+ */
+const UNLOAD_SAFETY_KEY = STORAGE_KEY + '-unload-safety';
+
 // 防抖保存到 IndexedDB
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 /** 防抖窗口内暂存的待写状态（卸载时据此补写，见 flushPendingSave） */
@@ -134,6 +144,25 @@ export async function loadStateAsync(lang: 'zh' | 'en' = 'zh'): Promise<FileMana
   try {
     const savedVersion = localStorage.getItem(STORAGE_KEY + '-version');
     if (savedVersion !== STORAGE_VERSION) return null;
+
+    // ① 优先取「卸载安全副本」：它存在即说明上次卸载时 IDB 写入可能未提交（见 UNLOAD_SAFETY_KEY）
+    const safety = localStorage.getItem(UNLOAD_SAFETY_KEY);
+    if (safety) {
+      const parsedSafety = safeJsonParse(safety, null as unknown as FileManagerState);
+      if (isFileManagerState(parsedSafety)) {
+        // 补写回 IDB 后再删副本；补写失败则保留副本，下次启动再试（宁可多试，不可丢数据）
+        try {
+          await saveLargeData(STORAGE_KEY, safety);
+          localStorage.removeItem(UNLOAD_SAFETY_KEY);
+        } catch (e) {
+          logger.error('补写卸载安全副本到 IDB 失败，保留副本待下次重试:', e);
+        }
+        return migrateAddLinkGuide(parsedSafety, lang);
+      }
+      // 副本损坏 → 丢弃，回落到 IDB
+      localStorage.removeItem(UNLOAD_SAFETY_KEY);
+    }
+
     const saved = await loadLargeData(STORAGE_KEY);
     if (saved) {
       const parsed = safeJsonParse(saved, null as unknown as FileManagerState);
@@ -163,10 +192,24 @@ function writePendingNow(): void {
  * 立即落盘挂起的变更（供「页面卸载 / 切到后台」时机调用）。
  *
  * ⚠️ 为什么必须有（E2E 报告 L-1）：`saveState` 是 **300ms 防抖**，用户若在这 300ms 内
- * 刷新或关闭标签，定时器根本不会触发 —— 这次变更**连写都没开始**，而不是「写了一半」。
- * 真机复现：新建笔记后立即 reload，文件消失（等约 2s 再刷新则正常）。
+ * 刷新或关闭标签，定时器根本不会触发 —— 这次变更**连写都没开始**。
+ *
+ * ⚠️ 且**仅发起 IDB 写入仍不够**（真机复现）：IDB 写入是异步的，reload 可能在它提交前
+ * 就拆掉页面。故这里先**同步**写一份 localStorage 安全副本（卸载期唯一保证落地的存储），
+ * 再由 `loadStateAsync` 在下次启动时优先采用并补写回 IDB。
  */
 export function flushPendingSave(): void {
+  const state = pendingState;
+  if (state) {
+    // ① 同步安全副本（关键：setItem 是同步的，卸载期保证落地）
+    try {
+      localStorage.setItem(UNLOAD_SAFETY_KEY, JSON.stringify(state));
+    } catch (e) {
+      // 配额不足 / 隐私模式等：退化为「仅尽力写 IDB」（仍有竞态，但比完全不写强）
+      logger.error('写卸载安全副本失败，将退化为仅 IDB 写入:', e);
+    }
+  }
+  // ② 再尽力发起 IDB 写入（正常情况下会在页面拆掉前提交）
   writePendingNow();
 }
 

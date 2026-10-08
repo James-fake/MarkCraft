@@ -14,6 +14,7 @@ import {
 } from '@services/templates/templateData'
 import { applyTemplate } from '@services/templates/templateApply'
 import { safeJsonParseOrNull } from '@utils/safeJson'
+import { platform } from '@platform'
 
 export { BUILTIN_TEMPLATES, BUILTIN_EXAMPLES, getExamples, getExampleById, applyTemplate }
 export type { Template, ExampleDoc }
@@ -96,14 +97,7 @@ export function exportTemplateAsFile(tmpl: Template): void {
     },
   }
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `${sanitizeFileName(tmpl.name)}.markcraft-template.json`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  void platform.saveBlob(blob, `${sanitizeFileName(tmpl.name)}.markcraft-template.json`).catch(() => {})
 }
 
 // 用户自定义模板存储

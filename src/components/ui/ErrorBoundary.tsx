@@ -1,5 +1,6 @@
 import React from 'react'
 import { logger } from '@utils/logger'
+import { platform } from '@platform'
 import { Button } from '@components/ui'
 import { UiLabelsContext } from './UiLabels'
 import type { UiLabels } from './UiLabels'
@@ -58,12 +59,8 @@ export default class ErrorBoundary extends React.Component<Props, State> {
     ]
     try {
       const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `markcraft-error-${Date.now()}.txt`
-      a.click()
-      URL.revokeObjectURL(url)
+      // 经平台层落盘：浏览器 = 触发下载；桌面端 = 原生保存对话框。失败静默（错误面板自身不应再抛错）
+      void platform.saveBlob(blob, `markcraft-error-${Date.now()}.txt`).catch(() => {})
     } catch {
       /* 导出失败静默忽略 */
     }

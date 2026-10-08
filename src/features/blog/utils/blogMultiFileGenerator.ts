@@ -5,6 +5,7 @@
 import { marked, Marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { parseFrontMatter, FrontMatter, ParsedDocument } from '@utils/frontMatter'
+import { platform } from '@platform'
 import {
   BlogConfig,
   BlogPost,
@@ -336,33 +337,18 @@ export function generateBlog(
   return { files: blogFiles, posts, config: mergedConfig }
 }
 
-async function writeFilesToDirectory(
-  dirHandle: FileSystemDirectoryHandle,
-  files: BlogFile[]
-): Promise<void> {
-  for (const file of files) {
-    const parts = file.path.split('/')
-    let currentHandle = dirHandle
-
-    for (let i = 0; i < parts.length - 1; i++) {
-      currentHandle = await currentHandle.getDirectoryHandle(parts[i], { create: true })
-    }
-
-    const fileName = parts[parts.length - 1]
-    const fileHandle = await currentHandle.getFileHandle(fileName, { create: true })
-    const writable = await fileHandle.createWritable()
-    await writable.write(file.content)
-    await writable.close()
-  }
-}
-
 export async function downloadBlogAsZip(result: BlogGenerationResult): Promise<void> {
-  if ('showDirectoryPicker' in window) {
+  // P1：目录落盘统一走平台抽象层
+  // （浏览器 = File System Access API 目录选择；桌面 = 原生目录对话框 + 写盘）
+  const dir = await platform.pickSaveDirectory()
+  if (dir) {
     try {
-      const dirHandle = await window.showDirectoryPicker()
-      await writeFilesToDirectory(dirHandle, result.files)
+      for (const file of result.files) {
+        await dir.write(new Blob([file.content], { type: 'text/html;charset=utf-8' }), file.path)
+      }
       return
     } catch {
+      // 落盘失败 → 回退单文件下载（保持原行为：不向用户抛错）
     }
   }
 
@@ -385,12 +371,5 @@ export async function downloadBlogAsZip(result: BlogGenerationResult): Promise<v
   )
 
   const blob = new Blob([singleFile], { type: 'text/html;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = 'blog.html'
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
+  await platform.saveBlob(blob, 'blog.html')
 }

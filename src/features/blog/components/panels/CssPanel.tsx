@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { PanelProps } from './shared'
 import { useLanguage } from '@stores/LanguageStore'
+import { platform } from '@platform'
 import { useStudioTheme, StudioChip } from '../StudioControls'
 import { CssPresetChips, CssCategory } from './CssPresetChips'
 import { CssEditor } from './CssEditor'
@@ -169,14 +170,10 @@ export function CssPanel({ designConfig, handleDesignChange, onHoverCss, iframeR
   const handleExport = useCallback(() => {
     const cssToExport = minifyOnExport ? minifyCss(currentCss) : currentCss
     const blob = new Blob([cssToExport], { type: 'text/css' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
     const suffix = cssMode === 'dark' ? '-dark' : ''
     const minSuffix = minifyOnExport ? '.min' : ''
-    a.download = `markcraft-custom${suffix}${minSuffix}-${new Date().toISOString().slice(0, 10)}.css`
-    a.click()
-    URL.revokeObjectURL(url)
+    const fileName = `markcraft-custom${suffix}${minSuffix}-${new Date().toISOString().slice(0, 10)}.css`
+    void platform.saveBlob(blob, fileName).catch(() => {})
   }, [currentCss, cssMode, minifyOnExport])
 
   const handleImport = useCallback(() => {

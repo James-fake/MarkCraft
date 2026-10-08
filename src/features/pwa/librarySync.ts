@@ -1,4 +1,5 @@
 import { FileNode } from '../../types/fileManager'
+import { platform } from '@platform'
 
 /**
  * P2-8 PWA 深化 · 本地/手动库同步
@@ -102,17 +103,12 @@ export function mergeLibraryFiles(
 
 /** 浏览器端下载辅助（受控：非浏览器环境静默跳过） */
 export function downloadTextFile(filename: string, text: string): void {
-  if (typeof URL === 'undefined' || typeof URL.createObjectURL !== 'function') return
   try {
     const blob = new Blob([text], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    // 经平台层落盘（浏览器 = 下载；桌面端 = 原生保存框）；失败静默，保持「非浏览器环境不报错」的原语义
+    void platform.saveBlob(blob, filename).catch(() => {
+      /* 忽略保存失败（如非浏览器 / 无 DOM 环境） */
+    })
   } catch {
     /* 忽略下载失败（如非浏览器环境） */
   }

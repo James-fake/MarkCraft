@@ -7,21 +7,14 @@
  */
 import type { CanvasEngine } from '../engine/CanvasEngine'
 import { serializeCanvas } from '../canvasPersistence'
+import { platform } from '@platform'
 
 /**
- * 通用下载函数：通过临时 <a> 触发浏览器下载
+ * 通用下载函数（P1 起统一走平台抽象层：浏览器 = 触发下载；桌面 = 原生保存对话框 + 写文件）。
+ * 签名保持同步 `void`，调用点无需改动。
  */
 export function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.style.display = 'none'
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  // 延迟释放，避免某些浏览器下载中断
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  void platform.saveBlob(blob, filename)
 }
 
 /**

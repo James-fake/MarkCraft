@@ -103,11 +103,21 @@ test.describe('导出', () => {
     await createNote(page, 'E2E-EXPORT-FMT')
 
     const modal = await openSaveAs(page)
-    await modal.locator('.save-as-select').click()
+
+    // ⚠️ AuroraSelect 是「鼠标触碰即展开、移出约 160ms 后收起」的滚轮浮层：
+    //   用 click() 反而会走 toggle() 把它关掉（前几项断言只是恰好落在退出动画的 DOM 残留窗口里）。
+    //   正确姿势：hover 展开 → 把鼠标移进浮层（触发 cancelClose）→ 浮层稳定后再断言。
+    await modal.locator('.save-as-select').hover()
+    const pop = page.locator('.aurora-wheel-popover')
+    await expect(pop).toBeVisible({ timeout: 10_000 })
+    await pop.hover()
+
+    // 12 种格式全部渲染（滚轮一次性渲染全部选项）
+    await expect(pop.locator('[role="option"]')).toHaveCount(12)
 
     // 抽样断言几个非默认格式（覆盖不同生成路径：矢量/文本/图片/打包）
     for (const label of ['PDF (.pdf)', 'Word (.docx)', 'LaTeX (.tex)', 'EPUB (.epub)', 'PNG (.png)']) {
-      await expect(page.getByText(label, { exact: true }).first()).toBeVisible({ timeout: 10_000 })
+      await expect(pop.getByText(label, { exact: true })).toBeVisible({ timeout: 5_000 })
     }
   })
 })

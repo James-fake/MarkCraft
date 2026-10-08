@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { generateSingleFileBlog, generateBlog, downloadBlogAsZip, BlogGenerationResult } from '../blogGenerator'
 import { BlogConfig, ThemeStyle, RewardConfig, FriendLink, AboutConfig, SeriesConfig } from '../templates'
 import { parseFrontMatter } from '@utils/frontMatter'
+import { platform } from '@platform'
 import { byteLength } from '@utils/byteLength'
 import { useLanguage } from '@stores/LanguageStore'
 import { recordPublish, type PublishTraceEntry } from '../services/publishTrace'
@@ -520,14 +521,7 @@ export function useBlogGenerator(
         result.config
       )
       const blob = new Blob([html], { type: 'text/html;charset=utf-8' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'blog.html'
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      void platform.saveBlob(blob, 'blog.html').catch(() => {})
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : t.blogStudio.unknownError
       setError(`${t.blogStudio.downloadFailed}: ${msg}`)

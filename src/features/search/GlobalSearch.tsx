@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { platform } from '@platform';
 import { useFileManager } from '../../stores/FileStore';
 import { useLanguage } from '../../stores/LanguageStore';
 import { useTagIndex } from '../../stores/TagIndexStore';
@@ -254,12 +255,7 @@ const GlobalSearch: React.FC<GlobalSearchProps> = ({ isOpen, onClose }) => {
     const timestamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
 
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `search-${timestamp}.${format}`;
-    a.click();
-    URL.revokeObjectURL(url);
+    void platform.saveBlob(blob, `search-${timestamp}.${format}`).catch(() => {});
   }, [query, results, totalMatches, t]);
 
   const highlightMatch = (text: string, start: number, end: number) => {

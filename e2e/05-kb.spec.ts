@@ -81,4 +81,25 @@ test.describe('双链图谱', () => {
     // 浮层内分组（范围 / 模式 / 布局 …）
     await expect(overlay.locator('.aurora-graph__group-title').first()).toBeVisible()
   })
+
+  test('图谱导出 JSON → 经平台层触发真实下载', async ({ page }) => {
+    await skipSplash(page)
+    await gotoView(page, 'graph')
+    await expect(page.locator('.aurora-graph__node').first()).toBeVisible({ timeout: 25_000 })
+
+    // 打开导出菜单（视图控制条右侧的下载按钮）
+    const exportBtn = page.locator('.aurora-graph__controls button[title="导出"]')
+    await expect(exportBtn).toBeVisible({ timeout: 15_000 })
+    await exportBtn.click()
+
+    const menu = page.locator('.aurora-graph__menu')
+    await expect(menu).toBeVisible({ timeout: 10_000 })
+
+    // 该路径此前是内联 <a download>，P1 后统一收敛到 platform.saveBlob ——
+    // 这里用真实 download 事件确认收敛未改变可观测行为。
+    const downloadPromise = page.waitForEvent('download')
+    await menu.getByRole('button', { name: /导出 JSON/ }).click()
+    const download = await downloadPromise
+    expect(download.suggestedFilename()).toBe('knowledge-graph.json')
+  })
 })

@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { findAllBase64Images, extractBase64Info, saveBase64ToFile, formatFileSize, base64SizeInBytes, ImageMarkRange } from '@utils/imageHelpers'
 import { getBase64Image } from '@core/storage/imageStore'
 import { useLanguage } from '@stores/LanguageStore'
+import { platform } from '@platform'
 
 interface OptimizeImagesModalProps {
   isOpen: boolean
@@ -159,7 +160,7 @@ export default function OptimizeImagesModal({
 
   const hasSavedImages = images.some((img) => img.status === 'saved')
   const hasPendingImages = images.some((img) => img.status === 'pending' || img.status === 'error')
-  const isFileSystemSupported = 'showSaveFilePicker' in window
+  const isFileSystemSupported = platform.canPickFiles()
 
   return (
     <div

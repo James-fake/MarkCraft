@@ -12,6 +12,7 @@ import { KB_COLORS } from '../kbTheme'
 import { IconExport, IconClose, IconLayers, IconNetwork, IconFileText, IconBook, IconEdit } from './KbIcons'
 import { exportKbPackage } from '../export/sharePackager'
 import { exportStaticSite } from '../export/staticSiteExporter'
+import { platform } from '@platform'
 import { exportPdf, exportEpub, exportMarkdown } from '../export/documentExporter'
 import type { KnowledgeBase, ExportRecord } from '@stores/kbTypes'
 import type { FileNode } from '@src/types/fileManager'
@@ -56,17 +57,9 @@ function formatDate(d: Date): string {
   return `${y}${m}${day}`
 }
 
-/** 触发浏览器下载 */
+/** 保存二进制产物（P1 起统一走平台抽象层：浏览器 = 触发下载；桌面 = 原生保存对话框 + 写文件） */
 function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  // 延迟释放，避免下载未完成就被回收
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
+  void platform.saveBlob(blob, filename)
 }
 
 export const KbExportMenu: React.FC<KbExportMenuProps> = ({ kb, files, variant = 'dialog', onClose }) => {

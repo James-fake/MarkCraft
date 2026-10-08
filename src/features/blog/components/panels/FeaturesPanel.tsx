@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { PanelProps, useLabels } from './shared'
 import { SectionLabel, StudioInput, StudioChip, useStudioTheme } from '../StudioControls'
 import { useToast } from '@components/ui/ToastProvider'
+import { platform } from '@platform'
 import { useDensity, scaleGap } from '@hooks/useDensity'
 import type { RewardConfig, FriendLink, AboutConfig, SeriesConfig } from '../../templates'
 
@@ -420,14 +421,9 @@ export function FeaturesPanel({ designConfig, handleDesignChange }: FeaturesPane
                 config: designConfig
               }
               const blob = new Blob([JSON.stringify(configData, null, 2)], { type: 'application/json' })
-              const url = URL.createObjectURL(blob)
-              const a = document.createElement('a')
-              a.href = url
-              a.download = `markcraft-config-${new Date().toISOString().split('T')[0]}.json`
-              document.body.appendChild(a)
-              a.click()
-              document.body.removeChild(a)
-              URL.revokeObjectURL(url)
+              void platform
+                .saveBlob(blob, `markcraft-config-${new Date().toISOString().split('T')[0]}.json`)
+                .catch(() => {})
             }}
             style={{
               flex: 1, padding: '8px 12px', fontSize: 11, fontWeight: 500,

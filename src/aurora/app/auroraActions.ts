@@ -16,6 +16,7 @@ import { openDailyNote } from '../../features/fileManager/DailyNoteService'
 import { generateReverseMoc } from '../../features/fileManager/MocGenerator'
 import { pickAndImportFile } from '../../features/import/importFlow'
 import { findNode } from '@core/files/fileTree'
+import { platform } from '@platform'
 
 export interface AuroraActionDeps {
   rootFolder: ReturnType<typeof useFileManager>['rootFolder']
@@ -143,12 +144,9 @@ export function buildAuroraActions(deps: AuroraActionDeps): Record<string, (() =
     'edit.delete': runInEditor(() => cmdBridge.current.deleteSelection?.()),
     'edit.find': runInEditor(() => cmdBridge.current.find?.()),
     // 窗口菜单（Web 降级：最小化/全部前置无真实能力，缩放映射全屏切换）
-    'window.minimize': () => window.blur(),
-    'window.zoom': () => {
-      const el = document.documentElement
-      if (document.fullscreenElement) void document.exitFullscreen().catch(() => {})
-      else void el.requestFullscreen().catch(() => {})
-    },
+    // P1 起统一走平台抽象层：浏览器保持上述降级行为；桌面为真实窗口操作。
+    'window.minimize': () => platform.window.minimize(),
+    'window.zoom': () => platform.window.toggleMaximize(),
     // 文件菜单 · 关闭当前标签（无标签则回欢迎）
     'file.close': () => {
       const fid = getActiveFileId()

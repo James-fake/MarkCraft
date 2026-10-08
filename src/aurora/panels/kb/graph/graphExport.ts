@@ -3,6 +3,7 @@
  * 🧩 P2-3（2026-09-28）从 GraphPanel.tsx 拆出：纯函数，无 React 依赖。
  * 调用方传 svg 引用与当前可见集合；toast 回调由面板注入。
  */
+import { platform } from '@platform'
 import type { GEdge, GNode } from './graphModel'
 
 /** 导出提示文案（可被调用方以目标语言覆盖） */
@@ -20,24 +21,12 @@ export const DEFAULT_GRAPH_EXPORT_MESSAGES: GraphExportMessages = {
   failed: '导出失败',
 }
 
-const download = (url: string, name: string) => {
-  const a = document.createElement('a')
-  a.href = url
-  a.download = name
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  // blob: URL 用后必须回收，否则对象句柄/内存泄漏（审查 M3-graphExport）；
-  // data: URL 无需回收。click 同步触发下载读之后即可安全回收。
-  if (url.startsWith('blob:')) {
-    setTimeout(() => {
-      try {
-        URL.revokeObjectURL(url)
-      } catch {
-        /* 已失效则忽略 */
-      }
-    }, 0)
-  }
+/**
+ * 经平台层落盘：浏览器 = 触发下载（内部负责 blob URL 回收）；
+ * 桌面端 = 原生保存对话框写盘。失败静默，不打断导出流程。
+ */
+const save = (blob: Blob, name: string): void => {
+  void platform.saveBlob(blob, name).catch(() => {})
 }
 
 /** 克隆 SVG 并把 :root 上的 var() 解析为具体值（导出为独立文件后脱离文档，var() 无法解析） */
@@ -73,8 +62,8 @@ export const exportSVG = (
   toast?: (msg: string) => void,
   messages: GraphExportMessages = DEFAULT_GRAPH_EXPORT_MESSAGES,
 ) => {
-  const data = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(serializeGraph(svg))
-  download(data, 'knowledge-graph.svg')
+  const blob = new Blob([serializeGraph(svg)], { type: 'image/svg+xml;charset=utf-8' })
+  save(blob, 'knowledge-graph.svg')
   toast?.(messages.svgDone)
 }
 
@@ -89,10 +78,7 @@ export const exportJSON = (
     nodes: nodes.filter((n) => visibleIds.has(n.id)).map((n) => ({ id: n.id, label: n.label, type: n.type, tags: n.tags })),
     edges: edges.filter((e) => visibleIds.has(e.source) && visibleIds.has(e.target)),
   }
-  download(
-    URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })),
-    'knowledge-graph.json',
-  )
+  save(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), 'knowledge-graph.json')
   toast?.(messages.jsonDone)
 }
 
@@ -116,7 +102,7 @@ export const exportPNG = (
       ctx.fillRect(0, 0, c.width, c.height)
       ctx.drawImage(img, 0, 0, c.width, c.height)
       c.toBlob((b) => {
-        if (b) download(URL.createObjectURL(b), 'knowledge-graph.png')
+        if (b) save(b, 'knowledge-graph.png')
       })
     }
     img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(xml)

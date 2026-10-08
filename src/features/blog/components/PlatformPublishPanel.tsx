@@ -7,6 +7,7 @@
  */
 import { useMemo, useState } from 'react'
 import { parseFrontMatter } from '@utils/frontMatter'
+import { platform as appPlatform } from '@platform'
 import { deriveSeoMeta, toPublishMeta } from '../services/seoMeta'
 import {
   generatePlatformExport,
@@ -148,14 +149,7 @@ export default function PlatformPublishPanel({ posts, selectedMdFiles, author }:
     const blob = new Blob([exported.content], {
       type: exported.filename.endsWith('.html') ? 'text/html;charset=utf-8' : 'text/markdown;charset=utf-8',
     })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = exported.filename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    void appPlatform.saveBlob(blob, exported.filename).catch(() => {})
     toast.show(pp.downloaded.replace('{filename}', exported.filename), 'success')
   }
 

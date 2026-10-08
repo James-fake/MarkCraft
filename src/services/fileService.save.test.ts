@@ -20,7 +20,7 @@ vi.mock('@core/storage/migrate', () => ({
   migrateToIndexedDB: mocks.migrateToIndexedDB,
 }))
 
-import { saveState, saveStateSync, flushPendingSave } from './fileService'
+import { saveState, saveStateSync, flushPendingSave, loadStateAsync } from './fileService'
 import type { FileManagerState } from '../types/fileManager'
 
 /** 造一个最小可辨识的状态（用文件名区分不同快照） */
@@ -46,9 +46,15 @@ const writtenName = (callIndex = 0) =>
 
 beforeEach(() => {
   vi.useRealTimers()
-  mocks.saveLargeData.mockClear()
-  // 清掉上一条用例可能残留的挂起变更，保证用例间独立
+  // ⚠️ 必须 mockReset 而非 mockClear：mockClear 只清调用记录，**不清 `mockResolvedValueOnce` 队列** ——
+  // 上一条用例若未消费完 once 队列，会污染下一条（本文件真实踩过）。
+  mocks.saveLargeData.mockReset()
+  mocks.saveLargeData.mockResolvedValue(undefined)
+  mocks.loadLargeData.mockReset()
+  mocks.loadLargeData.mockResolvedValue(null)
+  // 清掉上一条用例残留的挂起变更；随后清空 localStorage（flush 会写安全副本，需一并清掉）
   flushPendingSave()
+  localStorage.clear()
   mocks.saveLargeData.mockClear()
 })
 
@@ -92,6 +98,47 @@ describe('saveState 防抖与卸载补写（L-1）', () => {
     expect(mocks.saveLargeData).toHaveBeenCalledTimes(1)
     expect(writtenName()).toBe('D')
     vi.useRealTimers()
+  })
+
+  it('🚨 卸载时同步写入 localStorage 安全副本（IDB 异步写入可能来不及提交）', () => {
+    vi.useFakeTimers()
+    saveState(stateWithName('SAFE'))
+    window.dispatchEvent(new Event('pagehide'))
+
+    // 真机复现过：仅「发起 IDB 写入」不够 —— reload 可能在它提交前拆掉页面。
+    // 故卸载期必须同步落一份副本（localStorage 的 setItem 是同步的，保证落地）。
+    const raw = localStorage.getItem('markcraft-file-manager-unload-safety')
+    expect(raw, '卸载后应存在 localStorage 安全副本').toBeTruthy()
+    expect(JSON.parse(raw!).rootFolder.children[0].name).toBe('SAFE')
+    vi.useRealTimers()
+  })
+
+  it('🚨 启动时优先采用安全副本，并补写回 IDB 后清掉副本', async () => {
+    localStorage.setItem('markcraft-file-manager-version', 'v5')
+    localStorage.setItem(
+      'markcraft-file-manager-unload-safety',
+      JSON.stringify(stateWithName('FROM_SAFETY')),
+    )
+    // IDB 里是过期数据 —— 若优先读 IDB 就会丢数据
+    mocks.loadLargeData.mockResolvedValueOnce(JSON.stringify(stateWithName('STALE_IDB')))
+
+    const loaded = await loadStateAsync('zh')
+
+    expect(loaded?.rootFolder.children[0].name).toBe('FROM_SAFETY')
+    // 已补写回 IDB，且副本被清掉（下次启动不必再走这条路）
+    expect(mocks.saveLargeData).toHaveBeenCalled()
+    expect(localStorage.getItem('markcraft-file-manager-unload-safety')).toBeNull()
+  })
+
+  it('安全副本损坏时丢弃并回落到 IDB（不让坏副本挡住正常数据）', async () => {
+    localStorage.setItem('markcraft-file-manager-version', 'v5')
+    localStorage.setItem('markcraft-file-manager-unload-safety', '{ not valid json')
+    mocks.loadLargeData.mockResolvedValueOnce(JSON.stringify(stateWithName('FROM_IDB')))
+
+    const loaded = await loadStateAsync('zh')
+
+    expect(loaded?.rootFolder.children[0].name).toBe('FROM_IDB')
+    expect(localStorage.getItem('markcraft-file-manager-unload-safety')).toBeNull()
   })
 
   it('无挂起变更时 flush 为零写入（幂等，不产生多余 IO）', () => {
