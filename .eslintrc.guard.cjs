@@ -23,7 +23,20 @@ module.exports = {
   // pre-commit 就会被与架构毫无关系的原因卡死。
   // 仅加载插件即可让指令可解析；因不启用任何 react-hooks 规则，不会新增 lint 债诊断
   // （仍然完全不触碰项目既有的 ~200 条债）。
-  plugins: ['local', 'react-hooks'],
+  //
+  // 'react-refresh' 同理（2026-10-08 收尾审查发现）：src/features/**/*.tsx 里有 8 个文件
+  // 带 `// eslint-disable-next-line react-refresh/only-export-components` 指令，未加载插件时
+  // 会报 **26 处**「Definition for rule ... was not found」假错误 —— 一旦提交触碰这些 .tsx
+  // 文件，pre-commit 同样会被架构无关的原因卡死。仅加载、不启用任何 react-refresh 规则。
+  //
+  // '@typescript-eslint' 同理（同次审查发现）：已加载 @typescript-eslint/parser，但**未加载
+  // 插件本体**，故 `// eslint-disable-next-line @typescript-eslint/no-explicit-any` 指令同样报
+  // 「rule not found」假错误（**15 处**）。仅加载、不启用任何 @typescript-eslint 规则。
+  //
+  // 至此 features/stores/services 里出现的**全部** disable 指令规则名（@typescript-eslint/
+  // no-explicit-any、no-control-regex[核心规则]、react-hooks/exhaustive-deps、
+  // react-refresh/only-export-components）都可解析，pre-commit 不会再被架构无关原因卡死。
+  plugins: ['local', 'react-hooks', 'react-refresh', '@typescript-eslint'],
   ignorePatterns: ['dist', 'node_modules'],
   overrides: [
     {

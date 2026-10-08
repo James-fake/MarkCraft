@@ -320,8 +320,9 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 | `package.json` | `build.extraResources` 把 `resources/pandoc` 打进 `process.resourcesPath/pandoc` |
 
 **关键设计决定 —— 二进制「可选下载」而非入库：**
-- `pandoc.exe` **解压后 224.6MB**（静态链接 Haskell），入库会让仓库爆炸、打进安装包会让体积从 ~185MB 涨到 ~410MB。
+- `pandoc.exe` **解压后 224.6MB**（静态链接 Haskell），入库会让仓库爆炸。
 - 故：二进制 **gitignore**（`resources/pandoc/*`，仅留 `.gitkeep`）；需要真 EPUB 时 `npm run fetch:pandoc` 再打包；**没跑也不影响** —— `exportEpub` 回退内置最小 EPUB 生成器（行为与 P6 前一致）。
+- **实测体积影响**（2026-10-08 收尾审查更正）：NSIS 用 LZMA 把静态二进制压得很狠，**安装包仅 185MB → 201MB（+16MB）**；代价主要在**安装后磁盘占用 +225MB**（~246MB → ~470MB）。故「可选」而非默认打包仍是对的取舍。
 - 三级解析（打包内 → 开发态 → 系统 PATH）让「自带」与「用系统装的 pandoc」都能工作。
 
 **验证：** tsc 两套零错误；E2E 16（主进程网络代理 3/3，用本地 HTTP 服务器做确定性目标 + 超时用例）、E2E 17（Pandoc 转换 2/2：Markdown→EPUB 返回真 ZIP + mimetype；无二进制时 skip）；browser.test 18/18（含 net 2 例）。

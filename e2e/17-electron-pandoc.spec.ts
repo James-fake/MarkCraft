@@ -51,12 +51,12 @@ test.describe('Pandoc sidecar（P6.2 集成）', () => {
   test('preload 暴露 pandoc，且主进程探测到可用', async () => {
     const has = await win.evaluate(() => typeof window.markcraft?.pandoc?.convert === 'function')
     expect(has).toBe(true)
-    expect(await win.evaluate(() => window.markcraft!.pandoc.available())).toBe(true)
+    expect(await win.evaluate(() => window.markcraft!.pandoc!.available())).toBe(true)
   })
 
   test('Markdown → EPUB：返回真 EPUB（ZIP，含 mimetype）', async () => {
     const result = await win.evaluate(async () => {
-      const r = await window.markcraft!.pandoc.convert('# 标题\n\n正文段落。\n', 'markdown', 'epub')
+      const r = await window.markcraft!.pandoc!.convert('# 标题\n\n正文段落。\n', 'markdown', 'epub')
       if (r.error || !r.buffer) return { error: r.error ?? 'no buffer' }
       const bytes = new Uint8Array(r.buffer)
       // EPUB 是 ZIP：前两字节应为 'PK'

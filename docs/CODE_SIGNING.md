@@ -21,9 +21,9 @@
 
 | 途径 | 说明 | 适用 |
 |---|---|---|
-| **OV 证书**（组织验证） | DigiCert / Sectigo / GlobalSign 等签发 `.pfx`。有信誉积累期（新证书初期仍可能被 SmartScreen 警告，需下载量累积） | 常规商业分发 |
-| **EV 证书**（扩展验证） | 同样来自 CA，但**立即获得 SmartScreen 信誉**（无积累期）。需硬件令牌（HSM/USB） | 追求「下载即无警告」 |
-| **Azure Trusted Signing** | 微软云签名服务，按量计费，无需硬件令牌，CI 友好 | 云端 CI 构建 |
+| **OV 证书**（组织验证） | DigiCert / Sectigo / GlobalSign / **Certum**（国内个人可买，云签名免 UKey，约 ¥1200/年）等签发 `.pfx`。有信誉积累期（新证书初期仍可能被 SmartScreen 警告，需下载量累积） | 常规商业分发 |
+| **EV 证书**（扩展验证） | 同样来自 CA（Certum EV 约 ¥2500/年），信誉权重更高、所需下载量远小于 OV。⚠️ **2024 年后微软已取消 EV 的「即时免警告」特权** —— 现在按下载量/使用量评估，新证书首启仍可能触发警告 | 追求更快的信誉积累 |
+| **Azure Trusted Signing** | 微软云签名服务，按量计费（约 $9.99/月），CI 友好、无需硬件令牌。⚠️ **资格限美/加/EU/英 —— 中国大陆开发者不可用** | 海外主体的云端 CI |
 
 ### 2. 配置 electron-builder
 
@@ -77,6 +77,17 @@ APPLE_TEAM_ID="XXXXXXXXXX"
 - 构建**照常成功**，日志出现 `signing with signtool.exe`（无证书时为**空签**，等于不签）。
 - Windows 上用户首次运行会看到 SmartScreen 警告。
 - 这是**当前仓库的状态** —— 在拿到真实证书前，发布产物均为未签名。
+
+### 不签名时的替代方案（当前采用的策略）
+
+- 下载页**明确写出**「首次运行可能提示未知发布者」的说明。
+- 附上产物的 **SHA256 校验值**，让用户可自行校验完整性：
+
+```powershell
+Get-FileHash "release\MarkCraft-Setup-0.1.0-x64.exe" -Algorithm SHA256
+```
+
+- 等有用户量或进企业渠道时再上证书（详见迁移计划 §7 的成本对比）。
 
 ---
 

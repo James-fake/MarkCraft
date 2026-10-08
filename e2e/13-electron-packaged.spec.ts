@@ -1,8 +1,8 @@
 import { test, expect } from '@playwright/test'
 import { _electron as electron } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
-import { existsSync, readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, readdirSync, statSync } from 'node:fs'
+import { join, dirname } from 'node:path'
 
 /**
  * 13 · Electron 打包产物冒烟（P5）
@@ -18,13 +18,25 @@ import { join } from 'node:path'
  */
 
 function findPackagedExe(): string | null {
+  const exeNames = ['MarkCraft.exe', 'markcraft.exe']
+  // 取**最新**的 release*/win-unpacked（按 mtime 降序）——
+  // 机器上可能残留多个历史 release* 目录，若按 readdir 顺序取首个，会冒烟到过期产物。
   const roots = readdirSync(process.cwd(), { withFileTypes: true })
     .filter((d) => d.isDirectory() && /^release/.test(d.name))
-    .map((d) => d.name)
-  const exeNames = ['MarkCraft.exe', 'markcraft.exe']
-  for (const root of roots) {
+    .map((d) => {
+      const dir = join(process.cwd(), d.name)
+      let mtime = 0
+      try {
+        mtime = statSync(dir).mtimeMs
+      } catch {
+        /* 不可读则视为最旧 */
+      }
+      return { dir, mtime }
+    })
+    .sort((a, b) => b.mtime - a.mtime)
+  for (const { dir } of roots) {
     for (const exe of exeNames) {
-      const p = join(process.cwd(), root, 'win-unpacked', exe)
+      const p = join(dir, 'win-unpacked', exe)
       if (existsSync(p)) return p
     }
   }
@@ -83,5 +95,27 @@ test.describe('Electron 打包产物冒烟（P5）', () => {
       (e) => /Failed to load|ERR_FILE_NOT_FOUND|net::ERR|is not defined|Cannot read/i.test(e),
     )
     expect(fatal).toEqual([])
+  })
+
+  // P6.2：验证**打包后**的 Pandoc 解析路径（`process.resourcesPath/pandoc/...`）成立 ——
+  // 开发态路径由 17 号用例覆盖，打包态是另一条分支，必须单独钉。
+  // 未随包携带 pandoc 时（未跑 fetch:pandoc）跳过。
+  test('打包产物内 Pandoc 可解析（若已随包携带）', async () => {
+    const bundled = PACKAGED_EXE
+      ? join(dirname(PACKAGED_EXE), 'resources', 'pandoc', 'win', 'pandoc.exe')
+      : null
+    test.skip(!bundled || !existsSync(bundled), '未随包携带 Pandoc（先跑 npm run fetch:pandoc 再打包）')
+
+    const available = await win.evaluate(() => window.markcraft!.pandoc!.available())
+    expect(available).toBe(true)
+
+    const result = await win.evaluate(async () => {
+      const r = await window.markcraft!.pandoc!.convert('# 打包态\n', 'markdown', 'epub')
+      if (r.error || !r.buffer) return { error: r.error ?? 'no buffer', magic: '' }
+      const b = new Uint8Array(r.buffer)
+      return { error: null, magic: String.fromCharCode(b[0], b[1]) }
+    })
+    expect(result.error).toBeNull()
+    expect(result.magic).toBe('PK')
   })
 })
