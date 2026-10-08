@@ -1,4 +1,4 @@
-import { test, expect, gotoView, waitForAppReady, skipSplash } from './fixtures'
+import { test, expect, gotoView, skipSplash } from './fixtures'
 
 /**
  * 01 · 外壳与启动链路

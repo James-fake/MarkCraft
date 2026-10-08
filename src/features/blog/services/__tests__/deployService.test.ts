@@ -14,7 +14,7 @@ if (!globalThis.crypto?.subtle) {
  * 钉死，使这些约束在单测层即可回归。
  */
 const mock = vi.hoisted(() => {
-  const calls: Array<{ method: string; url: string; body: any; headers: Record<string, string> }> = []
+  const calls: Array<{ method: string; url: string; body: unknown; headers: Record<string, string> }> = []
   const state: { handler: ((url: string, init?: RequestInit) => Res | undefined) | null } = { handler: null }
   return { calls, state }
 })
@@ -22,7 +22,7 @@ const mock = vi.hoisted(() => {
 vi.mock('../fetchWithTimeout', () => ({
   fetchWithTimeout: async (url: string, init?: RequestInit) => {
     const method = (init?.method ?? 'GET').toUpperCase()
-    let parsed: any
+    let parsed: unknown
     if (typeof init?.body === 'string') {
       try { parsed = JSON.parse(init.body) } catch { parsed = init.body }
     }
@@ -44,6 +44,7 @@ vi.mock('../fetchWithTimeout', () => ({
 }))
 
 import { deployToPages, validateDeployToken } from '../deployService'
+import type { DeployProgress } from '../deployTypes'
 
 type Res = { status: number; body?: unknown }
 type Rule = { method: string; match: RegExp; res: Res }
@@ -65,6 +66,9 @@ function find(method: string, url: string): Res | undefined {
 
 const call = (method: string, re: RegExp) => mock.calls.filter((c) => c.method === method && re.test(c.url))
 const lastCall = (method: string, re: RegExp) => call(method, re).at(-1)
+/** 取最后一次请求的 JSON body（测试桩保证 body 为对象） */
+const lastJsonBody = (method: string, re: RegExp) =>
+  (lastCall(method, re)?.body ?? {}) as Record<string, unknown>
 
 beforeEach(() => {
   mock.calls.length = 0
@@ -90,25 +94,25 @@ describe('deployToPages · GitHub', () => {
     on('GET', /\/git\/ref\/heads\/main$/, { status: 200, body: { object: { sha: 'COMMIT1' } } })
     on('GET', /\/git\/commits\/COMMIT1$/, { status: 200, body: { tree: { sha: 'TREE1' } } })
 
-    const progress: any[] = []
+    const progress: DeployProgress[] = []
     const url = await deployToPages(
       [{ path: 'index.html', content: '<h1>hi</h1>' }],
       { platform: 'github', token: 't', owner: 'octocat', repo: 'blog' },
       (p) => progress.push(p),
     )
 
-    const treeBody = lastCall('POST', /\/git\/trees$/)!.body
+    const treeBody = lastJsonBody('POST', /\/git\/trees$/)
     // 🚨 核心回归：base_tree 必须是 tree 对象（TREE1），绝不能是 commit（COMMIT1）
     expect(treeBody.base_tree).toBe('TREE1')
     expect(treeBody.base_tree).not.toBe('COMMIT1')
     expect(treeBody.tree).toEqual([{ path: 'index.html', sha: 'BLOB1', mode: '100644', type: 'blob' }])
 
-    const commitBody = lastCall('POST', /\/git\/commits$/)!.body
+    const commitBody = lastJsonBody('POST', /\/git\/commits$/)
     expect(commitBody.tree).toBe('TREE_NEW')
     expect(commitBody.parents).toEqual(['COMMIT1'])
 
     expect(progress.at(-1)).toMatchObject({ stage: 'done', url: 'https://octocat.github.io/blog' })
-    expect(progress.at(-1).warningKey).toBeUndefined()
+    expect(progress.at(-1)!.warningKey).toBeUndefined()
     expect(url).toBe('https://octocat.github.io/blog')
   })
 
@@ -121,8 +125,8 @@ describe('deployToPages · GitHub', () => {
 
     await deployToPages([{ path: 'a.html', content: 'a' }], { platform: 'github', token: 't', owner: 'octocat', repo: 'blog' }, () => {})
 
-    expect(lastCall('POST', /\/git\/trees$/)!.body.base_tree).toBe('MTREE')
-    expect(lastCall('POST', /\/git\/commits$/)!.body.parents).toEqual(['MCOMMIT'])
+    expect(lastJsonBody('POST', /\/git\/trees$/).base_tree).toBe('MTREE')
+    expect(lastJsonBody('POST', /\/git\/commits$/).parents).toEqual(['MCOMMIT'])
   })
 
   it('空仓库（无任何分支）：不带 base_tree、不带 parents（首次提交）', async () => {
@@ -131,9 +135,9 @@ describe('deployToPages · GitHub', () => {
 
     await deployToPages([{ path: 'a.html', content: 'a' }], { platform: 'github', token: 't', owner: 'octocat', repo: 'blog' }, () => {})
 
-    const treeBody = lastCall('POST', /\/git\/trees$/)!.body
+    const treeBody = lastJsonBody('POST', /\/git\/trees$/)
     expect(treeBody).not.toHaveProperty('base_tree')
-    expect(lastCall('POST', /\/git\/commits$/)!.body).not.toHaveProperty('parents')
+    expect(lastJsonBody('POST', /\/git\/commits$/)).not.toHaveProperty('parents')
   })
 
   it('Pages 已启用（409）→ 仍成功且无警告', async () => {
@@ -142,10 +146,10 @@ describe('deployToPages · GitHub', () => {
     on('GET', /\/git\/commits\/COMMIT1$/, { status: 200, body: { tree: { sha: 'TREE1' } } })
     on('POST', /\/pages$/, { status: 409, body: { message: 'Conflict' } })
 
-    const progress: any[] = []
+    const progress: DeployProgress[] = []
     await deployToPages([{ path: 'a.html', content: 'a' }], { platform: 'github', token: 't', owner: 'octocat', repo: 'blog' }, (p) => progress.push(p))
-    expect(progress.at(-1).stage).toBe('done')
-    expect(progress.at(-1).warningKey).toBeUndefined()
+    expect(progress.at(-1)!.stage).toBe('done')
+    expect(progress.at(-1)!.warningKey).toBeUndefined()
   })
 
   it('Pages 启用失败（403 无权限）→ 部署仍成功，但带「需手动启用」警告（不再假成功）', async () => {
@@ -154,10 +158,10 @@ describe('deployToPages · GitHub', () => {
     on('GET', /\/git\/commits\/COMMIT1$/, { status: 200, body: { tree: { sha: 'TREE1' } } })
     on('POST', /\/pages$/, { status: 403, body: { message: 'Upgrade to Pro' } })
 
-    const progress: any[] = []
+    const progress: DeployProgress[] = []
     await deployToPages([{ path: 'a.html', content: 'a' }], { platform: 'github', token: 't', owner: 'octocat', repo: 'blog' }, (p) => progress.push(p))
-    expect(progress.at(-1).stage).toBe('done')
-    expect(progress.at(-1).warningKey).toBe('deployPagesManualHint')
+    expect(progress.at(-1)!.stage).toBe('done')
+    expect(progress.at(-1)!.warningKey).toBe('deployPagesManualHint')
   })
 })
 
@@ -170,7 +174,7 @@ describe('deployToPages · Vercel', () => {
     on('POST', /\/v13\/deployments$/, { status: 200, body: { id: 'dpl_1', url: 'x.vercel.app' } })
     on('GET', /\/v13\/deployments\/dpl_1$/, { status: 200, body: { readyState: 'READY', url: 'x.vercel.app' } })
 
-    const progress: any[] = []
+    const progress: DeployProgress[] = []
     const url = await deployToPages(
       [{ path: 'index.html', content: 'hello' }],
       { platform: 'vercel', token: 't', owner: '', repo: 'my-blog' },
@@ -178,19 +182,20 @@ describe('deployToPages · Vercel', () => {
     )
 
     expect(url).toBe('https://x.vercel.app')
-    expect(progress.at(-1).stage).toBe('done')
+    expect(progress.at(-1)!.stage).toBe('done')
 
     // digest 头必须是 40 位十六进制（SHA-1）；SHA-256 是 64 位，会被 Vercel 以 400 "Digest is not valid" 拒绝
     const upload = lastCall('POST', /\/v2\/files$/)!
     expect(upload.headers['x-vercel-digest']).toMatch(/^[0-9a-f]{40}$/)
 
-    const deployBody = lastCall('POST', /\/v13\/deployments$/)!.body
-    const sha = deployBody.files[0].sha as string
+    const deployBody = lastJsonBody('POST', /\/v13\/deployments$/)
+    const files = deployBody.files as Array<Record<string, unknown>>
+    const sha = files[0].sha as string
     expect(sha).toMatch(/^[0-9a-f]{40}$/)
     expect(sha).toBe(upload.headers['x-vercel-digest'])
 
     // files 元素形状必须是 { file, sha, size }
-    expect(deployBody.files[0]).toEqual({ file: 'index.html', sha, size: 5 })
+    expect(files[0]).toEqual({ file: 'index.html', sha, size: 5 })
     // name 为必填、项目标识参数是 project（不是 projectId）
     expect(deployBody.name).toBe('my-blog')
     expect(deployBody.project).toBe('prj_1')
