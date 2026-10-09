@@ -110,4 +110,50 @@ test.describe('Electron 桌面壳', () => {
     await win.evaluate(() => window.markcraft!.window.toggleMaximize())
     await expect.poll(isMax, { timeout: 15_000 }).toBe(false)
   })
+
+  test('开屏动画每次启动都播：reload 后再次出现并自动退场', async () => {
+    // 原先开屏靠 localStorage 的 mc-splash-seen「只播首启」；用户要求每次都播。
+    // 本用例用 reload 模拟「再次启动」——若还残留首启判断，第二次就不会出现。
+    //
+    // ⚠️ 不能用「reload 后等 #mc-splash 可见」：开屏是 pre-paint 的，而 dev 模式下
+    //    reload 的 load / domcontentloaded 都要等整个 module 图（实测 2–3s），
+    //    那时开屏早已随应用首绘退场 → 必然超时（这是测试手法问题，不是功能问题）。
+    //    改为注入探针：在**页面脚本之前**挂 MutationObserver，记录本次加载开屏是否出现过。
+    await win.addInitScript(() => {
+      const w = window as unknown as { __mcSplashProbe?: { seen: boolean; text: string } }
+      w.__mcSplashProbe = { seen: false, text: '' }
+      const obs = new MutationObserver(() => {
+        const el = document.getElementById('mc-splash')
+        if (el && !w.__mcSplashProbe!.seen) {
+          w.__mcSplashProbe = { seen: true, text: el.textContent || '' }
+        }
+      })
+      obs.observe(document, { childList: true, subtree: true })
+    })
+
+    await win.reload()
+
+    // 本次加载中开屏确实出现过（= 没有残留「仅首启」判断）
+    await expect
+      .poll(
+        () =>
+          win.evaluate(
+            () =>
+              (window as unknown as { __mcSplashProbe?: { seen: boolean } }).__mcSplashProbe
+                ?.seen ?? false,
+          ),
+        { timeout: 20_000 },
+      )
+      .toBe(true)
+
+    const text = await win.evaluate(
+      () =>
+        (window as unknown as { __mcSplashProbe?: { text: string } }).__mcSplashProbe?.text ?? '',
+    )
+    expect(text).toContain('MarkCraft')
+
+    // 主界面首绘后应自动退场（不永久遮挡交互）
+    await win.locator('#mc-splash').waitFor({ state: 'detached', timeout: 20_000 })
+    await expect(win.locator('#aurora-root')).toBeVisible()
+  })
 })

@@ -33,23 +33,22 @@
       })();
     </script>
     <script>
-      // 首次启动开屏：仅当无「已看过」标记时，给 <html> 挂近黑引导底色，避免 body 白闪。
-      // 与 body 内的开屏构建脚本共用同一 localStorage 键 mc-splash-seen。
+      // 开屏底色：**每次启动**都先给 <html> 挂近黑底色，避免 body 白闪（2026-10-09 起不再区分首启）。
+      // 与 body 内的开屏构建脚本共用同一套类名；主界面首绘后一并移除。
       (function() {
-        try {
-          if (!localStorage.getItem('mc-splash-seen')) document.documentElement.classList.add('mc-booting');
-        } catch(e) { document.documentElement.classList.add('mc-booting'); }
+        try { document.documentElement.classList.add('mc-booting'); } catch(e) {}
       })();
     </script>
     <style id="mc-splash-css">
-      /* 首次启动开屏动画（打字机逐字浮现 + 光标）。
+      /* 开屏动画（打字机逐字浮现 + 光标）—— **每次启动都播**（2026-10-09 起）。
          内联于 HTML：先于模块包渲染，使动画与主包下载并行（不延长首屏可用时间）；
          主界面首绘后由 aurora-main.tsx 调 window.__mcSplash.done() 触发淡出。
          底色 #0A0B0F = --mc-bg-window（与 #aurora-root 同源）→ 衔接无白闪。
          字号 clamp(40px, min(5vw, 10vh), 72px)：旧值 28/3.2vw/40 在任何常见宽度下
          都会被顶到 40px 上限（"响应式"是假的），故把上限提到 72px 作为真正的字号；
          min(5vw, 10vh) 防止矮窗口（如 1920×600）里字占过高。
-         blur 与光标宽度一并改成 em：随字号等比缩放，否则放大后"显影感"与光标会偏细弱。 */
+         blur 与光标宽度一并改成 em：随字号等比缩放，否则放大后"显影感"与光标会偏细弱。
+         ⚠️ 因「每次启动都播」，时长必须**短而利落**（总时长 ~1.15s），否则每次开机都在等它。 */
       html.mc-booting,
       html.mc-booting body { background-color: #0A0B0F; }
       #mc-splash {
@@ -58,18 +57,42 @@
         background: #0A0B0F;
         font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
         opacity: 1;
-        transition: opacity 300ms cubic-bezier(0.4, 0, 1, 1);
+        transition: opacity 320ms cubic-bezier(0.4, 0, 1, 1);
       }
       #mc-splash.mc-splash--leaving { opacity: 0; pointer-events: none; }
       #mc-splash .mc-splash__word {
+        position: relative; z-index: 0;
         display: inline-flex; align-items: baseline;
         font-size: clamp(40px, min(5vw, 10vh), 72px); font-weight: 600;
         letter-spacing: -0.02em; color: #E8ECF4; line-height: 1.1;
+        transform-origin: 50% 50%;
+        transition: transform 320ms cubic-bezier(0.4, 0, 1, 1),
+                    filter 320ms cubic-bezier(0.4, 0, 1, 1),
+                    opacity 320ms cubic-bezier(0.4, 0, 1, 1);
+      }
+      /* 离场：字随底色一起「溶解」并微微放大 —— 比单纯淡出更有收束感 */
+      #mc-splash.mc-splash--leaving .mc-splash__word {
+        transform: scale(1.045);
+        filter: blur(0.05em);
+        opacity: 0;
+      }
+      /* 字后一层极淡辉光，给纯黑底一点纵深（进场呼吸一次即止，不循环） */
+      #mc-splash .mc-splash__glow {
+        position: absolute; left: 50%; top: 50%; z-index: -1;
+        width: 3.4em; height: 3.4em; margin: -1.7em 0 0 -1.7em;
+        border-radius: 50%; pointer-events: none;
+        background: radial-gradient(circle, rgba(124, 140, 255, 0.20) 0%, rgba(124, 140, 255, 0) 62%);
+        opacity: 0;
+        animation: mc-splash-glow 1000ms cubic-bezier(0.22, 1, 0.36, 1) 160ms forwards;
+      }
+      @keyframes mc-splash-glow {
+        from { opacity: 0; transform: scale(0.86); }
+        to   { opacity: 1; transform: scale(1); }
       }
       #mc-splash .mc-splash__char {
         display: inline-block; opacity: 0;
-        animation: mc-splash-char 480ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        animation-delay: calc(var(--i) * 95ms);
+        animation: mc-splash-char 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        animation-delay: calc(var(--i) * var(--stagger, 70ms));
         will-change: opacity, transform, filter;
       }
       @keyframes mc-splash-char {
@@ -79,7 +102,7 @@
       #mc-splash .mc-splash__caret {
         display: inline-block; width: 0.05em; height: 1.05em; margin-left: 0.07em;
         border-radius: 0.03em; background: #7C8CFF; opacity: 0;
-        animation: mc-splash-caret-blink 1.05s step-end var(--caret-delay, 900ms) infinite;
+        animation: mc-splash-caret-blink 1.05s step-end var(--caret-delay, 700ms) infinite;
       }
       @keyframes mc-splash-caret-blink {
         0% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 1; }
@@ -87,8 +110,9 @@
       @media (prefers-reduced-motion: reduce) {
         #mc-splash .mc-splash__char {
           animation-name: mc-splash-char-fade;
-          animation-duration: 250ms; animation-delay: 0ms;
+          animation-duration: 220ms; animation-delay: 0ms;
         }
+        #mc-splash .mc-splash__glow { display: none; }
         #mc-splash .mc-splash__caret { display: none; }
       }
       @keyframes mc-splash-char-fade { from { opacity: 0; } to { opacity: 1; } }
@@ -111,20 +135,16 @@
   <body>
     <div id="aurora-root"></div>
     <script>
-      // 首次启动开屏动画（打字机逐字浮现 + 光标）。内联执行、先于底部 module bundle，
-      // 使动画与主包下载「并行」进行——开屏只遮盖加载，不延长加载。
+      // 开屏动画（打字机逐字浮现 + 光标）—— **每次启动都播**（2026-10-09 起去掉「仅首启」判断：
+      // 原先靠 localStorage 的 mc-splash-seen 只播一次，用户明确要求每次都播）。
+      // 内联执行、先于底部 module bundle，使动画与主包下载「并行」进行——开屏只遮盖加载，不延长加载。
       // 主界面首绘后由 aurora-main.tsx 调 window.__mcSplash.done() 触发淡出并移除。
       (function() {
-        var SEEN = 'mc-splash-seen';
-        var STAGGER = 95;      // 逐字错峰间隔
-        var MIN_TOTAL = 1600;  // 最短停留（保证动画完整，不被「秒闪」）
-        var HARD_CAP = 6000;   // 硬兜底：超时强制让位（避免盖住错误页）
+        var STAGGER = 70;      // 逐字错峰间隔（每次都播 → 收紧到 70ms，全文 ~630ms 打完）
+        var MIN_TOTAL = 1150;  // 最短停留（保证动画完整，不被「秒闪」；因每次都播故比首启版更短）
+        var HARD_CAP = 4000;   // 硬兜底：超时强制让位（避免盖住错误页）
         var root = document.documentElement;
         function endBooting() { root.classList.remove('mc-booting'); }
-
-        var first;
-        try { first = !localStorage.getItem(SEEN); } catch (e) { first = true; }
-        if (!first) { endBooting(); return; }
 
         var t0 = performance.now();
         var word = 'MarkCraft';
@@ -135,9 +155,16 @@
         el.id = 'mc-splash';
         el.setAttribute('role', 'status');
         el.setAttribute('aria-label', 'MarkCraft 正在启动');
+        el.style.setProperty('--stagger', STAGGER + 'ms');
         var w = document.createElement('div');
         w.className = 'mc-splash__word';
         w.setAttribute('aria-hidden', 'true');
+        if (!reduced) {
+          // 辉光垫在字后（z-index: -1），给纯黑底一点纵深
+          var glow = document.createElement('span');
+          glow.className = 'mc-splash__glow';
+          w.appendChild(glow);
+        }
         for (var i = 0; i < word.length; i++) {
           var s = document.createElement('span');
           s.className = 'mc-splash__char';
@@ -164,10 +191,9 @@
           dismissed = true;
           el.classList.add('mc-splash--leaving');
           el.addEventListener('transitionend', remove, { once: true });
-          setTimeout(remove, 600); // transitionend 兜底
+          setTimeout(remove, 700); // transitionend 兜底
         }
         function done() {
-          try { localStorage.setItem(SEEN, '1'); } catch (e) {}
           var wait = Math.max(0, MIN_TOTAL - (performance.now() - t0));
           setTimeout(leave, wait);
         }
