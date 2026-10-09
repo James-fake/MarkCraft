@@ -48,7 +48,9 @@
          都会被顶到 40px 上限（"响应式"是假的），故把上限提到 72px 作为真正的字号；
          min(5vw, 10vh) 防止矮窗口（如 1920×600）里字占过高。
          blur 与光标宽度一并改成 em：随字号等比缩放，否则放大后"显影感"与光标会偏细弱。
-         ⚠️ 因「每次启动都播」，时长必须**短而利落**（总时长 ~1.15s），否则每次开机都在等它。 */
+         分段时长（用户反馈初版「偏短/太快」后加长）：
+           打字（9 字 × 90ms + 420ms）≈ 1.14s → 图标从左侧撞入 0.62s → 落位后停顿 → 溶解离场 0.32s，
+         最短停留 MIN_TOTAL = 2200ms（应用未就绪则继续停留，不会截断动画）。 */
       html.mc-booting,
       html.mc-booting body { background-color: #0A0B0F; }
       #mc-splash {
@@ -63,12 +65,43 @@
       #mc-splash .mc-splash__word {
         position: relative; z-index: 0;
         display: inline-flex; align-items: baseline;
+        /* 字体：优先 LL Prismaset Five（Lineto 基于 Rudolf Koch「Prisma」的棱镜体重作版）。
+           ⚠️ 该字体为商业授权字体，未随应用内置 —— 本机已安装则自动命中；
+           未安装时优雅回退到 Inter / 系统无衬线（见 docs 说明）。 */
+        font-family: 'LL Prismaset Five', 'Prismaset Five', 'LL Prisma Five', 'Prisma',
+                     'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
         font-size: clamp(40px, min(5vw, 10vh), 72px); font-weight: 600;
         letter-spacing: -0.02em; color: #E8ECF4; line-height: 1.1;
         transform-origin: 50% 50%;
         transition: transform 320ms cubic-bezier(0.4, 0, 1, 1),
                     filter 320ms cubic-bezier(0.4, 0, 1, 1),
                     opacity 320ms cubic-bezier(0.4, 0, 1, 1);
+      }
+      /* 撞击瞬间给字一个极轻的顶推，坐实「撞上了」（不加 forwards，播完自动回位） */
+      #mc-splash .mc-splash__word--nudged {
+        animation: mc-splash-nudge 320ms cubic-bezier(0.36, 0, 0.66, -0.56)
+          var(--nudge-delay, 1730ms);
+      }
+      @keyframes mc-splash-nudge {
+        0%   { transform: translateX(0); }
+        35%  { transform: translateX(0.07em); }
+        100% { transform: translateX(0); }
+      }
+      /* 应用图标：从左侧飞入撞到首字母 M，停驻在 MarkCraft 左侧（绝对定位，
+         故打字阶段文字始终居中，不会被图标占位推偏） */
+      #mc-splash .mc-splash__icon {
+        position: absolute; top: 50%; right: 100%;
+        width: 1.08em; height: 1.08em; margin: -0.54em 0.14em 0 0;
+        opacity: 0;
+        animation: mc-splash-icon-hit 620ms cubic-bezier(0.32, 0, 0.12, 1)
+          var(--icon-delay, 1230ms) forwards;
+      }
+      #mc-splash .mc-splash__icon svg { display: block; width: 100%; height: 100%; }
+      @keyframes mc-splash-icon-hit {
+        0%   { opacity: 0; transform: translateX(-9em) scale(0.70) rotate(-12deg); }
+        55%  { opacity: 1; }
+        86%  { opacity: 1; transform: translateX(0.08em) scale(1.08) rotate(0deg); }
+        100% { opacity: 1; transform: translateX(0) scale(1) rotate(0deg); }
       }
       /* 离场：字随底色一起「溶解」并微微放大 —— 比单纯淡出更有收束感 */
       #mc-splash.mc-splash--leaving .mc-splash__word {
@@ -114,6 +147,9 @@
         }
         #mc-splash .mc-splash__glow { display: none; }
         #mc-splash .mc-splash__caret { display: none; }
+        /* 降低动效：图标直接就位（不飞入、不顶推），但仍示人以完整构图 */
+        #mc-splash .mc-splash__icon { animation: none; opacity: 1; }
+        #mc-splash .mc-splash__word--nudged { animation: none; }
       }
       @keyframes mc-splash-char-fade { from { opacity: 0; } to { opacity: 1; } }
     </style>
@@ -140,9 +176,10 @@
       // 内联执行、先于底部 module bundle，使动画与主包下载「并行」进行——开屏只遮盖加载，不延长加载。
       // 主界面首绘后由 aurora-main.tsx 调 window.__mcSplash.done() 触发淡出并移除。
       (function() {
-        var STAGGER = 70;      // 逐字错峰间隔（每次都播 → 收紧到 70ms，全文 ~630ms 打完）
-        var MIN_TOTAL = 1150;  // 最短停留（保证动画完整，不被「秒闪」；因每次都播故比首启版更短）
-        var HARD_CAP = 4000;   // 硬兜底：超时强制让位（避免盖住错误页）
+        var STAGGER = 90;      // 逐字错峰间隔（用户反馈「偏短/太快」→ 由 70 放慢到 90，全文 ~810ms 打完）
+        var CHAR_DUR = 420;    // 单字浮现时长（须与 CSS 的 mc-splash-char 一致，用于推算图标入场时刻）
+        var MIN_TOTAL = 2200;  // 最短停留：打字 ~1.14s + 图标撞入 ~0.62s + 落位后停顿，由 1150 拉长
+        var HARD_CAP = 5000;   // 硬兜底：超时强制让位（避免盖住错误页）
         var root = document.documentElement;
         function endBooting() { root.classList.remove('mc-booting'); }
 
@@ -151,11 +188,18 @@
         var reduced = false;
         try { reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) {}
 
+        // 打字全部完成 ≈ (n-1)*STAGGER + CHAR_DUR；图标紧接着撞入，撞击点 ≈ iconDelay + 0.86*620
+        var revealEnd = (word.length - 1) * STAGGER + CHAR_DUR;
+        var iconDelay = revealEnd + 90;
+        var nudgeDelay = iconDelay + 500;
+
         var el = document.createElement('div');
         el.id = 'mc-splash';
         el.setAttribute('role', 'status');
         el.setAttribute('aria-label', 'MarkCraft 正在启动');
         el.style.setProperty('--stagger', STAGGER + 'ms');
+        el.style.setProperty('--icon-delay', iconDelay + 'ms');
+        el.style.setProperty('--nudge-delay', nudgeDelay + 'ms');
         var w = document.createElement('div');
         w.className = 'mc-splash__word';
         w.setAttribute('aria-hidden', 'true');
@@ -178,6 +222,19 @@
           c.style.setProperty('--caret-delay', (word.length * STAGGER) + 'ms');
           w.appendChild(c);
         }
+        // 应用图标：内联 SVG（与 build/icon.svg 同源，用 path 画 M 避免依赖系统字体），
+        // 不额外发请求，避免闪一下空位。动画由 CSS 驱动：从左侧飞入 → 撞到 M → 停驻左侧。
+        var icon = document.createElement('span');
+        icon.className = 'mc-splash__icon';
+        icon.innerHTML =
+          '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">' +
+          '<rect width="512" height="512" rx="96" fill="#2563eb"/>' +
+          '<rect x="120" y="88" width="272" height="336" rx="24" fill="#ffffff"/>' +
+          '<path d="M176 336 L176 192 L216 192 L256 264 L296 192 L336 192 L336 336 L304 336 L304 248 L256 326 L208 248 L208 336 Z" fill="#2563eb"/>' +
+          '<rect x="168" y="372" width="176" height="16" rx="8" fill="#2563eb" opacity="0.25"/>' +
+          '</svg>';
+        w.appendChild(icon);
+        if (!reduced) w.classList.add('mc-splash__word--nudged');
         el.appendChild(w);
         document.body.appendChild(el);
 
