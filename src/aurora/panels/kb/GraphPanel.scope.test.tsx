@@ -1,8 +1,9 @@
-import { describe, it, expect, afterEach, vi } from 'vitest'
+import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest'
 import { render, screen, within, fireEvent, cleanup, waitFor, act } from '@testing-library/react'
 import { RealProviders } from '../../providers/RealProviders'
 import { GraphPanel } from './GraphPanel'
 import { useFileManager } from '@stores/FileStore'
+import { loadState } from '@services/fileService'
 import { clearEditorReturn, getEditorReturn } from '../../navigation/navReturn'
 import type { FileNode } from '@src/types/fileManager'
 
@@ -157,6 +158,17 @@ function clickNode(el: Element) {
   ev('pointerdown')
   ev('pointerup')
 }
+
+beforeEach(() => {
+  // ⚠️ 夹具：把初始树**显式**写进 localStorage。
+  // 存储层从 IndexedDB 换成磁盘文件后，两次 Provider 挂载不再共享「saveLargeData 的
+  // localStorage 兜底」写下的树（那是 Dexie 在 jsdom 抛错才走的路径）——于是 realMdFiles()
+  // 与 GraphPanel 会各自生成一批**随机**节点 id（createInitialFileTree 用 generateId），
+  // 范围裁剪必然落空。这里固定一份，保证两者看到同一批 id。
+  const seeded = loadState('zh')
+  localStorage.setItem('markcraft-file-manager-version', 'v5')
+  localStorage.setItem('markcraft-file-manager', JSON.stringify(seeded))
+})
 
 afterEach(() => {
   cleanup()

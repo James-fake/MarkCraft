@@ -160,7 +160,14 @@ export interface MarkCraftDesktopAPI {
   shell: MarkCraftShellAPI
   net: MarkCraftNetAPI
   setup: MarkCraftSetupAPI
+  app: MarkCraftAppAPI
   pandoc?: MarkCraftPandocAPI
+}
+
+/** 应用级路径（磁盘存储层的根） */
+export interface MarkCraftAppAPI {
+  /** Electron userData 目录（`%APPDATA%\MarkCraft`） */
+  userData(): Promise<string>
 }
 
 declare global {

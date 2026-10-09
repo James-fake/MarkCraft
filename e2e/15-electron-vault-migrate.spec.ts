@@ -1,18 +1,21 @@
 import { test, expect } from '@playwright/test'
 import { _electron as electron } from '@playwright/test'
 import type { ElectronApplication, Page } from '@playwright/test'
-import { mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, existsSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 /**
- * 15 · IndexedDB → Vault 一次性迁移（P4-D 集成）
+ * 15 · 应用内旧笔记 → Vault 一次性迁移（P4-D 集成）
  *
- * 验证桌面端「检测到 IDB 旧笔记 → 弹引导 → 选文件夹迁移 → 真实 .md 落盘 + 采用为 Vault」。
+ * 验证桌面端「检测到应用内旧笔记 → 弹引导 → 选文件夹迁移 → 真实 .md 落盘 + 采用为 Vault」。
  *
  * 手法：
- *  - 用 `--user-data-dir=<临时目录>` 隔离 IndexedDB（否则会读到开发机真实数据）；
- *  - 首启（IDB 空）后经 `win.evaluate` 把旧状态种进 IDB（`kv` 表 / key=`markcraft-file-manager`）；
+ *  - 用 `--user-data-dir=<临时目录>` 隔离应用数据（否则会读到开发机真实数据）；
+ *  - 首启后把旧状态**直接写进磁盘存储的 KV 文件**
+ *    （`<user-data-dir>/storage/kv/markcraft-file-manager.json`）；
+ *    ⚠️ 存储层已从 IndexedDB 换成磁盘文件 —— 往 IndexedDB 塞只对**升级搬迁**
+ *    （legacyIdbMigrate）有意义，不是本用例要测的路径；
  *  - `reload` → FileStore 的加载分支读到旧数据 → 弹迁移引导；
  *  - 原生目录对话框无法无头驱动 → 主进程经 `MARKCRAFT_TEST_OPEN_DIR` 注入目标目录（见 main）。
  *
@@ -71,22 +74,12 @@ test.beforeAll(async () => {
   // 让首启的防抖 save（300ms）与指南迁移落定，避免它随后覆盖我们种入的数据
   await win.waitForTimeout(2500)
 
-  // 种入 IDB 旧数据（此时应用已用 Dexie 建好 markcraft 库）
-  await win.evaluate(async (json: string) => {
-    await new Promise<void>((resolve, reject) => {
-      const req = indexedDB.open('markcraft')
-      req.onsuccess = () => {
-        const db = req.result
-        const tx = db.transaction('kv', 'readwrite')
-        tx.objectStore('kv').put({ key: 'markcraft-file-manager', value: json })
-        tx.oncomplete = () => { db.close(); resolve() }
-        tx.onerror = () => reject(tx.error)
-      }
-      req.onerror = () => reject(req.error)
-    })
-  }, JSON.stringify(LEGACY_STATE))
+  // 种入「应用内旧笔记」：直接写磁盘存储的 KV 文件（键名与 kv.ts 的落盘规则一致）
+  const kvDir = join(userDataDir, 'storage', 'kv')
+  mkdirSync(kvDir, { recursive: true })
+  writeFileSync(join(kvDir, 'markcraft-file-manager.json'), JSON.stringify(LEGACY_STATE))
 
-  // reload → 加载分支读到旧 IDB → 触发迁移引导
+  // reload → 加载分支读到旧数据 → 触发迁移引导
   await win.reload()
   await waitMount()
   await win.locator('#mc-splash').waitFor({ state: 'detached', timeout: 20_000 }).catch(() => {})

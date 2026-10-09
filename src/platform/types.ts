@@ -186,6 +186,14 @@ export interface SetupAPI {
   defaultVault(): Promise<string | null>
 }
 
+/**
+ * 应用级路径（磁盘存储层的根）。
+ * 桌面端返回 Electron userData；测试替身返回 null（此时存储层退回内存后端）。
+ */
+export interface AppAPI {
+  userData(): Promise<string | null>
+}
+
 export interface Platform {
   readonly kind: PlatformKind
 
@@ -248,7 +256,12 @@ export interface Platform {
   readonly pandoc: PandocAPI
 
   /**
-   * 安装向导的默认存储位置。桌面端安装包可提供；浏览器 / portable 恒为 null。
+   * 安装向导的默认存储位置。桌面端安装包可提供；测试替身恒为 null。
    */
   readonly setup: SetupAPI
+
+  /**
+   * 应用级路径（磁盘存储层根目录）。测试替身返回 null。
+   */
+  readonly app: AppAPI
 }

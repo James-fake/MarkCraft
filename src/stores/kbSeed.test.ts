@@ -14,11 +14,10 @@
  *   ④ 建文件必须显式 `openAfterCreate = false` —— 否则首次进入会瞬间开出 16 个标签页；
  *   ⑤ 已有同名文件夹时复用而非再造一个（且不覆写用户自己写的同名笔记）。
  *
- * IndexedDB 由 `fake-indexeddb/auto` 提供（知识库持久化走 Dexie）。
+ * 知识库持久化走磁盘存储层（jsdom 下自动退化为内存后端）。
  */
-import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach } from 'vitest'
-import { db } from '@core/storage/db'
+import { kvSet, kvClear } from '@core/storage/kv'
 import { collectAllFiles } from '@core/files/fileTree'
 import type { FileNode } from '../types/fileManager'
 import { ensureUsageDocsKb, USAGE_DOCS_SEED_KEY, type UsageDocsSeedDeps } from './kbSeed'
@@ -133,7 +132,7 @@ const namesIn = (node: FileNode) => collectAllFiles(node).map((f) => f.name)
 
 beforeEach(async () => {
   localStorage.clear()
-  await db.kv.clear()
+  await kvClear()
 })
 
 describe('kbSeed · 首启默认存在「MarkCraft 使用文档」知识库', () => {

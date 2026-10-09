@@ -21,13 +21,12 @@
  *
  * 夹具用最小 Provider 栈（Language > UndoRedo > FileManager），不引 aurora 装配层，
  * 以免 stores → aurora 的反向依赖（守卫 `no-aurora-ui-import`）。
- * IndexedDB 由 `fake-indexeddb/auto` 提供。
+ * 存储走磁盘存储层（jsdom 下自动退化为内存后端，见 @core/storage/backend）。
  */
-import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { renderHook, act, waitFor, cleanup } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { db } from '@core/storage/db'
+import { kvSet, kvClear } from '@core/storage/kv'
 import { collectAllFiles } from '@core/files/fileTree'
 import type { FileNode, FileManagerState } from '../types/fileManager'
 import { findNode, findParentId } from '../services/fileService'
@@ -89,18 +88,18 @@ function Wrapper({ children }: { children: ReactNode }) {
 
 beforeEach(async () => {
   localStorage.clear()
-  await db.kv.clear()
+  await kvClear()
   // 版本号匹配 → loadState 不会重建 localStorage 树（树只在 IndexedDB 里，制造出「同步
   // 兜底树 T0 + 异步权威树」的两阶段现场）；同时让 loadStateAsync 不提前 return null。
   localStorage.setItem(`${STORAGE_KEY}-version`, 'v5')
-  await db.kv.put({ key: STORAGE_KEY, value: JSON.stringify(legacyTree()) })
+  await kvSet(STORAGE_KEY, JSON.stringify(legacyTree()))
 })
 
 afterEach(async () => {
   cleanup()
   // saveState 是 300ms 防抖且定时器是模块级的 —— 等它跑完再清，避免污染下一个用例
   await new Promise((r) => setTimeout(r, 350))
-  await db.kv.clear()
+  await kvClear()
 })
 
 describe('FileStore · 两阶段初始化（hydrated 信号）', () => {

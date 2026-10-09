@@ -5,7 +5,7 @@ import { knowledgeLinkGuideContent as knowledgeLinkGuideContentEn } from '@core/
 import { logger } from '../utils/logger';
 import { safeJsonParse } from '@utils/safeJson'
 import { isFileManagerState } from '@utils/schemaGuards';
-import { saveLargeData, loadLargeData, migrateToIndexedDB } from '@core/storage/migrate';
+import { saveLargeData, loadLargeData, migrateLocalStorageToStorage } from '@core/storage/migrate';
 
 const STORAGE_KEY = 'markcraft-file-manager';
 const STORAGE_VERSION = 'v5';
@@ -28,7 +28,7 @@ let pendingState: FileManagerState | null = null;
 const SAVE_DEBOUNCE = 300;
 
 // 启动时触发后台迁移（不阻塞 UI）
-migrateToIndexedDB().catch(e => logger.error('IDB migration failed:', e));
+migrateLocalStorageToStorage().catch(e => logger.error('存储迁移失败:', e));
 
 /** 生成唯一 ID */
 export function generateId(): string {

@@ -1,5 +1,12 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react'
-import { db } from '@core/storage/db'
+import {
+  listVersionsByFile,
+  addVersion,
+  getVersion,
+  deleteVersion as deleteVersionRecord,
+  deleteVersions,
+  updateVersion,
+} from '@core/storage/recordStore'
 
 export interface NoteVersion {
   versionId: string
@@ -49,12 +56,10 @@ export const NoteVersionProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const clearOldVersions = useCallback(async (fileId: string) => {
     try {
-      const all = await db.table('versions')
-        .where('fileId').equals(fileId)
-        .toArray() as NoteVersion[]
+      const all = await listVersionsByFile(fileId)
       const toDelete = all.filter(v => !v.locked && (Date.now() - v.timestamp) > 30 * 24 * 60 * 60 * 1000)
       if (toDelete.length > 0) {
-        await db.table('versions').bulkDelete(toDelete.map(v => v.versionId))
+        await deleteVersions(toDelete.map(v => v.versionId))
       }
     } catch (e) {
       console.error('[NoteVersion] clearOldVersions failed:', e)
@@ -70,9 +75,7 @@ export const NoteVersionProvider: React.FC<{ children: React.ReactNode }> = ({ c
       // 检查字数变化是否超过 30%（与上一版本对比）
       let shouldCreateImmediately = false
       try {
-        const existing = await db.table('versions')
-          .where('fileId').equals(fileId)
-          .toArray() as NoteVersion[]
+        const existing = await listVersionsByFile(fileId)
         existing.sort((a, b) => b.timestamp - a.timestamp)
         const lastWordCount = existing[0]?.wordCount ?? 0
         const currentWordCount = countWords(content)
@@ -97,15 +100,13 @@ export const NoteVersionProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
 
     try {
-      await db.table('versions').add(version)
+      await addVersion(version)
       // 清理旧版本（保留最近 MAX_VERSIONS_PER_FILE 个）
-      const allVersions = await db.table('versions')
-        .where('fileId').equals(fileId)
-        .toArray() as NoteVersion[]
+      const allVersions = await listVersionsByFile(fileId)
       allVersions.sort((a, b) => b.timestamp - a.timestamp)
       const toDelete = allVersions.slice(MAX_VERSIONS_PER_FILE).filter(v => !v.locked)
       if (toDelete.length > 0) {
-        await db.table('versions').bulkDelete(toDelete.map(v => v.versionId))
+        await deleteVersions(toDelete.map(v => v.versionId))
       }
       // 自动清理 30 天前的旧版本（任务3）
       await clearOldVersions(fileId)
@@ -117,9 +118,7 @@ export const NoteVersionProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const loadVersions = useCallback(async (fileId: string) => {
     setLoading(true)
     try {
-      const all = await db.table('versions')
-        .where('fileId').equals(fileId)
-        .toArray() as NoteVersion[]
+      const all = await listVersionsByFile(fileId)
       all.sort((a, b) => b.timestamp - a.timestamp)
       setVersions(all)
     } catch (e) {
@@ -132,7 +131,7 @@ export const NoteVersionProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const restoreVersion = useCallback(async (versionId: string): Promise<string | null> => {
     try {
-      const version = await db.table('versions').get(versionId) as NoteVersion | undefined
+      const version = await getVersion(versionId)
       return version?.content ?? null
     } catch {
       return null
@@ -141,7 +140,7 @@ export const NoteVersionProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const deleteVersion = useCallback(async (versionId: string) => {
     try {
-      await db.table('versions').delete(versionId)
+      await deleteVersionRecord(versionId)
       setVersions(prev => prev.filter(v => v.versionId !== versionId))
     } catch (e) {
       console.error('[NoteVersion] deleteVersion failed:', e)
@@ -150,9 +149,9 @@ export const NoteVersionProvider: React.FC<{ children: React.ReactNode }> = ({ c
 
   const toggleLock = useCallback(async (versionId: string) => {
     try {
-      const version = await db.table('versions').get(versionId) as NoteVersion | undefined
+      const version = await getVersion(versionId)
       if (version) {
-        await db.table('versions').update(versionId, { locked: !version.locked })
+        await updateVersion(versionId, { locked: !version.locked })
         setVersions(prev => prev.map(v => v.versionId === versionId ? { ...v, locked: !v.locked } : v))
       }
     } catch (e) {

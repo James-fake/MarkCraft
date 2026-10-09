@@ -21,7 +21,6 @@
 //     空态一律显式 `closeAllTabs()` 造出来，别指望「默认没打开文件」。
 //   · 断言的「位置」用 `compareDocumentPosition`（DOM 顺序）而不是「离屏幕左边多少像素」：
 //     jsdom 不做布局，`getBoundingClientRect` 恒为 0 ⇒ 几何断言在这里只会假绿/假红。
-import 'fake-indexeddb/auto'
 import React from 'react'
 import { render, act, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach } from 'vitest'

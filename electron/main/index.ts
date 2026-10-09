@@ -501,6 +501,14 @@ function bindSetupIpc(): void {
   ipcMain.handle('mc:setup:defaultVault', () => readDefaultVault())
 }
 
+// —— 应用数据目录 ——
+// 磁盘存储层（KV / 版本 / 备份 / PDF blob）的根目录。用 userData 而非 vault：
+// 这些数据是**应用级**的（知识库、白板、版本历史不该随 Vault 切换而丢失），
+// 与原先 IndexedDB 的作用域一致 —— 换存储介质不换语义。
+function bindAppIpc(): void {
+  ipcMain.handle('mc:app:userData', () => app.getPath('userData'))
+}
+
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 1280,
@@ -557,6 +565,7 @@ void app.whenReady().then(() => {
   bindNetIpc()
   bindPandocIpc()
   bindSetupIpc()
+  bindAppIpc()
   createWindow()
 
   app.on('activate', () => {

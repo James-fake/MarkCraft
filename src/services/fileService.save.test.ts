@@ -11,13 +11,13 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 const mocks = vi.hoisted(() => ({
   saveLargeData: vi.fn(async () => {}),
   loadLargeData: vi.fn(async () => null),
-  migrateToIndexedDB: vi.fn(async () => {}),
+  migrateLocalStorageToStorage: vi.fn(async () => {}),
 }))
 
 vi.mock('@core/storage/migrate', () => ({
   saveLargeData: mocks.saveLargeData,
   loadLargeData: mocks.loadLargeData,
-  migrateToIndexedDB: mocks.migrateToIndexedDB,
+  migrateLocalStorageToStorage: mocks.migrateLocalStorageToStorage,
 }))
 
 import { saveState, saveStateSync, flushPendingSave, loadStateAsync } from './fileService'

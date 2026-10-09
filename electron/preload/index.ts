@@ -123,6 +123,11 @@ const api = {
   setup: {
     defaultVault: (): Promise<string | null> => ipcRenderer.invoke('mc:setup:defaultVault'),
   },
+
+  // —— 应用数据目录（磁盘存储层的根）——
+  app: {
+    userData: (): Promise<string> => ipcRenderer.invoke('mc:app:userData'),
+  },
 }
 
 contextBridge.exposeInMainWorld('markcraft', api)

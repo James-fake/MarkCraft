@@ -13,13 +13,12 @@
  * 并且用**普通笔记对照组**证明这些都是条件式的 ——「不存在」类断言在功能整块坏掉时同样恒真。
  *
  * 夹具用最小 Provider 栈（Language > UndoRedo > FileManager），不引 aurora 装配层
- * （避免 stores → aurora 的反向依赖，守卫 `no-aurora-ui-import`）。IndexedDB 用 fake-indexeddb。
+ * （避免 stores → aurora 的反向依赖，守卫 `no-aurora-ui-import`）。存储走内存后端。
  */
-import 'fake-indexeddb/auto'
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { renderHook, act, waitFor, cleanup } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { db } from '@core/storage/db'
+import { kvSet, kvClear } from '@core/storage/kv'
 import { loadLargeData } from '@core/storage/migrate'
 import { getRecentFiles } from '@core/files/recentFiles'
 import type { FileManagerState } from '../types/fileManager'
@@ -117,19 +116,19 @@ async function mountHydrated() {
 
 beforeEach(async () => {
   localStorage.clear()
-  await db.kv.clear()
+  await kvClear()
   // 版本号匹配 → loadState 不重建树（树只在 IDB 里，制造两阶段现场）；
   // 迁移键置位 → 避免 loadStateAsync 往权威树里注入《知识链接体系指南》干扰断言。
   localStorage.setItem(`${STORAGE_KEY}-version`, 'v5')
   localStorage.setItem('markcraft-migrated-link-guide-v2', '1')
-  await db.kv.put({ key: STORAGE_KEY, value: JSON.stringify(fixtureState()) })
+  await kvSet(STORAGE_KEY, JSON.stringify(fixtureState()))
 })
 
 afterEach(async () => {
   cleanup()
   // saveState 是 300ms 防抖且定时器是**模块级**的 —— 等它跑完再清，避免污染下一个用例
   await new Promise((r) => setTimeout(r, 350))
-  await db.kv.clear()
+  await kvClear()
 })
 
 describe('FileStore · 内置使用文档 = 瞬态标签', () => {
@@ -258,7 +257,7 @@ describe('FileStore · 升级迁移：旧版永久落盘的使用文档标签在
   }
 
   it('⑧ IndexedDB 权威树路径（本次报障的真实路径）：启动即剥掉旧标签并回写净化版落盘', async () => {
-    await db.kv.put({ key: STORAGE_KEY, value: JSON.stringify(legacyPersistedState()) })
+    await kvSet(STORAGE_KEY, JSON.stringify(legacyPersistedState()))
 
     const { result } = await mountHydrated()
 
@@ -279,7 +278,7 @@ describe('FileStore · 升级迁移：旧版永久落盘的使用文档标签在
 
   it('⑨ localStorage 兜底路径（IDB 为空的老用户）：同步初始树同样被净化，旧标签不得熬到 hydrated 后被转正', async () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(legacyPersistedState()))
-    await db.kv.clear() // 制造「IDB 读不到 → asyncState=null → 沿用同步树」的升级现场
+    await kvClear() // 制造「IDB 读不到 → asyncState=null → 沿用同步树」的升级现场
 
     const { result } = await mountHydrated()
 
@@ -294,7 +293,7 @@ describe('FileStore · 升级迁移：旧版永久落盘的使用文档标签在
       tabs: [{ id: 'tab-note', fileId: NOTE_ID, name: '普通笔记.md', isActive: true }],
       activeTabId: 'tab-note',
     }
-    await db.kv.put({ key: STORAGE_KEY, value: JSON.stringify(clean) })
+    await kvSet(STORAGE_KEY, JSON.stringify(clean))
 
     const { result } = await mountHydrated()
 

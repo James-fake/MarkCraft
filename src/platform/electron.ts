@@ -298,6 +298,12 @@ export const electronPlatform: Platform = {
       return (await api()?.setup?.defaultVault()) ?? null
     },
   },
+  // 应用级路径（磁盘存储层根）
+  app: {
+    async userData(): Promise<string | null> {
+      return (await api()?.app?.userData()) ?? null
+    },
+  },
   // 真实「打开原文件所在位置」（D3）
   async revealInFolder(path: string): Promise<boolean> {
     return (await api()?.shell.showItemInFolder(path)) ?? false

@@ -18,7 +18,6 @@
 
 ![Excalidraw](https://img.shields.io/badge/Excalidraw-0.17-6965F6)
 
-![Dexie](https://img.shields.io/badge/Dexie-4.4-FF7043)
 
 ![License](https://img.shields.io/badge/License-MIT-success)
 
@@ -52,7 +51,7 @@
 |      🎨 主题      | 6+6 种 | 6 编辑器主题 + 6 代码主题                 |
 |     📋 命令面板     |  47 条 | 9 个命令域，模糊搜索 + 文件搜索               |
 |     🤖 AI 能力    |  3 项  | 问答 / 相似检索 / 统一服务入口               |
-|      💾 存储      |   双层  | localStorage + IndexedDB（Dexie）  |
+|      💾 存储      |   双层  | localStorage（小数据）+ 磁盘文件（笔记树/知识库/白板/版本）  |
 
 ---
 
@@ -122,11 +121,11 @@
 - 📤 **12 种导出格式** — Markdown / HTML / PDF / Word / EPUB / LaTeX ...
 - ⌨️ **三套快捷键绑定** — Tiptap / CodeMirror 6 / 全局可配置绑定表（localStorage 持久化）
 - 🎴 **6+6 种主题** — 6 种编辑器主题 + 6 种独立代码主题
-- 💾 **双层存储** — localStorage（设置/书签/最近文件）+ IndexedDB/Dexie（文件树/知识库/白板/版本历史）
+- 💾 **双层存储** — localStorage（设置/书签/最近文件）+ **磁盘文件**（`%APPDATA%\MarkCraft\storage\`，笔记树/知识库/白板/版本历史）
 - 🔍 **本地检索优先** — 内置零依赖本地向量引擎（384 维词频 hash 向量），无需后端即可使用
 - 🌍 **中英双语** — 界面全国际化
 
-**运行环境**：纯前端应用，设置与书签存 localStorage，文件树 / 知识库 / 白板 / 版本历史存 IndexedDB（Dexie）。本地检索引擎零依赖、可离线运行；远程语义引擎的接入位已在代码中预留（当前无 UI 配置入口）。
+**运行环境**：**桌面端应用（Electron）**，笔记以真实 `.md` 存在你选择的 Vault 文件夹；应用自身状态（设置/书签/知识库/白板/版本历史）存 `%APPDATA%\MarkCraft`（小数据走 localStorage，大数据走磁盘文件）。本地检索引擎零依赖、可离线运行；远程语义引擎的接入位已在代码中预留（当前无 UI 配置入口）。
 
 ### 🎬 工作流程
 
@@ -275,7 +274,7 @@ MOC（Map of Content，内容地图）自动生成聚合指定主题的索引文
 
 #### 📸 快照与导出
 
-- **快照** — 持久化到 IndexedDB（`graph-snapshots` 键）
+- **快照** — 持久化到磁盘存储（`graph-snapshots` 键）
 - **导出** — `graphExport.ts` 支持 **SVG**（矢量，含主题变量解析）、**PNG**（Canvas 渲染）、**JSON**（结构化数据）
 
 > ⚠️ **文档修正说明**：本仓库早期文档曾描述「6 种布局 / 3D 球体（Fibonacci 球面分布 + 自动旋转）/ PageRank 与介数中心性 / 团簇发现 / Mermaid 与 DOT 导出 / LOD 分层与视口裁剪」等能力，经代码核查**均未实现**，已全部移除。当前图谱为 SVG 2D 渲染 + 4 种布局。
@@ -297,7 +296,7 @@ MarkCraft 的白板模块采用「混合引擎」架构：底层使用 Excalidra
 | 底层画布    | Excalidraw（z-0）                | 自由绘制、矩形/椭圆/箭头/文本/连线           |
 | HTML 浮层 | `CardOverlay` / `OverlayCards` | 富文本卡片、文件引用、嵌入内容               |
 | 适配器     | `CanvasEngine`                 | 鸭子类型伪装 tldraw Editor API，统一调度 |
-| 持久化     | `canvasPersistence.ts`         | IndexedDB 序列化 / 加载            |
+| 持久化     | `canvasPersistence.ts`         | 磁盘存储序列化 / 加载              |
 
 ### 🎴 8 种卡片类型
 
@@ -354,12 +353,12 @@ MarkCraft 的白板模块采用「混合引擎」架构：底层使用 Excalidra
 ## 📚 知识库系统
 
 
-**📚 知识库系统 · 7 大模块 · IndexedDB 持久化 · 本地检索引擎**
+**📚 知识库系统 · 7 大模块 · 磁盘持久化 · 本地检索引擎**
 
 `Atelier Glass` 玻璃质感设计 · 多知识库并行管理
 
 
-MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多个独立的知识库，每个知识库关联一个专属文件夹、若干白板、规则筛选、博客配置，并提供健康度评分、本地向量检索、KB 问答、MOC 生成等能力。知识库元数据存 IndexedDB（Dexie `kv` 表）。
+MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多个独立的知识库，每个知识库关联一个专属文件夹、若干白板、规则筛选、博客配置，并提供健康度评分、本地向量检索、KB 问答、MOC 生成等能力。知识库元数据存磁盘文件（`%APPDATA%\MarkCraft\storage\kv\`）。
 
 ### 🎛️ 7 大功能模块
 
@@ -405,15 +404,15 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 
 | 数据     | 存储位置                    | 说明                                |
 | ------ | ----------------------- | --------------------------------- |
-| 知识库元数据 | IndexedDB（Dexie `kv` 表） | `kb-list` 列表 + `kb-doc-{id}` 单文档  |
+| 知识库元数据 | 磁盘存储（KV） | `kb-list` 列表 + `kb-doc-{id}` 单文档  |
 | 文件树    | localStorage            | `markdown-editor-data`            |
-| 白板     | IndexedDB               | `canvas-list` + `canvas-doc-{id}` |
-| 向量索引   | IndexedDB               | 语义搜索用                             |
+| 白板     | 磁盘存储                 | `canvas-list` + `canvas-doc-{id}` |
+| 向量索引   | 磁盘存储                 | 语义搜索用                             |
 
 ### 🔑 关键技术铁律
 
 - **全屏覆盖层必须 portal 到 `#kb-overlay-root`**：`KbChatPanel`、`KbExportMenu` 等用 `position:fixed; inset:0` 的面板必须渲染在 `.kb-shell` 内 `#kb-overlay-root`（由 `KbDashboard` 的 `useEffect` 创建），不可直接放在 `.kb-content-inner` 内（其 `animation: kbTabIn` 冻结 transform 会成为 fixed 的 containing block → 高度塌缩为 0 → 界面空白）
-- **`kb.folderId` 与 `rootFolder` 存储分离**：KB 元数据存 IndexedDB，文件树存 localStorage，二者可能不同步（清缓存/换设备）。`addChildNode` 找不到 `parentId` 时**静默失败** → 任何依赖 `folderId` 的操作都必须先 `findNode(rootFolder, kb.folderId)` 校验，丢失时 `createFolder('root', kb.name)` 重建 + `saveKb` 更新元数据
+- **`kb.folderId` 与 `rootFolder` 存储分离**：KB 元数据存磁盘文件，文件树存 localStorage，二者可能不同步（清缓存/换设备）。`addChildNode` 找不到 `parentId` 时**静默失败** → 任何依赖 `folderId` 的操作都必须先 `findNode(rootFolder, kb.folderId)` 校验，丢失时 `createFolder('root', kb.name)` 重建 + `saveKb` 更新元数据
 - **视图切换避免互斥条件**：禁止用 `!activeKbId` vs `activeKbId && activeKb` 互斥切换组件——`activeKb` 异步加载时两个条件同时不满足 → 主编辑器透出 → 闪烁。采用「底层常驻 + 覆盖层切换」：KbManager 在 `showKbManager` 期间常驻挂载，KbDashboard/KbNoteViewer 以 `position:fixed; inset:0` 覆盖在上
 - **笔记列表刷新**：`KbNoteViewer.onClose` 中调用 `loadActiveKb(activeKbId)` 重新加载 KB 元数据 → `kbFiles` useMemo（`[kb, rootFolder]`）重算 → 列表立即刷新
 
@@ -598,7 +597,6 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 | 所见即所得编辑器      | Tiptap                                | ^3.24.0           | 富文本编辑、节点视图                       |
 | **白板绘制**      | **Excalidraw**                        | **^0.17.6**       | **手绘风格自由绘制（Canvas v2 底层）**       |
 | **白板引擎**      | **CanvasEngine（自研适配层）**              | **—**             | **鸭子类型兼容 tldraw Editor API 形状；已不依赖 tldraw** |
-| **本地数据库**     | **Dexie**                             | **^4.4.4**        | **IndexedDB 封装（知识库/白板/向量索引）**    |
 | **AI 检索**      | **本地 TF-IDF + 可选远程 API**             | **—**             | **零依赖本地统计检索；可接 OpenAI 兼容远程引擎**      |
 | **虚拟列表**      | **react-window**                      | **^2.2.7**        | **大列表虚拟滚动（知识库/白板列表）**            |
 | **ZIP 打包**    | **JSZip**                             | **^3.10.1**       | **博客/白板多文件导出**                   |
@@ -979,11 +977,11 @@ npm run preview
 | 索引重建防抖              | 300ms                           | 文件变更后链接/标签索引重建的防抖延迟                  |
 | 图谱缩放范围              | 0.08x - 6x                      | 鼠标滚轮缩放的上下限                           |
 | localStorage 版本     | v5                              | 版本不匹配时重置为默认数据                        |
-| **IndexedDB 数据库**   | Dexie `markcraft-db`            | 知识库 / 白板 / 向量索引持久化                   |
-| **KB 列表 key**       | `kb-list`                       | IndexedDB `kv` 表，存储所有知识库元数据列表        |
-| **KB 文档 key**       | `kb-doc-{id}`                   | IndexedDB `kv` 表，单个知识库完整文档           |
-| **Canvas 列表 key**   | `canvas-list`                   | IndexedDB `kv` 表，白板列表                |
-| **Canvas 文档 key**   | `canvas-doc-{id}`               | IndexedDB `kv` 表，单个白板文档              |
+| **磁盘存储根**          | `%APPDATA%\MarkCraft\storage\` | 知识库 / 白板 / 向量索引 / 版本 / 备份持久化        |
+| **KB 列表 key**       | `kb-list`                       | 磁盘 KV，存储所有知识库元数据列表               |
+| **KB 文档 key**       | `kb-doc-{id}`                   | 磁盘 KV，单个知识库完整文档                  |
+| **Canvas 列表 key**   | `canvas-list`                   | 磁盘 KV，白板列表                       |
+| **Canvas 文档 key**   | `canvas-doc-{id}`               | 磁盘 KV，单个白板文档                     |
 | **AI 引擎（默认）**       | 本地 TF-IDF                       | 零依赖离线统计检索，无需后端                          |
 | **AI 引擎（可选）**       | OpenAI 兼容远程 API                | 配置 `remoteBaseUrl` 后启用，失败自动回退本地           |
 | **AI 向量维度**         | 384 维                           | 本地词频向量维度；远程引擎由所选模型决定                    |
@@ -1012,7 +1010,7 @@ MarkCraft/
 └── src/
     ├── core/                       # ① 核心数据层（不依赖 UI）
     │   ├── files/                  # 文件树模型、内置使用文档、最近文件
-    │   ├── storage/                # IndexedDB（Dexie）存储层
+    │   ├── storage/                # 磁盘存储层（backend / kv / recordStore / blobStore）
     │   ├── tags/                   # 标签索引
     │   ├── data/                   # 内置数据
     │   └── constants/
@@ -1139,7 +1137,7 @@ MarkCraft/
 | 文件/目录                         | 说明                                                                                                                                               |
 | ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `CanvasView.tsx`              | 白板主视图，集成 Excalidraw + 卡片浮层 + 工具泡                                                                                                                 |
-| `canvasStore.ts`              | IndexedDB 存储（canvas-list + canvas-doc-{id}）                                                                                                      |
+| `canvasStore.ts`              | 磁盘存储（canvas-list + canvas-doc-{id}）                                                                                                      |
 | `canvasPersistence.ts`        | 序列化 / 加载，支持混合引擎格式                                                                                                                                |
 | `engine/CanvasEngine.ts`      | 适配器核心，鸭子类型伪装 tldraw Editor API                                                                                                                   |
 | `engine/ExcalidrawCanvas.tsx` | Excalidraw 底层画布（自由绘制）                                                                                                                            |
@@ -1157,7 +1155,7 @@ MarkCraft/
 
 | 文件/目录                          | 说明                                                  |
 | ------------------------------ | --------------------------------------------------- |
-| `kbStore.ts`                   | IndexedDB 持久化层（基于 Dexie），多知识库列表 + 单文档分离存储           |
+| `kbStore.ts`                   | 磁盘持久化层，多知识库列表 + 单文档分离存储           |
 | `useKbStore.ts`                | 知识库状态 Hook（activeKb/loadActiveKb/getFiles/saveKb 等） |
 | `types.ts`                     | `KnowledgeBase` 类型定义（含已下线的任务/目标/回顾/盲区字段）           |
 | `healthScore.ts`               | 健康度评分（0-100），综合覆盖度/链接密度/连通性/活跃度/标签均衡                |
@@ -1277,7 +1275,7 @@ MarkCraft/
 2. 顶栏切换布局：**力导向 / 同心圆 / 树形 / 网格**（4 种）
 3. **交互**：拖拽节点、拖拽空白平移、滚轮缩放
 4. **局部展开**：点击节点展开其邻居（BFS）
-5. **快照**：图谱快照持久化到 IndexedDB（`graph-snapshots`）
+5. **快照**：图谱快照持久化到磁盘存储（`graph-snapshots`）
 6. **导出**：SVG / PNG / JSON
 
 #### Canvas v2 白板
@@ -1568,7 +1566,7 @@ npm run e2e:report
 | 样式守卫   | `aurora/styles/*.test.ts`                             | 死 CSS 清理、指针门控、按压反馈等视觉约定                  |
 | 真机 E2E  | `e2e/*.spec.ts`                                       | 真实 Electron 桌面端下的启动、文件系统、Vault、导入导出、网络代理、Pandoc 等全链路 |
 
-> 测试环境为 jsdom，缺少 IndexedDB 时 Dexie 会向 stderr 打印 `MissingAPIError` —— 这是**环境噪音**，不代表用例失败；确需真实 IndexedDB 的用例会显式引入 `fake-indexeddb`。
+> 测试环境为 jsdom：存储层会自动退化为**内存后端**（见 `src/core/storage/backend.ts`），每个用例一份干净数据（`setupTests.ts` 全局重置）。
 
 ### 🖥️ 真机 E2E（Playwright + Electron）
 
@@ -1695,9 +1693,9 @@ docker run -p 8080:80 markdown-editor
 - [x] 📋 命令面板（47 条命令）
 - [x] 📅 日记功能
 - [x] 🪧 **Canvas v2 白板** — Excalidraw 渲染 + 自研 CanvasEngine 兼容层 + HTML 卡片浮层 + 8 种卡片类型
-- [x] 📚 **知识库系统** — 7 大模块 + 多库管理 + 健康度评分 + IndexedDB 持久化
+- [x] 📚 **知识库系统** — 7 大模块 + 多库管理 + 健康度评分 + 磁盘持久化
 - [x] 🤖 **AI 能力** — 盲区分析 / KB 问答 / 推荐 / 相似检索 / 主题聚类（本地 TF-IDF + 可选远程 API）
-- [x] 💾 **IndexedDB 存储层** — Dexie 封装，知识库/白板/向量索引分离存储
+- [x] 💾 **磁盘存储层** — 自研 KV/记录/Blob 存储（`core/storage`），知识库/白板/向量索引分离存储
 - [x] 🔖 书签系统
 - [x] 📋 模板系统
 - [x] 📥 **导入保真** — docx / html 导入启用 GFM 表格转换，统一产出高质量 Markdown
@@ -1774,7 +1772,6 @@ Copyright © 2026 MarkCraft Contributors
 | [morphdom](https://github.com/patrick-steele-idem/morphdom)        | 高效 DOM diff 与更新                   |
 | [Vitest](https://vitest.dev/)                                      | Vite 原生测试框架                       |
 | [Excalidraw](https://excalidraw.com/)                              | 手绘风格白板绘制（Canvas v2 底层）            |
-| [Dexie](https://dexie.org/)                                        | IndexedDB 封装（知识库/白板/向量索引持久化）      |
 | [pdfjs-dist](https://mozilla.github.io/pdf.js/)                    | 笔记内嵌 PDF 渲染                       |
 | [pako](https://github.com/nodeca/pako)                             | gzip 压缩（备份 / 分享包解压）                 |
 | [JSZip](https://stuk.github.io/jszip/)                             | ZIP 打包（博客/白板多文件导出）                |
@@ -1809,7 +1806,7 @@ Copyright © 2026 MarkCraft Contributors
 |  ⌨️ 快捷键  | 三套绑定                              |
 |  🎴 主题样式 | 6 编辑器 + 6 代码                      |
 |  📋 命令面板 | 47 条                              |
-|   💾 存储  | localStorage + IndexedDB（Dexie）   |
+|   💾 存储  | localStorage（小数据）+ 磁盘文件（大数据）  |
 
 
 

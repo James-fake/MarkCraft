@@ -1,15 +1,16 @@
-// L1 core/storage —— localStorage → IndexedDB 的大数据迁移，以及带降级的读写。
+// L1 core/storage —— localStorage → 磁盘存储 的大数据迁移，以及带降级的读写。
 //
-// Phase 1（2026-09-17）自 stores/storage/migrate.ts **原样下沉**（内容未作任何改写）：
-// 同 db.ts —— 基建不应寄居在状态层，否则 services 必须反向引用 stores。
-// 见《MarkCraft_解耦实施方案_2026-09-17.md》Phase 1。
-import { idbAdapter } from './db'
+// 原先这里是 localStorage → IndexedDB。移除网页形态后，存储介质换成**磁盘文件**
+// （见 ./backend），但「大数据不放 localStorage」的分层不变：
+//   - 小数据（设置/书签/最近文件）仍走 localStorage
+//   - 大数据（文件树快照、图谱快照）走磁盘存储
+import { getStorageBackend } from './backend'
 
-const MIGRATION_KEY = 'markcraft-idb-migrated'
+const MIGRATION_KEY = 'markcraft-localstorage-migrated'
 
 /**
- * 从 localStorage 迁移大数据到 IndexedDB
- * 迁移完成后保留 localStorage 副本（不删除，作为回滚保险）
+ * 从 localStorage 迁移大数据到磁盘存储。
+ * 迁移完成后**保留 localStorage 副本**（不删除，作为回滚保险）。
  */
 const KEYS_TO_MIGRATE = [
   'markcraft-file-manager',
@@ -17,14 +18,15 @@ const KEYS_TO_MIGRATE = [
   'graph-view-snapshots',
 ]
 
-export async function migrateToIndexedDB(): Promise<void> {
+export async function migrateLocalStorageToStorage(): Promise<void> {
   if (localStorage.getItem(MIGRATION_KEY) === 'done') return
 
+  const backend = await getStorageBackend()
   for (const key of KEYS_TO_MIGRATE) {
     const value = localStorage.getItem(key)
     if (value) {
       try {
-        await idbAdapter.setItem(key, value)
+        await backend.setText(key, value)
       } catch (e) {
         console.error(`[migrate] 迁移 ${key} 失败:`, e)
       }
@@ -34,20 +36,21 @@ export async function migrateToIndexedDB(): Promise<void> {
   localStorage.setItem(MIGRATION_KEY, 'done')
 }
 
-/** 优先从 IndexedDB 读取，降级到 localStorage */
+/** 优先从磁盘存储读取，降级到 localStorage（首次访问尚未迁移时） */
 export async function loadLargeData(key: string): Promise<string | null> {
-  const idbValue = await idbAdapter.getItem(key)
-  if (idbValue !== null) return idbValue
-  // 降级到 localStorage（首次访问未迁移时）
+  const backend = await getStorageBackend()
+  const stored = await backend.getText(key)
+  if (stored !== null) return stored
   return localStorage.getItem(key)
 }
 
-/** 存储大数据：同时写 IndexedDB（不写 localStorage 以节省配额） */
+/** 存储大数据：写磁盘存储；失败时降级 localStorage（不丢数据） */
 export async function saveLargeData(key: string, value: string): Promise<void> {
   try {
-    await idbAdapter.setItem(key, value)
+    const backend = await getStorageBackend()
+    await backend.setText(key, value)
   } catch (e) {
-    console.error(`[saveLargeData] IndexedDB 写入失败，降级 localStorage:`, e)
+    console.error(`[saveLargeData] 磁盘存储写入失败，降级 localStorage:`, e)
     try {
       localStorage.setItem(key, value)
     } catch {

@@ -111,4 +111,11 @@ export const testPlatform: Platform = {
       return null
     },
   },
+
+  // 无应用目录 → 存储层退回内存后端（单测不落盘）
+  app: {
+    async userData(): Promise<string | null> {
+      return null
+    },
+  },
 }

@@ -6,7 +6,7 @@
  * （elements = Excalidraw 图元，shapes = HTML 浮层卡片）。
  * 历史 tldraw 快照（含 .store）在载入时由 canvasPersistence.loadCanvasInto 自动迁移。
  */
-import { db } from '@core/storage/db'
+import { kvGet, kvSet, kvDelete } from '@core/storage/kv'
 import { safeJsonParse } from '@utils/safeJson'
 import { type CanvasListItem, type CanvasTrashItem, type CanvasDocument, type CardTemplate, type CardTemplateV2, genId } from './types'
 
@@ -102,24 +102,13 @@ function createEmptySnapshot(): unknown {
   }
 }
 
-async function idbGet(key: string): Promise<string | null> {
-  const rec = await db.kv.get(key)
-  return rec?.value ?? null
-}
-
-async function idbSet(key: string, value: string): Promise<void> {
-  await db.kv.put({ key, value })
-}
-
-async function idbDelete(key: string): Promise<void> {
-  await db.kv.delete(key)
-}
+// 存储介质已从 IndexedDB 换成磁盘文件（见 @core/storage/backend）
 
 // ─── 画布列表管理 ───
 
 /** 获取所有画布列表（按 updatedAt 降序） */
 export async function getCanvasList(): Promise<CanvasListItem[]> {
-  const raw = await idbGet(CANVAS_LIST_KEY)
+  const raw = await kvGet(CANVAS_LIST_KEY)
   if (!raw) return []
   const list = safeJsonParse(raw, [] as CanvasListItem[]).filter(isCanvasListItem)
   return list.sort((a, b) => b.updatedAt - a.updatedAt)
@@ -138,14 +127,14 @@ async function upsertListItem(item: CanvasListItem): Promise<void> {
   } else {
     list.push(item)
   }
-  await idbSet(CANVAS_LIST_KEY, JSON.stringify(list))
+  await kvSet(CANVAS_LIST_KEY, JSON.stringify(list))
 }
 
 /** 从列表移除画布条目 */
 async function removeListItem(id: string): Promise<void> {
   const list = await getCanvasList()
   const filtered = list.filter(i => i.id !== id)
-  await idbSet(CANVAS_LIST_KEY, JSON.stringify(filtered))
+  await kvSet(CANVAS_LIST_KEY, JSON.stringify(filtered))
 }
 
 /** 仅更新画布缩略图（不触发完整文档保存） */
@@ -154,14 +143,14 @@ export async function upsertCanvasThumbnail(id: string, thumbnail: string): Prom
   const idx = list.findIndex(i => i.id === id)
   if (idx < 0) return
   list[idx].thumbnail = thumbnail
-  await idbSet(CANVAS_LIST_KEY, JSON.stringify(list))
+  await kvSet(CANVAS_LIST_KEY, JSON.stringify(list))
 }
 
 // ─── 画布文档 CRUD ───
 
 /** 加载单个画布的完整数据 */
 export async function loadCanvas(id: string): Promise<CanvasDocument | null> {
-  const raw = await idbGet(`canvas-v2-doc-${id}`)
+  const raw = await kvGet(`canvas-v2-doc-${id}`)
   if (!raw) return null
   const parsed = safeJsonParse<CanvasDocument | null>(raw, null)
   return isCanvasDocument(parsed) ? parsed : null
@@ -171,7 +160,7 @@ export async function loadCanvas(id: string): Promise<CanvasDocument | null> {
 export async function saveCanvas(doc: CanvasDocument, thumbnail?: string): Promise<void> {
   try {
     doc.updatedAt = Date.now()
-    await idbSet(`canvas-v2-doc-${doc.id}`, JSON.stringify(doc))
+    await kvSet(`canvas-v2-doc-${doc.id}`, JSON.stringify(doc))
     await upsertListItem({
       id: doc.id,
       name: doc.name,
@@ -216,7 +205,7 @@ export async function deleteCanvas(id: string): Promise<void> {
   const item = list.find(i => i.id === id)
   if (!doc || !item) {
     // 数据缺失则直接硬删除
-    await idbDelete(`canvas-v2-doc-${id}`)
+    await kvDelete(`canvas-v2-doc-${id}`)
     await removeListItem(id)
     return
   }
@@ -239,13 +228,13 @@ export async function deleteCanvas(id: string): Promise<void> {
 async function addToTrash(item: CanvasTrashItem): Promise<void> {
   const trash = await getTrash()
   trash.push(item)
-  await idbSet(CANVAS_TRASH_KEY, JSON.stringify(trash))
+  await kvSet(CANVAS_TRASH_KEY, JSON.stringify(trash))
 }
 
 /** 获取回收站列表（自动清理超过 30 天的条目） */
 export async function getTrash(): Promise<CanvasTrashItem[]> {
   try {
-    const raw = await idbGet(CANVAS_TRASH_KEY)
+    const raw = await kvGet(CANVAS_TRASH_KEY)
     if (!raw) return []
     const list = safeJsonParse(raw, [] as CanvasTrashItem[]).filter(isCanvasTrashItem)
     const now = Date.now()
@@ -253,10 +242,10 @@ export async function getTrash(): Promise<CanvasTrashItem[]> {
     // 清理过期条目（含完整文档）
     const expired = list.filter(t => now - t.deletedAt >= TRASH_RETENTION_MS)
     for (const t of expired) {
-      await idbDelete(`canvas-v2-doc-${t.id}`)
+      await kvDelete(`canvas-v2-doc-${t.id}`)
     }
     if (expired.length > 0) {
-      await idbSet(CANVAS_TRASH_KEY, JSON.stringify(valid))
+      await kvSet(CANVAS_TRASH_KEY, JSON.stringify(valid))
     }
     return valid.sort((a, b) => b.deletedAt - a.deletedAt)
   } catch {
@@ -273,7 +262,7 @@ export async function restoreCanvas(id: string): Promise<CanvasDocument | null> 
   if (!doc) return null
   // 从回收站移除
   const newTrash = trash.filter(t => t.id !== id)
-  await idbSet(CANVAS_TRASH_KEY, JSON.stringify(newTrash))
+  await kvSet(CANVAS_TRASH_KEY, JSON.stringify(newTrash))
   // 重新加入画布列表
   await upsertListItem({
     id: doc.id,
@@ -291,17 +280,17 @@ export async function restoreCanvas(id: string): Promise<CanvasDocument | null> 
 export async function purgeFromTrash(id: string): Promise<void> {
   const trash = await getTrash()
   const newTrash = trash.filter(t => t.id !== id)
-  await idbSet(CANVAS_TRASH_KEY, JSON.stringify(newTrash))
-  await idbDelete(`canvas-v2-doc-${id}`)
+  await kvSet(CANVAS_TRASH_KEY, JSON.stringify(newTrash))
+  await kvDelete(`canvas-v2-doc-${id}`)
 }
 
 /** 清空回收站 */
 export async function clearTrash(): Promise<void> {
   const trash = await getTrash()
   for (const t of trash) {
-    await idbDelete(`canvas-v2-doc-${t.id}`)
+    await kvDelete(`canvas-v2-doc-${t.id}`)
   }
-  await idbSet(CANVAS_TRASH_KEY, JSON.stringify([]))
+  await kvSet(CANVAS_TRASH_KEY, JSON.stringify([]))
 }
 
 /** 复制画布（深拷贝 snapshot，生成新 ID） */
@@ -329,13 +318,13 @@ export async function setCanvasTags(id: string, tags: string[]): Promise<void> {
   const idx = list.findIndex(i => i.id === id)
   if (idx >= 0) {
     list[idx] = { ...list[idx], tags, updatedAt: Date.now() }
-    await idbSet(CANVAS_LIST_KEY, JSON.stringify(list))
+    await kvSet(CANVAS_LIST_KEY, JSON.stringify(list))
   }
   // 同步更新文档中的 tags（不改动文档的 updatedAt）
   const doc = await loadCanvas(id)
   if (doc) {
     doc.tags = tags
-    await idbSet(`canvas-v2-doc-${id}`, JSON.stringify(doc))
+    await kvSet(`canvas-v2-doc-${id}`, JSON.stringify(doc))
   }
 }
 
@@ -366,7 +355,7 @@ const CANVAS_TEMPLATE_KEY = 'canvas-v2-templates'
 
 /** 获取所有自定义卡片模板 */
 export async function getCardTemplates(): Promise<CardTemplate[]> {
-  const raw = await idbGet(CANVAS_TEMPLATE_KEY)
+  const raw = await kvGet(CANVAS_TEMPLATE_KEY)
   if (!raw) return []
   return safeJsonParse(raw, [] as CardTemplate[]).filter(isCardTemplate)
 }
@@ -376,7 +365,7 @@ export async function saveCardTemplate(tpl: Omit<CardTemplate, 'id' | 'isCustom'
   const list = await getCardTemplates()
   const newTpl: CardTemplate = { ...tpl, id: genId('tpl'), isCustom: true }
   list.push(newTpl)
-  await idbSet(CANVAS_TEMPLATE_KEY, JSON.stringify(list))
+  await kvSet(CANVAS_TEMPLATE_KEY, JSON.stringify(list))
   return newTpl
 }
 
@@ -384,7 +373,7 @@ export async function saveCardTemplate(tpl: Omit<CardTemplate, 'id' | 'isCustom'
 export async function deleteCardTemplate(id: string): Promise<void> {
   const list = await getCardTemplates()
   const filtered = list.filter(t => t.id !== id)
-  await idbSet(CANVAS_TEMPLATE_KEY, JSON.stringify(filtered))
+  await kvSet(CANVAS_TEMPLATE_KEY, JSON.stringify(filtered))
 }
 
 /** 重命名卡片模板 */
@@ -393,7 +382,7 @@ export async function renameCardTemplate(id: string, name: string): Promise<void
   const idx = list.findIndex(t => t.id === id)
   if (idx >= 0) {
     list[idx].name = name
-    await idbSet(CANVAS_TEMPLATE_KEY, JSON.stringify(list))
+    await kvSet(CANVAS_TEMPLATE_KEY, JSON.stringify(list))
   }
 }
 
@@ -401,7 +390,7 @@ export async function renameCardTemplate(id: string, name: string): Promise<void
 
 /** P4：获取所有自定义卡片模板（v2 格式，向下兼容 v1） */
 export async function getCardTemplatesV2(): Promise<CardTemplateV2[]> {
-  const raw = await idbGet(CANVAS_TEMPLATE_KEY)
+  const raw = await kvGet(CANVAS_TEMPLATE_KEY)
   if (!raw) return []
   return safeJsonParse(raw, [] as CardTemplateV2[]).filter(isCardTemplateV2)
 }
@@ -413,7 +402,7 @@ export async function saveCardTemplateV2(
   const list = await getCardTemplatesV2()
   const newTpl: CardTemplateV2 = { ...tpl, id: genId('tpl'), isCustom: true }
   list.push(newTpl)
-  await idbSet(CANVAS_TEMPLATE_KEY, JSON.stringify(list))
+  await kvSet(CANVAS_TEMPLATE_KEY, JSON.stringify(list))
   return newTpl
 }
 
@@ -423,6 +412,6 @@ export async function updateCardTemplateV2(id: string, patch: Partial<CardTempla
   const idx = list.findIndex(t => t.id === id)
   if (idx >= 0) {
     list[idx] = { ...list[idx], ...patch }
-    await idbSet(CANVAS_TEMPLATE_KEY, JSON.stringify(list))
+    await kvSet(CANVAS_TEMPLATE_KEY, JSON.stringify(list))
   }
 }

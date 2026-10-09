@@ -363,6 +363,38 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 
 ---
 
+### 彻底去 IndexedDB（2026-10-09）
+
+承接 D4 —— IndexedDB/Dexie 是最后一处浏览器存储痕迹，已整体换成**磁盘文件**。
+
+**关键判断**：原 IndexedDB 是**应用级**（非 Vault 级），故把根目录放在 Electron `userData` 下
+（`<userData>/storage/`），**换介质不换语义** —— 知识库 / 白板 / 版本历史不随 Vault 切换而丢失。
+另：`db.kv` 是**共用 KV**（fileService / kbStore / canvasStore / ignoredLinks 各套一层小包装），
+换掉它一处即覆盖四处；`imageStore` 本就不是 IndexedDB（内存 Map），不涉及。
+
+| 新增（`src/core/storage/`） | 作用 |
+|---|---|
+| `backend.ts` | `StorageBackend`（getText/setText/remove/keys）+ 两实现：`disk`（`<userData>/storage/kv/<encoded>.json`，人类可读可备份）/ `memory`（jsdom 单测）。首次取后端时**顺带跑旧 IDB 迁移** —— 放这里而非启动流程，保证任何走存储的调用都先等它完成 |
+| `kv.ts` | `kvGet/kvSet/kvDelete/kvKeys/kvClear`（替代 `db.kv`） |
+| `recordStore.ts` | 版本历史 + 备份（`version:<id>` / `backup:<id>` + `backup-seq` 自增） |
+| `base64.ts` | `bytesToBase64/base64ToBytes/blobToBytes`（blob 落盘；`blobToBytes` 对 jsdom 缺失的 `Blob.arrayBuffer` 用 FileReader 兜底） |
+| `legacyIdbMigrate.ts` | **旧 IndexedDB → 磁盘的一次性搬迁**（原生 indexedDB API，不依赖 Dexie）。不搬就会「升级即丢数据」；库不存在直接置标记跳过 |
+
+**改动**：`blobStore`（PDF 以 base64 存进同一套 KV，不另开二进制后端）；`migrate.ts`
+（`migrateToIndexedDB` → `migrateLocalStorageToStorage`）；`backupService` / `NoteVersionStore` /
+`kbStore` / `canvasStore` / `ignoredLinks` 全部改指向新存储；**删除 `db.ts` + 移除 `dexie` 依赖**。
+
+**⚠️ 测试基建的连带修复**：内存后端是模块级单例 → 同文件内用例会互相看到对方写入的数据
+（表现为 `BlogPanel.smoke` 的多段重挂读到上一段持久化的树、节点 id 变化导致「单篇发布」来源条闪断）。
+以前没有这个问题 —— 那时 IndexedDB 在 jsdom 直接抛错 = **没有持久化**。修法：`setupTests.ts`
+全局 `beforeEach` 重置后端（每用例一份干净内存）。
+
+**验证：** tsc 两套零错误；全仓无 `dexie` / `db.kv` / `db.table` / `@core/storage/db` 引用；
+新增 `core/storage/__tests__/backend.test.ts` 11 例（KV / base64 / blobStore / 版本 / 备份 / 迁移守卫）
+替代被删的 Dexie 测试；全量单测与桌面端 E2E 全绿。
+
+---
+
 ## 6. 待定决策（状态）
 
 | # | 问题 | 结论（用户拍板） |

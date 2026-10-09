@@ -1,6 +1,16 @@
 import { FileManagerState, FileNode } from '../types/fileManager'
 import { loadLargeData, saveLargeData } from '@core/storage/migrate'
-import { db, NoteVersionRecord } from '@core/storage/db'
+import {
+  listVersions,
+  replaceAllVersions,
+  upsertVersions,
+  addBackup,
+  listBackups as listBackupRecords,
+  getBackup,
+  deleteBackup as deleteBackupRecord,
+  deleteBackups,
+  type NoteVersionRecord,
+} from '@core/storage/recordStore'
 import { collectAllFiles } from '@core/files/fileTree'
 import { safeJsonParse, safeJsonParseOrNull } from '@utils/safeJson'
 import { logger } from '@utils/logger'
@@ -137,7 +147,7 @@ export async function exportVault(files: FileManagerState): Promise<string> {
     }
   }
 
-  // 图谱快照可能在 IndexedDB
+  // 图谱快照可能在磁盘存储
   if (!data.graphSnapshots) {
     const idbValue = await loadLargeData('graph-snapshots')
     if (idbValue) data.graphSnapshots = idbValue
@@ -145,7 +155,7 @@ export async function exportVault(files: FileManagerState): Promise<string> {
 
   // 包含笔记版本数据
   try {
-    const allVersions = await db.versions.toArray()
+    const allVersions = await listVersions()
     if (allVersions.length > 0) {
       data.noteVersions = allVersions
     }
@@ -309,9 +319,10 @@ export async function importVaultWithStrategy(
     if (backup.data.noteVersions && backup.data.noteVersions.length > 0) {
       try {
         if (strategy === 'overwrite') {
-          await db.versions.clear()
+          await replaceAllVersions(backup.data.noteVersions)
+        } else {
+          await upsertVersions(backup.data.noteVersions)
         }
-        await db.versions.bulkPut(backup.data.noteVersions)
       } catch (e) {
         console.error('[backup] restore noteVersions failed:', e)
       }
@@ -335,21 +346,21 @@ export async function importVaultWithStrategy(
   }
 }
 
-/** 创建自动备份到 IndexedDB backups 表 */
+/** 创建自动备份到磁盘存储 */
 export async function createAutoBackup(files: FileManagerState): Promise<void> {
   try {
     const data = await exportVault(files)
-    await db.backups.add({
+    await addBackup({
       createdAt: Date.now(),
       type: 'auto',
       data,
     })
     // 保留最近 7 个
-    const all = await db.backups.where('type').equals('auto').toArray()
+    const all = (await listBackupRecords()).filter((b) => b.type === 'auto')
     all.sort((a, b) => b.createdAt - a.createdAt)
     const toDelete = all.slice(7)
     if (toDelete.length > 0) {
-      await db.backups.bulkDelete(toDelete.map(b => b.id!))
+      await deleteBackups(toDelete.map(b => b.id!))
     }
   } catch (e) {
     console.error('[backup] createAutoBackup failed:', e)
@@ -358,7 +369,7 @@ export async function createAutoBackup(files: FileManagerState): Promise<void> {
 
 /** 获取所有备份列表 */
 export async function listBackups(): Promise<{ id: number; createdAt: number; type: string }[]> {
-  const all = await db.backups.toArray()
+  const all = await listBackupRecords()
   return all.map(b => ({ id: b.id!, createdAt: b.createdAt, type: b.type })).sort((a, b) => b.createdAt - a.createdAt)
 }
 
@@ -367,14 +378,14 @@ export async function restoreBackup(
   backupId: number,
   messages: VaultBackupMessages = DEFAULT_VAULT_BACKUP_MESSAGES
 ): Promise<ImportResult> {
-  const backup = await db.backups.get(backupId)
+  const backup = await getBackup(backupId)
   if (!backup) return { success: false, message: messages.vaultBackupNotFound }
   return importVaultWithStrategy(backup.data, 'overwrite', messages)
 }
 
 /** 删除备份 */
 export async function deleteBackup(backupId: number): Promise<void> {
-  await db.backups.delete(backupId)
+  await deleteBackupRecord(backupId)
 }
 
 /** 启动定时自动备份调度器（每天检查一次，若今天未备份则自动创建） */
@@ -384,7 +395,7 @@ export function startAutoBackupScheduler(): ReturnType<typeof setInterval> {
   if (autoBackupTimer !== null) return autoBackupTimer
   const checkAndBackup = async () => {
     try {
-      const all = await db.backups.where('type').equals('auto').toArray()
+      const all = (await listBackupRecords()).filter((b) => b.type === 'auto')
       const today = new Date()
       today.setHours(0, 0, 0, 0)
       const todayStart = today.getTime()

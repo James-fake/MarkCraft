@@ -1,4 +1,19 @@
 import '@testing-library/jest-dom/vitest'
+import { beforeEach } from 'vitest'
+import { resetStorageBackendForTests } from '@core/storage/backend'
+
+/**
+ * 存储层隔离（每个用例一份干净内存后端）。
+ *
+ * 背景：存储层在 jsdom 下退化为**模块级单例内存后端**。若不重置，同一测试文件内的用例会
+ * 互相看到对方写入的数据（例：BlogPanel.smoke 的多段重挂会读到上一段持久化的树，
+ * 节点 id 变化导致「单篇发布」来源条闪断）。
+ * 以前这里没有这个问题 —— 那时 IndexedDB 在 jsdom 直接抛错，等于**没有持久化**。
+ */
+beforeEach(() => {
+  resetStorageBackendForTests()
+})
+
 
 // jsdom 缺失的浏览器 API 兜底（真实浏览器存在，仅测试环境需要）
 if (typeof Element !== 'undefined' && !Element.prototype.scrollIntoView) {

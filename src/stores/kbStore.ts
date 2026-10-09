@@ -3,7 +3,7 @@
  * 基于 IndexedDB（复用项目已有的 Dexie db），支持多知识库
  * 存储模式参考 canvasStore：列表 + 单文档分离存储
  */
-import { db } from '@core/storage/db'
+import { kvGet, kvSet, kvDelete } from '@core/storage/kv'
 import { safeJsonParse } from '@utils/safeJson'
 import { findNode } from '../services/fileService'
 import type { FileNode } from '../types/fileManager'
@@ -45,18 +45,7 @@ const KB_DOC_PREFIX = 'kb-doc-'
 
 // ─── 内部工具 ───
 
-async function idbGet(key: string): Promise<string | null> {
-  const rec = await db.kv.get(key)
-  return rec?.value ?? null
-}
-
-async function idbSet(key: string, value: string): Promise<void> {
-  await db.kv.put({ key, value })
-}
-
-async function idbDelete(key: string): Promise<void> {
-  await db.kv.delete(key)
-}
+// 存储介质已从 IndexedDB 换成磁盘文件（见 @core/storage/backend）
 
 /** 递归收集文件夹下所有 .md 文件 */
 function collectMarkdownFiles(node: FileNode | null): FileNode[] {
@@ -103,7 +92,7 @@ function matchRule(file: FileNode, fullPath: string, rule: KnowledgeBaseRule): b
 
 /** 获取所有知识库列表（按 updatedAt 降序） */
 export async function getKbList(): Promise<KnowledgeBaseListItem[]> {
-  const raw = await idbGet(KB_LIST_KEY)
+  const raw = await kvGet(KB_LIST_KEY)
   if (!raw) return []
   const list = safeJsonParse(raw, [] as KnowledgeBaseListItem[]).filter(isKnowledgeBaseListItem)
   return list.sort((a, b) => b.updatedAt - a.updatedAt)
@@ -145,7 +134,7 @@ function notifyKbListChanged(list: KnowledgeBaseListItem[]): void {
 
 /** 列表的唯一写入口：落盘 + 广播 */
 async function writeKbList(list: KnowledgeBaseListItem[]): Promise<void> {
-  await idbSet(KB_LIST_KEY, JSON.stringify(list))
+  await kvSet(KB_LIST_KEY, JSON.stringify(list))
   notifyKbListChanged(list)
 }
 
@@ -171,7 +160,7 @@ async function removeListItem(id: string): Promise<void> {
 
 /** 加载完整知识库文档 */
 export async function loadKb(id: string): Promise<KnowledgeBase | null> {
-  const raw = await idbGet(`${KB_DOC_PREFIX}${id}`)
+  const raw = await kvGet(`${KB_DOC_PREFIX}${id}`)
   if (!raw) return null
   const parsed = safeJsonParse<KnowledgeBase | null>(raw, null)
   return isKnowledgeBase(parsed) ? parsed : null
@@ -180,7 +169,7 @@ export async function loadKb(id: string): Promise<KnowledgeBase | null> {
 /** 保存知识库文档（同时更新列表） */
 export async function saveKb(kb: KnowledgeBase): Promise<void> {
   kb.updatedAt = Date.now()
-  await idbSet(`${KB_DOC_PREFIX}${kb.id}`, JSON.stringify(kb))
+  await kvSet(`${KB_DOC_PREFIX}${kb.id}`, JSON.stringify(kb))
   // 同步更新列表项
   const listItem: KnowledgeBaseListItem = {
     id: kb.id,
@@ -279,7 +268,7 @@ export async function deleteKb(
       deleteNode(kb.folderId)
     }
   }
-  await idbDelete(`${KB_DOC_PREFIX}${id}`)
+  await kvDelete(`${KB_DOC_PREFIX}${id}`)
   await removeListItem(id)
 }
 
