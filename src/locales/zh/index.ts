@@ -2561,6 +2561,10 @@ export interface Translations {
     allFiles: string
     noFilesHint: string
     rootFolder: string
+    storageLocation: string
+    openFolder: string
+    storageNotOnDisk: string
+    chooseFolder: string
     lintTitle: string
     lintListAria: string
     lintError: string

@@ -208,6 +208,12 @@ export interface Platform {
    */
   revealInFolder(path: string): Promise<boolean>
 
+  /**
+   * 用系统默认应用打开路径（目录 → 文件管理器）。浏览器无此能力 → `false`。
+   * 与 `revealInFolder` 的区别：后者「定位并选中」，本方法「直接打开」。
+   */
+  openPath(path: string): Promise<boolean>
+
   readonly window: WindowControls
 
   /**

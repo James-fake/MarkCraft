@@ -120,6 +120,11 @@ export const browserPlatform: Platform = {
     return false
   },
 
+  async openPath(): Promise<boolean> {
+    // 浏览器无法用系统默认应用打开本地路径
+    return false
+  },
+
   window: browserWindowControls,
 
   // —— P3：浏览器无真实磁盘能力，fs 一律拒绝 ——

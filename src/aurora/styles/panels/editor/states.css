@@ -65,6 +65,53 @@
   border-radius: var(--mc-radius-pill);
   box-sizing: border-box;
 }
+/* 「当前存储位置」条（桌面端）：让用户随时知道笔记究竟落在哪个文件夹。
+   未落盘（未选 Vault）时以 warning 色显式提示 + 一键选目录，避免「新建了文件却在文件夹里找不到」。 */
+.aurora-emptyfiles__storage {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  margin-bottom: 10px;
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-secondary);
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+  box-sizing: border-box;
+}
+.aurora-emptyfiles__storage-label {
+  flex: none;
+  color: var(--mc-text-tertiary);
+}
+.aurora-emptyfiles__storage-path {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mc-font-mono);
+}
+.aurora-emptyfiles__storage-warn {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--mc-warning);
+}
+.aurora-emptyfiles__storage-btn {
+  flex: none;
+  padding: 2px 8px;
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-secondary);
+  background: transparent;
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+  cursor: pointer;
+}
+.aurora-emptyfiles__storage-btn:hover {
+  color: var(--mc-text-primary);
+  border-color: var(--mc-border-strong);
+}
+
 .aurora-emptyfiles__list {
   display: flex;
   flex-direction: column;

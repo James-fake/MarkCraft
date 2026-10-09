@@ -1436,6 +1436,10 @@ export const auroraEditor = {
   allFiles: '全部文件',
   noFilesHint: '还没有文件，点击上方「新建笔记」开始写作',
   rootFolder: '根目录',
+  storageLocation: '存储位置：',
+  openFolder: '打开文件夹',
+  storageNotOnDisk: '笔记尚未落盘（存在应用内部，未写入文件夹）',
+  chooseFolder: '选择文件夹',
   // 语法检查面板（AuroraLintList）
   lintTitle: '语法检查',
   lintListAria: '语法检查问题列表',

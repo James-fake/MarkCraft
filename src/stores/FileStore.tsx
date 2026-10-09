@@ -105,17 +105,9 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         logger.info('[FileStore] hydrated=true；来源 = 磁盘 Vault', root)
       })
 
-    const lastVault = readLastVault()
-    if (platform.kind === 'electron') {
-      if (lastVault) {
-        hydrateFromVault(lastVault).catch((err) => {
-          logger.error('[FileStore] 读取 Vault 失败，回退 IndexedDB：', err)
-          // 读取失败不致命：回退到既有 IndexedDB 路径，保证可用
-          hydrateFromIdb()
-        })
-        return () => { cancelled = true }
-      }
-      // 从未选过 Vault → 采用**安装向导指定的默认存储位置**（若有；不存在则 setup 层已过滤为 null）
+    // 从未选过 Vault（首启）/ 已记录的 Vault 已失效 → 采用**安装向导指定的默认存储位置**
+    // （若有；路径不存在时 setup 层已过滤为 null），再不行才回退 IndexedDB。
+    const adoptSetupVaultOrIdb = () => {
       platform.setup
         .defaultVault()
         .then((setupVault) => {
@@ -133,6 +125,21 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         .catch(() => {
           if (!cancelled) hydrateFromIdb()
         })
+    }
+
+    const lastVault = readLastVault()
+    if (platform.kind === 'electron') {
+      if (lastVault) {
+        hydrateFromVault(lastVault).catch((err) => {
+          // ⚠️ 已记录的 Vault 失效（目录被删/移动/在已拔出的盘上）时，**不要直接落 IndexedDB** ——
+          // 那样笔记会静默存进应用内部、用户在自己的文件夹里永远看不到（正是「新建文件后
+          // 文件夹还是空的」的成因）。改为再试安装向导指定的默认位置，最后才回退 IDB。
+          logger.error('[FileStore] 已记录的 Vault 不可用，改试安装向导默认位置：', err)
+          adoptSetupVaultOrIdb()
+        })
+        return () => { cancelled = true }
+      }
+      adoptSetupVaultOrIdb()
       return () => { cancelled = true }
     }
 

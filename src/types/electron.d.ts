@@ -108,6 +108,8 @@ export interface MarkCraftDialogAPI {
 export interface MarkCraftShellAPI {
   /** 在系统文件管理器中定位文件（「打开原文件所在位置」） */
   showItemInFolder(path: string): Promise<boolean>
+  /** 用系统默认应用打开路径（目录 → 文件管理器；用于「打开当前存储位置」） */
+  openPath(path: string): Promise<boolean>
 }
 
 /** 主进程网络请求参数（P6：渲染端 → 主进程代理，绕过 CORS） */

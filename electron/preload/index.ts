@@ -87,6 +87,7 @@ const api = {
   // —— P3：系统 shell ——
   shell: {
     showItemInFolder: (path: string): Promise<boolean> => ipcRenderer.invoke('mc:fs:reveal', path),
+    openPath: (path: string): Promise<boolean> => ipcRenderer.invoke('mc:shell:openPath', path),
   },
 
   // —— P6：主进程网络代理（绕过渲染进程 CORS）——

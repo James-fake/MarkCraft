@@ -117,7 +117,7 @@ test.describe('安装向导默认存储位置（集成）', () => {
     expect(got).toBe(vaultDir)
   })
 
-  test('首启（无 lastVault）采用该目录为 Vault → 文件列表出现其笔记', async () => {
+  test('首启（无 lastVault）采用该目录为 Vault → 文件列表出现其笔记，且顶部显示存储位置', async () => {
     // 进入编辑器（首页 WelcomePanel 不渲染文件列表）
     await win.locator('button.aurora-sidebar-item[title="编辑器"]').click()
     // ⚠️ 未打开文档时，文件列表由 `.aurora-editor__empty-files`（EmptyFileBrowser）渲染；
@@ -125,5 +125,17 @@ test.describe('安装向导默认存储位置（集成）', () => {
     await expect(win.locator('.aurora-editor__empty-files')).toContainText('setup-note.md', {
       timeout: 20_000,
     })
+    // 顶部「当前存储位置」= 该 Vault 路径（用户能一眼看到文件到底存在哪）
+    await expect(win.locator('.aurora-emptyfiles__storage-path')).toHaveText(vaultDir, {
+      timeout: 15_000,
+    })
+  })
+
+  test('在该 Vault 内新建笔记 → 真实落盘到该目录（用户报的 bug 复现点）', async () => {
+    await win.locator('.aurora-editor__filename-input').fill('新建的笔记')
+    await win.locator('.aurora-editor__newfile-btn').click()
+
+    const created = join(vaultDir, '新建的笔记.md')
+    await expect.poll(() => existsSync(created), { timeout: 15_000 }).toBe(true)
   })
 })

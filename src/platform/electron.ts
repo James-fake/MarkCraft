@@ -197,4 +197,8 @@ export const electronPlatform: Platform = {
   async revealInFolder(path: string): Promise<boolean> {
     return (await api()?.shell.showItemInFolder(path)) ?? false
   },
+  // 「打开文件夹」（系统默认应用打开该目录）
+  async openPath(path: string): Promise<boolean> {
+    return (await api()?.shell?.openPath(path)) ?? false
+  },
 }

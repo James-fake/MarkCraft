@@ -200,6 +200,17 @@ function bindFsIpc(): void {
       return false
     }
   })
+
+  // 「打开文件夹」：用系统默认应用打开该目录（用于「当前存储位置」一键打开）
+  ipcMain.handle('mc:shell:openPath', async (_e, p: string) => {
+    if (!existsSync(p)) return false
+    try {
+      const err = await shell.openPath(p)
+      return err === ''
+    } catch {
+      return false
+    }
+  })
 }
 
 // —— P4-C：文件监听（外部改动可感知）——
