@@ -14,11 +14,13 @@ import { useSettingsQuery } from '../settingsSearch'
  * - 其它外链：真实可点，经 window.open 打开，地址集中常量 ABOUT_LINKS 便于填写真实值。
  * - 无后端项（检查更新 / 更新日志）：明确 disabled + 「即将推出」，不再弹假 toast。
  */
-// TODO(用户填写真实地址)：以下为占位地址（开源仓库形态），替换为 MarkCraft 官网等真实地址即可。
+// 真实地址（2026-10-09 收尾审查填写）：仓库在 Gitee（= git remote origin）。
+// 暂无独立官网 → official 指向仓库主页（真实可点，胜过假域名）。
+// ⚠️ 仓库当前**尚无 LICENSE 文件** → license 留空渲染为「即将推出」，不制造 404 死链。
 const ABOUT_LINKS: Record<string, string> = {
-  official: 'https://github.com/markcraft/markcraft',
-  feedback: 'https://github.com/markcraft/markcraft/issues',
-  license: 'https://github.com/markcraft/markcraft/blob/main/LICENSE',
+  official: 'https://gitee.com/James-fake/markcraft',
+  feedback: 'https://gitee.com/James-fake/markcraft/issues',
+  license: '',
   // 暂无真实页面：留空 → 渲染为「即将推出」（不制造假链接）
   privacy: '',
   terms: '',

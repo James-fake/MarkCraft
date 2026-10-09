@@ -1,6 +1,3 @@
-
-
-
 # ✨ MarkCraft
 
 ### 现代化 Markdown 编辑器 · 个人知识工坊 · 博客生成器
@@ -9,13 +6,13 @@
 
 > 🌈 **MarkCraft** = `Markdown` + `Craft`，意为「**雕琢你的笔记**」 ✨
 
-![React](https://img.shields.io/badge/React-18.2-61DAFB?logo=react&logoColor=white)
+![React](https://img.shields.io/badge/React-18.2-61DAFB?logo=react\&logoColor=white)
 
-![TypeScript](https://img.shields.io/badge/TypeScript-5.2-3178C6?logo=typescript&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.2-3178C6?logo=typescript\&logoColor=white)
 
-![Vite](https://img.shields.io/badge/Vite-5.2-646CFF?logo=vite&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-5.2-646CFF?logo=vite\&logoColor=white)
 
-![CodeMirror](https://img.shields.io/badge/CodeMirror-6-D307075?logo=codemirror&logoColor=white)
+![CodeMirror](https://img.shields.io/badge/CodeMirror-6-D307075?logo=codemirror\&logoColor=white)
 
 ![Tiptap](https://img.shields.io/badge/Tiptap-3.24-0DBDE7)
 
@@ -41,32 +38,29 @@
 
 ### 🎯 功能一览
 
-|        模块       |   数量   | 说明                               |
-| :-------------: | :----: | :------------------------------- |
-|      📝 编辑器     |  2 种引擎 | CodeMirror 6 源码 + Tiptap 所见即所得   |
-| 🎨 白板 Canvas v2 |  混合引擎  | Excalidraw + HTML 卡片浮层 + 自研兼容层  |
-|      📚 知识库     |  7 大模块 | 多库管理 · 检索/问答 · 健康度 · MOC          |
-|     🔗 知识链接     |  双向链接  | WikiLink / 反链 / 提及 / 块引用 / 嵌入      |
-|     🌐 知识图谱     |  4 种布局 | 力导向 / 同心圆 / 树 / 网格                |
-|     🏷️ 标签系统    |   嵌套树  | 支持 `#父/子` 多层嵌套                   |
-|     🎨 博客主题     |  64 种  | 主题市场全部可选，精品置顶                    |
-|     📤 导出格式     |  12 种  | Markdown → PDF / DOCX / EPUB ... |
-|      ⌨️ 快捷键     |  三套绑定  | Tiptap / CodeMirror 6 / 全局可配置表     |
-|      🎨 主题      |  6+6 种 | 6 编辑器主题 + 6 代码主题                 |
-|     📋 命令面板     |  47 条  | 9 个命令域，模糊搜索 + 文件搜索               |
-|     🤖 AI 能力    |   3 项  | 问答 / 相似检索 / 统一服务入口                |
-|      💾 存储      |   双层   | localStorage + IndexedDB（Dexie）  |
-
+|        模块       |   数量  | 说明                               |
+| :-------------: | :---: | :------------------------------- |
+|      📝 编辑器     | 2 种引擎 | CodeMirror 6 源码 + Tiptap 所见即所得   |
+| 🎨 白板 Canvas v2 |  混合引擎 | Excalidraw + HTML 卡片浮层 + 自研兼容层   |
+|      📚 知识库     | 7 大模块 | 多库管理 · 检索/问答 · 健康度 · MOC         |
+|     🔗 知识链接     |  双向链接 | WikiLink / 反链 / 提及 / 块引用 / 嵌入    |
+|     🌐 知识图谱     | 4 种布局 | 力导向 / 同心圆 / 树 / 网格               |
+|     🏷️ 标签系统    |  嵌套树  | 支持 `#父/子` 多层嵌套                   |
+|     🎨 博客主题     |  64 种 | 主题市场全部可选，精品置顶                    |
+|     📤 导出格式     |  12 种 | Markdown → PDF / DOCX / EPUB ... |
+|      ⌨️ 快捷键     |  三套绑定 | Tiptap / CodeMirror 6 / 全局可配置表   |
+|      🎨 主题      | 6+6 种 | 6 编辑器主题 + 6 代码主题                 |
+|     📋 命令面板     |  47 条 | 9 个命令域，模糊搜索 + 文件搜索               |
+|     🤖 AI 能力    |  3 项  | 问答 / 相似检索 / 统一服务入口               |
+|      💾 存储      |   双层  | localStorage + IndexedDB（Dexie）  |
 
 ---
 
 ## 📑 目录
 
-
 | 📖 导航 | 🛠️ 技术 | 📦 使用 |
 | :---: | :----: | :---: |
 | 见下方分组 |  见下方分组 | 见下方分组 |
-
 
 <details>
 
@@ -113,12 +107,10 @@
 
 > 💡 **一句话概括**：把笔记从「孤岛」连成「网络」，让白板成为「思考画布」，让知识库成为「第二大脑」，再用一键博客把网络分享出去。
 
-
-|      🎨     |      🎭      |     📚     |       🔗       |      🌐     |         🪧        |       🚀      |
-| :---------: | :----------: | :--------: | :------------: | :---------: | :---------------: | :-----------: |
-| **64 博客主题** |   **双内核编辑**  | **知识库系统** |   **知识链接**    | **4 种图谱布局** | **Excalidraw 白板** |  **12 种导出格式** |
-|   覆盖全场景审美   | CM6 + Tiptap |  检索/问答/健康度  | WikiLink/反链/嵌入 |   力导向等 4 种   |     卡片 + 画笔混合     | PDF/DOCX/EPUB |
-
+|      🎨     |      🎭      |     📚    |       🔗       |      🌐     |         🪧        |       🚀      |
+| :---------: | :----------: | :-------: | :------------: | :---------: | :---------------: | :-----------: |
+| **64 博客主题** |   **双内核编辑**  | **知识库系统** |    **知识链接**    | **4 种图谱布局** | **Excalidraw 白板** |  **12 种导出格式** |
+|   覆盖全场景审美   | CM6 + Tiptap | 检索/问答/健康度 | WikiLink/反链/嵌入 |   力导向等 4 种  |     卡片 + 画笔混合     | PDF/DOCX/EPUB |
 
 - 🎯 **双内核编辑** — CodeMirror 6 源码 + Tiptap 所见即所得，**以 Markdown 为唯一交换格式**（WYSIWYG 走 HTML↔Markdown 往返）
 - 🪧 **Canvas v2 白板** — Excalidraw 真实渲染 + 自研 `CanvasEngine` 兼容层 + HTML 卡片浮层，混合画笔与卡片
@@ -136,7 +128,6 @@
 
 **运行环境**：纯前端应用，设置与书签存 localStorage，文件树 / 知识库 / 白板 / 版本历史存 IndexedDB（Dexie）。本地检索引擎零依赖、可离线运行；远程语义引擎的接入位已在代码中预留（当前无 UI 配置入口）。
 
-
 ### 🎬 工作流程
 
 ```mermaid
@@ -149,11 +140,9 @@ flowchart LR
 
 > 💡 **6 步知识工坊** — 写笔记 → 建链接 → 看图谱 → 画白板 → 出知识库 → 发博客 ✨
 
-
 ---
 
 ## 📋 主要功能
-
 
 ---
 
@@ -161,9 +150,7 @@ flowchart LR
 
 ### 📝 编辑核心
 
-
 **编辑器核心功能** ✨ — 从源码到所见即所得，从格式化到自动补全
-
 
 - 🎭 **双引擎编辑器** — CodeMirror 6（源码模式）+ Tiptap（所见即所得模式），一键切换
 - 🔄 **实时预览** — 编辑区与预览区双向滚动同步，8ms 节流 + 平滑动画
@@ -206,7 +193,6 @@ flowchart LR
 
 ### 📇 Front Matter 支持
 
-
 ```
 ---                          📄 YAML 元数据
 title: 我的笔记
@@ -217,18 +203,15 @@ draft: false
 ---
 ```
 
-
 - 📄 **YAML 解析** — 自动解析 Markdown 文件头部的 `---` 包裹的 YAML 元数据
 - 📝 **可视化编辑面板** — 标题、日期、标签、分类、描述、作者、封面图、slug、草稿、系列等字段表单化编辑
 - 🔍 **自动提取** — 从 Front Matter 中提取标题作为文档显示名，提取标签用于博客生成
 
 ### 🔗 知识链接体系
 
-
 | 🔗 WikiLink | ↩️ 反向链接 | 💡 未链接提及 |  📎 嵌入引用  |
 | :---------: | :-----: | :------: | :-------: |
 |   `[[目标]]`  |  谁引用了我  |  自动检测提及  | `![[目标]]` |
-
 
 MarkCraft 内置完整的知识管理体系，让笔记从「孤岛」连接成「网络」。详细用法请参考应用内的《知识链接体系指南》。
 
@@ -247,14 +230,12 @@ MarkCraft 内置完整的知识管理体系，让笔记从「孤岛」连接成�
 
 ### 🏷️ 标签系统
 
-
 ```
 #父标签
 ├── #父/子标签A          🌳 嵌套树
 ├── #父/子标签B
 └── #父/子/孙标签C        ↳ 支持多层嵌套
 ```
-
 
 - 🏷️ **标签提取** — `#标签` 自动提取，支持中英文、数字、斜杠嵌套（`#父/子`）
 - 🌳 **标签树** — 嵌套树形展示，折叠/展开，统计每个标签（含子标签）的关联文件数
@@ -277,12 +258,12 @@ MOC（Map of Content，内容地图）自动生成聚合指定主题的索引文
 
 #### 4 种布局算法
 
-| 布局  | 标识           | 说明                                    |
-| --- | ------------ | ------------------------------------- |
-| 力导向 | `force`      | 自研物理模拟：斥力 + 弹簧 + 向心 + 阻尼 + 单帧位移上限     |
-| 同心圆 | `concentric` | 按层级环绕中心分布                             |
-| 树形  | `tree`       | 层级展开                                  |
-| 网格  | `grid`       | 均匀网格排布                                |
+| 布局  | 标识           | 说明                                |
+| --- | ------------ | --------------------------------- |
+| 力导向 | `force`      | 自研物理模拟：斥力 + 弹簧 + 向心 + 阻尼 + 单帧位移上限 |
+| 同心圆 | `concentric` | 按层级环绕中心分布                         |
+| 树形  | `tree`       | 层级展开                              |
+| 网格  | `grid`       | 均匀网格排布                            |
 
 #### 👁️ 视觉与交互
 
@@ -298,15 +279,14 @@ MOC（Map of Content，内容地图）自动生成聚合指定主题的索引文
 - **导出** — `graphExport.ts` 支持 **SVG**（矢量，含主题变量解析）、**PNG**（Canvas 渲染）、**JSON**（结构化数据）
 
 > ⚠️ **文档修正说明**：本仓库早期文档曾描述「6 种布局 / 3D 球体（Fibonacci 球面分布 + 自动旋转）/ PageRank 与介数中心性 / 团簇发现 / Mermaid 与 DOT 导出 / LOD 分层与视口裁剪」等能力，经代码核查**均未实现**，已全部移除。当前图谱为 SVG 2D 渲染 + 4 种布局。
+
 ---
 
 ## 🎨 Canvas v2 白板
 
-
 **🪧 Excalidraw 底层 + HTML 卡片浮层 + CanvasEngine 适配器**
 
 `feature flag: VITE_CANVAS_ENGINE=excalidraw`
-
 
 MarkCraft 的白板模块采用「混合引擎」架构：底层使用 Excalidraw 提供手绘风格的自由绘制，上层叠加 HTML 卡片浮层（`data-card-overlay`）承载富文本笔记、文件引用、嵌入内容，二者通过 `CanvasEngine` 适配器（鸭子类型伪装 tldraw Editor API）统一调度。
 
@@ -321,16 +301,17 @@ MarkCraft 的白板模块采用「混合引擎」架构：底层使用 Excalidra
 
 ### 🎴 8 种卡片类型
 
-| 类型      | 说明               |
-| ------- | ---------------- |
-| 📝 便签卡片 | 富文本笔记卡片          |
-| 🖼️ 图片卡片 | 图片展示             |
-| 📁 文件卡片 | 关联 Markdown 笔记   |
-| 🔗 嵌入卡片 | 嵌入另一篇笔记的内容       |
-| 📦 分组卡片 | 聚合多张卡片           |
-| 🗂️ 嵌套白板 | 白板中的白板           |
-| 🔗 画布引用 | 跨白板引用            |
-| 🏷️ 标签卡片 | 标签标记             |
+| 类型       | 说明             |
+| -------- | -------------- |
+| 📝 便签卡片  | 富文本笔记卡片        |
+| 🖼️ 图片卡片 | 图片展示           |
+| 📁 文件卡片  | 关联 Markdown 笔记 |
+| 🔗 嵌入卡片  | 嵌入另一篇笔记的内容     |
+| 📦 分组卡片  | 聚合多张卡片         |
+| 🗂️ 嵌套白板 | 白板中的白板         |
+| 🔗 画布引用  | 跨白板引用          |
+| 🏷️ 标签卡片 | 标签标记           |
+
 
 ### 🛠️ 功能组件
 
@@ -581,6 +562,7 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 - 📝 **脚注支持** — marked-footnote 插件，脚注侧边栏管理
 - ✨ **上下标 / 高亮 / 缩写** — `H~2~O`、`x^2^`、`==高亮==`、`*[HTML]: 超文本标记语言*`
 
+
 ### 📋 大纲导航
 
 - 📋 **标题树形展示** — 6 色层级色彩系统，层级缩进，折叠/展开
@@ -715,7 +697,7 @@ npm --version
 **方式一：Git 克隆**
 
 ```powershell
-git clone https://github.com/your-username/markcraft.git
+git clone https://gitee.com/James-fake/markcraft.git
 cd markcraft
 ```
 
@@ -817,7 +799,7 @@ npm --version
 #### 2. 获取项目代码
 
 ```bash
-git clone https://github.com/your-username/markcraft.git
+git clone https://gitee.com/James-fake/markcraft.git
 cd markcraft
 ```
 
@@ -914,7 +896,7 @@ sudo snap install node --classic
 #### 2. 获取项目代码
 
 ```bash
-git clone https://github.com/your-username/markcraft.git
+git clone https://gitee.com/James-fake/markcraft.git
 cd markcraft
 ```
 
@@ -967,6 +949,8 @@ npm run preview
 | `npm run lint`          | ESLint 代码检查                 |
 | `npm run test`          | 运行 Vitest 测试（watch 模式）      |
 | `npm run test:coverage` | 运行测试并生成覆盖率报告                |
+
+
 
 ---
 
@@ -1098,6 +1082,7 @@ MarkCraft/
 
 > **依赖方向**：`core` → `services` / `stores` → `features` → `aurora`（单向，禁止反向）。
 > 由本地 ESLint 规则 `local/no-aurora-ui-import` 在 pre-commit（lint-staged）阶段强制守卫。
+
 
 ### 🧩 核心模块说明
 
