@@ -2,7 +2,7 @@
 
 ### 现代化 Markdown 编辑器 · 个人知识工坊 · 博客生成器
 
-一款基于 React + TypeScript 构建的浏览器端 Markdown 编辑器，集成双引擎编辑、知识链接体系、3D 知识图谱、Excalidraw 白板、AI 知识库、64 种主题的博客工坊，让笔记从「孤岛」连接成「网络」，再让知识库成为「第二大脑」。
+一款基于 React + TypeScript 构建的**桌面端** Markdown 编辑器（Electron），集成双引擎编辑、知识链接体系、3D 知识图谱、Excalidraw 白板、AI 知识库、64 种主题的博客工坊，让笔记从「孤岛」连接成「网络」，再让知识库成为「第二大脑」。
 
 > 🌈 **MarkCraft** = `Markdown` + `Craft`，意为「**雕琢你的笔记**」 ✨
 
@@ -546,7 +546,7 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 | Markdown | HTML | PDF | Word | LaTeX | EPUB | rST | Wiki | OPML | 纯文本 | PNG | JPEG |
 
 
-- 💾 **另存为** — File System Access API 优先，降级为 Blob 下载
+- 💾 **另存为** — 走系统原生保存对话框，写入真实文件
 - 📤 **12 种格式导出** — Markdown、HTML、PDF、Word（DOCX）、LaTeX、EPUB、reStructuredText、MediaWiki、OPML、纯文本、PNG 图片、JPEG 图片
 - 🎨 **样式预设** — HTML / PDF 导出支持样式预设 + 自定义 CSS
 - 🖼️ **图片分辨率** — PNG / JPEG 支持 1x / 2x / 3x 分辨率
@@ -636,7 +636,7 @@ npm install && npm run dev
 
 |    🥇 步骤 1    |    🥈 步骤 2    |            🥉 步骤 3            |
 | :-----------: | :-----------: | :---------------------------: |
-| `npm install` | `npm run dev` | 浏览器打开 `http://localhost:5173` |
+| `npm install` | `npm run electron:dev` | 启动桌面端（开发态加载本机 dev server） |
 |    📦 安装依赖    |   🚀 启动开发服务器  |            🎉 开始使用            |
 
 
@@ -739,7 +739,7 @@ npm run dev
   ➜  Network: http://192.168.x.x:5173/
 ```
 
-在浏览器中打开 `http://localhost:5173/` 即可使用。
+运行 `npm run electron:dev` 启动**桌面端**（开发态会加载本机 dev server）。
 
 #### 5. 生产构建
 
@@ -822,7 +822,7 @@ npm install
 npm run dev
 ```
 
-在浏览器中打开 `http://localhost:5173/` 即可使用。
+运行 `npm run electron:dev` 启动**桌面端**（开发态会加载本机 dev server）。
 
 #### 5. 生产构建
 
@@ -919,7 +919,7 @@ npm install
 npm run dev
 ```
 
-在浏览器中打开 `http://localhost:5173/` 即可使用。
+运行 `npm run electron:dev` 启动**桌面端**（开发态会加载本机 dev server）。
 
 #### 5. 生产构建
 
@@ -1454,7 +1454,7 @@ MarkCraft/
 
 ## 📚 API 文档
 
-本项目为**纯前端应用**，无后端 API。所有数据存储在浏览器 localStorage 中。
+本项目为**纯本地应用**，无后端 API。笔记以真实 `.md` 文件存放在你选择的 **Vault 文件夹**（安装向导可指定默认位置）；应用自身状态存于 `%APPDATA%\MarkCraft`。
 
 ### 💾 数据存储结构
 
@@ -1548,7 +1548,7 @@ npx vitest run src/features/outline/__tests__/outlineUtils.test.ts
 # 生成覆盖率报告
 npm run test:coverage
 
-# 真机 E2E（Playwright 驱动系统 Edge，真实浏览器跑通全链路）
+# 真机 E2E（Playwright 驱动真实 Electron 桌面端，跑通全链路）
 npm run e2e
 
 # E2E 可视化调试 / 查看报告
@@ -1566,14 +1566,14 @@ npm run e2e:report
 | 契约测试   | `src/aliasSync.test.ts`、`aurora/panels/__tests__/auroraNav.contract.test.ts` | 路径别名四处同步、导航 id ↔ 路由 id 契约                 |
 | 冒烟测试   | `aurora/panels/**/*.smoke.test.tsx`                   | 各主要面板挂载与关键交互                             |
 | 样式守卫   | `aurora/styles/*.test.ts`                             | 死 CSS 清理、指针门控、按压反馈等视觉约定                  |
-| 真机 E2E  | `e2e/*.spec.ts`                                       | 真实浏览器下的启动、编辑器、文件、导入导出、知识库、白板、博客等全链路 |
+| 真机 E2E  | `e2e/*.spec.ts`                                       | 真实 Electron 桌面端下的启动、文件系统、Vault、导入导出、网络代理、Pandoc 等全链路 |
 
 > 测试环境为 jsdom，缺少 IndexedDB 时 Dexie 会向 stderr 打印 `MissingAPIError` —— 这是**环境噪音**，不代表用例失败；确需真实 IndexedDB 的用例会显式引入 `fake-indexeddb`。
 
-### 🌐 真机 E2E（Playwright）
+### 🖥️ 真机 E2E（Playwright + Electron）
 
-jsdom 单测覆盖不到的「真实运行」由 Playwright 补齐：真实布局与渲染、真实 canvas / Excalidraw 绘制、
-真实 IndexedDB、文件下载落盘、首屏开屏动画与主题防闪烁、PWA 等。
+jsdom 单测覆盖不到的「真实运行」由 Playwright 补齐：**真实 Electron 窗口**、真实磁盘读写与 Vault 落盘、
+`fs.watch` 外部改动跟随、主进程网络代理、Pandoc 真 EPUB、打包产物冒烟等。
 
 ```bash
 npm run e2e          # 全量 E2E（自动复用 / 拉起 dev server）
@@ -1581,10 +1581,9 @@ npm run e2e:ui       # 可视化调试
 npm run e2e:report   # 打开 HTML 报告
 ```
 
-- 用例位于 `e2e/`，按模块分文件（`00-boot` … `08-longtail`），说明见 `e2e/README.md`。
-- 使用**系统已安装的 Edge**（`channel: 'msedge'`），无需下载浏览器内核。
-- 当前规模：**41 个用例 · 40 通过 · 1 跳过（PWA 需生产构建）**。
-- 首轮全真测试结论与缺陷清单见 [`docs/E2E_TEST_REPORT_2026-10-08.md`](docs/E2E_TEST_REPORT_2026-10-08.md)。
+- 用例位于 `e2e/`，全部经 `_electron.launch()` 起真实桌面端（`09-electron` … `18-electron-default-vault`）。
+- **本项目只做桌面端**，不再有浏览器用例。
+- 说明见 `e2e/README.md`。
 
 ---
 
@@ -1646,9 +1645,8 @@ docker run -p 8080:80 markdown-editor
 
 <details>
 
-<summary>📖 点击查看已知问题（5 项）</summary>
+<summary>📖 点击查看已知问题（4 项）</summary>
 
-- 🌐 部分浏览器不支持 File System Access API，「另存为」功能降级为 Blob 下载
 - 📄 PDF 导出依赖 html2pdf.js，复杂布局可能出现分页问题
 - 🐌 大规模图谱（>500 节点）在低端设备可能卡顿，已通过 LOD / 视口裁剪 / 空间索引优化
 - 🤖 AI 检索默认使用本地 TF-IDF 统计引擎，反映的是**关键词/词频分布而非深层语义**；如需语义级效果，请在设置中配置 OpenAI 兼容的远程 API
@@ -1681,7 +1679,6 @@ docker run -p 8080:80 markdown-editor
 - [ ] ☁️ 云端同步（WebDAV / 自建后端）
 - [ ] 📱 移动端适配（响应式布局优化）
 - [ ] 🤝 协作编辑（WebSocket + CRDT）
-- [ ] 🧩 浏览器扩展（Chrome / Firefox）
 - [ ] 🔍 AEO 答案引擎优化
 - [ ] 🚀 GitHub Pages 一键部署博客
 - [ ] 🎨 Hexo 主题融合方案

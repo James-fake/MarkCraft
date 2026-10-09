@@ -1,7 +1,10 @@
-# MarkCraft 真机 E2E 测试（Playwright）
+# MarkCraft 真机 E2E 测试（Playwright + Electron）
 
-这一层补的是 **jsdom 单测覆盖不到的「真实运行」**：真实布局、真实 canvas / Excalidraw 绘制、
-真实 IndexedDB 持久化、文件下载落盘、首屏开屏动画与主题防闪烁、PWA 等。
+这一层补的是 **jsdom 单测覆盖不到的「真实运行」**：真实 Electron 窗口、真实磁盘读写与 Vault 落盘、
+`fs.watch` 外部改动跟随、主进程网络代理、Pandoc 真 EPUB、打包产物冒烟、安装向导默认存储位置等。
+
+> ⚠️ **本项目只做桌面端**，所有用例都经 `_electron.launch()` 起真实 Electron。
+> 原先的浏览器用例（`00-boot` … `08-longtail`）与 `browserPlatform` 已随「移除网页形态」一并删除。
 
 ## 运行
 
@@ -14,48 +17,54 @@ npm run e2e:report     # 打开上次的 HTML 报告
 单文件 / 单用例：
 
 ```bash
-npx playwright test e2e/02-editor.spec.ts
-npx playwright test e2e/02-editor.spec.ts -g "往返"
+npx playwright test e2e/14-electron-vault-crud
+npx playwright test e2e/14-electron-vault-crud -g "重命名"
 ```
 
 ## 前置条件
 
-- 使用**系统已安装的 Edge**（`channel: 'msedge'`），无需下载浏览器内核。
-- 首次运行前如未装依赖：`npm i -D @playwright/test`（已在 devDependencies 中）。
+- **`npm run electron:compile`**：多数用例直接启动 `out/main/index.mjs`，需要先编译主进程/preload。
+- 打包态用例（`13` / `18`）另需 `npm run electron:pack`（或 `electron:dist:win`）产出 `release*/win-unpacked`；
+  未产出时这些用例 **skip** 而非 fail。
+- `@playwright/test` 已在 devDependencies 中，无需下载浏览器内核（用例不驱动浏览器）。
 
 ## 目录结构
 
 | 文件 | 覆盖范围 |
 | --- | --- |
-| `fixtures.ts` | 诊断收集（console error / pageerror）+ 导航辅助（`gotoView` / `gotoAuxView` / `waitForAppReady` / `skipSplash`） |
-| `00-boot.spec.ts` | 应用启动、默认落点、深链 |
-| `01-shell.spec.ts` | 开屏动画、主题/密度防闪烁、菜单栏、命令面板、侧栏、状态栏 |
-| `02-editor.spec.ts` | 新建笔记、源码/所见即所得双模式、MD↔富文本往返、工具栏 |
-| `03-files.spec.ts` | 拖拽导入、空态文件列表、同名去重、IndexedDB 持久化 |
-| `04-io.spec.ts` | 另存为（12 格式 + 真实下载）、导入（html/txt → Markdown） |
-| `05-kb.spec.ts` | 知识库 7 个 Tab、双链图谱 SVG 渲染与导航浮层 |
-| `06-canvas.spec.ts` | 白板 Excalidraw 真机挂载、视图切换、白板列表/回收站 |
-| `07-blog.spec.ts` | 博客工作室、主题市场全量展示、主题切换驱动预览 |
-| `08-longtail.spec.ts` | 日记、设置、主题切换、全局搜索、快捷键、PWA（需生产构建） |
+| `09-electron.spec.ts` | 桌面壳：窗口启动、preload 注入 `window.markcraft`、安全基线（contextIsolation） |
+| `10-electron-fs.spec.ts` | 真实 fs IPC：读写、原子写、递归读目录、隐藏项、错误语义 |
+| `11-electron-vault.spec.ts` | Vault 模式：读入磁盘真实 `.md`、递归子目录、点开头项不进树 |
+| `12-electron-vault-watch.spec.ts` | `fs.watch`：外部新增/删除 → 文件树跟随 |
+| `13-electron-packaged.spec.ts` | **打包产物**冒烟：起窗渲染、无致命 console error、打包态 Pandoc 可解析 |
+| `14-electron-vault-crud.spec.ts` | 界面操作 → 磁盘：新建/重命名/删除真实落盘 |
+| `15-electron-vault-migrate.spec.ts` | IndexedDB 旧笔记 → Vault 一次性迁移引导 |
+| `16-electron-net.spec.ts` | 主进程网络代理：POST 透传、超时 → `NET_TIMEOUT` |
+| `17-electron-pandoc.spec.ts` | Pandoc sidecar：Markdown → 真 EPUB（无二进制时 skip） |
+| `18-electron-default-vault.spec.ts` | 安装向导默认存储位置：UTF-16LE 解码、首启采用、新建落盘、右键「打开源文件位置」、优先于历史 lastVault |
 
 ## 与 jsdom 单测的分工
 
-- **Vitest + jsdom**（`src/**/*.test.tsx`）：逻辑、纯函数、store、组件渲染与交互（大量浏览器 API 被桩掉）。
-- **Playwright E2E**（`e2e/**`）：上面桩掉的那部分 —— 真实渲染、真实存储、真实下载、真实资源加载。
+- **Vitest + jsdom**（`src/**/*.test.tsx`）：逻辑、纯函数、store、组件渲染与交互。jsdom 里没有
+  preload 注入，`platform` 取到的是**测试替身** `src/platform/test.ts`（无 fs / 无对话框）。
+- **Playwright E2E**（`e2e/**`）：上面替身拿不到的那部分 —— 真实磁盘、真实 IPC、真实打包产物。
 
 ## 已知环境注意（本地沙箱 / CI）
 
 1. **dev server 需绑 `127.0.0.1`**：Vite 默认只绑 IPv6（`::1`），而 Playwright 的 webServer 存活探测
    走 IPv4 → 会误判「服务没起」而自行拉起第二个 dev server。配置里已用 `npm run dev -- --host 127.0.0.1`。
-2. **代理**：若环境设置了 `http_proxy`，浏览器需 `--no-proxy-server` 直连本地（配置已内置）。
+   开发态的 Electron 主进程会加载该 dev server（打包态才走 `file://`）。
+2. **`CODEBUDDY_SAFE_DELETE_ENABLED=0`**：某些沙箱的批量删除守卫会拦截 Playwright 对 `test-results` 的清理，
+   直接 kill 掉测试进程。
 3. **不录屏**：`video` 需要 ffmpeg 二进制，故关闭；失败时保留 `trace`（含 DOM 快照）与截图。
-4. **产物清理**：跑之前若 `test-results/` 累积过大，某些沙箱的批量删除守卫会拦截 Playwright 的清理 ——
-   先手动 `rm -rf test-results e2e-report` 再跑即可。
+4. **跑测可能停在 teardown**：部分环境下用例全跑完、报告已出，但进程不退出（打包态应用关闭较慢）——
+   看结果以日志里的用例行/汇总为准，必要时手动结束进程。
 
 ## 写新用例的约定
 
-- 用 `fixtures.ts` 的 `test`（自带 `diag` 诊断），**不要**直接 import `@playwright/test`。
-- 非启动链路的用例先 `await skipSplash(page)` 跳过开屏动画提速。
-- 主视图用 `gotoView(page, 'editor' | 'diary' | 'canvas' | 'graph' | 'kb' | 'blog')`；
-  `welcome` / `settings` 是 aux 视图，用 `gotoAuxView`。
-- 断言避免依赖 `toHaveText` 的精确文本（所见即所得默认开启实时预览，会带 markdown 标记），优先 `toContainText`。
+- 直接 import `@playwright/test` 的 `_electron`，用 `electron.launch({ args: [MAIN_MJS], env })` 起应用。
+- 必须清掉 `ELECTRON_RUN_AS_NODE`（MSYS 会注入，导致 Electron 退化为纯 Node）；开发态加
+  `MARKCRAFT_DISABLE_GPU=1` + `MARKCRAFT_NO_SANDBOX=1`。
+- 需要隔离 IndexedDB / localStorage 时传 `--user-data-dir=<tmp>`。
+- 需要避免原生对话框时用测试钩子（如 `MARKCRAFT_TEST_OPEN_DIR`）或 `addInitScript` 预置 `localStorage`。
+- 选打包产物按 **exe 文件自身 mtime 降序**（机器上常残留多个 `release*` 目录）。

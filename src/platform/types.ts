@@ -12,7 +12,12 @@
  */
 
 /** 运行环境种类 */
-export type PlatformKind = 'browser' | 'electron'
+/**
+ * 运行形态。
+ * - `electron`：**唯一的产品形态**（桌面版，经 preload 的 `window.markcraft` 注入）
+ * - `test`：仅 jsdom 单测使用的**测试替身**（内存 fs），不是可发布形态
+ */
+export type PlatformKind = 'electron' | 'test'
 
 /** 保存对话框的文件类型过滤（对齐 File System Access API 的 `types`） */
 export interface FileTypeFilter {
@@ -95,7 +100,11 @@ export interface ReadDirOptions {
 export interface FsAPI {
   readDirectory(path: string, options?: ReadDirOptions): Promise<DirEntry[]>
   readFile(path: string): Promise<string>
-  writeFile(path: string, content: string): Promise<void>
+  /**
+   * 写文件（原子：先写临时文件再 rename）。
+   * `content` 支持**字符串或字节** —— 导出 PDF / EPUB / 图片等二进制时用后者。
+   */
+  writeFile(path: string, content: string | Uint8Array): Promise<void>
   exists(path: string): Promise<boolean>
   stat(path: string): Promise<DirEntry>
   mkdir(path: string): Promise<void>
@@ -103,7 +112,7 @@ export interface FsAPI {
   remove(path: string): Promise<void>
   /**
    * 递归监听目录改动。返回**取消订阅**函数。
-   * 浏览器无此能力 → 立即返回 no-op 取消函数（不抛错，让调用方代码可双端复用）。
+   * 测试替身无此能力 → 立即返回 no-op 取消函数（不抛错，让调用方代码可复用）。
    * type 语义：'create' = 目录新增/重命名入；'change' = .md 内容改；'delete' = 路径消失。
    */
   watch(

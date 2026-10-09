@@ -77,7 +77,7 @@ export interface MarkCraftSaveFileOptions {
 export interface MarkCraftFsAPI {
   readDirectory(path: string, options?: MarkCraftReadDirOptions): Promise<MarkCraftDirEntry[]>
   readFile(path: string): Promise<string>
-  writeFile(path: string, content: string): Promise<void>
+  writeFile(path: string, content: string | Uint8Array): Promise<void>
   exists(path: string): Promise<boolean>
   stat(path: string): Promise<MarkCraftDirEntry>
   mkdir(path: string): Promise<void>

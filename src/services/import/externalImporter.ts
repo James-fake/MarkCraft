@@ -232,11 +232,8 @@ export async function importWebClipper(
   // 先校验（在 try 之外抛出，urlBlocked 直接冒泡，不被下方 catch 二次包裹）
   const safeUrl = assertFetchableUrl(url, messages)
   try {
-    // P6：桌面端经主进程抓取（无 CORS）；浏览器端直连（credentials: 'omit' 仅浏览器有意义）
-    const res = await platform.net.fetch(
-      safeUrl.toString(),
-      platform.kind === 'browser' ? { credentials: 'omit' } : undefined,
-    )
+    // P6：桌面端经主进程抓取（无 CORS）
+    const res = await platform.net.fetch(safeUrl.toString())
     if (!res.ok) {
       throw new Error(messages.requestFailed.replace('{status}', String(res.status)))
     }

@@ -1,5 +1,14 @@
-import { browserPlatform } from './browser'
-import type { DialogAPI, FsAPI, NetAPI, NetFetchInit, Platform, WindowControls } from './types'
+import type {
+  DialogAPI,
+  FileTypeFilter,
+  FsAPI,
+  NetAPI,
+  NetFetchInit,
+  PickSaveFileOptions,
+  Platform,
+  SaveTarget,
+  WindowControls,
+} from './types'
 import type {
   MarkCraftDesktopAPI,
   MarkCraftDirEntry,
@@ -8,13 +17,12 @@ import type {
 } from '../types/electron'
 
 /**
- * Electron 实现（P2 骨架）。
+ * Electron 实现 —— **唯一的产品运行形态**（桌面端）。
  *
- * 本阶段**只有窗口控制**走真实 IPC；文件选择 / 保存 / reveal 仍回落 `browserPlatform`，
- * 待 P3 打通 fs 后逐个替换 —— 这样 P2 可以先落地骨架而不阻塞任何既有能力。
+ * 本文件不继承任何「浏览器实现」：文件读写走主进程 IPC，保存/选择走**原生对话框**。
+ * jsdom 单测另有一份测试替身（`test.ts`），与本文件互不影响。
  *
- * ⚠️ 与 `browserPlatform` 的语义必须逐条对齐（契约测试见 `browser.test.ts`）：
- * 取消返回 null、非取消错误上抛、目录写入支持嵌套相对路径。
+ * 契约：取消返回 null、非取消错误上抛、目录写入支持嵌套相对路径。
  */
 
 function api(): MarkCraftDesktopAPI | undefined {
@@ -82,7 +90,7 @@ const desktopFs: FsAPI = {
   readFile(path: string) {
     return api()?.fs.readFile(path) ?? Promise.reject(new Error('fs 不可用'))
   },
-  writeFile(path: string, content: string) {
+  writeFile(path: string, content: string | Uint8Array) {
     return api()?.fs.writeFile(path, content) ?? Promise.reject(new Error('fs 不可用'))
   },
   exists(path: string) {
@@ -123,6 +131,103 @@ const desktopDialog: DialogAPI = {
   saveFile(options?: { defaultPath?: string; filters?: import('./types').FileFilter[] }) {
     const opts = options as MarkCraftSaveFileOptions | undefined
     return api()?.dialog.saveFile(opts) ?? Promise.resolve(null)
+  },
+}
+
+/** `FileTypeFilter[]`（对齐 FSA 的 types 形态）→ 原生对话框的 filters */
+function toNativeFilters(
+  types?: FileTypeFilter[],
+): { name: string; extensions: string[] }[] | undefined {
+  if (!types?.length) return undefined
+  const out: { name: string; extensions: string[] }[] = []
+  for (const t of types) {
+    const exts = Object.values(t.accept ?? {})
+      .flat()
+      .map((e) => e.replace(/^\./, ''))
+      .filter(Boolean)
+    if (exts.length) out.push({ name: t.description || exts.join('/'), extensions: exts })
+  }
+  return out.length ? out : undefined
+}
+
+/** 取路径末段（渲染进程不能用 node:path） */
+function baseName(p: string): string {
+  return p.split(/[\\/]/).filter(Boolean).pop() ?? p
+}
+
+/**
+ * 把 Blob 写到绝对路径。
+ * ⚠️ 必须走**字节**（`Uint8Array`）而非 `blob.text()` —— 导出 PDF / EPUB / 图片时
+ * 文本解码会破坏二进制。
+ */
+async function writeBlobToPath(blob: Blob, absPath: string): Promise<void> {
+  const a = api()
+  if (!a) throw new Error('桌面文件系统不可用')
+  await a.fs.writeFile(absPath, new Uint8Array(await blob.arrayBuffer()))
+}
+
+/**
+ * 保存 / 选择能力（桌面原生）。
+ *
+ * ⚠️ 此前 `electronPlatform` 是 `{ ...browserPlatform }`，即**继承了浏览器的 FSA / 下载实现**：
+ *  - `pickSaveFile` / `pickSaveDirectory` 在桌面端恒返回 null（无 `showSaveFilePicker`）
+ *    → 「另存为」在桌面端实际不可用；
+ *  - `saveBlob` 走 `<a download>`，静默存到系统下载目录。
+ * 现全部改为**原生对话框 + 主进程写盘**（取消即静默返回）。
+ */
+const desktopSave: Pick<
+  Platform,
+  'canPickFiles' | 'canPickDirectory' | 'pickSaveFile' | 'pickSaveDirectory' | 'saveBlob'
+> = {
+  canPickFiles(): boolean {
+    return !!api()?.dialog
+  },
+  canPickDirectory(): boolean {
+    return !!api()?.dialog
+  },
+
+  async pickSaveFile(options: PickSaveFileOptions): Promise<SaveTarget | null> {
+    const a = api()
+    if (!a?.dialog) return null
+    const path = await a.dialog.saveFile({
+      defaultPath: options.suggestedName,
+      filters: toNativeFilters(options.types),
+    })
+    if (!path) return null
+    return {
+      name: baseName(path),
+      kind: 'file',
+      async write(blob: Blob) {
+        await writeBlobToPath(blob, path)
+      },
+    }
+  },
+
+  async pickSaveDirectory(): Promise<SaveTarget | null> {
+    const a = api()
+    if (!a?.dialog) return null
+    const dir = await a.dialog.openDirectory()
+    if (!dir) return null
+    return {
+      name: baseName(dir),
+      kind: 'directory',
+      async write(blob: Blob, filename?: string) {
+        if (!filename) throw new Error('向目录写入时必须提供文件名')
+        const sep = dir.includes('\\') ? '\\' : '/'
+        const parts = filename.split('/').filter(Boolean)
+        if (!parts.length) throw new Error('文件名不可为空')
+        // 主进程 writeFile 会自动 mkdir 父目录 → 嵌套相对路径（posts/foo/index.html）开箱可用
+        await writeBlobToPath(blob, `${dir}${sep}${parts.join(sep)}`)
+      },
+    }
+  },
+
+  async saveBlob(blob: Blob, filename: string): Promise<void> {
+    const a = api()
+    if (!a?.dialog) throw new Error('桌面文件系统不可用')
+    const path = await a.dialog.saveFile({ defaultPath: filename })
+    if (!path) return // 用户取消 → 静默
+    await writeBlobToPath(blob, path)
   },
 }
 
@@ -168,15 +273,15 @@ const desktopNet: NetAPI = {
 }
 
 export const electronPlatform: Platform = {
-  ...browserPlatform,
   kind: 'electron',
+  ...desktopSave,
   window: desktopWindowControls,
   // 真实文件系统（P3）
   fs: desktopFs,
   dialog: desktopDialog,
   // 主进程网络代理（P6）
   net: desktopNet,
-  // Pandoc sidecar（P6.2）：委托 preload；不可用时回退 browser 的「不可用」实现
+  // Pandoc sidecar（P6.2）：委托 preload；不可用则如实返回 false / error
   pandoc: {
     async available(): Promise<boolean> {
       return (await api()?.pandoc?.available()) ?? false

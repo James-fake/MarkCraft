@@ -1,0 +1,41 @@
+refactor!: 移除网页形态 —— 只保留桌面端（Electron）
+
+用户要求「只保留桌面端，网页端不要」，彻底删除浏览器运行形态。
+
+删除:
+- src/platform/browser.ts（192 行：FSA 另存/选目录、<a download>、浏览器窗口控制降级）
+- src/platform/browser.test.ts（契约测试）
+- src/types/fileSystemAccess.d.ts（FSA 全局类型增强）
+- 9 个纯浏览器 E2E（00-boot … 08-longtail）
+- e2e/fixtures.ts（浏览器专用测试基建，已无人引用）
+
+新增:
+- src/platform/test.ts —— 测试替身（内存/空实现：无 fs、无对话框），**仅供 jsdom 单测**，
+  不是可发布形态。152 个单测跑在 jsdom 里、没有 preload 注入，删掉 browserPlatform 后
+  必须有一份替身才能让业务代码在单测中运行。
+
+改动:
+- Platform['kind']：'browser' | 'electron' → 'electron' | 'test'
+- platform/index.ts 分派：window.markcraft ? electronPlatform : testPlatform
+- playwright.config.ts：project msedge(Edge channel) → electron；去掉浏览器 launchOptions；
+  保留 webServer（开发态 Electron 主进程要加载它）
+- README / e2e/README.md / 计划文档：全面改为「仅桌面端」表述
+
+顺带修复（本次重构暴露的真实缺陷）:
+electronPlatform 此前是 { ...browserPlatform }，即**继承了浏览器的 FSA/下载实现**：
+- pickSaveFile / pickSaveDirectory 在桌面端恒返回 null（无 showSaveFilePicker）
+  → **「另存为」在桌面端实际不可用**（SaveAsModal 一直拿不到写入目标）
+- saveBlob 走 <a download>，静默落到系统下载目录
+现全部改为**原生对话框 + 主进程写盘**（取消即静默返回）；配套把 FsAPI.writeFile 扩展为
+string | Uint8Array —— 导出 PDF / EPUB / 图片时按字节写，避免文本解码破坏二进制。
+
+未纳入本次（需单独决策）:
+IndexedDB / Dexie 存储层保留 —— 它不是「浏览器形态」，而是桌面端自己的存储引擎
+（未选 Vault 时的兜底、知识库/白板数据、P4-D 旧数据迁移的数据源）。彻底去 IndexedDB
+需先把知识库/白板改为落盘，属独立特性改造。
+
+验证: tsc 三套零错误; eslint 零错误; 反向依赖守卫 0 违规;
+单测 150 文件 / 1870 passed / 2 skipped / 0 失败断言
+（PlatformPublishPanel 原先断言「点了 <a download>」，已改为断言 platform.saveBlob 被调用，
+不再把实现细节钉死在测试里）;
+桌面端 E2E 34/34 通过（10 个 spec，全部经真实 Electron，project 名 electron）

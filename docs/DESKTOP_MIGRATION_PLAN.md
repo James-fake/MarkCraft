@@ -12,7 +12,7 @@
 | D1 | **壳选 Electron** | 不用 Tauri |
 | D2 | **笔记以本地文件存储** | 磁盘上真实的 `.md` 文件，不再是 IndexedDB 里的虚拟树 |
 | D3 | **能「打开原文件所在位置」** | Electron `shell.showItemInFolder(path)` |
-| D4 | **不保留网页版** | 不再对外发布 Web 版；Web 构建仅作开发/测试用途 |
+| D4 | **不保留网页版** | **已彻底移除浏览器形态**（2026-10-09，见下方「D4 落地」）：删 `browserPlatform` / FSA / 浏览器 E2E；jsdom 单测改走测试替身 `platform/test.ts` |
 
 ---
 
@@ -326,6 +326,40 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 - 三级解析（打包内 → 开发态 → 系统 PATH）让「自带」与「用系统装的 pandoc」都能工作。
 
 **验证：** tsc 两套零错误；E2E 16（主进程网络代理 3/3，用本地 HTTP 服务器做确定性目标 + 超时用例）、E2E 17（Pandoc 转换 2/2：Markdown→EPUB 返回真 ZIP + mimetype；无二进制时 skip）；browser.test 18/18（含 net 2 例）。
+
+---
+
+### D4 落地：移除网页形态（2026-10-09）
+
+原计划 D4 是「不对外发布 Web 版，Web 构建仅作开发/测试用途」；用户进一步要求**彻底删除浏览器运行形态**，已落地：
+
+| 项 | 处理 |
+|---|---|
+| `src/platform/browser.ts`（192 行：FSA 另存/选目录、`<a download>`、浏览器窗口控制降级） | **删除** |
+| `src/platform/browser.test.ts`（契约测试） | **删除** |
+| `src/types/fileSystemAccess.d.ts`（FSA 全局类型增强） | **删除** |
+| `src/platform/test.ts`（**新增**） | 测试替身：内存/空实现（无 fs、无对话框），**仅供 jsdom 单测**，非可发布形态 |
+| `Platform['kind']` | `'browser' \| 'electron'` → `'electron' \| 'test'` |
+| 浏览器 E2E（`00-boot` … `08-longtail`，9 个 spec） | **删除** |
+| `playwright.config.ts` | project `msedge`(Edge channel) → `electron`；去掉浏览器 `launchOptions`；**保留 webServer**（开发态 Electron 主进程要加载它） |
+| README / `e2e/README.md` | 全面改为「仅桌面端」表述 |
+
+**关键修复（顺带发现）**：`electronPlatform` 此前是 `{ ...browserPlatform }` —— **继承了浏览器的 FSA/下载实现**：
+
+- `pickSaveFile` / `pickSaveDirectory` 在桌面端恒返回 `null`（无 `showSaveFilePicker`）→
+  **「另存为」在桌面端实际不可用**；
+- `saveBlob` 走 `<a download>`，静默落到系统下载目录。
+
+现全部改为**原生对话框 + 主进程写盘**（取消即静默）。配套把 `FsAPI.writeFile` 扩展为
+`string | Uint8Array` —— 导出 PDF / EPUB / 图片时按字节写，避免文本解码破坏二进制。
+
+**未纳入本次（需单独决策）**：IndexedDB / Dexie 存储层（`core/storage/db.ts`、`blobStore.ts`）**保留** ——
+它不是「浏览器形态」，而是**桌面端自己的存储引擎**（未选 Vault 时的兜底、知识库 / 白板数据、
+以及 P4-D 旧数据迁移的数据源）。要彻底去 IndexedDB 需先把知识库/白板改为落盘，属独立特性改造。
+
+**验证：** tsc 三套零错误；eslint 零错误；单测 149 文件 / 1870+ 通过（`PlatformPublishPanel` 的
+「anchor 下载」断言已改为断言 `platform.saveBlob` 被调用）；桌面端 E2E **34/34 通过**（10 个 spec，
+全部经真实 Electron）。
 
 ---
 

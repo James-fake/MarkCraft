@@ -5,6 +5,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import PlatformPublishPanel, { buildCandidates, computeExport } from '../PlatformPublishPanel'
+import { platform } from '@platform'
 import type { BlogPost } from '../../templates'
 
 const makePost = (over: Partial<BlogPost> = {}): BlogPost => ({
@@ -164,11 +165,15 @@ describe('<PlatformPublishPanel />', () => {
     expect(writeText.mock.calls[0][0]).toContain('<h1>')
   })
 
-  it('点击下载触发 Blob 下载流程', () => {
-    const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+  it('点击下载 → 走 platform.saveBlob 落盘（不再断言浏览器 anchor 下载）', () => {
+    // 只保留桌面端后，saveBlob 由平台各自实现（桌面 = 原生保存对话框 + 主进程写盘）。
+    // 断言「调用了平台保存」而非「点了 <a download>」，避免把实现细节钉死在测试里。
+    const saveSpy = vi.spyOn(platform, 'saveBlob').mockResolvedValue(undefined)
     render(<PlatformPublishPanel posts={[makePost()]} selectedMdFiles={[]} />)
     fireEvent.click(screen.getByText(/下载 wechat\.html/))
-    expect(clickSpy).toHaveBeenCalledTimes(1)
+    expect(saveSpy).toHaveBeenCalledTimes(1)
+    expect(saveSpy.mock.calls[0][1]).toMatch(/\.html$/)
+    saveSpy.mockRestore()
   })
 
   it('多篇文章时可通过下拉切换', () => {

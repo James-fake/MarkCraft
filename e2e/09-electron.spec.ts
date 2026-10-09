@@ -37,7 +37,7 @@ test.beforeAll(async () => {
 
   app = await electron.launch({ args: [MAIN_MJS], env })
   win = await app.firstWindow()
-  // 与 e2e/fixtures.ts 的 waitForAppReady 同口径：#aurora-root 挂载 + 开屏退场
+  // 应用就绪口径：#aurora-root 挂载 + 开屏退场
   await win.waitForFunction(
     () => {
       const root = document.getElementById('aurora-root')

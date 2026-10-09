@@ -31,7 +31,7 @@ const api = {
     readDirectory: (path: string, options?: { recursive?: boolean; includeHidden?: boolean }) =>
       ipcRenderer.invoke('mc:fs:readDir', path, options),
     readFile: (path: string) => ipcRenderer.invoke('mc:fs:readFile', path),
-    writeFile: (path: string, content: string) => ipcRenderer.invoke('mc:fs:writeFile', path, content),
+    writeFile: (path: string, content: string | Uint8Array) => ipcRenderer.invoke('mc:fs:writeFile', path, content),
     exists: (path: string) => ipcRenderer.invoke('mc:fs:exists', path),
     stat: (path: string) => ipcRenderer.invoke('mc:fs:stat', path),
     mkdir: (path: string) => ipcRenderer.invoke('mc:fs:mkdir', path),

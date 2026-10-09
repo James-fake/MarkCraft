@@ -153,11 +153,13 @@ function bindFsIpc(): void {
     return await fsp.readFile(p, 'utf-8')
   })
 
-  ipcMain.handle('mc:fs:writeFile', async (_e, p: string, content: string) => {
+  ipcMain.handle('mc:fs:writeFile', async (_e, p: string, content: string | Uint8Array) => {
     // 原子写：先写临时文件再 rename，避免崩溃留下半截文件（计划 §2.3.3）
     await fsp.mkdir(dirname(p), { recursive: true })
     const tmp = `${p}.${process.pid}.${Date.now()}.tmp`
-    await fsp.writeFile(tmp, content, 'utf-8')
+    // 字节（导出 PDF/EPUB/图片）按原样写，不经 utf-8 编码，避免二进制被破坏
+    if (typeof content === 'string') await fsp.writeFile(tmp, content, 'utf-8')
+    else await fsp.writeFile(tmp, content)
     await fsp.rename(tmp, p)
     markSelfWrite(p) // P4-C：抑制自身写入回显
   })
