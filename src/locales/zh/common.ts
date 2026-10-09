@@ -16,6 +16,17 @@ export const legacyMigration = {
   failed: '迁移失败，请重试',
 }
 
+/**
+ * 「文件夹不可写」告警（Windows 只读目录最常见）。
+ * 文案要说明「尚未落盘」而不是「已丢失」—— 数据此时安全暂存在应用内部。
+ */
+export const vaultNotWritable = {
+  title: '文件夹无法写入',
+  body: '所选文件夹「{path}」无法写入（通常是只读权限）。笔记目前暂存在应用内部，**尚未落盘**。请换一个可写的文件夹。',
+  later: '稍后再说',
+  chooseAnother: '换一个文件夹',
+}
+
 // ---- 书脊侧边栏导航（Sidebar / aurora-nav）----
 // key 为稳定的导航 id（不随语言变化）；显示文案在此按语言解析。
 export const nav = {
@@ -1885,6 +1896,11 @@ export const settingsData = {
   outline: '显示大纲',
   outlineDesc: '开启后，编辑器右侧检查器展示当前文档的标题大纲',
   dataSection: '数据管理',
+  storageLocation: '笔记存储位置',
+  storageLocationDesc: '笔记以真实 .md 文件存放的文件夹（Vault）',
+  storageNotOnDisk: '尚未设置 —— 笔记暂存在应用内部，未写入任何文件夹',
+  storageNotWritable: '「{path}」无法写入（通常是只读权限），笔记暂存在应用内部，尚未落盘。请换一个文件夹。',
+  changeFolder: '更改文件夹',
   exportMd: '导出为 .md 目录备份',
   exportMdDesc: '将全部笔记导出为真实 Markdown 目录',
   exporting: '导出中…',

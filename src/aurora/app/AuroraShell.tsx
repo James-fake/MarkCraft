@@ -33,6 +33,7 @@ import type { AuroraModalControls, AuroraModalId, EditorCommandBridge } from '..
 import { WelcomePanel } from '../panels/welcome/WelcomePanel'
 import { QuitModal } from '../components/shell/QuitModal'
 import { LegacyMigrationPrompt } from '../components/LegacyMigrationPrompt'
+import { VaultNotWritablePrompt } from '../components/VaultNotWritablePrompt'
 import { EditorPanel } from '../panels/editor/EditorPanel'
 import { CanvasPanel } from '../panels/canvas/CanvasPanel'
 import { SettingsPanel } from '../panels/settings/SettingsPanel'
@@ -511,6 +512,7 @@ function ShellInner() {
 
       {/* P4-D：IndexedDB 旧笔记 → 本地 Vault 一次性迁移引导（桌面端且未选 Vault 时弹一次） */}
       <LegacyMigrationPrompt />
+      <VaultNotWritablePrompt />
     </div>
     </UserAccountNavContext.Provider>
     </CommandPaletteContext.Provider>

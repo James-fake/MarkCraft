@@ -11,6 +11,7 @@ import {
   persistVaultRoot,
   readSetupVaultApplied,
   markSetupVaultApplied,
+  checkVaultWritable,
   flattenNotes,
 } from '../services/vaultService';
 import { useLanguage } from './LanguageStore';
@@ -50,6 +51,12 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [vaultRoot, setVaultRoot] = useState<string | null>(() => readLastVault());
   // P4-D：桌面端检测到 IndexedDB 有旧笔记、但尚未选 Vault → 提示一次性迁移（count = 可迁移笔记数）
   const [legacyMigration, setLegacyMigration] = useState<{ count: number } | null>(null);
+  /**
+   * 目标 Vault 不可写（或写盘中途失败）时的告警。
+   * 存在即代表「当前没在用磁盘 Vault，笔记暂存应用内部」—— 必须让用户看见，
+   * 否则就是静默数据丢失。
+   */
+  const [vaultError, setVaultError] = useState<{ path: string } | null>(null);
   const stateRef = useRef(state)
   stateRef.current = state
 
@@ -103,15 +110,27 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     }
 
     // —— 磁盘 Vault 分支 ——
-    const hydrateFromVault = (root: string) =>
-      loadVault(root).then((tree) => {
-        if (cancelled) return
-        setVaultRoot(root)
-        // 磁盘来源无需 stripLegacyUsageDocTabs（说明书不落盘）；rootFolder 直接替换
-        setState((prev) => ({ ...prev, rootFolder: tree }))
-        setHydrated(true)
-        logger.info('[FileStore] hydrated=true；来源 = 磁盘 Vault', root)
-      })
+    // ⚠️ 采用前先预检**可写性**：Windows 上目录可能对当前用户只给 RX（只读），
+    //    此时所有写盘都会 EPERM。若照样采用为 Vault，用户会进入「界面一切正常、文件却
+    //    一个都不落盘」的静默失败状态（真实事故）。不可写 → 保持内部存储（数据不丢）
+    //    + 弹告警让用户换位置，而不是把笔记写进一个永远写不进去的目录。
+    const hydrateFromVault = async (root: string): Promise<void> => {
+      const writable = await checkVaultWritable(root)
+      if (cancelled) return
+      if (!writable) {
+        logger.error('[FileStore] 目标文件夹不可写，保持内部存储：', root)
+        setVaultError({ path: root })
+        hydrateFromIdb()
+        return
+      }
+      const tree = await loadVault(root)
+      if (cancelled) return
+      setVaultRoot(root)
+      // 磁盘来源无需 stripLegacyUsageDocTabs（说明书不落盘）；rootFolder 直接替换
+      setState((prev) => ({ ...prev, rootFolder: tree }))
+      setHydrated(true)
+      logger.info('[FileStore] hydrated=true；来源 = 磁盘 Vault', root)
+    }
 
     // 从未选过 Vault（首启）/ 已记录的 Vault 已失效 → 采用**安装向导指定的默认存储位置**
     // （若有；路径不存在时 setup 层已过滤为 null），再不行才回退 IndexedDB。
@@ -209,8 +228,12 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     //    「看着说明书时刷新」不得把说明书记成「上次打开的文档」。
     const toPersist = stripTransientTabs(state)
     if (platform.kind === 'electron' && vaultRoot) {
-      // 桌面 Vault 模式：内存树增量写回真实磁盘（P4，磁盘为真相源，不再写 IndexedDB）
-      syncTree(toPersist.rootFolder, vaultRoot)
+      // 桌面 Vault 模式：内存树增量写回真实磁盘（P4，磁盘为真相源，不再写内部存储）
+      // ⚠️ onError 不可省：写盘失败（如目录中途变只读 / 被外部删除）必须冒到 UI
+      syncTree(toPersist.rootFolder, vaultRoot, (err) => {
+        logger.error('[FileStore] 写盘失败：', err)
+        setVaultError((prev) => prev ?? { path: vaultRoot })
+      })
       return
     }
     saveState(toPersist);
@@ -359,6 +382,13 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (platform.kind !== 'electron') return
     const root = await platform.dialog.openDirectory()
     if (!root) return
+    // ⚠️ 先预检可写性：选到只读目录时直接拒绝 + 告警，避免进入静默失败状态
+    const writable = await checkVaultWritable(root)
+    if (!writable) {
+      logger.error('[FileStore] 所选文件夹不可写：', root)
+      setVaultError({ path: root })
+      return
+    }
     try {
       const tree = await loadVault(root)
       setVaultRoot(root)
@@ -366,11 +396,18 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
       resetSync(tree, root)
       setState((prev) => ({ ...prev, rootFolder: tree }))
       setHydrated(true)
+      setVaultError(null)
       logger.info('[FileStore] 已打开 Vault：', root)
     } catch (err) {
       logger.error('[FileStore] 打开 Vault 失败：', err)
+      setVaultError({ path: root })
     }
   }, [setState]);
+
+  /** 关闭「文件夹不可写」告警 */
+  const dismissVaultError = useCallback((): void => {
+    setVaultError(null)
+  }, []);
 
   /** 忽略旧数据迁移提示（不再弹；不影响已有 IDB 数据） */
   const dismissLegacyMigration = useCallback((): void => {
@@ -387,6 +424,12 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     if (platform.kind !== 'electron') return
     const root = await platform.dialog.openDirectory()
     if (!root) return
+    // 迁移前同样预检可写性 —— 否则「迁移成功」的假象会让用户以为笔记已安全落盘
+    if (!(await checkVaultWritable(root))) {
+      logger.error('[FileStore] 迁移目标文件夹不可写：', root)
+      setVaultError({ path: root })
+      return
+    }
     try {
       const builtin = resolveUsageDocsScope(stateRef.current.rootFolder).builtinFileIds
       const notes = flattenNotes(stateRef.current.rootFolder, builtin)
@@ -415,6 +458,8 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     vaultRoot,
     openVault,
     legacyMigration,
+    vaultError,
+    dismissVaultError,
     migrateLegacyToVault,
     dismissLegacyMigration,
     searchQuery: state.searchQuery,

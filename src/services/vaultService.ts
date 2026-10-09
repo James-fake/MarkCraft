@@ -230,20 +230,58 @@ export async function loadVault(root: string): Promise<FileNode> {
 }
 
 /** 防抖地把内存树增量写回磁盘（300ms，与历史 saveState 防抖同档） */
-export function syncTree(rootFolder: FileNode, vaultRoot: string): void {
+export function syncTree(
+  rootFolder: FileNode,
+  vaultRoot: string,
+  onError?: (err: unknown) => void,
+): void {
   if (syncTimer) clearTimeout(syncTimer)
   syncTimer = setTimeout(() => {
-    void doSync(rootFolder, vaultRoot).catch(() => {})
+    // ⚠️ 不再静默吞错：写盘失败（最常见 = 目录只读 EPERM）必须能冒到 UI，
+    //    否则界面一切正常、文件却一个不落 —— 用户完全无从察觉（真实事故）。
+    void doSync(rootFolder, vaultRoot, onError).catch((err) => onError?.(err))
   }, 300)
 }
 
-async function doSync(rootFolder: FileNode, vaultRoot: string): Promise<void> {
+/**
+ * 预检目录**可写性**（写一个探针文件再删掉）。
+ *
+ * 为什么要预检：Windows 上目录可能对当前用户只给 RX（只读），此时所有写盘都会 EPERM。
+ * 若不预检就采用为 Vault，用户会进入「界面正常、文件全丢」的静默失败状态。
+ */
+export async function checkVaultWritable(dir: string): Promise<boolean> {
+  const sep = sepOf(dir)
+  const probe = `${dir}${sep}.markcraft-write-probe`
+  try {
+    await platform.fs.mkdir(dir).catch(() => {})
+    await platform.fs.writeFile(probe, '')
+    await platform.fs.remove(probe).catch(() => {})
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function doSync(
+  rootFolder: FileNode,
+  vaultRoot: string,
+  onError?: (err: unknown) => void,
+): Promise<void> {
   const sep = sepOf(vaultRoot)
   const desired = new Map<string, SyncedEntry>()
   await platform.fs.mkdir(vaultRoot).catch(() => {})
   for (const child of rootFolder.children || []) walk(child, vaultRoot + sep, desired, sep)
 
   const fs = platform.fs
+  /** 记录首个**写入类**失败（删除类失败多为「文件已不在」的良性 ENOENT，不报） */
+  let firstError: unknown = null
+  const write = async (fn: () => Promise<unknown>): Promise<void> => {
+    try {
+      await fn()
+    } catch (err) {
+      if (!firstError) firstError = err
+    }
+  }
 
   // 1) 删除：树中已消失的节点 → 删文件（文件夹留盘，避免误删用户手动放的目录）
   for (const [id, prev] of synced) {
@@ -258,39 +296,41 @@ async function doSync(rootFolder: FileNode, vaultRoot: string): Promise<void> {
     const prev = synced.get(id)
     if (cur.isDir) {
       if (!prev) {
-        await fs.mkdir(cur.path).catch(() => {})
+        await write(() => fs.mkdir(cur.path))
         synced.set(id, cur)
       } else if (prev.path !== cur.path) {
         // 目录改名 / 移动：连同子树 rename（walk 保证父先于子入 Map，故父目录先搬，
         // 子节点随后各自标记为已同步；其 rename 会因旧路径已不在而静默跳过）。
-        await fs.mkdir(dirname(cur.path)).catch(() => {})
+        await write(() => fs.mkdir(dirname(cur.path)))
         try {
           await fs.rename(prev.path, cur.path)
         } catch {
           // 旧目录不在盘上（如外部已删/移走）→ 退化为新建，避免改名后目录整体消失
-          await fs.mkdir(cur.path).catch(() => {})
+          await write(() => fs.mkdir(cur.path))
         }
         synced.set(id, cur)
       }
       continue
     }
     if (!prev) {
-      await fs.writeFile(cur.path, cur.content).catch(() => {})
+      await write(() => fs.writeFile(cur.path, cur.content))
       synced.set(id, cur)
     } else if (prev.path !== cur.path) {
-      await fs.mkdir(dirname(cur.path)).catch(() => {})
+      await write(() => fs.mkdir(dirname(cur.path)))
       try {
         await fs.rename(prev.path, cur.path)
       } catch {
         // 旧文件不在盘上（外部已删/移动）→ 直接在新路径写出内容，避免改名丢文件
-        await fs.writeFile(cur.path, cur.content).catch(() => {})
+        await write(() => fs.writeFile(cur.path, cur.content))
       }
       synced.set(id, cur)
     } else if (prev.content !== cur.content) {
-      await fs.writeFile(cur.path, cur.content).catch(() => {})
+      await write(() => fs.writeFile(cur.path, cur.content))
       synced.set(id, cur)
     }
   }
+
+  if (firstError) onError?.(firstError)
 }
 
 /** readDirectory 返回项的精简形态（避免直接依赖 electron.d.ts 的具体类型） */

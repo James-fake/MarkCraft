@@ -100,6 +100,14 @@ export interface FileManagerContextType {
   migrateLegacyToVault: () => Promise<void>;
   /** 忽略迁移提示（不再弹；不影响已有数据） */
   dismissLegacyMigration: () => void;
+  /**
+   * 目标 Vault **不可写**（Windows 只读目录最常见）或写盘中途失败。
+   * 非 null 即表示「当前没在用磁盘 Vault，笔记暂存应用内部」—— UI 必须显式告警，
+   * 否则就是静默数据丢失。
+   */
+  vaultError: { path: string } | null;
+  /** 关闭不可写告警 */
+  dismissVaultError: () => void;
   searchQuery: string;
   sidebarVisible: boolean;
   tabs: Tab[];

@@ -18,7 +18,7 @@ export function DataSection({ query, toast }: { query?: string; toast?: (msg: st
   const { settings, updateSetting, resetSettings } = useSettings()
   const { t } = useLanguage()
   const D = t.settingsData
-  const { rootFolder } = useFileManager()
+  const { rootFolder, vaultRoot, openVault, vaultError } = useFileManager()
   const [exporting, setExporting] = useState(false)
   const { confirm } = useConfirm()
   const { q, match } = useSettingsQuery(query)
@@ -26,6 +26,7 @@ export function DataSection({ query, toast }: { query?: string; toast?: (msg: st
 
   const hasAny = !q || [
     [D.outline, D.outlineDesc],
+    [D.storageLocation, D.storageLocationDesc],
     [D.exportMd, D.exportMdDesc],
     [D.resetDefaults, D.resetDesc],
   ].some(([l, d]) => match(l, d))
@@ -89,6 +90,29 @@ export function DataSection({ query, toast }: { query?: string; toast?: (msg: st
 
       <div className="aurora-settings__section">
         <div className="aurora-settings__section-title">{D.dataSection}</div>
+        {match(D.storageLocation, D.storageLocationDesc) && (
+          <div className="aurora-settings__item">
+            <div className="aurora-settings__item-info">
+              <div className="aurora-settings__item-label">{D.storageLocation}</div>
+              <div className="aurora-settings__item-desc">
+                {vaultError
+                  ? D.storageNotWritable.replace('{path}', vaultError.path)
+                  : vaultRoot || D.storageNotOnDisk}
+              </div>
+            </div>
+            <div className="aurora-settings__item-control">
+              <button
+                type="button"
+                className="aurora-settings__shortcut-action"
+                onClick={() => {
+                  void openVault()
+                }}
+              >
+                {D.changeFolder}
+              </button>
+            </div>
+          </div>
+        )}
         {match(D.exportMd, D.exportMdDesc) && (
           <div className="aurora-settings__item">
             <div className="aurora-settings__item-info">
