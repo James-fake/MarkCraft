@@ -13,6 +13,7 @@ import { join } from 'node:path'
  *   ① 空态新建笔记 → 磁盘出现新 .md
  *   ② 文件树右键「重命名」→ 磁盘 .md 改名（旧名消失）
  *   ③ 文件树右键「删除」+ 确认 → 磁盘 .md 移除
+ *   ④ 编辑器输入内容 → 磁盘 .md 同步（关闭标签页再重开内容仍在）
  *
  * ⚠️ 不弹原生对话框（同 11/12）；文件树是编辑器左缘 hover 浮层，靠 hover 左缘召唤。
  * 前置：`npm run electron:compile` 产出 out/main 与 out/preload。
@@ -77,6 +78,32 @@ test.describe('Electron Vault CRUD 落盘（P4-B 集成）', () => {
     const created = join(vaultDir, '新笔记.md')
     await expect.poll(() => existsSync(created), { timeout: 10_000 }).toBe(true)
     expect(readFileSync(created, 'utf-8')).toBe('')
+  })
+
+  test('编辑器输入内容 → 磁盘 .md 同步；关闭标签页再重开内容仍在', async () => {
+    // 真实事故（2026-10-09 用户报障）：输入「工作日记」→ 关闭文件 → 重开只剩「工作」。
+    // 根因：原子写产生的 .tmp 事件未被抑制 → 触发整树重载 → 节点 id 全换 →
+    //       标签页仍拿旧 id → 之后所有编辑被静默丢弃（updateFileContent 找不到节点）。
+    const target = join(vaultDir, '新笔记.md')
+    await win.locator('.ProseMirror').click()
+    await win.locator('.ProseMirror').type('工作日记')
+
+    // 编辑器 500ms 防抖 + 写盘 300ms 防抖 → 等内容真的落到磁盘
+    await expect
+      .poll(() => (existsSync(target) ? readFileSync(target, 'utf-8') : ''), { timeout: 10_000 })
+      .toBe('工作日记')
+
+    // 关闭标签页 → 应用回到**空态文件列表**（此时左缘 hover 浮层不存在，不能再用 summonFileTree）
+    // → 从列表重新打开 → 内容必须还在（锁「重开只剩前半截」这一现象）
+    await win.locator('.aurora-tab__close').first().click()
+    const browser = win.locator('.aurora-editor__empty-files')
+    await browser.waitFor({ state: 'visible', timeout: 15_000 })
+    await expect(browser).toContainText('新笔记.md')
+
+    await browser.getByText('新笔记.md').first().click()
+    await win.locator('.ProseMirror').waitFor({ state: 'visible', timeout: 15_000 })
+    await expect(win.locator('.ProseMirror')).toContainText('工作日记')
+    expect(readFileSync(target, 'utf-8')).toBe('工作日记')
   })
 
   test('文件树右键「重命名」→ 磁盘 .md 改名（旧名消失）', async () => {

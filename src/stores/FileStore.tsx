@@ -36,6 +36,31 @@ const FileManagerContext = createContext<FileManagerContextType | undefined>(und
 /** P4-D：用户点过「暂不迁移」后置位，避免每次启动都弹（localStorage 级，仅桌面端） */
 const LEGACY_MIGRATION_DISMISSED = 'markcraft.legacyMigrationDismissed';
 
+/**
+ * 按**相对路径**对齐两棵树的节点 id，返回「旧 id → 新 id」映射。
+ * 用于 Vault 重载后把标签页的旧 id 迁移到新 id（重载会为同一批文件重新生成 id）。
+ */
+function buildIdRemap(oldRoot: FileNode, newRoot: FileNode): Map<string, string> {
+  const index = (root: FileNode): Map<string, string> => {
+    const out = new Map<string, string>();
+    const walk = (node: FileNode, prefix: string): void => {
+      const rel = prefix ? `${prefix}/${node.name}` : node.name;
+      out.set(rel, node.id);
+      for (const c of node.children || []) walk(c, rel);
+    };
+    walk(root, '');
+    return out;
+  };
+  const oldMap = index(oldRoot);
+  const newMap = index(newRoot);
+  const remap = new Map<string, string>();
+  for (const [rel, oldId] of oldMap) {
+    const newId = newMap.get(rel);
+    if (newId && newId !== oldId) remap.set(oldId, newId);
+  }
+  return remap;
+}
+
 export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { language } = useLanguage();
   const undoRedo = useUndoRedo();
@@ -255,12 +280,31 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         .then((tree) => {
           if (cancelled) return
           resetSync(tree, vaultRoot)
-          setState((prev) => ({ ...prev, rootFolder: tree }))
+          setState((prev) => {
+            // ⚠️ 安全网：重载会为同一批文件生成**全新 id**。若标签页仍拿着旧 id，
+            //    后续所有编辑都会因「按 id 找不到节点」被静默丢弃（真实事故：内容只剩前半截）。
+            //    这里按**相对路径**把旧 id 重映射到新 id，保证打开中的标签页继续有效。
+            const remap = buildIdRemap(prev.rootFolder, tree)
+            if (remap.size === 0) return { ...prev, rootFolder: tree }
+            return {
+              ...prev,
+              rootFolder: tree,
+              tabs: prev.tabs.map((t) =>
+                remap.has(t.fileId) ? { ...t, fileId: remap.get(t.fileId)! } : t,
+              ),
+            }
+          })
           logger.info('[FileStore] 外部改动触发 Vault reload：', vaultRoot)
         })
         .catch((err) => logger.error('[FileStore] 外部改动 reload 失败：', err))
     }
-    const unsubscribe = platform.fs.watch(vaultRoot, () => {
+    const unsubscribe = platform.fs.watch(vaultRoot, (event) => {
+      // 只对 .md 与目录事件做整树重载：其它类型（临时文件、非笔记文件）与树无关，
+      // 让它们触发重载只会白白换掉全部节点 id（进而让打开中的标签页失效）。
+      const lower = (event?.path || '').toLowerCase()
+      if (lower && /\.[a-z0-9]+$/.test(lower) && !lower.endsWith('.md') && !lower.endsWith('.markdown')) {
+        return
+      }
       if (reloadTimer) clearTimeout(reloadTimer)
       reloadTimer = setTimeout(reload, 500)
     })

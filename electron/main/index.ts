@@ -157,6 +157,10 @@ function bindFsIpc(): void {
     // 原子写：先写临时文件再 rename，避免崩溃留下半截文件（计划 §2.3.3）
     await fsp.mkdir(dirname(p), { recursive: true })
     const tmp = `${p}.${process.pid}.${Date.now()}.tmp`
+    // ⚠️ 临时文件路径**也必须**标记为自身写入：否则 watcher 会收到 tmp 的 create/rename 事件，
+    //    而 200ms 防抖后 tmp 已被 rename 走 → 被判成 delete 推给渲染端 → 触发整树重载
+    //    → 节点 id 全换 → 打开中的标签页 id 失效 → 之后的编辑被静默丢弃（真实事故）。
+    markSelfWrite(tmp)
     // 字节（导出 PDF/EPUB/图片）按原样写，不经 utf-8 编码，避免二进制被破坏
     if (typeof content === 'string') await fsp.writeFile(tmp, content, 'utf-8')
     else await fsp.writeFile(tmp, content)
@@ -236,10 +240,15 @@ function isUnderHidden(fullPath: string): boolean {
 
 function classifyAndSend(rec: FsWatchRecord, fullPath: string): void {
   if (isUnderHidden(fullPath)) return
+  // 兜底：原子写的临时文件一律不算「外部改动」（其消失会被误判为 delete 并触发整树重载）
+  if (fullPath.toLowerCase().endsWith('.tmp')) return
   // 抑制自身写入回显：应用刚写过的路径，watcher 不再当外部改动推给渲染端
   if (isSelfWrite(fullPath)) return
   let type: FsWatchKind
   if (!existsSync(fullPath)) {
+    // 删除：同样只关心 .md（目录没有扩展名 → 仍需放行）。
+    // 若不收口，任何非 .md 文件的删除（如原子写残留）都会触发渲染端整树重载。
+    if (/\.[a-z0-9]+$/i.test(fullPath) && !fullPath.toLowerCase().endsWith('.md')) return
     type = 'delete'
   } else {
     let isDir = false
