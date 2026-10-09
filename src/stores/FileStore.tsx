@@ -71,6 +71,17 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   useEffect(() => {
     let cancelled = false
 
+    // P4-D：桌面端 + IDB 里确有旧笔记 + 用户未忽略过 → 提示一次性迁移
+    // （抽出复用：IndexedDB 分支，以及「采用安装向导默认 Vault」分支 —— 后者若不检查，
+    //   仍躺在 IDB 里的旧笔记会在新 Vault 之外「消失」，用户以为丢了。）
+    const detectLegacyIdbNotes = (cleaned: FileManagerState | null) => {
+      if (platform.kind !== 'electron' || !cleaned) return
+      if (localStorage.getItem(LEGACY_MIGRATION_DISMISSED)) return
+      const builtin = resolveUsageDocsScope(cleaned.rootFolder).builtinFileIds
+      const count = flattenNotes(cleaned.rootFolder, builtin).length
+      if (count > 0) setLegacyMigration({ count })
+    }
+
     // —— IndexedDB 分支（浏览器 / jsdom / 桌面未选 Vault）——
     const hydrateFromIdb = () => {
       loadStateAsync(language).then(asyncState => {
@@ -84,12 +95,7 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         }
         // 无论读没读到，都算「水合完成」：读不到时 T0 本身就是应然状态（新用户首启 / 版本升级重建）
         setHydrated(true)
-        // P4-D：桌面端 + 尚未选 Vault + IDB 里确有旧笔记 + 用户未忽略过 → 提示一次性迁移
-        if (platform.kind === 'electron' && cleaned && !localStorage.getItem(LEGACY_MIGRATION_DISMISSED)) {
-          const builtin = resolveUsageDocsScope(cleaned.rootFolder).builtinFileIds
-          const count = flattenNotes(cleaned.rootFolder, builtin).length
-          if (count > 0) setLegacyMigration({ count })
-        }
+        detectLegacyIdbNotes(cleaned)
         logger.info('[FileStore] hydrated=true；来源 =', asyncState ? 'IndexedDB 权威树' : '无（新用户首启或已清空，沿用同步树）')
       })
     }
@@ -117,6 +123,15 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
             return
           }
           logger.info('[FileStore] 采用安装向导指定的默认存储位置：', setupVault)
+          // ⚠️ 采用新 Vault 的同时，仍要检查 IDB 里有没有旧笔记 —— 有则给一次性迁移入口，
+          //    否则它们会「消失」在新 Vault 之外（用户以为丢了）。
+          loadStateAsync(language)
+            .then((s) => {
+              if (!cancelled) detectLegacyIdbNotes(s ? stripLegacyUsageDocTabs(s) : null)
+            })
+            .catch(() => {
+              /* 读不到就没什么可迁移的 */
+            })
           return hydrateFromVault(setupVault).catch((err) => {
             logger.error('[FileStore] 采用安装默认 Vault 失败，回退 IndexedDB：', err)
             hydrateFromIdb()
