@@ -58,3 +58,6 @@ e2e-report/
 test-results/
 playwright-report/
 .playwright/
+
+# 开屏截图（本地验证产物，不入库）
+splash-shots/
