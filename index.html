@@ -77,15 +77,13 @@
                     filter 320ms cubic-bezier(0.4, 0, 1, 1),
                     opacity 320ms cubic-bezier(0.4, 0, 1, 1);
       }
-      /* 撞击瞬间给字一个极轻的顶推，坐实「撞上了」（不加 forwards，播完自动回位） */
-      #mc-splash .mc-splash__word--nudged {
-        animation: mc-splash-nudge 320ms cubic-bezier(0.36, 0, 0.66, -0.56)
-          var(--nudge-delay, 1730ms);
-      }
-      @keyframes mc-splash-nudge {
-        0%   { transform: translateX(0); }
-        35%  { transform: translateX(0.07em); }
-        100% { transform: translateX(0); }
+      /* 撞击后：字整体右移，使「图标 + MarkCraft」**合起来**居中。
+         偏移量推导：图标宽 1.08em + 与字的间距 0.14em = 1.22em；
+         整体居中需要把字往右挪该组宽的一半 = **0.61em**（与字宽无关，是常量）。
+         缓动用 back-out（轻微过冲）→ 坐实「被顶了一下再回位」的撞击感。 */
+      #mc-splash .mc-splash__word--shifted {
+        transform: translateX(0.61em);
+        transition: transform 460ms cubic-bezier(0.34, 1.56, 0.64, 1);
       }
       /* 应用图标：从左侧飞入撞到首字母 M，停驻在 MarkCraft 左侧（绝对定位，
          故打字阶段文字始终居中，不会被图标占位推偏） */
@@ -103,9 +101,10 @@
         86%  { opacity: 1; transform: translateX(0.08em) scale(1.08) rotate(0deg); }
         100% { opacity: 1; transform: translateX(0) scale(1) rotate(0deg); }
       }
-      /* 离场：字随底色一起「溶解」并微微放大 —— 比单纯淡出更有收束感 */
+      /* 离场：字随底色一起「溶解」并微微放大 —— 比单纯淡出更有收束感。
+         ⚠️ 必须带上 translateX(0.61em)：否则离场瞬间字会跳回居中（与 --shifted 冲突）。 */
       #mc-splash.mc-splash--leaving .mc-splash__word {
-        transform: scale(1.045);
+        transform: translateX(0.61em) scale(1.045);
         filter: blur(0.05em);
         opacity: 0;
       }
@@ -147,9 +146,9 @@
         }
         #mc-splash .mc-splash__glow { display: none; }
         #mc-splash .mc-splash__caret { display: none; }
-        /* 降低动效：图标直接就位（不飞入、不顶推），但仍示人以完整构图 */
+        /* 降低动效：图标直接就位（不飞入），字位移瞬时完成（不做过冲弹性） */
         #mc-splash .mc-splash__icon { animation: none; opacity: 1; }
-        #mc-splash .mc-splash__word--nudged { animation: none; }
+        #mc-splash .mc-splash__word--shifted { transition: none; }
       }
       @keyframes mc-splash-char-fade { from { opacity: 0; } to { opacity: 1; } }
     </style>
@@ -178,7 +177,7 @@
       (function() {
         var STAGGER = 90;      // 逐字错峰间隔（用户反馈「偏短/太快」→ 由 70 放慢到 90，全文 ~810ms 打完）
         var CHAR_DUR = 420;    // 单字浮现时长（须与 CSS 的 mc-splash-char 一致，用于推算图标入场时刻）
-        var MIN_TOTAL = 2200;  // 最短停留：打字 ~1.14s + 图标撞入 ~0.62s + 落位后停顿，由 1150 拉长
+        var MIN_TOTAL = 2500;  // 最短停留：打字 ~1.14s + 图标撞入 ~0.62s + 位移 ~0.46s + 居中构图静置 ~0.31s
         var HARD_CAP = 5000;   // 硬兜底：超时强制让位（避免盖住错误页）
         var root = document.documentElement;
         function endBooting() { root.classList.remove('mc-booting'); }
@@ -191,7 +190,7 @@
         // 打字全部完成 ≈ (n-1)*STAGGER + CHAR_DUR；图标紧接着撞入，撞击点 ≈ iconDelay + 0.86*620
         var revealEnd = (word.length - 1) * STAGGER + CHAR_DUR;
         var iconDelay = revealEnd + 90;
-        var nudgeDelay = iconDelay + 500;
+        var shiftDelay = iconDelay + 500; // 撞击点：此刻把字右移，使「图标+字」整体居中
 
         var el = document.createElement('div');
         el.id = 'mc-splash';
@@ -199,7 +198,6 @@
         el.setAttribute('aria-label', 'MarkCraft 正在启动');
         el.style.setProperty('--stagger', STAGGER + 'ms');
         el.style.setProperty('--icon-delay', iconDelay + 'ms');
-        el.style.setProperty('--nudge-delay', nudgeDelay + 'ms');
         var w = document.createElement('div');
         w.className = 'mc-splash__word';
         w.setAttribute('aria-hidden', 'true');
@@ -234,9 +232,13 @@
           '<rect x="168" y="372" width="176" height="16" rx="8" fill="#2563eb" opacity="0.25"/>' +
           '</svg>';
         w.appendChild(icon);
-        if (!reduced) w.classList.add('mc-splash__word--nudged');
         el.appendChild(w);
         document.body.appendChild(el);
+
+        // 撞击点：字右移 0.61em（CSS 的 --shifted，带轻微过冲）→「图标 + MarkCraft」整体居中
+        setTimeout(function () {
+          if (!dismissed) w.classList.add('mc-splash__word--shifted')
+        }, shiftDelay)
 
         var dismissed = false;
         function remove() {
