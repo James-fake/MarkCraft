@@ -154,6 +154,13 @@ export const browserPlatform: Platform = {
       return { error: 'Pandoc 仅桌面版可用' }
     },
   },
+
+  // —— 安装向导默认存储位置：浏览器 / 未安装场景恒为 null（诚实降级）——
+  setup: {
+    async defaultVault(): Promise<string | null> {
+      return null
+    },
+  },
 }
 
 /**

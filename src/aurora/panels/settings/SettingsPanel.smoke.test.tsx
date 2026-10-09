@@ -100,7 +100,8 @@ describe('Aurora SettingsPanel · 真实数据换芯', () => {
     fireEvent.click(p.getByText('关于'))
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
     fireEvent.click(p.getByText('官方网站'))
-    expect(openSpy).toHaveBeenCalledWith('https://github.com/markcraft/markcraft', '_blank', 'noopener,noreferrer')
+    // 真实仓库地址（2026-10-09 起指向 Gitee，替换原占位 github.com/markcraft/markcraft）
+    expect(openSpy).toHaveBeenCalledWith('https://gitee.com/James-fake/markcraft', '_blank', 'noopener,noreferrer')
     openSpy.mockRestore()
     // 无后端项（检查更新）应 disabled
     const updateBtn = p.getByText('检查更新').closest('button') as HTMLButtonElement

@@ -187,6 +187,12 @@ export const electronPlatform: Platform = {
       return a.pandoc.convert(content, fromFormat, toFormat)
     },
   },
+  // 安装向导的默认存储位置：委托 preload（无则 null）
+  setup: {
+    async defaultVault(): Promise<string | null> {
+      return (await api()?.setup?.defaultVault()) ?? null
+    },
+  },
   // 真实「打开原文件所在位置」（D3）
   async revealInFolder(path: string): Promise<boolean> {
     return (await api()?.shell.showItemInFolder(path)) ?? false

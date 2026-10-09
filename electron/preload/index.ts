@@ -117,6 +117,11 @@ const api = {
     ): Promise<{ error?: string; buffer?: ArrayBuffer }> =>
       ipcRenderer.invoke('mc:pandoc:convert', { content, fromFormat, toFormat }),
   },
+
+  // —— 安装向导的「默认存储位置」——
+  setup: {
+    defaultVault: (): Promise<string | null> => ipcRenderer.invoke('mc:setup:defaultVault'),
+  },
 }
 
 contextBridge.exposeInMainWorld('markcraft', api)

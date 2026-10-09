@@ -11,7 +11,7 @@
 import { app, BrowserWindow, ipcMain, shell, dialog, type IpcMainInvokeEvent } from 'electron'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { existsSync, watch, statSync } from 'node:fs'
+import { existsSync, readFileSync, watch, statSync } from 'node:fs'
 import { promises as fsp } from 'node:fs'
 import { spawn } from 'node:child_process'
 
@@ -452,6 +452,42 @@ function bindPandocIpc(): void {
   )
 }
 
+// —— 安装向导的「默认存储位置」——
+// 安装包在 customInstall 里把用户选的路径写到 `$INSTDIR\default-vault.txt`
+// （= dirname(process.resourcesPath)）。应用首启、且用户从未选过 Vault 时采用它。
+//
+// ⚠️ 编码：安装包以 **Unicode** NSIS 构建（electron-builder 传 `Unicode true`），用
+// `FileWriteUTF16LE` 写出 → 内容是 **UTF-16LE（无 BOM）**。这里以 utf-16le 为主，另留
+// 少量兜底编码，并统一做**目录存在性校验**：万一编码不符、解不出真实存在的目录，就当未设置
+// （优雅降级，用户仍可在应用内自己选文件夹）。
+function readDefaultVault(): string | null {
+  const file = join(dirname(process.resourcesPath), 'default-vault.txt')
+  let raw: Buffer
+  try {
+    if (!existsSync(file)) return null
+    raw = readFileSync(file)
+  } catch {
+    return null
+  }
+  if (raw.length === 0) return null
+
+  for (const enc of ['utf-16le', 'utf-8', 'gbk', 'latin1']) {
+    let text = ''
+    try {
+      text = new TextDecoder(enc).decode(raw)
+    } catch {
+      continue // 该环境不支持此编码（如无 full-icu 时的 gbk）
+    }
+    text = text.replace(/^\uFEFF/, '').replace(/\0+$/, '').trim()
+    if (text && existsSync(text)) return text
+  }
+  return null
+}
+
+function bindSetupIpc(): void {
+  ipcMain.handle('mc:setup:defaultVault', () => readDefaultVault())
+}
+
 function createWindow(): void {
   const win = new BrowserWindow({
     width: 1280,
@@ -507,6 +543,7 @@ void app.whenReady().then(() => {
   bindDialogIpc()
   bindNetIpc()
   bindPandocIpc()
+  bindSetupIpc()
   createWindow()
 
   app.on('activate', () => {

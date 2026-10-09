@@ -19,28 +19,29 @@ import { join, dirname } from 'node:path'
 
 function findPackagedExe(): string | null {
   const exeNames = ['MarkCraft.exe', 'markcraft.exe']
-  // 取**最新**的 release*/win-unpacked（按 mtime 降序）——
-  // 机器上可能残留多个历史 release* 目录，若按 readdir 顺序取首个，会冒烟到过期产物。
+  // 取**最新**的打包产物：按 **exe 文件自身**的 mtime 降序 —— 不能用目录 mtime
+  // （往旧目录里只覆盖 .exe 也会更新目录 mtime，会把「半新」目录误判为最新）。
   const roots = readdirSync(process.cwd(), { withFileTypes: true })
     .filter((d) => d.isDirectory() && /^release/.test(d.name))
-    .map((d) => {
-      const dir = join(process.cwd(), d.name)
-      let mtime = 0
-      try {
-        mtime = statSync(dir).mtimeMs
-      } catch {
-        /* 不可读则视为最旧 */
-      }
-      return { dir, mtime }
-    })
-    .sort((a, b) => b.mtime - a.mtime)
-  for (const { dir } of roots) {
+    .map((d) => join(process.cwd(), d.name))
+  const found: { path: string; mtime: number }[] = []
+  for (const dir of roots) {
     for (const exe of exeNames) {
       const p = join(dir, 'win-unpacked', exe)
-      if (existsSync(p)) return p
+      if (existsSync(p)) {
+        let mtime = 0
+        try {
+          mtime = statSync(p).mtimeMs
+        } catch {
+          /* 不可读 → 视为最旧 */
+        }
+        found.push({ path: p, mtime })
+        break
+      }
     }
   }
-  return null
+  found.sort((a, b) => b.mtime - a.mtime)
+  return found[0]?.path ?? null
 }
 
 const PACKAGED_EXE = findPackagedExe()

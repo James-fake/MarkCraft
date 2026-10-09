@@ -38,4 +38,5 @@ export type {
   NetAPI,
   NetFetchInit,
   PandocAPI,
+  SetupAPI,
 } from './types'

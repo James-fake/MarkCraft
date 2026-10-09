@@ -70,47 +70,73 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   //  - 其余（浏览器 / jsdom / 桌面未选 Vault）→ 从 IndexedDB 读（既有行为不变）。
   useEffect(() => {
     let cancelled = false
+
+    // —— IndexedDB 分支（浏览器 / jsdom / 桌面未选 Vault）——
+    const hydrateFromIdb = () => {
+      loadStateAsync(language).then(asyncState => {
+        if (cancelled) return
+        const cleaned = asyncState ? stripLegacyUsageDocTabs(asyncState) : null
+        if (cleaned) {
+          // ⚠️ setState 前剥掉旧版永久落盘的使用文档标签（stripLegacyUsageDocTabs 的说明）。
+          //    必须在 setState 之前：随后 hydrated 翻转会触发 save effect 把净化版回写 IndexedDB，
+          //    落盘里的旧标签借此一并清掉 —— 若在 setState 之后修，则要再补一次显式回写。
+          setState(cleaned)
+        }
+        // 无论读没读到，都算「水合完成」：读不到时 T0 本身就是应然状态（新用户首启 / 版本升级重建）
+        setHydrated(true)
+        // P4-D：桌面端 + 尚未选 Vault + IDB 里确有旧笔记 + 用户未忽略过 → 提示一次性迁移
+        if (platform.kind === 'electron' && cleaned && !localStorage.getItem(LEGACY_MIGRATION_DISMISSED)) {
+          const builtin = resolveUsageDocsScope(cleaned.rootFolder).builtinFileIds
+          const count = flattenNotes(cleaned.rootFolder, builtin).length
+          if (count > 0) setLegacyMigration({ count })
+        }
+        logger.info('[FileStore] hydrated=true；来源 =', asyncState ? 'IndexedDB 权威树' : '无（新用户首启或已清空，沿用同步树）')
+      })
+    }
+
+    // —— 磁盘 Vault 分支 ——
+    const hydrateFromVault = (root: string) =>
+      loadVault(root).then((tree) => {
+        if (cancelled) return
+        setVaultRoot(root)
+        // 磁盘来源无需 stripLegacyUsageDocTabs（说明书不落盘）；rootFolder 直接替换
+        setState((prev) => ({ ...prev, rootFolder: tree }))
+        setHydrated(true)
+        logger.info('[FileStore] hydrated=true；来源 = 磁盘 Vault', root)
+      })
+
     const lastVault = readLastVault()
-    if (platform.kind === 'electron' && lastVault) {
-      loadVault(lastVault)
-        .then((tree) => {
-          if (cancelled) return
-          setVaultRoot(lastVault)
-          // 磁盘来源无需 stripLegacyUsageDocTabs（说明书不落盘）；rootFolder 直接替换
-          setState((prev) => ({ ...prev, rootFolder: tree }))
-          setHydrated(true)
-          logger.info('[FileStore] hydrated=true；来源 = 磁盘 Vault', lastVault)
-        })
-        .catch((err) => {
+    if (platform.kind === 'electron') {
+      if (lastVault) {
+        hydrateFromVault(lastVault).catch((err) => {
           logger.error('[FileStore] 读取 Vault 失败，回退 IndexedDB：', err)
           // 读取失败不致命：回退到既有 IndexedDB 路径，保证可用
-          loadStateAsync(language).then((asyncState) => {
-            if (cancelled) return
-            if (asyncState) setState(stripLegacyUsageDocTabs(asyncState))
-            setHydrated(true)
+          hydrateFromIdb()
+        })
+        return () => { cancelled = true }
+      }
+      // 从未选过 Vault → 采用**安装向导指定的默认存储位置**（若有；不存在则 setup 层已过滤为 null）
+      platform.setup
+        .defaultVault()
+        .then((setupVault) => {
+          if (cancelled) return
+          if (!setupVault) {
+            hydrateFromIdb()
+            return
+          }
+          logger.info('[FileStore] 采用安装向导指定的默认存储位置：', setupVault)
+          return hydrateFromVault(setupVault).catch((err) => {
+            logger.error('[FileStore] 采用安装默认 Vault 失败，回退 IndexedDB：', err)
+            hydrateFromIdb()
           })
+        })
+        .catch(() => {
+          if (!cancelled) hydrateFromIdb()
         })
       return () => { cancelled = true }
     }
-    loadStateAsync(language).then(asyncState => {
-      if (cancelled) return
-      const cleaned = asyncState ? stripLegacyUsageDocTabs(asyncState) : null
-      if (cleaned) {
-        // ⚠️ setState 前剥掉旧版永久落盘的使用文档标签（stripLegacyUsageDocTabs 的说明）。
-        //    必须在 setState 之前：随后 hydrated 翻转会触发 save effect 把净化版回写 IndexedDB，
-        //    落盘里的旧标签借此一并清掉 —— 若在 setState 之后修，则要再补一次显式回写。
-        setState(cleaned)
-      }
-      // 无论读没读到，都算「水合完成」：读不到时 T0 本身就是应然状态（新用户首启 / 版本升级重建）
-      setHydrated(true)
-      // P4-D：桌面端 + 尚未选 Vault + IDB 里确有旧笔记 + 用户未忽略过 → 提示一次性迁移
-      if (platform.kind === 'electron' && cleaned && !localStorage.getItem(LEGACY_MIGRATION_DISMISSED)) {
-        const builtin = resolveUsageDocsScope(cleaned.rootFolder).builtinFileIds
-        const count = flattenNotes(cleaned.rootFolder, builtin).length
-        if (count > 0) setLegacyMigration({ count })
-      }
-      logger.info('[FileStore] hydrated=true；来源 =', asyncState ? 'IndexedDB 权威树' : '无（新用户首启或已清空，沿用同步树）')
-    })
+
+    hydrateFromIdb()
     return () => { cancelled = true }
   }, [language])
 

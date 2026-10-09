@@ -141,12 +141,23 @@ export interface MarkCraftNetAPI {
   fetch(req: MarkCraftNetRequest): Promise<MarkCraftNetResponse>
 }
 
+/**
+ * 安装向导设置的默认存储位置。
+ * 安装包把用户选的路径写到 `dirname(process.resourcesPath)/default-vault.txt`；
+ * 主进程读取并做多编码探测 + 目录存在性校验，取不到则返回 null（优雅降级）。
+ */
+export interface MarkCraftSetupAPI {
+  /** 安装时选择的默认 Vault 路径；未设置/不可用 → null */
+  defaultVault(): Promise<string | null>
+}
+
 export interface MarkCraftDesktopAPI {
   window: MarkCraftWindowControls
   fs: MarkCraftFsAPI
   dialog: MarkCraftDialogAPI
   shell: MarkCraftShellAPI
   net: MarkCraftNetAPI
+  setup: MarkCraftSetupAPI
   pandoc?: MarkCraftPandocAPI
 }
 

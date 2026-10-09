@@ -168,6 +168,15 @@ export interface PandocAPI {
   convert(content: string, fromFormat: string, toFormat: string): Promise<{ error?: string; buffer?: ArrayBuffer }>
 }
 
+/**
+ * 安装向导设置的默认存储位置（Vault）。
+ * 仅桌面端安装包会产生该值；浏览器 / portable 版恒为 null（优雅降级）。
+ */
+export interface SetupAPI {
+  /** 安装时选择的默认 Vault 路径；未设置/不可用 → null */
+  defaultVault(): Promise<string | null>
+}
+
 export interface Platform {
   readonly kind: PlatformKind
 
@@ -222,4 +231,9 @@ export interface Platform {
    * Pandoc sidecar（P6.2）。桌面端可选（二进制需单独下载）；浏览器端恒不可用。
    */
   readonly pandoc: PandocAPI
+
+  /**
+   * 安装向导的默认存储位置。桌面端安装包可提供；浏览器 / portable 恒为 null。
+   */
+  readonly setup: SetupAPI
 }
