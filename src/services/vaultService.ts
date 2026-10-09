@@ -39,6 +39,33 @@ export function persistVaultRoot(root: string | null): void {
   }
 }
 
+/**
+ * 安装向导指定的存储位置「已采用过」的标记。
+ *
+ * 用途：让**安装时选的目录优先于历史 `lastVault`**（否则重装换了目录会被旧记录压住，
+ * 新文件落到旧目录、用户在新目录里永远看不到），但**只生效一次** —— 采用后打上标记，
+ * 之后用户在应用内改的目录仍然优先。
+ */
+const SETUP_VAULT_APPLIED_KEY = 'markcraft.setupVaultApplied'
+
+export function readSetupVaultApplied(): string | null {
+  if (platform.kind !== 'electron') return null
+  try {
+    return localStorage.getItem(SETUP_VAULT_APPLIED_KEY) || null
+  } catch {
+    return null
+  }
+}
+
+export function markSetupVaultApplied(root: string): void {
+  if (platform.kind !== 'electron') return
+  try {
+    localStorage.setItem(SETUP_VAULT_APPLIED_KEY, root)
+  } catch {
+    /* localStorage 不可用时静默忽略 */
+  }
+}
+
 // —— 路径工具：统一处理 Windows(\) 与 POSIX(/) 分隔符 ——
 function basename(p: string): string {
   return p.split(/[\\/]/).pop() || p
@@ -112,6 +139,31 @@ export function flattenNotes(
   }
   walk(rootFolder, '')
   return out
+}
+
+/**
+ * 求某个节点在 Vault 内的**相对路径**（`/` 分隔，文件名按 diskName 补 `.md`）。
+ * 找不到返回 null。与 `flattenNotes` 同一套 walk，保证路径与落盘一致。
+ */
+export function findNodeRelPath(rootFolder: FileNode, id: string): string | null {
+  const walk = (node: FileNode, prefix: string): string | null => {
+    for (const c of node.children || []) {
+      const rel = prefix ? `${prefix}/${diskName(c)}` : diskName(c)
+      if (c.id === id) return rel
+      if (c.type === 'folder') {
+        const hit = walk(c, rel)
+        if (hit) return hit
+      }
+    }
+    return null
+  }
+  return walk(rootFolder, '')
+}
+
+/** 把 Vault 内相对路径拼成绝对路径（分隔符跟随根路径风格） */
+export function toVaultAbsPath(root: string, relPath: string): string {
+  const sep = root.includes('\\') ? '\\' : '/'
+  return `${root}${sep}${relPath.split('/').join(sep)}`
 }
 
 /**

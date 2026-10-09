@@ -11,6 +11,8 @@ import {
 } from '@core/files/recentFiles'
 import { collectFolderIds, flattenFileTree } from '@core/files/fileTree'
 import { useUsageDocsScope } from '@hooks/useUsageDocsScope'
+import { findNodeRelPath, toVaultAbsPath } from '@services/vaultService'
+import { platform } from '@platform'
 import type { FileNode } from '@src/types/fileManager'
 import { useLanguage } from '@stores/LanguageStore'
 import type { Translations } from '../../../locales/zh'
@@ -89,7 +91,7 @@ interface FileTreeProps {
 }
 
 export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
-  const { rootFolder, openFile, createFile, createFolder, renameNode, deleteNode, getActiveFileId } = useFileManager()
+  const { rootFolder, openFile, createFile, createFolder, renameNode, deleteNode, getActiveFileId, vaultRoot } = useFileManager()
   const { t } = useLanguage()
   const EP = t.editorPanel
   // 内置「使用文档」不在编辑器的文件列表中呈现（判定单源：core/files/usageDocs + hooks/useUsageDocsScope）
@@ -265,6 +267,23 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
     setConfirming({ id: menu.id, type: menu.type, name: menu.name })
     setMenu(null)
   }
+
+  /**
+   * 「打开源文件位置」：在系统文件管理器中定位该节点的真实 .md。
+   * 仅桌面端 + 已选 Vault 时有意义（浏览器 / 未落盘时该项不显示）。
+   */
+  const onMenuReveal = () => {
+    if (!menu) return
+    const { id } = menu
+    setMenu(null)
+    if (!vaultRoot) return
+    const rel = findNodeRelPath(rootFolder, id)
+    if (!rel) return
+    void platform.revealInFolder(toVaultAbsPath(vaultRoot, rel))
+  }
+
+  /** 是否显示「打开源文件位置」——需真实磁盘 Vault */
+  const canReveal = platform.kind === 'electron' && !!vaultRoot
 
   /** 关删除确认：先退场再卸载（退场时长 = components.css 的 --mc-dur-fast 180ms） */
   const dismissConfirm = useCallback(() => {
@@ -618,6 +637,12 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
               <Icon.edit size={14} />
               <span>重命名</span>
             </button>
+            {canReveal && (
+              <button type="button" className="aurora-filetree__ctxmenu-item" onClick={onMenuReveal}>
+                <Icon.folderOpen size={14} />
+                <span>{EP.revealInFolder}</span>
+              </button>
+            )}
             <button
               type="button"
               className="aurora-filetree__ctxmenu-item aurora-filetree__ctxmenu-item--danger"

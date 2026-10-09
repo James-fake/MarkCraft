@@ -83,7 +83,7 @@ const { disk, mockFs, mockPlatform } = vi.hoisted(() => {
 
 vi.mock('../platform', () => ({ platform: mockPlatform }))
 
-import { loadVault, syncTree, flattenNotes } from './vaultService'
+import { loadVault, syncTree, flattenNotes, findNodeRelPath, toVaultAbsPath } from './vaultService'
 import type { FileNode } from '../types/fileManager'
 
 const ROOT = '/vault'
@@ -320,5 +320,46 @@ describe('vaultService.flattenNotes（P4-D 迁移收集）', () => {
   it('空树 → 空数组', () => {
     const tree: FileNode = { id: 'r', name: 'R', type: 'folder', createdAt: 1, updatedAt: 1, children: [] }
     expect(flattenNotes(tree)).toEqual([])
+  })
+})
+
+describe('vaultService.findNodeRelPath / toVaultAbsPath（右键「打开源文件位置」用）', () => {
+  const tree: FileNode = {
+    id: 'root', name: 'Root', type: 'folder', createdAt: 1, updatedAt: 1,
+    children: [
+      { id: 'a', name: 'a.md', type: 'file', content: 'A', createdAt: 1, updatedAt: 1 },
+      {
+        id: 'd', name: 'sub', type: 'folder', createdAt: 1, updatedAt: 1,
+        children: [
+          { id: 'c', name: 'c', type: 'file', content: 'C', createdAt: 1, updatedAt: 1 },
+          {
+            id: 'd2', name: 'deep', type: 'folder', createdAt: 1, updatedAt: 1,
+            children: [{ id: 'z', name: 'z.md', type: 'file', content: 'Z', createdAt: 1, updatedAt: 1 }],
+          },
+        ],
+      },
+    ],
+  }
+
+  it('根层文件 → 相对路径（与 flattenNotes 一致：无后缀补 .md）', () => {
+    expect(findNodeRelPath(tree, 'a')).toBe('a.md')
+  })
+
+  it('深层文件 → 多级相对路径；无 .md 后缀自动补', () => {
+    expect(findNodeRelPath(tree, 'c')).toBe('sub/c.md')
+    expect(findNodeRelPath(tree, 'z')).toBe('sub/deep/z.md')
+  })
+
+  it('文件夹本身也能取到路径', () => {
+    expect(findNodeRelPath(tree, 'd')).toBe('sub')
+  })
+
+  it('不存在的 id → null', () => {
+    expect(findNodeRelPath(tree, 'nope')).toBeNull()
+  })
+
+  it('toVaultAbsPath 按根路径的分隔符风格拼接', () => {
+    expect(toVaultAbsPath('D:\\Notes', 'sub/c.md')).toBe('D:\\Notes\\sub\\c.md')
+    expect(toVaultAbsPath('/home/u/Notes', 'sub/c.md')).toBe('/home/u/Notes/sub/c.md')
   })
 })

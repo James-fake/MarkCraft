@@ -117,17 +117,13 @@ test.describe('安装向导默认存储位置（集成）', () => {
     expect(got).toBe(vaultDir)
   })
 
-  test('首启（无 lastVault）采用该目录为 Vault → 文件列表出现其笔记，且顶部显示存储位置', async () => {
+  test('首启（无 lastVault）采用该目录为 Vault → 文件列表出现其笔记', async () => {
     // 进入编辑器（首页 WelcomePanel 不渲染文件列表）
     await win.locator('button.aurora-sidebar-item[title="编辑器"]').click()
     // ⚠️ 未打开文档时，文件列表由 `.aurora-editor__empty-files`（EmptyFileBrowser）渲染；
     //    `.aurora-filetree__item`（左缘 hover 浮层）只在编辑态出现，故这里断言前者。
     await expect(win.locator('.aurora-editor__empty-files')).toContainText('setup-note.md', {
       timeout: 20_000,
-    })
-    // 顶部「当前存储位置」= 该 Vault 路径（用户能一眼看到文件到底存在哪）
-    await expect(win.locator('.aurora-emptyfiles__storage-path')).toHaveText(vaultDir, {
-      timeout: 15_000,
     })
   })
 
@@ -137,5 +133,87 @@ test.describe('安装向导默认存储位置（集成）', () => {
 
     const created = join(vaultDir, '新建的笔记.md')
     await expect.poll(() => existsSync(created), { timeout: 15_000 }).toBe(true)
+  })
+
+  test('文件树右键菜单含「打开源文件位置」（仅桌面端 + 已选 Vault 时）', async () => {
+    // 承接上一用例：新建笔记后编辑器已打开该文档（编辑态才有左缘 hover 文件树）
+    const hz = win.locator('.aurora-editor__hoverzone--left')
+    await hz.waitFor({ state: 'attached', timeout: 20_000 })
+    await hz.hover()
+    await win.locator('.aurora-editor__overlay--left').waitFor({ state: 'visible', timeout: 15_000 })
+
+    await win.locator('.aurora-filetree__item').first().click({ button: 'right' })
+    await expect(
+      win.locator('.aurora-filetree__ctxmenu-item', { hasText: '打开源文件位置' }),
+    ).toBeVisible({ timeout: 10_000 })
+  })
+})
+
+/**
+ * 用户报的 bug 核心：**安装时选的存储位置被历史 lastVault 压住** → 新建的文件落到旧目录，
+ * 用户在自己选的新目录里永远看不到。这里用「已存在的旧目录」模拟「以前用过应用」的场景，
+ * 断言安装向导指定的目录胜出。
+ */
+test.describe('安装向导位置优先于历史 lastVault（用户报的 bug 核心）', () => {
+  let app2: ElectronApplication
+  let win2: Page
+  let staleDir: string
+  let ud2: string
+
+  test.beforeAll(async () => {
+    if (!PACKAGED_EXE) return
+
+    // 历史 lastVault 指向一个**真实存在**的旧目录（模拟用户以前用过应用）
+    staleDir = mkdtempSync(join(tmpdir(), 'markcraft-stale-'))
+    writeFileSync(join(staleDir, 'old-note.md'), '# 旧目录里的笔记\n')
+
+    ud2 = mkdtempSync(join(tmpdir(), 'markcraft-defvault-ud2-'))
+
+    const env: Record<string, string> = {}
+    for (const [k, v] of Object.entries(process.env)) {
+      if (v !== undefined && k !== 'ELECTRON_RUN_AS_NODE') env[k] = v
+    }
+    env.MARKCRAFT_DISABLE_GPU = '1'
+    env.MARKCRAFT_NO_SANDBOX = '1'
+
+    app2 = await electron.launch({
+      executablePath: PACKAGED_EXE,
+      args: [`--user-data-dir=${ud2}`],
+      env,
+    })
+    win2 = await app2.firstWindow()
+    await win2.addInitScript((stale: string) => {
+      localStorage.setItem('markcraft.lastVault', stale)
+    }, staleDir)
+    await win2.reload()
+    await win2.waitForFunction(
+      () => {
+        const root = document.getElementById('aurora-root')
+        return !!root && root.childElementCount > 0
+      },
+      undefined,
+      { timeout: 60_000 },
+    )
+    await win2.locator('#mc-splash').waitFor({ state: 'detached', timeout: 20_000 }).catch(() => {})
+  })
+
+  test.afterAll(async () => {
+    await app2?.close()
+    for (const d of [staleDir, ud2]) {
+      try {
+        if (d) rmSync(d, { recursive: true, force: true })
+      } catch {
+        /* 清理失败不阻断 */
+      }
+    }
+  })
+
+  test.skip(!PACKAGED_EXE, '未找到打包产物')
+
+  test('安装向导指定的目录胜出（不再落到历史 lastVault 的旧目录）', async () => {
+    await win2.locator('button.aurora-sidebar-item[title="编辑器"]').click()
+    const browser = win2.locator('.aurora-editor__empty-files')
+    await expect(browser).toContainText('setup-note.md', { timeout: 20_000 })
+    await expect(browser).not.toContainText('old-note.md')
   })
 })

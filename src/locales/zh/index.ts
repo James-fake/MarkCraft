@@ -1095,6 +1095,7 @@ export interface Translations {
     relHour: string
     relDay: string
     untitled: string
+    revealInFolder: string
     newFolder: string
     openNoteFirst: string
     collapseTree: string
@@ -2561,10 +2562,6 @@ export interface Translations {
     allFiles: string
     noFilesHint: string
     rootFolder: string
-    storageLocation: string
-    openFolder: string
-    storageNotOnDisk: string
-    chooseFolder: string
     lintTitle: string
     lintListAria: string
     lintError: string

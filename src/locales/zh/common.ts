@@ -1180,6 +1180,7 @@ export const editorPanel = {
   relHour: '{n}小时前',
   relDay: '{n}天前',
   untitled: '未命名',
+  revealInFolder: '打开源文件位置',
   newFolder: '新建文件夹',
   openNoteFirst: '请先在编辑器中打开一篇笔记',
   collapseTree: '收起文件列表',
@@ -1435,12 +1436,7 @@ export const auroraEditor = {
   // 空态文件列表（EmptyFileBrowser）
   allFiles: '全部文件',
   noFilesHint: '还没有文件，点击上方「新建笔记」开始写作',
-  rootFolder: '根目录',
-  storageLocation: '存储位置：',
-  openFolder: '打开文件夹',
-  storageNotOnDisk: '笔记尚未落盘（存在应用内部，未写入文件夹）',
-  chooseFolder: '选择文件夹',
-  // 语法检查面板（AuroraLintList）
+  rootFolder: '根目录',  // 语法检查面板（AuroraLintList）
   lintTitle: '语法检查',
   lintListAria: '语法检查问题列表',
   lintError: '{n} 错误',

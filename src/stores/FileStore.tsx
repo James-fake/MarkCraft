@@ -9,6 +9,8 @@ import {
   resetSync,
   readLastVault,
   persistVaultRoot,
+  readSetupVaultApplied,
+  markSetupVaultApplied,
   flattenNotes,
 } from '../services/vaultService';
 import { useLanguage } from './LanguageStore';
@@ -142,8 +144,9 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         })
     }
 
-    const lastVault = readLastVault()
-    if (platform.kind === 'electron') {
+    // 历史 lastVault → 失效则转「安装向导默认位置」→ 再不行才 IndexedDB
+    const adoptLastVaultOrIdb = () => {
+      const lastVault = readLastVault()
       if (lastVault) {
         hydrateFromVault(lastVault).catch((err) => {
           // ⚠️ 已记录的 Vault 失效（目录被删/移动/在已拔出的盘上）时，**不要直接落 IndexedDB** ——
@@ -152,9 +155,44 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
           logger.error('[FileStore] 已记录的 Vault 不可用，改试安装向导默认位置：', err)
           adoptSetupVaultOrIdb()
         })
-        return () => { cancelled = true }
+        return
       }
       adoptSetupVaultOrIdb()
+    }
+
+    if (platform.kind === 'electron') {
+      // ⚠️ 安装向导指定的存储位置**优先于历史 lastVault**。
+      //    用户在安装时明确选了目录，若被上一版遗留的 lastVault 压住，新建的文件就会落到
+      //    旧目录、用户在自己选的新目录里永远看不到 —— 正是「新建文件后文件夹是空的」成因。
+      //    只在「该选择尚未采用过」时生效一次（读/写 markcraft.setupVaultApplied 标记）→
+      //    之后用户在应用内改的目录仍然优先。
+      platform.setup
+        .defaultVault()
+        .then((setupVault) => {
+          if (cancelled) return
+          if (setupVault && setupVault !== readSetupVaultApplied()) {
+            markSetupVaultApplied(setupVault)
+            persistVaultRoot(setupVault)
+            logger.info('[FileStore] 采用安装向导指定的默认存储位置：', setupVault)
+            // 采用新 Vault 的同时，仍要检查 IDB 里有没有旧笔记 —— 有则给一次性迁移入口，
+            // 否则它们会「消失」在新 Vault 之外（用户以为丢了）。
+            loadStateAsync(language)
+              .then((s) => {
+                if (!cancelled) detectLegacyIdbNotes(s ? stripLegacyUsageDocTabs(s) : null)
+              })
+              .catch(() => {
+                /* 读不到就没什么可迁移的 */
+              })
+            return hydrateFromVault(setupVault).catch((err) => {
+              logger.error('[FileStore] 采用安装默认 Vault 失败，回退历史记录：', err)
+              adoptLastVaultOrIdb()
+            })
+          }
+          adoptLastVaultOrIdb()
+        })
+        .catch(() => {
+          if (!cancelled) adoptLastVaultOrIdb()
+        })
       return () => { cancelled = true }
     }
 
