@@ -49,6 +49,15 @@ describe('块级公式 · 预览管线', () => {
     expect(out, '不得残留 $$ 原文').not.toContain('$$')
   })
 
+  it('用户原例：空根号 $$\n\\sqrt{}\n$$ 不残留原文、不崩，且给出可见结果', () => {
+    const html = renderPreview('$$\n\\sqrt{}\n$$\n')
+    expect(html, '不得残留原文').not.toContain('$$')
+    expect(needsMathRenderHtml(html), '必须触发渲染').toBe(true)
+    const out = renderMath(html)
+    expect(out).toContain('katex')
+    expect(out, '空参数不能让整段渲染崩掉').not.toContain('katex-error')
+  })
+
   it('行内公式 $...$ 同理', () => {
     const html = renderPreview('圆的面积 $\\pi r^2$ 很好记')
     expect(html).toContain('data-type="mathInlineNode"')
