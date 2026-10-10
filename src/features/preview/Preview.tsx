@@ -5,6 +5,7 @@ import { sanitizeHtml } from '@services/sanitizeHtml'
 import morphdom from 'morphdom'
 import ScrollButtons from '@components/ui/ScrollButtons'
 import { savePreviewScroll } from '../../services/scrollPositionManager'
+import { renderMermaidInDom } from '@features/editor/extensions/mermaidCache'
 
 interface PreviewProps {
   content: string
@@ -145,8 +146,14 @@ const Preview = forwardRef(function Preview(
           if (fromEl.classList.contains('code-block-collapsed') && !toEl.classList.contains('code-block-collapsed')) {
             return false
           }
-          // 保留已渲染的 mermaid 图表，避免 morphdom 将 SVG 替换回 loading 状态
-          if (fromEl.classList.contains('mermaid-diagram') && fromEl.dataset.rendered === 'true') {
+          // 保留已渲染的 mermaid 图表，避免 morphdom 将 SVG 替换回 loading 状态。
+          // ⚠️ 必须同时比对 data-code：只按 data-rendered 判断的话，用户**改了图表代码**
+          //    也会被保留成旧图，改了不生效。
+          if (
+            fromEl.classList.contains('mermaid-diagram') &&
+            fromEl.dataset.rendered === 'true' &&
+            fromEl.dataset.code === toEl.dataset.code
+          ) {
             return false
           }
           return true
@@ -162,6 +169,15 @@ const Preview = forwardRef(function Preview(
       requestAnimationFrame(() => {
         attachDeleteButtons()
         resolveBlockEmbeds()
+        // ⚠️ 预览窗格必须自己渲染 mermaid/mindmap（真实事故 2026-10-11：思维导图在预览里一直转圈）。
+        //    渲染器是全仓唯一的 —— 见 mermaidCache.renderMermaidInDom 的说明。
+        const host = previewContainerRef.current
+        if (host) {
+          void renderMermaidInDom(host, theme, {
+            syntaxError: t.embedView.diagramSyntaxError,
+            renderError: t.embedView.diagramRenderError,
+          })
+        }
       })
       setTimeout(() => isSyncingRef.current = false, 50)
     })
@@ -172,7 +188,8 @@ const Preview = forwardRef(function Preview(
         renderRafRef.current = null
       }
     }
-  }, [content, attachDeleteButtons, resolveBlockEmbeds])
+    // theme / t 参与 mermaid 渲染（主题决定配色、t 决定错误文案），必须进依赖
+  }, [content, attachDeleteButtons, resolveBlockEmbeds, theme, t])
 
   useEffect(() => {
     if (typeof ref === 'function') {

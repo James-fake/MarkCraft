@@ -3,6 +3,7 @@
 // 未下沉 L0：它静态依赖 mermaid（重库），底座层应保持零领域/重依赖。
 // 同目录已有 CodeHighlightConfig.ts 这类「视图配套文件」先例。
 import mermaid from 'mermaid'
+import DOMPurify from 'dompurify'
 import { simpleHash } from '@utils/hash'
 
 const svgCache = new Map<string, string>();
@@ -57,3 +58,97 @@ try {
   });
   lastInitializedTheme = 'default';
 } catch {}
+
+
+// ── 共享渲染辅助（编辑器节点视图 与 预览窗格 共用，避免两条管线各写一套） ──
+
+let domRenderIdCounter = 0
+
+/** mermaid 在 strict 模式下已禁用内嵌 HTML/事件处理器，这里再对 SVG 兜底净化一次 */
+export function sanitizeMermaidSvg(svg: string): string {
+  try {
+    return DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true, svgFilters: true } })
+  } catch {
+    return svg
+  }
+}
+
+/** 还原 useMarkdownRenderer 写进 data-code 的 base64(UTF-8)（导出便于单测往返） */
+export function decodeDiagramCode(b64: string): string {
+  try {
+    const bin = atob(b64)
+    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0))
+    return new TextDecoder().decode(bytes)
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * 把容器里**尚未渲染**的 `.mermaid-diagram[data-code]` 渲染成 SVG。
+ *
+ * ⚠️ 真实事故（2026-10-11 用户报障）：思维导图在所见即所得/源码模式正常，**预览窗格一直转圈**。
+ *    根因：预览管线（`useMarkdownRenderer`）只把代码块换成
+ *    `<div class="mermaid-diagram mermaid-loading" data-code="...">` 占位，
+ *    而全仓**唯一的渲染器是 Tiptap 的 MermaidBlockView（节点视图）** —— 预览没有 Tiptap，
+ *    于是没有任何组件认领这个占位 → loading 永远不消失。
+ *    `Preview.tsx` 里那句「保留 data-rendered=true 的图表」的注释说明**设计上本来就该有**这个渲染器。
+ *
+ * 渲染完置 `data-rendered="true"`：预览的 morphdom 更新据此保留已渲染的 SVG（不再退回 loading）。
+ * mindmap 走的是 mermaid 内置的 mindmap 语法（`isMindmapCode` 判定代码以 `mindmap` 开头），
+ * 故这里用 mermaid 本身渲染即可，无需引入画布组件。
+ */
+export async function renderMermaidInDom(
+  container: HTMLElement,
+  theme: string,
+  labels: { syntaxError: string; renderError: string },
+): Promise<void> {
+  const nodes = container.querySelectorAll<HTMLElement>('.mermaid-diagram[data-code]')
+  if (!nodes.length) return
+  initMermaid(theme)
+
+  for (const el of Array.from(nodes)) {
+    if (el.dataset.rendered === 'true') continue
+    const code = decodeDiagramCode(el.dataset.code || '')
+    if (!code.trim()) continue
+
+    const cached = getCachedSvg(code)
+    if (cached) {
+      el.innerHTML = sanitizeMermaidSvg(cached)
+      el.dataset.rendered = 'true'
+      continue
+    }
+
+    const id = `mermaid-preview-${++domRenderIdCounter}`
+    try {
+      await mermaid.parse(code)
+    } catch {
+      clearMermaidParseError()
+      el.innerHTML = `<div style="padding:0.75rem;color:#e74c3c;background:rgba(231,76,60,0.1);border-radius:0.375rem;font-size:0.8rem;"><strong>${labels.syntaxError}</strong></div>`
+      el.dataset.rendered = 'true'
+      continue
+    }
+
+    try {
+      const { svg } = await mermaid.render(id, code)
+      const safe = sanitizeMermaidSvg(svg)
+      el.innerHTML = safe
+      setCachedSvg(code, safe)
+      el.dataset.rendered = 'true'
+    } catch {
+      clearMermaidParseError()
+      el.innerHTML = `<div style="padding:0.75rem;color:#e74c3c;background:rgba(231,76,60,0.1);border-radius:0.375rem;font-size:0.8rem;"><strong>${labels.renderError}</strong></div>`
+      el.dataset.rendered = 'true'
+    }
+  }
+}
+
+/** mermaid 解析失败后会把错误挂到全局 parseError 上，不清掉会污染下一次渲染 */
+function clearMermaidParseError(): void {
+  try {
+    const m = mermaid as unknown as { parseError?: unknown }
+    m.parseError = undefined
+  } catch {
+    /* 忽略 */
+  }
+}

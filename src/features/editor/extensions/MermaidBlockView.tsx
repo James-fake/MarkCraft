@@ -2,7 +2,7 @@ import { NodeViewWrapper } from '@tiptap/react'
 import type { NodeViewProps } from '@tiptap/react'
 import { useEffect, useRef, useState, useCallback } from 'react'
 import mermaid from 'mermaid'
-import { getCachedSvg, setCachedSvg, initMermaid } from './mermaidCache'
+import { getCachedSvg, setCachedSvg, initMermaid, sanitizeMermaidSvg } from './mermaidCache'
 import { useTheme } from '@features/themes/useTheme'
 import { livePreviewKey, type LivePreviewState } from './LivePreviewExtension'
 import { isMindmapCode, parseMindmapCode } from './mindmap/MindmapParser'
@@ -11,7 +11,6 @@ import MindmapCanvas from './mindmap/MindmapCanvas'
 import type { LayoutDirection } from './mindmap/mindmapLayout'
 import { extractLayout } from '../toolbar/mindmapUtils'
 import { useLanguage } from '@stores/LanguageStore'
-import DOMPurify from 'dompurify'
 
 /** Get layout direction from mindmap code (reads embedded direction marker) */
 function getLayoutDirection(code: string): LayoutDirection {
@@ -19,15 +18,6 @@ function getLayoutDirection(code: string): LayoutDirection {
 }
 
 let renderIdCounter = 0
-
-/** mermaid 在 strict 模式下已禁用内嵌 HTML/事件处理器，这里再对 SVG 兜底净化一次 */
-function sanitizeMermaidSvg(svg: string): string {
-  try {
-    return DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true, svgFilters: true } })
-  } catch {
-    return svg
-  }
-}
 
 type EditMode = 'preview' | 'mindmap-edit' | 'code-edit'
 
