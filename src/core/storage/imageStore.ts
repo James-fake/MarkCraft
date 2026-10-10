@@ -106,6 +106,31 @@ export function textFromStorage(text: string): string {
   )
 }
 
+/**
+ * 把「节点里的 src」解析成**浏览器可直接加载**的地址（纯函数，便于单测）。
+ *
+ * ⚠️ 真实事故（2026-10-11）：所见即所得里插入图片正常，切到源码/预览再切回来**图消失**，
+ *    但节点还在（调整方框仍在、且很小）。机制就是 `<img>` 拿到了加载不出来的 src ——
+ *    节点里的 src 可能是两种**不可直接加载**的形态：
+ *      - `image:<id>`：本项目占位符，真实数据在 IMAGE_STORE 里
+ *      - `assets/xxx.png`：开启「相对路径存储图片」时的形态，需经 RELATIVE_PATH_MAP 反查 id
+ *    两种都必须在渲染时解析成 base64；直接塞给 <img> 只会静默失败（0×0、方框极小）。
+ *
+ * 已经是可加载地址（data:/http(s):/blob:）或解析不出来时，原样返回（由调用方决定如何提示）。
+ */
+export function resolveImageSrcForDisplay(src: string): string {
+  if (!src) return ''
+  if (/^(data:|https?:|blob:)/i.test(src)) return src
+  const imageId = src.startsWith('image:') ? src.slice(6) : getImageIdByRelativePath(src)
+  const base64 = imageId ? IMAGE_STORE.get(imageId) : undefined
+  return base64 || src
+}
+
+/** 该 src 是否已经是「可直接加载」的地址（用于判断解析失败 → 数据丢失） */
+export function isLoadableImageSrc(src: string): boolean {
+  return /^(data:|https?:|blob:)/i.test(src)
+}
+
 export function cleanupOrphanedImages(text: string): void {
   const usedIds = new Set<string>()
   const regex = /!\[([^\]]*)\]\(image:([^)]+)\)/g

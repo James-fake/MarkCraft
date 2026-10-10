@@ -1,7 +1,8 @@
 import { NodeViewWrapper } from '@tiptap/react'
 import type { NodeViewProps } from '@tiptap/react'
 import { useCallback, useRef, useState } from 'react'
-import { getBase64Image } from '@core/storage/imageStore'
+import { getBase64Image, isLoadableImageSrc, resolveImageSrcForDisplay } from '@core/storage/imageStore'
+import { useMemo } from 'react'
 import { getImageHostConfig } from '../../imageUpload/imageHostConfig'
 import { notifyUploadStatus } from '../../imageUpload/uploadNotifier'
 import { logger } from '@utils/logger'
@@ -30,6 +31,21 @@ export default function ImageView({ node, updateAttributes, selected }: NodeView
   const naturalSizeRef = useRef({ width: 0, height: 0 })
 
   const currentAlign: AlignType = align || 'center'
+
+  /**
+   * 真正喂给 <img> 的地址。
+   *
+   * ⚠️ 节点里的 `src` 可能是**不可直接加载**的形态（真实事故 2026-10-11：插入图片后切到源码/预览
+   *    再切回所见即所得，图消失但节点与调整方框仍在 —— 即 `<img>` 拿到了加载不出来的 src）：
+   *      - `image:<id>`：本项目占位符，真实数据在 imageStore 里
+   *      - `assets/xxx.png`：开启「相对路径存储图片」时的形态，需经 RELATIVE_PATH_MAP 反查 id
+   *    这两种都必须在**渲染时**解析成 base64 才能显示；直接塞给 <img> 只会静默失败。
+   *    存储侧的 `src` 属性**不改**（保持往返一致），只影响显示。
+   */
+  const displaySrc = useMemo(() => resolveImageSrcForDisplay(src), [src])
+
+  /** 解析后仍不是可加载地址 → 数据丢了；给出可见提示，避免「静默空白」无从排查 */
+  const broken = !!src && !isLoadableImageSrc(displaySrc)
 
   const handleImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget
@@ -126,6 +142,24 @@ export default function ImageView({ node, updateAttributes, selected }: NodeView
     display: 'block',
   }
 
+  /** 图片数据丢失时的可见占位（不再静默空白，用户/开发都能一眼看出「不是没插进去，是数据没了」） */
+  const brokenStyle: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    minWidth: 160,
+    minHeight: 72,
+    padding: '12px 16px',
+    border: '1px dashed var(--editor-border, #d1d5db)',
+    borderRadius: 6,
+    fontSize: 12,
+    lineHeight: 1.4,
+    color: 'var(--editor-text-secondary, #6b7280)',
+    background: 'var(--editor-bg-secondary, rgba(127,127,127,0.06))',
+  }
+
   const containerStyle: React.CSSProperties = {
     position: 'relative',
     width: 'fit-content',
@@ -177,7 +211,7 @@ export default function ImageView({ node, updateAttributes, selected }: NodeView
       >
         <div style={containerStyle} ref={containerRef}>
           <img
-            src={src}
+            src={displaySrc}
             alt={alt || ''}
             title={title || ''}
             style={imgStyle}
@@ -186,6 +220,12 @@ export default function ImageView({ node, updateAttributes, selected }: NodeView
             draggable={false}
             onDoubleClick={() => setPreviewVisible(true)}
           />
+          {broken && (
+            <div style={brokenStyle} title={src}>
+              <span>图片无法显示（原图数据已丢失）</span>
+              <span style={{ fontSize: 10, opacity: 0.7, wordBreak: 'break-all' }}>{src}</span>
+            </div>
+          )}
 
           {/* 4 Corner resize handles */}
           {(selected || isResizing) && CORNER_HANDLES.map(handle => (
