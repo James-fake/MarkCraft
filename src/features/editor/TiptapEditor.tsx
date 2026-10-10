@@ -81,6 +81,12 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
   const { openFile } = useFileManager()
   const isInternalUpdate = useRef(false)
   const lastEmittedMd = useRef<string | null>(null)
+  /**
+   * 本编辑器**发出过**的 md 值（有界，最多 30 个）。
+   * onChange 有 300ms 防抖 → 父级 value 永远可能落后于 lastEmittedMd；
+   * 用这个集合把「父级回传自己的旧值」与「真正的外部改动」区分开，避免回灌丢字。
+   */
+  const recentEmitsRef = useRef<Set<string>>(new Set())
   const editorRef = useRef<TiptapEditorType | null>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
   // 真正滚动的容器（.tiptap-wrapper 有 overflow-y: auto）
@@ -192,6 +198,12 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
       const html = ed.getHTML()
       const md = htmlToMarkdown(html)
       lastEmittedMd.current = md
+      // 记录「自己发出过的值」（有界）：父级 value 若命中这里，说明只是回声/滞后，不是外部改动
+      recentEmitsRef.current.add(md)
+      if (recentEmitsRef.current.size > 30) {
+        const first = recentEmitsRef.current.values().next().value
+        if (first !== undefined) recentEmitsRef.current.delete(first)
+      }
       htmlSnapshotRef.current.set(djb2Hash(md), { md, html })
       if (htmlSnapshotRef.current.size > 50) {
         const firstKey = htmlSnapshotRef.current.keys().next().value
@@ -217,7 +229,7 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
 
   // Extracted hook for content sync
   useTiptapContentSync({
-    editor, value, fileId, lastEmittedMd, isInternalUpdate, undoRedo, debounceTimerRef,
+    editor, value, fileId, lastEmittedMd, recentEmits: recentEmitsRef, isInternalUpdate, undoRedo, debounceTimerRef,
   })
 
   // 同步 livePreview prop 到 LivePreviewExtension 的 enabled 状态

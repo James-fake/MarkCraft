@@ -16,6 +16,7 @@
 import type { FileNode } from '../types/fileManager'
 import { platform } from '../platform'
 import { generateId } from './fileService'
+import { resolveUsageDocsScope } from '@core/files/usageDocs'
 
 const LAST_VAULT_KEY = 'markcraft.lastVault'
 
@@ -107,11 +108,15 @@ function walk(
   parentPath: string,
   out: Map<string, SyncedEntry>,
   sep: string,
+  skipIds: Set<string> = new Set(),
 ): void {
+  // 内置「使用文档」不落盘（与 flattenNotes 的 skipIds 同一意图）：
+  // 它们是应用自带内容，不该混进用户的 Vault 文件夹。
+  if (skipIds.has(node.id)) return
   const path = parentPath + diskName(node)
   if (node.type === 'folder') {
     out.set(node.id, { path, content: '', isDir: true })
-    for (const c of node.children || []) walk(c, path + sep, out, sep)
+    for (const c of node.children || []) walk(c, path + sep, out, sep, skipIds)
   } else {
     out.set(node.id, { path, content: node.content || '', isDir: false })
   }
@@ -270,7 +275,10 @@ async function doSync(
   const sep = sepOf(vaultRoot)
   const desired = new Map<string, SyncedEntry>()
   await platform.fs.mkdir(vaultRoot).catch(() => {})
-  for (const child of rootFolder.children || []) walk(child, vaultRoot + sep, desired, sep)
+  // 内置「使用文档」不落盘（与 flattenNotes 的 skipIds 同一意图）
+  const skipIds = resolveUsageDocsScope(rootFolder).hiddenIds
+  for (const child of rootFolder.children || [])
+    walk(child, vaultRoot + sep, desired, sep, skipIds)
 
   const fs = platform.fs
   /** 记录首个**写入类**失败（删除类失败多为「文件已不在」的良性 ENOENT，不报） */

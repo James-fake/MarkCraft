@@ -370,3 +370,34 @@ describe('kbSeed · 老用户升级路径（悬空 folderId 自愈）', () => {
     expect(h.folderCreateCount).toBe(0)
   })
 })
+
+/**
+ * ⚠️ 回归锁（2026-10-10 真实事故）：「使用文档」知识库进库后**全空白**。
+ *
+ * 成因：`materialize` 建文件夹时写死了 `createFolder('root', ...)`。
+ *  - 默认/IndexedDB 树的根 id 恰好是 `'root'`（`asRoot` 会硬设），故既有测试全绿；
+ *  - **Vault 模式下 `loadVault` 给根生成的是随机 id** → `addChildNode` 找不到父节点时
+ *    **静默 no-op**（fileService 的 addChildNode 返回原树），而 `createFolder` 照样返回
+ *    新节点的 id → 得到一个**幽灵 folderId** → 知识库指向不存在的文件夹 → 文档全空白。
+ *
+ * 本组用例刻意让根 id **不是** `'root'`，覆盖上面这条被硬编码假设掩盖的路径。
+ */
+describe('kbSeed · 根 id 非字面量 root（Vault 模式回归锁）', () => {
+  it('仍能建出使用文档文件夹，且知识库 folderId 指向真实节点（不是幽灵 id）', async () => {
+    const root = folderNode('Markcraft_catch', [folderNode('我的笔记', [])])
+    root.id = 'vault-root-9f3a' // ← 关键：不是 'root'
+    const h = harness(root)
+
+    const kbId = await ensureUsageDocsKb(h.deps)
+    expect(kbId).toBeTruthy()
+
+    const folder = findByName(root, ZH_FOLDER)
+    expect(folder, '使用文档文件夹必须真的建在树上').toBeTruthy()
+    expect(namesIn(folder as FileNode)).toHaveLength(ZH_ALL.length)
+
+    const kb = await loadKb(kbId as string)
+    expect(kb?.folderId, 'folderId 必须指向真实文件夹').toBe((folder as FileNode).id)
+    // 幽灵 id 的典型特征：树上找不到它
+    expect(locate(root, kb?.folderId as string).node).toBeTruthy()
+  })
+})

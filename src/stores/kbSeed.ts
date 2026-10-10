@@ -178,7 +178,11 @@ async function run(deps: UsageDocsSeedDeps): Promise<string | null> {
  */
 function materialize(deps: UsageDocsSeedDeps, cfg: SeedConfig): string {
   const folder = findFolderByName(deps.rootFolder, cfg.folder)
-  const folderId = folder ? folder.id : deps.createFolder('root', cfg.folder)
+  // ⚠️ 父节点必须用**真实的根 id**，不能写字面量 'root'：
+  //    Vault 模式下 loadVault 给根节点生成的是随机 id，写死 'root' 会找不到父节点，
+  //    addChildNode 静默 no-op，却照样返回一个**幽灵 folderId** →
+  //    知识库指向不存在的文件夹 → 「使用文档」全空白（真实事故）。
+  const folderId = folder ? folder.id : deps.createFolder(deps.rootFolder.id, cfg.folder)
 
   const allFiles = collectAllFiles(deps.rootFolder)
   const folderFileNames = new Set(

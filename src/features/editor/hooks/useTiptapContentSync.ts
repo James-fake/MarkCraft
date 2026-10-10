@@ -9,6 +9,8 @@ interface UseTiptapContentSyncParams {
   value: string
   fileId?: string
   lastEmittedMd: MutableRefObject<string | null>
+  /** 最近由**本编辑器**发出过的若干 md 值（有界）。用于识别「父级 value 只是自己的回声/滞后」 */
+  recentEmits: MutableRefObject<Set<string>>
   isInternalUpdate: MutableRefObject<boolean>
   undoRedo: ReturnType<typeof useUndoRedo>
   debounceTimerRef: MutableRefObject<ReturnType<typeof setTimeout> | null>
@@ -19,6 +21,7 @@ export function useTiptapContentSync({
   value,
   fileId,
   lastEmittedMd,
+  recentEmits,
   isInternalUpdate,
   undoRedo,
   debounceTimerRef,
@@ -86,6 +89,16 @@ export function useTiptapContentSync({
 
     // When only value changes (from external source), skip if we emitted it ourselves
     if (value === lastEmittedMd.current) return
+
+    // ⚠️ 第二道闸：父级 value 可能是**我们更早发出过的值** —— onChange 有 300ms 防抖，
+    //    父级拿到的永远落后于 lastEmittedMd。若把这种滞后当成「外部改动」回灌，
+    //    会把用户刚敲的字回滚掉（真实事故：日记里打「工作日记」，几秒后「日记」消失）。
+    if (recentEmits.current.has(value)) return
+
+    // ⚠️ 第三道闸：用户正在本编辑器里打字时，一律不回灌。
+    //    此刻「父级 value 落后于输入」是常态，回灌只会丢字；真正的「外部改动」发生在失焦时。
+    if (editor.isFocused) return
+
     isInternalUpdate.current = true
     const html = markdownToHtml(value, imageStore)
     editor.commands.setContent(html)
@@ -94,5 +107,5 @@ export function useTiptapContentSync({
     setTimeout(() => {
       isInternalUpdate.current = false
     }, 0)
-  }, [value, editor, fileId, debounceTimerRef, isInternalUpdate, lastEmittedMd])
+  }, [value, editor, fileId, debounceTimerRef, isInternalUpdate, lastEmittedMd, recentEmits])
 }
