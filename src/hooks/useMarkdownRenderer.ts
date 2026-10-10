@@ -6,7 +6,7 @@ import { useLanguage } from '../stores/LanguageStore'
 import { useMathRender } from './useMathRender'
 import { logger } from '../utils/logger'
 import { renderMarkdown } from '@services/sanitizeHtml'
-import { preprocessCustomSyntax } from '@core/markdown/customSyntax'
+import { preprocessCustomSyntax, extractMathPlaceholders, restorePlaceholders } from '@core/markdown/customSyntax'
 
 export function useMarkdownRenderer(localContent: string, textToStorage: (markdown: string) => string) {
   const { t } = useLanguage()
@@ -35,8 +35,18 @@ export function useMarkdownRenderer(localContent: string, textToStorage: (markdo
       //    %%注释%% / [[双链]] / ((块引用)) / callout 等），不做预处理就会**原样显示**
       //    （真实事故 2026-10-10：所见即所得里正常，切到预览却显示 ++文本|red++）。
       //    与 features/editor/mdToHtml.ts 共用同一份规则（@core/markdown/customSyntax）。
+      // ⚠️ 公式必须先抽成占位符再交给 marked（与编辑器共用同一份实现）：
+      //    本管线用 breaks:true，会把 `$$\n\sqrt{2}\n$$` 里的换行变成 <br>，
+      //    KaTeX 拿到的是被污染的公式 → 渲染成垃圾（真实事故 2026-10-11：预览里公式原样显示）。
+      const mathPlaceholders: string[] = []
+      const withMathProtected = extractMathPlaceholders(
+        preprocessCustomSyntax(contentForPreview),
+        mathPlaceholders,
+      )
       // M-1：经统一闸门 renderMarkdown（marked 解析 + DOMPurify 净化）。
-      let html = renderMarkdown(preprocessCustomSyntax(contentForPreview), { renderer })
+      let html = renderMarkdown(withMathProtected, { renderer })
+      // marked 跑完再把公式回填成 <div data-type="mathBlock" data-latex="...">，交给 useMathRender 渲染
+      html = restorePlaceholders(html, mathPlaceholders)
 
       html = html.replace(
         /<pre><code[^>]*class="[^"]*language-(mermaid|mindmap)[^"]*"[^>]*>([\s\S]*?)<\/code><\/pre>/g,

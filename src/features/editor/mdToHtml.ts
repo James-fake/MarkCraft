@@ -1,6 +1,6 @@
 import type { ImageStoreAPI } from '@core/storage/imageStoreTypes'
 import { renderMarkdown } from '@services/sanitizeHtml'
-import { preprocessCustomSyntax, escapeHtmlAttr } from '@core/markdown/customSyntax'
+import { preprocessCustomSyntax, extractMathPlaceholders, restorePlaceholders, escapeHtmlAttr } from '@core/markdown/customSyntax'
 
 /**
  * Markdown → HTML（P5-1 自 markdownConvert.ts 按方向拆出，实现逐字未动）。
@@ -159,42 +159,14 @@ export function markdownToHtml(md: string, imageStore: ImageStoreAPI): string {
       return `MERMAIDPLACEHOLDER${idx}END`
     })
 
-    // 提取块级公式 $$...$$（多行或单行）
-    processed = processed.replace(/\$\$([\s\S]+?)\$\$/g, (_match, latex) => {
-      const idx = placeholders.length
-      placeholders.push(`<div data-type="mathBlock" data-latex="${escapeHtmlAttr(latex.trim())}"></div>`)
-      return `MATHBLOCKPLACEHOLDER${idx}END`
-    })
-
-    // 提取行内公式 $...$
-    processed = processed.replace(/\$([^$\n]+?)\$/g, (_match, latex) => {
-      const idx = placeholders.length
-      placeholders.push(`<span data-type="mathInlineNode" data-latex="${escapeHtmlAttr(latex)}"></span>`)
-      return `MATHBLOCKPLACEHOLDER${idx}END`
-    })
+    // 提取公式（块级 + 行内）→ 占位符；与预览共用同一份实现（@core/markdown/customSyntax）
+    processed = extractMathPlaceholders(processed, placeholders)
 
     // M-1：经统一闸门 renderMarkdown（marked 解析 + DOMPurify 净化），杜绝漏消毒。
     const raw = renderMarkdown(processed, { gfm: true, breaks: true })
 
-    // 将占位符替换回 HTML
-    let result = raw
-    for (let i = 0; i < placeholders.length; i++) {
-      // marked 可能将占位符包裹在 <p> 标签中，需要处理
-      const tocPRe = new RegExp(`<p>\\s*TOCPLACEHOLDER${i}END\\s*</p>`, 'g')
-      result = result.replace(tocPRe, placeholders[i])
-      const tocRe = new RegExp(`TOCPLACEHOLDER${i}END`, 'g')
-      result = result.replace(tocRe, placeholders[i])
-
-      const mermaidPRe = new RegExp(`<p>\\s*MERMAIDPLACEHOLDER${i}END\\s*</p>`, 'g')
-      result = result.replace(mermaidPRe, placeholders[i])
-      const mermaidRe = new RegExp(`MERMAIDPLACEHOLDER${i}END`, 'g')
-      result = result.replace(mermaidRe, placeholders[i])
-
-      const mathPRe = new RegExp(`<p>\\s*MATHBLOCKPLACEHOLDER${i}END\\s*</p>`, 'g')
-      result = result.replace(mathPRe, placeholders[i])
-      const mathRe = new RegExp(`MATHBLOCKPLACEHOLDER${i}END`, 'g')
-      result = result.replace(mathRe, placeholders[i])
-    }
+    // 将占位符替换回 HTML（与预览共用同一份实现）
+    const result = restorePlaceholders(raw, placeholders)
 
     const withTaskLists = convertTaskListsForTiptap(result)
     return convertFootnotesForTiptap(withTaskLists)
