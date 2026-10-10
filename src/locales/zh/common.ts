@@ -2076,3 +2076,22 @@ export const exportKit = {
   siteBackToHome: '← 返回首页',
   siteTagLabel: '标签：',
 }
+
+/**
+ * 块级公式节点视图（MathBlockView）的界面文案。
+ *
+ * 背景（2026-10-11 用户反馈）：原来只有一条隐藏手势「双击块级框」能进编辑，
+ * 而提示是 10px/40% 透明度且点不动的装饰文字 —— 等于没有入口。
+ * 本次把入口做成可见按钮，并在编辑态提供实时预览 + 符号面板 + 模板，
+ * 让不熟悉 LaTeX 的用户也能写出公式。
+ */
+export const mathBlock = {
+  empty: '空公式块',
+  previewEmpty: '实时预览',
+  placeholder: '输入 LaTeX，例如 \\sqrt{2}',
+  editingHint: 'Ctrl/Cmd + Enter 完成 · Esc 退出 · 上方为实时预览',
+  edit: '编辑公式',
+  copy: '复制 LaTeX',
+  copied: '已复制',
+  remove: '删除',
+}

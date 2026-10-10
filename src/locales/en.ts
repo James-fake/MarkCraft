@@ -1893,6 +1893,16 @@ export const en: Translations = {
     switchToEnDesc: 'Switch to English interface',
     switchToZhDesc: 'Switch to Chinese interface',
   },
+  mathBlock: {
+    empty: 'Empty formula block',
+    previewEmpty: 'Live preview',
+    placeholder: 'Enter LaTeX, e.g. \\sqrt{2}',
+    editingHint: 'Ctrl/Cmd + Enter to finish · Esc to exit · live preview above',
+    edit: 'Edit formula',
+    copy: 'Copy LaTeX',
+    copied: 'Copied',
+    remove: 'Delete',
+  },
   legacyMigration: {
     title: 'Move notes to a local folder',
     body: '{n} notes are still stored in the browser database. After migrating, they will be written as real .md files into the folder you pick, openable in any editor. The original data is kept, not deleted.',
