@@ -6,7 +6,7 @@
 // ⚠️ 前置于本扩展的一个既有 bug 已在本批一并修掉：Turndown 默认会吃掉 <u> 标签，
 // 导致下划线「一存就丢」（markdownConvert.htmlToMarkdown 已补 u 规则 → ++text++）。
 import Underline from '@tiptap/extension-underline'
-import { DEFAULT_UNDERLINE_COLOR, UNDERLINE_COLORS } from './underlineColors'
+import { DEFAULT_UNDERLINE_COLOR, underlineStyle } from '@core/markdown/underlineColors'
 import { getLastUnderlineColor } from './underlineColorPref'
 
 // 颜色常量对外仍从本模块导出（与 HighlightMark 的既有 import 习惯一致）
@@ -17,17 +17,6 @@ export {
   isUnderlineColor,
 } from './underlineColors'
 export type { UnderlineColor } from './underlineColors'
-
-/**
- * 生成下划线内联样式。
- * auto（跟随正文）时**不写** text-decoration-color —— 让文字色随正文/主题自然变化，
- * 这正是「跟随正文」的语义；其余色写死 text-decoration-color。
- */
-export function underlineStyle(color: string): string {
-  const base = 'text-decoration: underline'
-  if (!color || color === DEFAULT_UNDERLINE_COLOR) return base
-  return `${base}; text-decoration-color: ${UNDERLINE_COLORS[color] || 'currentColor'}`
-}
 
 const UnderlineColor = Underline.extend({
   addAttributes() {

@@ -6,6 +6,7 @@ import { useLanguage } from '../stores/LanguageStore'
 import { useMathRender } from './useMathRender'
 import { logger } from '../utils/logger'
 import { renderMarkdown } from '@services/sanitizeHtml'
+import { preprocessCustomSyntax } from '@core/markdown/customSyntax'
 
 export function useMarkdownRenderer(localContent: string, textToStorage: (markdown: string) => string) {
   const { t } = useLanguage()
@@ -29,8 +30,13 @@ export function useMarkdownRenderer(localContent: string, textToStorage: (markdo
         return `<pre><code class="${cls}">${text}</code></pre>\n`
       }
 
+      // ⚠️ 必须先走自定义语法预处理，再交给 marked：
+      //    marked 不认识本项目的方言（==高亮|red== / ++下划线|red++ / ~下标~ / ^上标^ /
+      //    %%注释%% / [[双链]] / ((块引用)) / callout 等），不做预处理就会**原样显示**
+      //    （真实事故 2026-10-10：所见即所得里正常，切到预览却显示 ++文本|red++）。
+      //    与 features/editor/mdToHtml.ts 共用同一份规则（@core/markdown/customSyntax）。
       // M-1：经统一闸门 renderMarkdown（marked 解析 + DOMPurify 净化）。
-      let html = renderMarkdown(contentForPreview, { renderer })
+      let html = renderMarkdown(preprocessCustomSyntax(contentForPreview), { renderer })
 
       html = html.replace(
         /<pre><code[^>]*class="[^"]*language-(mermaid|mindmap)[^"]*"[^>]*>([\s\S]*?)<\/code><\/pre>/g,

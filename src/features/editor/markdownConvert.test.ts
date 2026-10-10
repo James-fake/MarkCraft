@@ -71,7 +71,8 @@ describe('htmlToMarkdown（E5 富文本粘贴转换）', () => {
  */
 describe('高亮色名 Markdown 往返', () => {
   it('默认黄：==文本== ⇄ <mark>', () => {
-    expect(markdownToHtml('==重点==', noopImageStore)).toContain('<mark>重点</mark>')
+    // 高亮/下划线现在同时输出内联样式（供预览上色），故断言用「标签 + 文本」而非精确串
+    expect(markdownToHtml('==重点==', noopImageStore)).toMatch(/<mark[^>]*>重点<\/mark>/)
     expect(htmlToMarkdown('<p><mark>重点</mark></p>').trim()).toBe('==重点==')
   })
 
@@ -84,7 +85,7 @@ describe('高亮色名 Markdown 往返', () => {
     for (const color of ['deep-orange', 'light-blue', 'deep-purple', 'light-green']) {
       const html = markdownToHtml(`==重点|${color}==`, noopImageStore)
       expect(html, `${color} → html`).toContain(`data-highlight-color="${color}"`)
-      expect(html, `${color} 不应退化成默认黄`).not.toMatch(/<mark>重点<\/mark>/)
+      expect(html, `${color} 不应退化成默认黄`).not.toContain('rgba(255, 235, 59, 0.40)')
 
       const md = htmlToMarkdown(`<p><mark data-highlight-color="${color}">重点</mark></p>`).trim()
       expect(md, `${color} → md`).toBe(`==重点|${color}==`)
@@ -132,7 +133,7 @@ describe('下划线 Markdown 往返', () => {
   })
 
   it('跟随正文：++文本++ ⇄ <u>', () => {
-    expect(markdownToHtml('++重点++', noopImageStore)).toContain('<u>重点</u>')
+    expect(markdownToHtml('++重点++', noopImageStore)).toMatch(/<u[^>]*>重点<\/u>/)
     expect(htmlToMarkdown('<p><u>重点</u></p>').trim()).toBe('++重点++')
   })
 
@@ -143,7 +144,7 @@ describe('下划线 Markdown 往返', () => {
 
   it("auto 归一化：显式 |auto 解析为无属性 <u>，回写为最短形态 ++文本++", () => {
     const html = markdownToHtml('++重点|auto++', noopImageStore)
-    expect(html).toContain('<u>重点</u>')
+    expect(html).toMatch(/<u[^>]*>重点<\/u>/)
     expect(html).not.toContain('data-underline-color')
     // auto 是默认值：回写时收敛成短形态，避免每次编辑都改 diff
     expect(htmlToMarkdown('<p><u data-underline-color="auto">重点</u></p>').trim()).toBe('++重点++')
@@ -153,7 +154,7 @@ describe('下划线 Markdown 往返', () => {
     for (const color of ['deep-orange', 'light-blue', 'deep-purple', 'light-green']) {
       const html = markdownToHtml(`++重点|${color}++`, noopImageStore)
       expect(html, `${color} → html`).toContain(`data-underline-color="${color}"`)
-      expect(html, `${color} 不应退化成无属性 <u>`).not.toMatch(/<u>重点<\/u>/)
+      expect(html, `${color} 不应退化成无属性 <u>`).not.toMatch(/<u style="text-decoration: underline">重点<\/u>/)
 
       const md = htmlToMarkdown(`<p><u data-underline-color="${color}">重点</u></p>`).trim()
       expect(md, `${color} → md`).toBe(`++重点|${color}++`)
@@ -177,7 +178,7 @@ describe('下划线 Markdown 往返', () => {
 
   it('与高亮 == 语法互不串扰', () => {
     const html = markdownToHtml('==高== 与 ++下++', noopImageStore)
-    expect(html).toContain('<mark>高</mark>')
-    expect(html).toContain('<u>下</u>')
+    expect(html).toMatch(/<mark[^>]*>高<\/mark>/)
+    expect(html).toMatch(/<u[^>]*>下<\/u>/)
   })
 })
