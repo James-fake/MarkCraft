@@ -72,22 +72,69 @@ test.describe('日记 · 输入不被回滚', () => {
     await editorBody.waitFor({ state: 'visible', timeout: 20_000 })
 
     await editorBody.click()
-    await editorBody.type('工作日记')
 
-    // 立刻确认输入进去了（否则失败原因就不是「回滚」而是「没输进去」）
+    // 分批输入：第一批让「首次输入即建文件」的草稿流转成真实文件（fileId 从 undefined 提升），
+    // 第二批用于验证光标位置没被拽走。
+    await editorBody.type('工作')
+    await win.waitForTimeout(1500) // 越过建文件 + 提升窗口
+    await editorBody.type('日记')
+
+    // 立刻确认顺序正确（若光标被拽回开头，这里会看到 "日记工作" 而失败）
     await expect(editorBody).toContainText('工作日记', { timeout: 5_000 })
 
-    // ⚠️ 关键触发：从**外部**往 Vault 写一个 .md —— 这会合法触发整树重载，
-    //    重载后 store 里当日日记的 content 会退回「磁盘上的旧值」。
-    //    此时若同步逻辑把「滞后的父级 value」当外部改动回灌，用户刚敲的字就会被回滚。
-    //    （这正是用户报障的真实链路：重载 → 回灌 → 丢字）
-    writeFileSync(join(vaultDir, '__外部改动.md'), '# 外部\n')
+    // ⚠️ 关键触发（这才是用户报障的真实链路）：**从外部把当日日记文件改成别的内容**。
+    //    这会合法触发整树重载 → store 里该日记的 value 变成「外部内容」，
+    //    它与本编辑器发出过的任何值都不相等（echo=false），而此刻用户**仍在聚焦打字**。
+    //    旧逻辑此时会把它当「外部改动」回灌：setContent(外部内容)（丢字）
+    //    + setTextSelection(0)（光标跳回开头）—— 正是用户看到的两个现象。
+    const diaryFile = (() => {
+      const find = (dir: string): string | null => {
+        for (const e of readdirSync(dir, { withFileTypes: true })) {
+          const q = join(dir, e.name)
+          if (e.isDirectory()) {
+            const hit = find(q)
+            if (hit) return hit
+          } else if (/^\d{4}-\d{2}-\d{2}\.md$/.test(e.name)) return q
+        }
+        return null
+      }
+      return find(vaultDir)
+    })()
+    expect(diaryFile, '第一批输入应已建出当日日记文件').toBeTruthy()
 
-    // 等足：外部改动防抖 500ms + 编辑器 300ms + 写盘 300ms + 回灌窗口
-    await win.waitForTimeout(3000)
+    // ⚠️ 必须先等 >3s：主进程对「应用自己刚写过的路径」有 3s 抑制窗口
+    //    （selfWrites TTL），在窗口内从外部改同一路径会被当成回声吞掉，触发不了重载。
+    await win.waitForTimeout(4000)
+    writeFileSync(diaryFile as string, '# 外部改写\n')
+
+    // 等足：外部改动防抖 500ms + 重载 + 回灌窗口
+    await win.waitForTimeout(2500)
 
     // ① 编辑器里的内容必须还在（这正是用户报障的「几秒后自己消失」）
     await expect(editorBody).toContainText('工作日记')
+
+    // 继续敲一个字：既验证光标没被拽回开头（会追加到末尾而非插到最前），
+    // 也让「编辑器里的草稿」回写到 store/磁盘（外部改动后需要一次输入才会回写）
+    await editorBody.type('！')
+    await expect(editorBody).toContainText('工作日记！')
+
+    // ①b 绝不能变成外部内容（那正是回灌丢字的证据）
+    await expect(editorBody).not.toContainText('外部改写')
+
+    // 光标必须在**末尾**（正是用户报障的「光标自动回到开头」）
+    const caretAtEnd = await win.evaluate(() => {
+      const el = document.querySelector('.ProseMirror')
+      const sel = window.getSelection()
+      if (!el || !sel || sel.rangeCount === 0) return -1
+      const text = el.textContent ?? ''
+      const range = sel.getRangeAt(0)
+      const pre = range.cloneRange()
+      pre.selectNodeContents(el)
+      pre.setEnd(range.endContainer, range.endOffset)
+      return pre.toString().length === text.length ? 1 : 0
+    })
+    expect(caretAtEnd, '输入后光标应停在末尾，而不是被拽回开头').toBe(1)
+
 
     // ② 磁盘上的当日日记文件也必须完整
     const today = new Date()
