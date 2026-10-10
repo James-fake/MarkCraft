@@ -46,7 +46,11 @@ export default function TableBubbleMenu({ editor }: TableBubbleMenuProps) {
     const tableRect = tableEl.getBoundingClientRect()
 
     // 将浮动菜单定位在表格上方居中
-    const top = tableRect.top - wrapperRect.top - 40
+    // ⚠️ 菜单悬在表格上方。表格顶部在 CSS 里预留了 34px（见 tiptap.css 的 table margin-top），
+    //    菜单必须落在这条预留带内 —— 原来的 -40 会顶到表格外面，盖住上一行内容
+    //    （真实事故：表格上方插一条水平分割线，光标一进表格菜单就把分割线遮住）。
+    const MENU_H = 30
+    const top = tableRect.top - wrapperRect.top - MENU_H - 4
     const left = tableRect.left - wrapperRect.left + tableRect.width / 2
 
     setPosition({ top: Math.max(0, top), left })

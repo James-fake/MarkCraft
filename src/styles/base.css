@@ -32,7 +32,9 @@
   --code-bg: #1e293b;
   --code-block-bg: #0d1117;
   --code-block-text: #c9d1d9;
-  --table-border: #334155;
+  /* 表格边框：原值 #334155 在深色底上几乎看不见（真实事故：看不到表格下边界，
+     误以为已离开表格、把内容继续输进单元格）→ 提到 slate-500 保证可辨识 */
+  --table-border: #64748b;
   --table-header-bg: #1e293b;
   --line-number-bg: #1e293b;
   --line-number-color: #64748b;
@@ -126,7 +128,8 @@
   --code-bg: #f1f5f9;
   --code-block-bg: #f6f8fa;
   --code-block-text: #24292e;
-  --table-border: #e2e8f0;
+  /* 表格边框：原值 #e2e8f0 在浅色底上同样过淡 → 提到 slate-300 级别 */
+  --table-border: #94a3b8;
   --table-header-bg: #f8fafc;
   --line-number-bg: #f8fafc;
   --line-number-color: #94a3b8;

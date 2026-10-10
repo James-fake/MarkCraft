@@ -507,16 +507,20 @@
   border-collapse: collapse;
   table-layout: fixed;
   width: 100%;
-  margin: 0.75em 0;
-  overflow: hidden;
-  border-radius: var(--mc-radius-sm);
-  border: 1px solid var(--editor-border);
+  /* ⚠️ 顶部预留 30px 给「表格浮动菜单」（TableBubbleMenu 悬在表格上方）。
+     不留空间的话菜单会盖住上一行内容 —— 真实事故：表格上方插一条水平分割线，
+     光标一进表格菜单就把分割线遮住了。
+     ⚠️ 绝不能加 `overflow: hidden` + `border-radius`：两者叠加会把**最后一行单元格的底边**裁掉，
+     用户看不到表格下边界，就会以为已经离开表格、把内容继续输进单元格里（真实事故）。 */
+  margin: 34px 0 0.75em;
+  /* 外框比单元格线粗一档：让表格整体边界一眼可辨 */
+  border: 2px solid var(--table-border);
 }
 
 .tiptap-editor-wrapper .tiptap td,
 .tiptap-editor-wrapper .tiptap th {
   min-width: 80px;
-  border: 1px solid var(--editor-border);
+  border: 1px solid var(--table-border);
   padding: 6px 10px;
   position: relative;
   text-align: left;
@@ -561,13 +565,12 @@
 .tiptap-editor-wrapper .tiptap table.markcraft-table {
   border-collapse: collapse;
   width: 100%;
-  margin: 8px 0;
-  overflow: hidden;
+  margin: 34px 0 8px;
 }
 
 .tiptap-editor-wrapper .tiptap table.markcraft-table td,
 .tiptap-editor-wrapper .tiptap table.markcraft-table th {
-  border: 1px solid var(--editor-border, #e5e7eb);
+  border: 1px solid var(--table-border);
   padding: 6px 10px;
   min-width: 60px;
   vertical-align: top;

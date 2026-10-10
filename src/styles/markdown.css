@@ -307,6 +307,8 @@
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 1rem;
+  /* 与编辑器表格一致：外框比单元格线粗一档，整体边界一眼可辨 */
+  border: 2px solid var(--table-border);
 }
 
 .markdown-preview th,
