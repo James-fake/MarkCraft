@@ -17,4 +17,6 @@ export interface ImageStoreAPI {
   getPlaceholderId: (url: string) => string | null
   textToStorage: (markdown: string) => string
   textFromStorage: (markdown: string) => string
+  /** 从内容里把内嵌的 base64 图片灌回内存 Map（幂等）；加载笔记时必须调用 */
+  rehydrateImagesFromContent: (markdown: string) => number
 }

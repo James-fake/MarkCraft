@@ -34,7 +34,7 @@ import { useMarkdownRenderer } from '@hooks/useMarkdownRenderer'
 import { useAppLayout } from '@hooks/useAppLayout'
 import { useUsageDocsScope } from '@hooks/useUsageDocsScope'
 import { usePresence, OVERLAY_EXIT_MS } from '@components/ui/usePresence'
-import { textToStorage } from '@core/storage/imageStore'
+import { textToStorage, rehydrateImagesFromContent } from '@core/storage/imageStore'
 // —— P4-4 拆分：类型/纯函数下沉 shared，定时器逻辑与模式状态机各成 hook，空态与徽标为哑组件 ——
 import type { AuroraModalId, EditorPanelProps } from './editorPanelShared'
 import { uniqueFileName } from './editorPanelShared'
@@ -172,9 +172,18 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   const activeTabDirty = !!tabs.find((t) => t.id === activeTabId)?.isDirty
 
   // 真实文件内容：以 store 当前激活文件内容初始化，切换文件时重置（受控于真实 store）
-  const [localContent, setLocalContent] = useState<string>(() => getActiveFileContent() ?? '')
+  const [localContent, setLocalContent] = useState<string>(() => {
+    const c = getActiveFileContent() ?? ''
+    // 首次挂载也要水合：图片数据只活在 imageStore 的内存 Map 里，其唯一持久化方式是
+    // 「被嵌进 markdown」。不做水合的话，重启后 Map 是空的 → 内容里的 image:<id> 全都解析不出来。
+    rehydrateImagesFromContent(c)
+    return c
+  })
   useEffect(() => {
-    setLocalContent(getActiveFileContent() ?? '')
+    const c = getActiveFileContent() ?? ''
+    // 切换文件 / 重新载入时同样水合（真实事故：切模式回来图片只剩「无法显示」占位）
+    rehydrateImagesFromContent(c)
+    setLocalContent(c)
     // 仅当激活文件变化时重置草稿，避免受 store 回写影响光标
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFileId])

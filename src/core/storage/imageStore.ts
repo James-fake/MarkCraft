@@ -131,6 +131,29 @@ export function isLoadableImageSrc(src: string): boolean {
   return /^(data:|https?:|blob:)/i.test(src)
 }
 
+/**
+ * 从一段 markdown 内容里**把内嵌的 base64 图片重新灌进内存 Map**（幂等）。
+ *
+ * ⚠️ 为什么必须有：`IMAGE_STORE` 是**纯内存** Map，图片唯一的持久化方式是「被嵌进 markdown」。
+ *    若加载笔记时不做水合，重启后 Map 就是空的 —— 此时内容里任何 `image:<id>` 占位符
+ *    都无法解析（真实事故 2026-10-11：切模式回来图片消失，只剩「图片无法显示」占位）。
+ *    在**每次内容载入**时调用本函数，可保证「文本里带着数据」的笔记永远能渲染出来。
+ *
+ * @returns 本次新灌入的数量（便于诊断）
+ */
+export function rehydrateImagesFromContent(text: string): number {
+  if (!text || !text.includes('data:image/')) return 0
+  let added = 0
+  const re = /!\[[^\]]*\]\((data:image\/[^)]+)\)/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text)) !== null) {
+    const before = IMAGE_STORE.size
+    storeBase64Image(m[1])
+    if (IMAGE_STORE.size > before) added++
+  }
+  return added
+}
+
 export function cleanupOrphanedImages(text: string): void {
   const usedIds = new Set<string>()
   const regex = /!\[([^\]]*)\]\(image:([^)]+)\)/g
@@ -165,6 +188,7 @@ export const imageStore: ImageStoreAPI = {
   getPlaceholderId,
   textToStorage,
   textFromStorage,
+  rehydrateImagesFromContent,
 }
 
 // Relative path mapping functions

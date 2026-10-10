@@ -22,6 +22,14 @@ export interface UseTiptapImageHandlerReturn {
 export function useTiptapImageHandler({ editorRef, t, useRelativeImagePath = false }: UseTiptapImageHandlerParams): UseTiptapImageHandlerReturn {
   const toast = useToast()
   const insertImage = useCallback((src: string, editor: Editor) => {
+    // ⚠️ 必须**无条件**先把数据存进 imageStore 的内存 Map（真实事故 2026-10-11）：
+    //    原实现只在「相对路径」分支里 storeBase64Image，默认分支直接把 base64 塞给 <img> ——
+    //    Map 里没有这份数据，就只能等 300ms 后 handleChange→textFromStorage 顺带存一次；
+    //    这中间任何一次「切模式 / 保存」都可能让 textToStorage 写下一个**裸 image:<id> 占位符**
+    //    （数据不在文本里）→ 图片数据永久丢失，节点还在但永远显示不出来。
+    if (src.startsWith('data:')) {
+      imageStore.storeBase64Image(src)
+    }
     if (useRelativeImagePath && src.startsWith('data:')) {
       const imageId = imageStore.storeBase64Image(src)
       const ext = src.match(/data:image\/(\w+);/)?.[1] || 'png'
