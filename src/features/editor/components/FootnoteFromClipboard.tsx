@@ -6,7 +6,8 @@ import { useState } from 'react'
 import { useLanguage } from '@stores/LanguageStore'
 
 export interface FootnoteFromClipboardProps {
-  onAddFootnote: (url: string) => void
+  /** 传入剪贴板文本（可多行 / 标题+URL / DOI）；返回是否成功转为脚注 */
+  onAddFootnote: (text: string) => boolean
 }
 
 export default function FootnoteFromClipboard({ onAddFootnote }: FootnoteFromClipboardProps) {
@@ -16,12 +17,12 @@ export default function FootnoteFromClipboard({ onAddFootnote }: FootnoteFromCli
   const handleClick = async () => {
     try {
       const text = (await navigator.clipboard.readText()).trim()
-      if (!text || !/^https?:\/\/\S+$/i.test(text)) {
-        setStatus(t.editorWidgets.clipboardNotUrl)
+      if (!text) {
+        setStatus(t.editorWidgets.clipboardEmpty)
         return
       }
-      onAddFootnote(text)
-      setStatus(t.editorWidgets.clipboardFootnoteAdded)
+      const ok = onAddFootnote(text)
+      setStatus(ok ? t.editorWidgets.clipboardFootnoteAdded : t.editorWidgets.clipboardNotUrl)
     } catch {
       setStatus(t.editorWidgets.clipboardReadFailed)
     }

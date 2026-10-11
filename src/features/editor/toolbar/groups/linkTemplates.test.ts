@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
   buildReferenceTemplate,
+  buildReferenceList,
+  mergeFootnoteEntries,
   buildRelatedTemplate,
   buildBackindexTemplate,
   buildRecentWikilink,
@@ -17,9 +19,49 @@ describe('知识链接模板纯函数（Slash 命令迁移，两模式共享防�
     })
   })
 
-  describe('buildReferenceTemplate 参考文献模板', () => {
-    it('产出固定结构：H2 + 3 个空 WikiLink', () => {
-      expect(buildReferenceTemplate()).toBe('## 参考文献\n- [[]]\n- [[]]\n- [[]]')
+  describe('mergeFootnoteEntries', () => {
+    it('按 id 去重，同名优先带内容', () => {
+      const merged = mergeFootnoteEntries([
+        { id: '1', content: '' },
+        { id: '1', content: '来源 A' },
+        { id: '2', content: '来源 B' },
+      ])
+      expect(merged).toHaveLength(2)
+      expect(merged.find((e) => e.id === '1')?.content).toBe('来源 A')
+    })
+  })
+
+  describe('buildReferenceList 参考文献列表', () => {
+    it('无条目时仅返回标题', () => {
+      expect(buildReferenceList([])).toBe('## 参考文献')
+    })
+    it('按正文引用顺序排序输出 - [^id]: 内容', () => {
+      const content = '正文 [^2] 与 [^1] 结尾'
+      const out = buildReferenceList(
+        [
+          { id: '1', content: '来源一' },
+          { id: '2', content: '来源二' },
+        ],
+        content,
+      )
+      expect(out).toBe('## 参考文献\n- [^2]: 来源二\n- [^1]: 来源一')
+    })
+  })
+
+  describe('buildReferenceTemplate 参考文献模板（自动生成）', () => {
+    it('无脚注时仅返回标题占位', () => {
+      expect(buildReferenceTemplate()).toBe('## 参考文献')
+    })
+    it('扫描全文脚注定义自动汇总成列表（按引用顺序）', () => {
+      const md = [
+        '正文先引 [^b]，后引 [^a]。',
+        '',
+        '[^a]: 第一处来源',
+        '[^b]: 第二处来源',
+      ].join('\n')
+      expect(buildReferenceTemplate(md)).toBe(
+        '## 参考文献\n- [^b]: 第二处来源\n- [^a]: 第一处来源',
+      )
     })
   })
 

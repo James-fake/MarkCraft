@@ -15,7 +15,8 @@ import { useLanguage } from '@stores/LanguageStore'
 import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useFileManager } from '@stores/FileStore'
 import { getRecentFiles } from '@core/files/recentFiles'
-import { buildRecentWikilink, buildReferenceTemplate, buildRelatedTemplate, buildBackindexTemplate, buildTodayWikilink, buildBacklinksList } from '@features/editor/toolbar/groups/linkTemplates'
+import { buildRecentWikilink, buildRelatedTemplate, buildBackindexTemplate, buildTodayWikilink, buildBacklinksList, buildReferenceList } from '@features/editor/toolbar/groups/linkTemplates'
+import { extractFootnotes } from '@features/editor/footnote'
 import { getShortcutLabel } from '@features/editor/toolbar/ShortcutManager'
 import { UnderlineColorButton, HighlightColorButton } from '@features/editor/toolbar/WysiwygColorButtons'
 import { insertMathWithMerge } from '@features/editor/toolbar/mathBlockInsert'
@@ -149,7 +150,16 @@ export default function WysiwygToolbar({
       onInsertFootnote: () => editor.chain().focus().insertFootnote().run(),
       // 知识链接组（由 Slash 命令迁移）
       onInsertWikilink: () => editor.chain().focus().insertContent(buildRecentWikilink(getRecentFiles().map(r => r.fileName))).run(),
-      onInsertLinkTemplate: () => editor.chain().focus().insertContent(buildReferenceTemplate()).run(),
+      onInsertLinkTemplate: () => {
+        const nodeEntries: { id: string; content: string }[] = []
+        editor.state.doc.descendants((n) => {
+          if (n.type.name === 'footnoteReference' && n.attrs.id) {
+            nodeEntries.push({ id: n.attrs.id as string, content: (n.attrs.content as string) || '' })
+          }
+        })
+        const textEntries = extractFootnotes(editor.getText()).map((f) => ({ id: f.id, content: f.fullContent }))
+        editor.chain().focus().insertContent(buildReferenceList([...nodeEntries, ...textEntries], editor.getText())).run()
+      },
       onInsertRelated: () => editor.chain().focus().insertContent(buildRelatedTemplate()).run(),
       onInsertBackindex: () => editor.chain().focus().insertContent(buildBackindexTemplate(activeFileName)).run(),
       onInsertToday: () => editor.chain().focus().insertContent(buildTodayWikilink()).run(),

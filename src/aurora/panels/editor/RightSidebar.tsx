@@ -257,6 +257,7 @@ export function RightSidebar({ content, activeFileId, activeTab, forceExpand, on
             content={content}
             onFootnoteClick={handleFootnoteClick}
             activeFootnoteId={activeFootnoteId}
+            onChange={onChange}
           />
         )}
         {currentTab === 'backlinks' && (

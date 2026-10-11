@@ -289,6 +289,12 @@ export interface Translations {
     collapse: string
     noFootnotes: string
     addFootnoteTip: string
+    add: string
+    edit: string
+    delete: string
+    deleteConfirm: string
+    jumpToRef: string
+    referencedBy: string
   }
   frontMatter: {
     title: string
@@ -2527,6 +2533,7 @@ export interface Translations {
     outgoingCount: string
     emojiSearchPlaceholder: string
     emojiNoMatch: string
+    clipboardEmpty: string
     clipboardNotUrl: string
     clipboardFootnoteAdded: string
     clipboardReadFailed: string

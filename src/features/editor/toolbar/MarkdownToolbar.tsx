@@ -119,7 +119,7 @@ export default function MarkdownToolbar(props: MarkdownToolbarProps) {
       },
       onInsertLinkTemplate: () => {
         const view = props.editorViewRef.current
-        if (view) cm6InsertTemplate(view, buildReferenceTemplate())
+        if (view) cm6InsertTemplate(view, buildReferenceTemplate(view.state.doc.toString()))
       },
       onInsertRelated: () => {
         const view = props.editorViewRef.current

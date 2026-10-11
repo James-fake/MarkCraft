@@ -15,7 +15,7 @@ import NoteContextPanel from './components/NoteContextPanel'
 import WritingAidPanel from './components/WritingAidPanel'
 import DraftInsightPanel from './components/DraftInsightPanel'
 import FootnoteFromClipboard from './components/FootnoteFromClipboard'
-import { pasteUrlAsFootnote } from './footnoteAuto'
+import { pasteRefsAsFootnotes } from './footnoteAuto'
 import LinkBreadcrumb from './components/LinkBreadcrumb'
 import { navigationTracker } from './NavigationTracker'
 import GoToLineDialog from './GoToLineDialog'
@@ -145,10 +145,13 @@ export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(fu
   const scrollActiveHeadingRef = useRef<string | null>(null)
   scrollActiveHeadingRef.current = scrollActiveHeading
 
-  // P2-6 将 URL 转为脚注（本地，不上云）
-  const handleAddFootnote = useCallback((url: string) => {
-    const res = pasteUrlAsFootnote(localContent, url)
+  // P2-6 将剪贴板文本（URL / 标题+URL / DOI / 多行）转为脚注（本地，不上云）。
+  // 返回是否成功转换（无链接时返回 false，便于 UI 提示）。
+  const handleAddFootnote = useCallback((text: string): boolean => {
+    const res = pasteRefsAsFootnotes(localContent, text)
+    if (!res.markers) return false
     onChange(res.content)
+    return true
   }, [localContent, onChange])
 
   // P1-1：反链索引实时同步 —— 编辑内容变化时（防抖 600ms）增量更新 LinkIndexStore，

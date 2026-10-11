@@ -8,6 +8,7 @@ import {
   cm6FormatInlineCode,
   cm6InsertLink,
   wikiLinkCompletions,
+  footnoteIdCompletions,
 } from './autocompleteExtension'
 
 function makeView(doc: string, from: number, to: number): EditorView {
@@ -138,5 +139,28 @@ describe('源码模式 · WikiLink 补全（含 # 章节）', () => {
 
   it('已闭合的 [[...]] 不再触发补全', () => {
     expect(wikiLinkCompletions(contextAt('[[笔记]]'))).toBeNull()
+  })
+})
+
+/**
+ * 回归锁（A1 源码模式脚注 id 自动补全）：输入 [^ 后列出全文已有脚注 id，
+ * 一键复用已引来源；已闭合的 [^id] 不触发。
+ */
+describe('源码模式 · 脚注 id 补全（A1）', () => {
+  it('输入未闭合的 [^ 时列出已有脚注 id', () => {
+    const doc = '[^a]: 来源A\n[^1]: 来源一\n此处 [^'
+    const res = footnoteIdCompletions(contextAt(doc))
+    expect(res, '必须给出补全项').not.toBeNull()
+    const labels = res!.options.map(o => o.label)
+    expect(labels).toContain('[^a]')
+    expect(labels).toContain('[^1]')
+  })
+
+  it('已闭合的 [^id] 不再触发补全', () => {
+    expect(footnoteIdCompletions(contextAt('正文 [^1] 已闭合'))).toBeNull()
+  })
+
+  it('全文无脚注定义时不弹补全', () => {
+    expect(footnoteIdCompletions(contextAt('只有 [^ 没有定义'))).toBeNull()
   })
 })

@@ -160,3 +160,74 @@ export function insertFootnote(
     defCursorPos,
   };
 }
+
+function escapeRegExp(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * 统计某脚注 id 在正文中的引用次数（排除定义行 `[^id]:`）。
+ * 用于面板显示「被引用 N 处」。
+ */
+export function countFootnoteReferences(markdown: string, id: string): number {
+  const refRe = new RegExp(`\\[\\^${escapeRegExp(id)}\\](?!:)`, 'g')
+  return (markdown.match(refRe) || []).length
+}
+
+/** 第一条 `[^id]` 引用所在的行号（1-based），无则 -1。用于「跳回引用」。 */
+export function firstFootnoteReferenceLine(markdown: string, id: string): number {
+  const lines = markdown.split('\n')
+  const refRe = new RegExp(`\\[\\^${escapeRegExp(id)}\\](?!:)`)
+  for (let i = 0; i < lines.length; i++) {
+    if (refRe.test(lines[i])) return i + 1
+  }
+  return -1
+}
+
+/** 编辑某脚注的定义内容（替换 `[^id]:` 后的正文，含续行）。 */
+export function editFootnoteDefinition(markdown: string, id: string, newContent: string): string {
+  const lines = markdown.split('\n')
+  const defRe = new RegExp(`^(\\s*)\\[\\^${escapeRegExp(id)}\\]:\\s*(.*)$`)
+  for (let i = 0; i < lines.length; i++) {
+    const m = lines[i].match(defRe)
+    if (m) {
+      let j = i + 1
+      while (j < lines.length && (lines[j] === '' || /^\s{4,}/.test(lines[j]))) j++
+      const indent = m[1] || ''
+      lines[i] = `${indent}[^${id}]: ${newContent}`
+      if (j > i + 1) lines.splice(i + 1, j - i - 1)
+      break
+    }
+  }
+  return lines.join('\n')
+}
+
+/** 删除某脚注：移除定义行（及续行）与正文中所有 `[^id]` 引用。 */
+export function deleteFootnote(markdown: string, id: string): string {
+  const lines = markdown.split('\n')
+  const defRe = new RegExp(`^(\\s*)\\[\\^${escapeRegExp(id)}\\]:`)
+  const refRe = new RegExp(`\\[\\^${escapeRegExp(id)}\\]`, 'g')
+  const out: string[] = []
+  for (let i = 0; i < lines.length; i++) {
+    if (defRe.test(lines[i])) {
+      let j = i + 1
+      while (j < lines.length && (lines[j] === '' || /^\s{4,}/.test(lines[j]))) j++
+      i = j - 1
+      continue
+    }
+    out.push(lines[i].replace(refRe, ''))
+  }
+  return out.join('\n')
+}
+
+/**
+ * 新增脚注：在文末追加 `[^n]` 引用标记与 `[^n]:` 定义占位，返回新内容与新 id。
+ * 供脚注面板「+ 新增」使用（面板无光标，故引用标记置于文末）。
+ */
+export function addFootnote(markdown: string, content = ''): { text: string; newId: string } {
+  const nextId = getNextFootnoteId(markdown)
+  const id = String(nextId)
+  const base = markdown.replace(/\s*$/, '')
+  const text = `${base}\n\n[^${id}]\n\n[^${id}]: ${content}`
+  return { text, newId: id }
+}

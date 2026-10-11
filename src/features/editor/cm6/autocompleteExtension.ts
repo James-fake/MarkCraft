@@ -13,6 +13,7 @@ import {
 import { extractHeadings, stripMdExtension } from '@stores/linkIndexShared'
 import { rankFileMatches } from '@core/files/fileMatch'
 import { getRecentFiles } from '@core/files/recentFiles'
+import { extractFootnotes } from '../footnote'
 
 /** 自动补全下拉项 + 源码模式格式化占位文案（可被调用方以目标语言覆盖） */
 export interface AutocompleteMessages {
@@ -366,14 +367,42 @@ function filePathCompletions(context: CompletionContext) {
   return { from: match.from, options }
 }
 
+// 脚注 id 补全 — 输入 [^ 后列出全文已有脚注 id（带定义预览），一键复用已引来源
+export function footnoteIdCompletions(context: CompletionContext) {
+  const match = context.matchBefore(/\[\^([^\]]*)/)
+  if (!match) return null
+  // 已闭合的 [^...] 不再触发
+  if (context.state.sliceDoc(match.from, context.pos).includes(']')) return null
+
+  const query = match.text.slice(2).toLowerCase()
+  const footnotes = extractFootnotes(context.state.doc.toString())
+  if (footnotes.length === 0) return null
+
+  const options = footnotes
+    .filter((f) => f.id.toLowerCase().includes(query))
+    .map((f) => ({
+      label: `[^${f.id}]`,
+      type: 'text' as const,
+      detail: f.fullContent.slice(0, 60),
+      apply: (view: EditorView, _completion: unknown, from: number, to: number) => {
+        view.dispatch({
+          changes: { from, to, insert: `[^${f.id}]` },
+          selection: EditorSelection.cursor(from + f.id.length + 3),
+        })
+      },
+    }))
+  if (options.length === 0) return null
+  return { from: match.from, options }
+}
+
 // Markdown 快捷命令补全已移除（2026-08-28 触发收敛：Slash/斜杠命令类隐藏触发一律删除，
-// 功能统一由工具栏与更多菜单提供；内容类补全 emoji/标题/语言/wikiLink/块引用/路径 保留）
+// 功能统一由工具栏与更多菜单提供；内容类补全 emoji/标题/语言/wikiLink/块引用/路径/脚注 保留）
 
 // 自动补全扩展
 export function createAutocompleteExtension(messages: AutocompleteMessages = DEFAULT_AUTOCOMPLETE_MESSAGES) {
   _acMessages = messages
   return autocompletion({
-    override: [emojiCompletions, headingCompletions, languageCompletions, wikiLinkCompletions, blockRefCompletions, filePathCompletions],
+    override: [emojiCompletions, headingCompletions, languageCompletions, wikiLinkCompletions, blockRefCompletions, filePathCompletions, footnoteIdCompletions],
     activateOnTyping: true,
     icons: false,
   })

@@ -1372,12 +1372,13 @@ export const editorWidgets = {
   // EmojiPicker（emoji 选择器）
   emojiSearchPlaceholder: '搜索 Emoji...',
   emojiNoMatch: '未找到匹配的 Emoji',
-  // FootnoteFromClipboard（粘贴剪贴板 URL 为脚注）
-  clipboardNotUrl: '剪贴板中不是有效 URL',
+  // FootnoteFromClipboard（粘贴剪贴板为脚注，支持 URL / 标题+链接 / DOI / 多行）
+  clipboardEmpty: '剪贴板为空',
+  clipboardNotUrl: '剪贴板中没有可转为脚注的链接',
   clipboardFootnoteAdded: '已转为脚注',
   clipboardReadFailed: '无法读取剪贴板',
   clipboardFootnoteAria: '粘贴为脚注',
-  clipboardFootnoteButton: '粘贴剪贴板 URL 为脚注',
+  clipboardFootnoteButton: '粘贴剪贴板为脚注（URL / 标题+链接 / DOI / 多行）',
 }
 
 // 知识图谱导出提示（graphExport.ts 纯函数：toast 由面板注入，文案走 messages 形参）
