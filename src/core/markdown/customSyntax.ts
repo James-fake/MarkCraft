@@ -32,7 +32,21 @@ export function escapeHtmlAttr(str: string): string {
  * 留在 `markdownToHtml` 内部，不能搬出来。
  */
 export function preprocessCustomSyntax(md: string): string {
+  // ⚠️ 先保护 URL 目标，再跑语法规则（真实事故 2026-10-11）：
+  //    base64 data URL 的字母表含 `+`（尾部还有 `=`），会被下方 `++text++` 下划线、
+  //    `==text==` 高亮等规则**误匹配**并改写成 `<u>…</u>` / `<mark>…</mark>`，
+  //    把图片/链接的 URL 撕碎 → 预览、以及切回所见即所得后，整段显示成乱码。
+  //    这里把「markdown 图片/链接目的地」与「HTML src/href 属性值」先抽成占位，
+  //    跑完全部规则后原样还原；规则只作用于正文，绝不触碰 URL。
+  const urls: string[] = []
+  const protectUrl = (dest: string): string => {
+    const idx = urls.length
+    urls.push(dest)
+    return `\uE000U${idx}\uE001`
+  }
   let processed = md
+    .replace(/(!?\[[^\]]*\]\()([^)]+)(\))/g, (_m, pre: string, dest: string, post: string) => `${pre}${protectUrl(dest)}${post}`)
+    .replace(/((?:src|href)\s*=\s*")([^"]*)(")/gi, (_m, pre: string, dest: string, post: string) => `${pre}${protectUrl(dest)}${post}`)
 // ==text|color== 高亮转换为 <mark data-highlight-color="color">（在 marked 解析之前）
 // 色名允许连字符（deep-orange / light-blue / deep-purple / light-green），故用 [-\w]+ 而非 \w+。
 processed = processed.replace(/==([^=|]+)\|([-\w]+)==/g, (_m, text: string, color: string) =>
@@ -118,6 +132,9 @@ processed = processed.replace(/(^|[^!])\(\(([^)|]+)(?:\|([^)]+))?\)\)/g, (_match
 
 // 定义列表：Term\n: Definition → <dl><dt>Term</dt><dd>Definition</dd></dl>
 processed = processed.replace(/^([^:\s][^\n]*)\n:\s+(.+)$/gm, '<dl><dt>$1</dt><dd>$2</dd></dl>')
+
+  // 还原被保护的 URL 目标（规则已跑完，正文改动完毕，此处原样放回）
+  processed = processed.replace(/\uE000U(\d+)\uE001/g, (_m, i: string) => urls[Number(i)] ?? '')
   return processed
 }
 

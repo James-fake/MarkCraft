@@ -63,3 +63,49 @@ describe('自定义语法预处理 · 预览管线', () => {
     }
   })
 })
+
+/**
+ * 回归锁（2026-10-11 真实事故）：所见即所得插入图片正常，切源码正常，
+ * **切到预览 / 再切回所见即所得 → 图片变乱码**。
+ *
+ * 成因：`preprocessCustomSyntax` 把语法规则套在**整段 markdown** 上，
+ * 而 base64 data URL 的字母表含 `+`（尾部还有 `=`）——`++…++` 会被下划线规则
+ * 误当成 `++text++` 改写成 `<u>…</u>`，`==…==` 会被高亮规则改写，
+ * 于是 URL 被撕碎。修复：跑规则前先把 URL 目标抽成占位，规则只作用于正文。
+ */
+describe('自定义语法预处理 · 不得破坏 URL（回归 2026-10-11）', () => {
+  // 含 `++` 与尾部 `==` 的 base64 片段
+  const b64 = 'iVBORw0KGgoAA++BBBB++CCCC=='
+  const imgMd = `![img](data:image/png;base64,${b64})`
+
+  it('base64 含 ++ 的图片 URL 不被下划线规则改写（整段原样返回）', () => {
+    const out = preprocessCustomSyntax(imgMd)
+    expect(out, 'URL 必须逐字保留').toBe(imgMd)
+    expect(out).not.toContain('<u>')
+  })
+
+  it('预览管线：base64 图片 URL 原样出现在渲染结果中', () => {
+    const html = renderMarkdown(preprocessCustomSyntax(imgMd))
+    expect(html).toContain(b64)
+    expect(html, '不得把 ++ 变成 <u>').not.toContain('<u>')
+  })
+
+  it('所见即所得管线：base64 图片 URL 也不被改写', () => {
+    const html = markdownToHtml(imgMd, noopImageStore)
+    expect(html).toContain(b64)
+    expect(html).not.toContain('<u>')
+  })
+
+  it('markdown 链接目的地含 ++ 时不被改写', () => {
+    const md = '[x](https://example.com/++p++/q)'
+    expect(preprocessCustomSyntax(md)).toBe(md)
+  })
+
+  it('URL 被保护的同时，正文里的自定义语法仍照常生效', () => {
+    const md = `前 ++重点++ ${imgMd} 后 ==高亮==`
+    const out = preprocessCustomSyntax(md)
+    expect(out, '正文下划线/高亮仍生效').toContain('<u')
+    expect(out).toContain('<mark')
+    expect(out, 'URL 不受影响').toContain(b64)
+  })
+})
