@@ -46,6 +46,11 @@
   height: auto;
 }
 
+/* 预览里的思维导图：自研渲染器产物（与编辑器画布同一套配色/形状/布局） */
+.mermaid-diagram .mc-mindmap-svg {
+  display: block;
+}
+
 .mermaid-diagram [id^="mermaid-svg-"] {
   width: 100%;
 }

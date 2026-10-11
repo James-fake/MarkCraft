@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { MindmapNode } from './MindmapParser'
 import { parseMindmapCode, updateNodeText, addChildNode, removeNode } from './MindmapParser'
 import { computeLayout, type LayoutNode, type LayoutDirection } from './mindmapLayout'
+import { getDepthColor as getColor, MINDMAP_FONT_FAMILY, MINDMAP_FONT_SIZE } from './mindmapTheme'
 
 function flattenNodes(node: MindmapNode): MindmapNode[] {
   const result: MindmapNode[] = [node]
@@ -31,18 +32,7 @@ function serializeTree(root: MindmapNode, configBlock?: string): string {
   return lines.join('\n')
 }
 
-const DEPTH_COLORS = [
-  { bg: '#eef2ff', border: '#6366f1', text: '#4338ca' },
-  { bg: '#eff6ff', border: 'var(--mc-accent)', text: '#1d4ed8' },
-  { bg: '#ecfdf5', border: '#10b981', text: '#047857' },
-  { bg: '#fffbeb', border: '#f59e0b', text: '#b45309' },
-  { bg: '#fef2f2', border: '#ef4444', text: '#b91c1c' },
-  { bg: '#f5f3ff', border: '#8b5cf6', text: '#6d28d9' },
-]
-
-function getColor(depth: number) {
-  return DEPTH_COLORS[depth % DEPTH_COLORS.length]
-}
+// 深度配色 / 字体已下沉 mindmapTheme（编辑器画布与预览共用同一份，改一处两边一起变）
 
 interface MindmapCanvasProps {
   code: string
@@ -394,8 +384,8 @@ const MindmapCanvas: React.FC<MindmapCanvasProps> = ({
             textAnchor="middle"
             dominantBaseline="central"
             fill={color.text}
-            fontSize="13"
-            fontFamily="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+            fontSize={MINDMAP_FONT_SIZE}
+            fontFamily={MINDMAP_FONT_FAMILY}
             style={{ pointerEvents: 'none', userSelect: 'none' }}
           >
             {node.text}

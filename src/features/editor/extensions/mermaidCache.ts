@@ -5,6 +5,8 @@
 import mermaid from 'mermaid'
 import DOMPurify from 'dompurify'
 import { simpleHash } from '@utils/hash'
+import { isMindmapCode } from './mindmap/MindmapParser'
+import { renderMindmapSvgString } from './mindmap/mindmapRender'
 
 const svgCache = new Map<string, string>();
 const MAX_CACHE_SIZE = 200;
@@ -127,6 +129,17 @@ export async function renderMermaidInDom(
     if (el.dataset.rendered === 'true') continue
     const code = decodeDiagramCode(el.dataset.code || '')
     if (!code.trim()) continue
+
+    // 思维导图：走与编辑器画布**同一套**自研渲染器（`mindmapRender`），保证「所见即所得 = 预览」。
+    // （此前交给 mermaid 内置 mindmap，配色/形状/字体/布局都与编辑器不同。）
+    if (isMindmapCode(code)) {
+      const svg = renderMindmapSvgString(code)
+      if (svg) {
+        el.innerHTML = svg
+        el.dataset.rendered = 'true'
+        continue
+      }
+    }
 
     const cached = getCachedSvg(code)
     if (cached) {
