@@ -85,4 +85,13 @@ describe('templateDiscovery', () => {
     expect(tmpl.name).toBe('共享模板X')
     expect(getAllTemplates().map(t => t.id)).toContain(tmpl.id)
   })
+
+  it('所有内置模板都有中英描述（第二批 20 个已补）', () => {
+    const builtins = getDiscoveryEntries().filter(e => e.kind === 'builtin-template')
+    expect(builtins.length).toBeGreaterThanOrEqual(33)
+    for (const e of builtins) {
+      expect(e.description, e.id).toBeTruthy()
+      expect(e.descriptionEn, e.id).toBeTruthy()
+    }
+  })
 })

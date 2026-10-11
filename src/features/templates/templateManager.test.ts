@@ -22,6 +22,32 @@ import {
   type Template,
 } from './templateManager'
 
+describe('内置模板 · 跨领域扩展（第二批 20 个）', () => {
+  it('新增 20 个跨领域模板齐备', () => {
+    const ids = BUILTIN_TEMPLATES.map(t => t.id)
+    expect(ids.length).toBeGreaterThanOrEqual(33)
+    for (const id of [
+      'course-notes', 'exam-review', 'paper-notes', 'interview', 'one-on-one',
+      'performance-review', 'talk-outline', 'video-script', 'podcast-outline', 'social-post',
+      'workout-log', 'recipe', 'budget', 'habit-tracker', 'movie-notes',
+      'prd', 'user-interview', 'bug-report', 'competitor-analysis', 'event-plan',
+    ]) {
+      expect(ids, id).toContain(id)
+    }
+  })
+
+  it('新增模板都有中英名 / 图标 / 非空正文', () => {
+    const byId = new Map(BUILTIN_TEMPLATES.map(t => [t.id, t]))
+    for (const id of ['course-notes', 'prd', 'budget', 'event-plan', 'bug-report']) {
+      const t = byId.get(id)!
+      expect(t.name).toBeTruthy()
+      expect(t.nameEn).toBeTruthy()
+      expect(t.icon).toBeTruthy()
+      expect(t.content.trim().length).toBeGreaterThan(30)
+    }
+  })
+})
+
 describe('P1-6 场景模板', () => {
   it('内置模板包含博客发文 / Newsletter / 系列专栏（以及原有读书笔记）', () => {
     const ids = BUILTIN_TEMPLATES.map(t => t.id)
