@@ -213,7 +213,8 @@ export default function WysiwygToolbar({
         flexWrap: 'nowrap',
         overflow: 'hidden',
         gap: '1px',
-        padding: '6px 10px',
+        // 与源码模式工具栏（MarkdownToolbar 的 `6px 12px`）保持一致
+        padding: '6px 12px',
         backgroundColor: 'var(--editor-bg)',
         borderBottom: '1px solid var(--editor-border)',
         position: 'relative',
@@ -307,7 +308,8 @@ export default function WysiwygToolbar({
         title={t.toolbar.subscript || '下标'}
         active={editor.isActive('subscript')}
       >
-        <span style={{ fontSize: '14px', fontFamily: 'Georgia, serif' }}>X<sub style={{ fontSize: '10px' }}>↓</sub></span>
+        {/* 与源码模式 FormatGroup 的下标图标同尺寸（12px） */}
+        <span style={{ fontSize: '12px', fontFamily: 'Georgia, serif' }}>X<sub style={{ fontSize: '8px' }}>↓</sub></span>
       </WysiwygToolbarButton>
 
       <WysiwygToolbarButton
@@ -315,7 +317,8 @@ export default function WysiwygToolbar({
         title={t.toolbar.superscript || '上标'}
         active={editor.isActive('superscript')}
       >
-        <span style={{ fontSize: '14px', fontFamily: 'Georgia, serif' }}>X<sup style={{ fontSize: '10px' }}>↑</sup></span>
+        {/* 与源码模式 FormatGroup 的上标图标同尺寸（12px） */}
+        <span style={{ fontSize: '12px', fontFamily: 'Georgia, serif' }}>X<sup style={{ fontSize: '8px' }}>↑</sup></span>
       </WysiwygToolbarButton>
 
       <Separator />

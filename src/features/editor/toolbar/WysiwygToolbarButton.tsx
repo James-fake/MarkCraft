@@ -20,18 +20,16 @@ function WysiwygToolbarButton({
   const [hovered, setHovered] = useState(false)
 
   const getStyle = (): React.CSSProperties => {
+    // ⚠️ 与源码模式工具栏的 `ToolbarButton`（groups/shared.tsx）**逐字一致**：
+    //    同样的 padding / 圆角、**不设固定高度与最小宽度** —— 否则所见即所得工具栏
+    //    会比源码模式矮一截、图标显小（此前是 padding 5/7 + radius 6 + 固定 28×28）。
     const base: React.CSSProperties = {
-      padding: '5px 7px',
-      borderRadius: '6px',
+      padding: '6px 8px',
+      borderRadius: '8px',
       transition: 'all 0.15s ease',
       border: 'none',
       outline: 'none',
       backgroundColor: 'transparent',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minWidth: '28px',
-      height: '28px',
     }
     if (disabled) {
       return { ...base, opacity: 0.3, cursor: 'not-allowed' }
