@@ -1,9 +1,11 @@
 // Phase 4（2026-09-18）自 features/shared/utils/ **原样迁入**（内容一字未改）。
-// 定位：PlantUML 编码器，唯一消费者是同目录的 PlantUmlBlockView。
+// 定位：PlantUML 编码器 + **预览侧的 DOM 渲染器**（2026-10-11 追加，见文件末尾）。
+// 消费者有两个：同目录的 PlantUmlBlockView（所见即所得节点视图）与 features/preview/Preview。
 // ⚠️ 它依赖 @core/constants/plantuml（L1），因此**不可**下沉 src/utils（L0）——
 // 层级纪律要求 L0「只允许 utils → types」，落下去即新增 utils → core 越权边。
 import { deflateRaw } from 'pako'
-import { DEFAULT_PLANTUML_ENDPOINT } from '@core/constants/plantuml'
+import { DEFAULT_PLANTUML_ENDPOINT, PLANTUML_DIAGRAM_CLASS } from '@core/constants/plantuml'
+import { decodeDiagramCode } from '@core/markdown/diagramCodec'
 
 export { DEFAULT_PLANTUML_ENDPOINT }
 
@@ -96,4 +98,88 @@ export function ensurePlantUmlWrapper(code: string): string {
   const trimmed = code.trim()
   if (/^@start\w+/i.test(trimmed)) return trimmed
   return `@startuml\n${trimmed}\n@enduml`
+}
+
+// ── 预览侧的 DOM 渲染器（与所见即所得节点视图共用同一套 URL 构造，避免两条管线漂移） ──
+
+/**
+ * 把容器里**尚未渲染**的 `.plantuml-diagram[data-code]` 渲染成 SVG。
+ *
+ * ⚠️ 真实事故（2026-10-11 用户报障）：PlantUML 在所见即所得/源码模式正常，**预览窗格一直转圈**。
+ *    根因与 mermaid/mindmap 那次**完全同类**：预览管线（`hooks/useMarkdownRenderer.ts`）
+ *    只把代码块换成占位 `<div class="plantuml-diagram plantuml-loading" data-code="...">`，
+ *    而全仓唯一的渲染器是 Tiptap 的 PlantUmlBlockView（**节点视图**）—— 预览没有 Tiptap 实例，
+ *    没有任何组件认领这个占位 → loading 永远不消失。
+ *
+ * 渲染策略与节点视图一致（见 PlantUmlBlockView）：
+ *  1. 端点可用 → 用 `<img>` 请求远程 SVG（img 不受 CORS 限制，公共端点最稳）。
+ *  2. 加载失败 / 端点为空 → **降级为可读源码**，绝不吞掉用户内容。
+ *
+ * 渲染成功置 `data-rendered="true"`：预览的 morphdom 更新据此保留已渲染的图（不再退回 loading）。
+ */
+export function renderPlantUmlInDom(
+  container: HTMLElement,
+  endpoint: string | undefined,
+  labels: { noEndpoint: string; renderFailed: string },
+): void {
+  const nodes = container.querySelectorAll<HTMLElement>(`.${PLANTUML_DIAGRAM_CLASS}[data-code]`)
+  if (!nodes.length) return
+
+  for (const el of Array.from(nodes)) {
+    if (el.dataset.rendered === 'true') continue
+    const code = decodeDiagramCode(el.dataset.code || '')
+    const src = code.trim() ? buildPlantUmlUrl(ensurePlantUmlWrapper(code), endpoint) : null
+
+    if (!src) {
+      degradePlantUml(el, labels.noEndpoint, code)
+      continue
+    }
+
+    const img = document.createElement('img')
+    // ⚠️ 必须真的设 src —— 曾漏掉这一行，结果生成了一个永远不加载的 <img>，
+    //    图不出来、load/error 都不触发 → 占位永远停在 loading（由回归锁抓出）。
+    img.src = src
+    img.alt = 'PlantUML diagram'
+    img.style.maxWidth = '100%'
+    img.style.display = 'block'
+    img.style.margin = '0 auto'
+    // 元素可能在图片加载完成前就被 morphdom 换掉（内容又变了）→ 加 isConnected 守卫
+    img.addEventListener('load', () => {
+      if (!el.isConnected) return
+      el.classList.remove('plantuml-loading')
+      el.classList.add('plantuml-rendered')
+      el.dataset.rendered = 'true'
+    })
+    img.addEventListener('error', () => {
+      if (!el.isConnected) return
+      degradePlantUml(el, labels.renderFailed, code)
+    })
+    el.replaceChildren(img)
+  }
+}
+
+/**
+ * 降级为可读源码。
+ *
+ * 复用 `styles/mermaid.css` 里**早已定义好**的 `.plantuml-failed` / `.plantuml-fallback`
+ * 结构 —— 那套样式此前一直没有渲染器去用（和 mermaid 缺渲染器同因），本次正好填上。
+ * 用 DOM API 构造（而非拼 innerHTML）以免源码里的 `<` 造成 XSS。
+ */
+function degradePlantUml(el: HTMLElement, message: string, code: string): void {
+  const wrap = document.createElement('div')
+  wrap.className = 'plantuml-fallback'
+  const hint = document.createElement('div')
+  hint.className = 'plantuml-fallback-hint'
+  hint.textContent = message
+  const pre = document.createElement('pre')
+  const codeEl = document.createElement('code')
+  codeEl.textContent = code
+  pre.appendChild(codeEl)
+  wrap.appendChild(hint)
+  wrap.appendChild(pre)
+
+  el.classList.remove('plantuml-loading')
+  el.classList.add('plantuml-failed')
+  el.replaceChildren(wrap)
+  el.dataset.rendered = 'true'
 }

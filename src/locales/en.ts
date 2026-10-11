@@ -1073,6 +1073,8 @@ export const en: Translations = {
     emptyDiagram: 'Empty diagram block — double-click to edit',
     diagramSyntaxError: 'Diagram syntax error',
     diagramRenderError: 'Diagram render error',
+    plantumlNoEndpoint: 'PlantUML endpoint not configured — showing source',
+    plantumlRenderFailed: 'PlantUML render failed — showing source',
     edit: 'Edit',
     done: 'Done',
     visualEdit: 'Visual edit',

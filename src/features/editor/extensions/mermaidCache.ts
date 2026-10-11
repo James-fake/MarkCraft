@@ -73,16 +73,11 @@ export function sanitizeMermaidSvg(svg: string): string {
   }
 }
 
-/** 还原 useMarkdownRenderer 写进 data-code 的 base64(UTF-8)（导出便于单测往返） */
-export function decodeDiagramCode(b64: string): string {
-  try {
-    const bin = atob(b64)
-    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0))
-    return new TextDecoder().decode(bytes)
-  } catch {
-    return ''
-  }
-}
+// 编解码协议已下沉 @core/markdown/diagramCodec（产出端与消费端共用同一份，避免漂移）。
+// 此处 import 供本文件使用，并 re-export 保持既有导入路径不变。
+import { decodeDiagramCode, encodeDiagramCode } from '@core/markdown/diagramCodec'
+
+export { decodeDiagramCode, encodeDiagramCode }
 
 /**
  * 把容器里**尚未渲染**的 `.mermaid-diagram[data-code]` 渲染成 SVG。

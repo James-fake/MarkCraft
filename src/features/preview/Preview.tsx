@@ -6,6 +6,8 @@ import morphdom from 'morphdom'
 import ScrollButtons from '@components/ui/ScrollButtons'
 import { savePreviewScroll } from '../../services/scrollPositionManager'
 import { renderMermaidInDom } from '@features/editor/extensions/mermaidCache'
+import { renderPlantUmlInDom } from '@features/editor/extensions/plantumlEncoder'
+import { useSettings } from '@stores/SettingsStore'
 
 interface PreviewProps {
   content: string
@@ -46,6 +48,7 @@ const Preview = forwardRef(function Preview(
   // V6-M4: Use ref instead of state for isSyncing to avoid stale closure in isSyncingRef
   const isSyncingRef = useRef(false)
   const { t } = useLanguage()
+  const { settings } = useSettings()
 
   const handlePreviewScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     if (onScroll) {
@@ -65,10 +68,16 @@ const Preview = forwardRef(function Preview(
     if (!container) return
 
     const images = container.querySelectorAll('.markdown-preview img, img')
-    images.forEach((img, index) => {
+    // ⚠️ 图片索引必须只对「真正的图片」递增：图表渲染器（PlantUML 用 <img> 承载远程 SVG）
+    //    产出的 img 不是笔记里的图片，若把它们算进索引，删除按钮会删错图片。
+    let imageIndex = 0
+    images.forEach((img) => {
       const imgEl = img as HTMLImageElement
+      // 跳过图表容器内的 img（PlantUML / mermaid 的渲染产物）
+      if (imgEl.closest('.plantuml-diagram, .mermaid-diagram')) return
       const parent = imgEl.parentElement
       if (parent && parent.classList.contains('preview-image-container')) return
+      const index = imageIndex++
 
       const wrapper = document.createElement('div')
       wrapper.className = 'preview-image-container'
@@ -146,11 +155,12 @@ const Preview = forwardRef(function Preview(
           if (fromEl.classList.contains('code-block-collapsed') && !toEl.classList.contains('code-block-collapsed')) {
             return false
           }
-          // 保留已渲染的 mermaid 图表，避免 morphdom 将 SVG 替换回 loading 状态。
+          // 保留已渲染的图表（mermaid/mindmap 与 plantuml），避免 morphdom 把 SVG 换回 loading 状态。
           // ⚠️ 必须同时比对 data-code：只按 data-rendered 判断的话，用户**改了图表代码**
           //    也会被保留成旧图，改了不生效。
           if (
-            fromEl.classList.contains('mermaid-diagram') &&
+            (fromEl.classList.contains('mermaid-diagram') ||
+              fromEl.classList.contains('plantuml-diagram')) &&
             fromEl.dataset.rendered === 'true' &&
             fromEl.dataset.code === toEl.dataset.code
           ) {
@@ -169,13 +179,18 @@ const Preview = forwardRef(function Preview(
       requestAnimationFrame(() => {
         attachDeleteButtons()
         resolveBlockEmbeds()
-        // ⚠️ 预览窗格必须自己渲染 mermaid/mindmap（真实事故 2026-10-11：思维导图在预览里一直转圈）。
-        //    渲染器是全仓唯一的 —— 见 mermaidCache.renderMermaidInDom 的说明。
+        // ⚠️ 预览窗格必须自己渲染图表（真实事故 2026-10-11：思维导图 / PlantUML 在预览里一直转圈）。
+        //    渲染器是全仓唯一的（mermaidCache.renderMermaidInDom / plantumlEncoder.renderPlantUmlInDom），
+        //    预览没有 Tiptap 实例，不主动调用就没人认领那些占位。
         const host = previewContainerRef.current
         if (host) {
           void renderMermaidInDom(host, theme, {
             syntaxError: t.embedView.diagramSyntaxError,
             renderError: t.embedView.diagramRenderError,
+          })
+          renderPlantUmlInDom(host, settings.plantumlEndpoint, {
+            noEndpoint: t.embedView.plantumlNoEndpoint,
+            renderFailed: t.embedView.plantumlRenderFailed,
           })
         }
       })
@@ -188,8 +203,9 @@ const Preview = forwardRef(function Preview(
         renderRafRef.current = null
       }
     }
-    // theme / t 参与 mermaid 渲染（主题决定配色、t 决定错误文案），必须进依赖
-  }, [content, attachDeleteButtons, resolveBlockEmbeds, theme, t])
+    // theme / t / 端点都参与图表渲染（主题决定 mermaid 配色、t 决定文案、端点决定 PlantUML URL），
+    // 漏了会导致「改了设置预览不更新」，必须进依赖
+  }, [content, attachDeleteButtons, resolveBlockEmbeds, theme, t, settings.plantumlEndpoint])
 
   useEffect(() => {
     if (typeof ref === 'function') {

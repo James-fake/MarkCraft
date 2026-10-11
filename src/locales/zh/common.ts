@@ -1326,6 +1326,9 @@ export const embedView = {
   emptyDiagram: '空图表块 - 双击编辑',
   diagramSyntaxError: '图表语法错误',
   diagramRenderError: '图表渲染错误',
+  // 预览侧的 PlantUML 渲染降级文案（与 PlantUmlBlockView 的降级策略一致：绝不吞掉用户内容）
+  plantumlNoEndpoint: 'PlantUML 端点未配置，已显示源码',
+  plantumlRenderFailed: 'PlantUML 渲染失败，已显示源码',
   edit: '编辑',
   done: '完成',
   visualEdit: '可视化编辑',

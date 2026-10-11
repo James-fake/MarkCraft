@@ -2482,6 +2482,8 @@ export interface Translations {
     emptyDiagram: string
     diagramSyntaxError: string
     diagramRenderError: string
+    plantumlNoEndpoint: string
+    plantumlRenderFailed: string
     edit: string
     done: string
     visualEdit: string
