@@ -12,6 +12,7 @@ import TemplateDiscoveryModal from '@features/templates/TemplateDiscoveryModal'
 import QuickCaptureModal from '@features/pwa/QuickCaptureModal'
 import { findInboxId } from '@features/pwa'
 import { textFromStorage, textToStorage } from '@core/storage/imageStore'
+import { uniqueFileName } from '@services/fileService'
 import type { FileNode } from '@src/types/fileManager'
 
 /**
@@ -59,6 +60,8 @@ export interface EditorIntegrationParams {
     isOpen: (id: string) => boolean
   }
   language: 'zh' | 'en'
+  /** 编辑器布局句柄：插入模板后聚焦编辑器并把光标移到末尾（可选，缺省则跳过） */
+  editorLayoutRef?: React.RefObject<{ focusEnd: () => void } | null>
 }
 
 export interface EditorIntegration {
@@ -92,7 +95,7 @@ export function useEditorIntegration(p: EditorIntegrationParams): EditorIntegrat
   const {
     activeFileId, activeFileName, localContent, setLocalContent,
     activeTabId, updateFileContent, openFile, markTabDirty,
-    rootFolder, createFile, auroraModal, language,
+    rootFolder, createFile, auroraModal, language, editorLayoutRef,
   } = p
 
   // —— 主题（EditorLayout 需要 theme / onToggleTheme）——
@@ -223,11 +226,12 @@ export function useEditorIntegration(p: EditorIntegrationParams): EditorIntegrat
   // —— 弹层回调（与 App.tsx 行为守恒，复用真实 FileStore API）——
 
   const handleTemplateInsert = useCallback(
-    (content: string) => {
+    (content: string, meta?: { name?: string }) => {
       if (!activeFileId) {
-        // 无活跃文件：用模板新建一篇并打开（对齐真实 handleTemplateInsert 无文件分支）
-        const name = `未命名-${Date.now()}.md`
-        const id = createFile(rootFolder.id, name, content)
+        // 无活跃文件：用模板新建一篇，并**按模板名命名**（此前是「未命名-<时间戳>」）
+        const base = (meta?.name || '未命名').replace(/[\\/:*?"<>|]/g, '').trim() || '未命名'
+        const finalName = uniqueFileName(rootFolder, base)
+        const id = createFile(rootFolder.id, finalName, content)
         if (id) openFile(id)
       } else {
         const next = localContent ? localContent + '\n\n' + content : content
@@ -235,8 +239,10 @@ export function useEditorIntegration(p: EditorIntegrationParams): EditorIntegrat
         scheduleSave(textToStorage(next))
       }
       auroraModal?.close('templateInsert')
+      // 聚焦编辑器并把光标移到文档末尾，让用户直接接着写
+      requestAnimationFrame(() => editorLayoutRef?.current?.focusEnd())
     },
-    [activeFileId, auroraModal, createFile, localContent, openFile, rootFolder.id, scheduleSave, setLocalContent],
+    [activeFileId, auroraModal, createFile, localContent, openFile, rootFolder, scheduleSave, setLocalContent, editorLayoutRef],
   )
 
   const handleQuickCapture = useCallback(
@@ -293,6 +299,8 @@ export function useEditorIntegration(p: EditorIntegrationParams): EditorIntegrat
           onClose={() => auroraModal.close('templateInsert')}
           onInsert={handleTemplateInsert}
           onOpenDiscovery={() => auroraModal?.open('templateDiscovery')}
+          currentTitle={activeFileName ?? ''}
+          currentContent={localContent}
         />
       )}
 

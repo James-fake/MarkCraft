@@ -191,6 +191,9 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFileId])
 
+  // 编辑器布局句柄：命令桥 +「插入模板后光标落点」共用（须在接线前声明）
+  const editorLayoutRef = useRef<EditorLayoutHandle>(null)
+
   // —— P2-2：功能接线一次性接入（自动保存 / 版本快照 / lint / 六个弹层 / 模板 / 快速捕捉 / 导入 / 主题）——
   // 原先散在本文件的 8 个 feature 域引用全部收敛到 useEditorIntegration；
   // 本文件只保留「布局 + 组合」：窗格与浮栏显示态、hover-intent、面包屑、工具栏与右栏摆位。
@@ -213,6 +216,7 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
       isOpen: (id: string) => auroraModal.isOpen(id as AuroraModalId),
     },
     language,
+    editorLayoutRef,
   })
   const { theme, toggleTheme, handleChange, handleManualSave, wordCount, lint, versionHistory, modals } = integration
 
@@ -275,7 +279,6 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   }, [getActiveFileId])
 
   // —— 命令桥注册（P0 · 1.6：命令面板 / 全局快捷键经 AuroraShell 触达编辑器内部动作）——
-  const editorLayoutRef = useRef<EditorLayoutHandle>(null)
   useEffect(() => {
     if (!cmdBridge) return
     // cleanup 必须用「捕获时的同一份 ref 对象」：直接写 cmdBridge.current 会读到卸载后的最新值

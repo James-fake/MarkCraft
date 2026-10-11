@@ -123,6 +123,29 @@ export function deleteUserTemplate(id: string): void {
   localStorage.setItem(USER_TEMPLATES_KEY, JSON.stringify(templates));
 }
 
+/** 把一段内容存为新的用户模板（「存为模板」：当前笔记 / 选中内容）。 */
+export function saveNoteAsTemplate(name: string, content: string, icon = '📄'): Template {
+  const tmpl: Template = {
+    id: genTemplateId(),
+    name: name || '未命名模板',
+    nameEn: name || 'Untitled template',
+    icon,
+    content,
+    isBuiltIn: false,
+  }
+  saveUserTemplate(tmpl)
+  return tmpl
+}
+
+/** 重命名用户模板（内置模板不可改；中英名同步）。 */
+export function renameUserTemplate(id: string, name: string): void {
+  const templates = getUserTemplates();
+  const idx = templates.findIndex(t => t.id === id);
+  if (idx < 0) return;
+  templates[idx] = { ...templates[idx], name, nameEn: name };
+  localStorage.setItem(USER_TEMPLATES_KEY, JSON.stringify(templates));
+}
+
 export function getAllTemplates(): Template[] {
   return [...BUILTIN_TEMPLATES, ...getUserTemplates()];
 }

@@ -1,22 +1,28 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useLanguage } from '../../stores/LanguageStore'
-import { getAllTemplates, applyTemplate, importSharedTemplate, exportTemplateAsFile, getExamples, Template, ExampleDoc } from './templateManager'
+import { getAllTemplates, applyTemplate, importSharedTemplate, exportTemplateAsFile, getExamples, saveNoteAsTemplate, renameUserTemplate, deleteUserTemplate, Template, ExampleDoc } from './templateManager'
 import { Button } from '../../components/ui'
 import { useToast } from '../../components/ui/ToastProvider'
 
 interface TemplateInsertModalProps {
   isOpen: boolean
   onClose: () => void
-  onInsert: (content: string) => void
+  onInsert: (content: string, meta?: { name?: string }) => void
   /** 打开模板发现层（P2-7） */
   onOpenDiscovery?: () => void
+  /** 当前笔记名（解析 {{title}} / {{filename}}；无文件时为空） */
+  currentTitle?: string
+  /** 当前笔记内容（「存为模板」用） */
+  currentContent?: string
 }
 
 const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
   isOpen,
   onClose,
   onInsert,
-  onOpenDiscovery
+  onOpenDiscovery,
+  currentTitle = '',
+  currentContent = '',
 }) => {
   const { t, language } = useLanguage()
   const isZh = language === 'zh'
@@ -30,6 +36,13 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
   const searchRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
+
+  // 模板变量：{{title}}/{{filename}} 取当前笔记名（修复此前恒为空）
+  const vars = useMemo(() => ({ title: currentTitle, filename: currentTitle }), [currentTitle])
+  // 自定义模板管理（重命名 / 删除）
+  const [renamingId, setRenamingId] = useState<string | null>(null)
+  const [renameValue, setRenameValue] = useState('')
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
 
   // eslint-disable-next-line react-hooks/exhaustive-deps -- nonce: isOpen/version 为 getAllTemplates() 读取型调用的失效闸（打开弹窗与获取模板后刷新列表）
   const allTemplates = useMemo(() => getAllTemplates(), [isOpen, version])
@@ -67,6 +80,8 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setSearchQuery('')
+      setRenamingId(null)
+      setPendingDeleteId(null)
       const firstId = list[0]?.id ?? ''
       setSelectedId(firstId)
       requestAnimationFrame(() => {
@@ -87,10 +102,11 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
   const handleInsert = useCallback(() => {
     const item = list.find(t => t.id === selectedId)
     if (!item) return
-    const content = tab === 'template' ? applyTemplate(item as Template) : (item as ExampleDoc).content
-    onInsertRef.current(content)
+    // 模板与范例都套变量（范例此前不套 → {{date}} 会原样插入）
+    // 附带名称：无活跃文件时用于「用模板新建命名笔记」
+    onInsertRef.current(applyTemplate(item, vars), { name: isZh ? item.name : item.nameEn })
     onCloseRef.current()
-  }, [selectedId, list, tab])
+  }, [selectedId, list, vars, isZh])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -100,10 +116,9 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
     }
   }, [handleInsert])
 
-  const previewLines = useMemo(() => {
-    if (!current) return []
-    return current.content.split('\n').slice(0, 15)
-  }, [current])
+  // 预览显示**已解析**的变量（把 {{date}} 等换成真实值），所见即所得
+  const resolvedContent = useMemo(() => (current ? applyTemplate(current, vars) : ''), [current, vars])
+  const previewLines = useMemo(() => resolvedContent.split('\n').slice(0, 15), [resolvedContent])
 
   const texts = useMemo(() => ({
     title: TP.insertTitle,
@@ -126,6 +141,14 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
     importSuccess: TP.importSuccess,
     importFailed: TP.importFailed,
     shareDone: TP.shareDone,
+    saveAsTemplate: TP.saveAsTemplate,
+    saveTemplateDone: TP.saveTemplateDone,
+    saveTemplateEmpty: TP.saveTemplateEmpty,
+    renameTemplate: TP.renameTemplate,
+    deleteTemplate: TP.deleteTemplate,
+    deleteConfirm: TP.deleteConfirm,
+    untitledTemplate: TP.untitledTemplate,
+    renameHint: TP.renameHint,
   }), [TP])
 
   // 导入共享/社区模板（UGC：用户从文件导入他人分享的模板）
@@ -149,6 +172,42 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
     exportTemplateAsFile(selectedTemplate)
     toast.show(texts.shareDone, 'success')
   }, [selectedTemplate, texts, toast])
+
+  // 存为模板：把当前笔记内容存为用户自定义模板
+  const handleSaveAsTemplate = useCallback(() => {
+    if (!currentContent.trim()) {
+      toast.show(texts.saveTemplateEmpty, 'error')
+      return
+    }
+    const name = (currentTitle || '').replace(/\.md$/i, '').trim() || texts.untitledTemplate
+    const tmpl = saveNoteAsTemplate(name, currentContent)
+    setVersion(v => v + 1)
+    setTab('template')
+    setSelectedId(tmpl.id)
+    toast.show(texts.saveTemplateDone, 'success')
+  }, [currentContent, currentTitle, texts, toast])
+
+  const startRename = useCallback((tmpl: Template) => {
+    setRenamingId(tmpl.id)
+    setRenameValue(tmpl.name)
+  }, [])
+
+  const commitRename = useCallback(() => {
+    if (!renamingId) return
+    const name = renameValue.trim()
+    if (name) {
+      renameUserTemplate(renamingId, name)
+      setVersion(v => v + 1)
+    }
+    setRenamingId(null)
+  }, [renamingId, renameValue])
+
+  const handleDelete = useCallback((id: string) => {
+    deleteUserTemplate(id)
+    setVersion(v => v + 1)
+    setPendingDeleteId(null)
+    if (selectedId === id) setSelectedId('')
+  }, [selectedId])
 
   if (!isOpen) return null
 
@@ -239,6 +298,19 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
                 {texts.subtitle}
               </p>
             </div>
+            <Button
+              variant="ghost"
+              onClick={handleSaveAsTemplate}
+              style={{ fontSize: 12, padding: '6px 10px', flexShrink: 0 }}
+              aria-label={texts.saveAsTemplate}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}>
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                <polyline points="17 21 17 13 7 13 7 21" />
+                <polyline points="7 3 7 8 15 8" />
+              </svg>
+              {texts.saveAsTemplate}
+            </Button>
             <Button
               variant="ghost"
               onClick={() => fileInputRef.current?.click()}
@@ -496,19 +568,61 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
                 {texts.preview}
               </div>
               {selectedTemplate && (
-                <Button
-                  variant="ghost"
-                  onClick={handleShare}
-                  style={{ fontSize: 11, padding: '4px 8px', fontWeight: 500, flexShrink: 0 }}
-                  aria-label={texts.shareTemplate}
-                >
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 5 }}>
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  {texts.shareTemplate}
-                </Button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                  {!selectedTemplate.isBuiltIn && (
+                    renamingId === selectedTemplate.id ? (
+                      <input
+                        autoFocus
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') commitRename()
+                          else if (e.key === 'Escape') setRenamingId(null)
+                        }}
+                        placeholder={texts.renameHint}
+                        aria-label={texts.renameHint}
+                        style={{
+                          fontSize: 11,
+                          padding: '3px 6px',
+                          borderRadius: 6,
+                          width: 120,
+                          border: '1px solid var(--mc-border-subtle)',
+                          background: 'transparent',
+                          color: 'var(--mc-text-primary)',
+                          outline: 'none',
+                        }}
+                      />
+                    ) : (
+                      <>
+                        <Button variant="ghost" onClick={() => startRename(selectedTemplate)} style={{ fontSize: 11, padding: '4px 8px' }} aria-label={texts.renameTemplate}>
+                          {texts.renameTemplate}
+                        </Button>
+                        {pendingDeleteId === selectedTemplate.id ? (
+                          <Button variant="ghost" onClick={() => handleDelete(selectedTemplate.id)} style={{ fontSize: 11, padding: '4px 8px', color: '#e5484d' }} aria-label={texts.deleteConfirm}>
+                            {texts.deleteConfirm}
+                          </Button>
+                        ) : (
+                          <Button variant="ghost" onClick={() => setPendingDeleteId(selectedTemplate.id)} style={{ fontSize: 11, padding: '4px 8px' }} aria-label={texts.deleteTemplate}>
+                            {texts.deleteTemplate}
+                          </Button>
+                        )}
+                      </>
+                    )
+                  )}
+                  <Button
+                    variant="ghost"
+                    onClick={handleShare}
+                    style={{ fontSize: 11, padding: '4px 8px', fontWeight: 500, flexShrink: 0 }}
+                    aria-label={texts.shareTemplate}
+                  >
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 5 }}>
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                      <polyline points="7 10 12 15 17 10" />
+                      <line x1="12" y1="15" x2="12" y2="3" />
+                    </svg>
+                    {texts.shareTemplate}
+                  </Button>
+                </div>
               )}
             </div>
             {current ? (

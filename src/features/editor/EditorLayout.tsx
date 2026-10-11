@@ -84,6 +84,8 @@ export interface EditorLayoutHandle {
   deleteSelection: () => void
   /** 打开「另存为」弹层（文件菜单 · 命令桥） */
   openSaveAs: () => void
+  /** 插入模板后：聚焦编辑器并把光标移到文档末尾（源码 / 所见即所得统一出口） */
+  focusEnd: () => void
 }
 
 export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(function EditorLayout({
@@ -302,6 +304,18 @@ export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(fu
         editorRef.current?.openSaveAs()
       } else {
         tiptapRef.current?.openSaveAs()
+      }
+    },
+    // 插入模板后光标落点：聚焦编辑器并把光标移到文档末尾（让用户直接接着写）
+    focusEnd: () => {
+      if (editorMode === 'source') {
+        const view = editorRef.current?.getView()
+        if (view) {
+          view.dispatch({ selection: { anchor: view.state.doc.length } })
+          view.focus()
+        }
+      } else {
+        tiptapRef.current?.getEditor()?.commands.focus('end')
       }
     },
   }), [editorMode])

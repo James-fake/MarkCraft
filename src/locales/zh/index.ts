@@ -1063,6 +1063,14 @@ export interface Translations {
     importFailed: string
     acquireSuccess: string
     shareDone: string
+    saveAsTemplate: string
+    saveTemplateDone: string
+    saveTemplateEmpty: string
+    renameTemplate: string
+    deleteTemplate: string
+    deleteConfirm: string
+    untitledTemplate: string
+    renameHint: string
     badge: {
       'builtin-template': string
       example: string
