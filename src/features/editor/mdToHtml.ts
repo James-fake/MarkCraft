@@ -1,6 +1,6 @@
 import type { ImageStoreAPI } from '@core/storage/imageStoreTypes'
 import { renderMarkdown } from '@services/sanitizeHtml'
-import { preprocessCustomSyntax, extractMathPlaceholders, restorePlaceholders, escapeHtmlAttr } from '@core/markdown/customSyntax'
+import { preprocessCustomSyntax, preprocessImageAttrs, extractMathPlaceholders, restorePlaceholders, escapeHtmlAttr } from '@core/markdown/customSyntax'
 
 /**
  * Markdown → HTML（P5-1 自 markdownConvert.ts 按方向拆出，实现逐字未动）。
@@ -44,21 +44,8 @@ function resolveImagePlaceholders(md: string, imageStore: ImageStoreAPI): string
   )
 }
 
-// Pre-process markdown to convert image attribute syntax to HTML before marked parsing
-function preprocessImageAttrs(md: string): string {
-  return md.replace(
-    /!\[([^\]]*)\]\(([^)]+)\)\{([^}]+)\}/g,
-    (_match, alt, src, attrsStr) => {
-      const widthMatch = attrsStr.match(/width="(\d+)"/)
-      const alignMatch = attrsStr.match(/align="(left|center|right)"/)
-      const width = widthMatch ? widthMatch[1] : ''
-      const align = alignMatch ? alignMatch[1] : 'center'
-      const widthAttr = width ? ` width="${width}"` : ''
-      return `<div data-align="${align}" style="text-align: ${align}; margin: 8px 0;"><img src="${src}" alt="${alt}"${widthAttr} style="max-width: 100%;${width ? ` width: ${width}px;` : ''}" /></div>`
-    }
-  )
-}
-
+// 图片属性语法 `![alt](src){width align}` → HTML 的预处理已下沉到
+// `@core/markdown/customSyntax#preprocessImageAttrs`（与预览共用，避免双管线漂移）。
 
 function convertFootnotesForTiptap(html: string): string {
   const footnoteDefs = new Map<string, string>()

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { renderMarkdown } from '@services/sanitizeHtml'
-import { preprocessCustomSyntax } from './customSyntax'
+import { preprocessCustomSyntax, preprocessImageAttrs } from './customSyntax'
 import { markdownToHtml } from '@features/editor/mdToHtml'
 import type { ImageStoreAPI } from '@core/storage/imageStoreTypes'
 
@@ -18,8 +18,8 @@ const noopImageStore = {
   saveImage: () => '',
 } as unknown as ImageStoreAPI
 
-/** 预览管线的等价简化：预处理 → marked(+消毒) */
-const renderPreview = (md: string) => renderMarkdown(preprocessCustomSyntax(md))
+/** 预览管线的等价简化：图片属性 → 自定义语法 → marked(+消毒)（与 useMarkdownRenderer 同序） */
+const renderPreview = (md: string) => renderMarkdown(preprocessCustomSyntax(preprocessImageAttrs(md)))
 
 describe('自定义语法预处理 · 预览管线', () => {
   it('下划线（指定色）：不再原样显示 ++…|red++，且带 text-decoration-color', () => {
@@ -107,5 +107,43 @@ describe('自定义语法预处理 · 不得破坏 URL（回归 2026-10-11）', 
     expect(out, '正文下划线/高亮仍生效').toContain('<u')
     expect(out).toContain('<mark')
     expect(out, 'URL 不受影响').toContain(b64)
+  })
+})
+
+/**
+ * 回归锁（2026-10-11 真实事故）：所见即所得里对图片**靠左/靠右/放大缩小**有效，
+ * 切到预览**毫无效果**，且图片下方**原样显示** `{align="left"}` 之类的参数。
+ *
+ * 成因：图片属性语法 `![alt](src){width align}` 只在所见即所得管线（`mdToHtml`）
+ * 经 `preprocessImageAttrs` 转成 HTML，**预览管线漏调**，于是 marked 把 `{…}` 当普通文本。
+ * 修复：`preprocessImageAttrs` 下沉到 `customSyntax`（单一来源），两条管线共用。
+ */
+describe('图片属性语法 · 预览与所见即所得共用（回归 2026-10-11）', () => {
+  const md = '![图](https://a.com/x.png){width="200" align="left"}'
+
+  it('preprocessImageAttrs：产出带对齐与宽度的 HTML，且不残留 {…}', () => {
+    const out = preprocessImageAttrs(md)
+    expect(out).toContain('data-align="left"')
+    expect(out).toContain('text-align: left')
+    expect(out).toContain('width="200"')
+    expect(out, '不得残留属性花括号').not.toContain('{')
+  })
+
+  it('预览管线：不再原样显示 {align="left"}，且对齐/宽度生效', () => {
+    const html = renderPreview(md)
+    expect(html, '属性必须被消费、不能当文本显示').not.toContain('{align')
+    expect(html).toContain('data-align="left"')
+    expect(html).toContain('width="200"')
+  })
+
+  it('所见即所得管线：与预览同形（单一来源）', () => {
+    const html = markdownToHtml(md, noopImageStore)
+    expect(html).not.toContain('{align')
+    expect(html).toContain('data-align="left"')
+  })
+
+  it('无属性的普通图片不受影响', () => {
+    const plain = '![图](https://a.com/x.png)'
+    expect(preprocessImageAttrs(plain)).toBe(plain)
   })
 })

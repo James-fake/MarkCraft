@@ -6,7 +6,7 @@ import { useLanguage } from '../stores/LanguageStore'
 import { useMathRender } from './useMathRender'
 import { logger } from '../utils/logger'
 import { renderMarkdown } from '@services/sanitizeHtml'
-import { preprocessCustomSyntax, extractMathPlaceholders, restorePlaceholders } from '@core/markdown/customSyntax'
+import { preprocessCustomSyntax, preprocessImageAttrs, extractMathPlaceholders, restorePlaceholders } from '@core/markdown/customSyntax'
 
 export function useMarkdownRenderer(localContent: string, textToStorage: (markdown: string) => string) {
   const { t } = useLanguage()
@@ -39,8 +39,12 @@ export function useMarkdownRenderer(localContent: string, textToStorage: (markdo
       //    本管线用 breaks:true，会把 `$$\n\sqrt{2}\n$$` 里的换行变成 <br>，
       //    KaTeX 拿到的是被污染的公式 → 渲染成垃圾（真实事故 2026-10-11：预览里公式原样显示）。
       const mathPlaceholders: string[] = []
+      // ⚠️ 先处理图片属性语法 `![alt](src){width align}`（与所见即所得共用同一份规则）：
+      //    漏掉它会让预览里图片对齐/缩放毫无效果，并把 `{align="left"}` 当普通文本原样显示
+      //    （真实事故 2026-10-11）。
+      const withImageAttrs = preprocessImageAttrs(contentForPreview)
       const withMathProtected = extractMathPlaceholders(
-        preprocessCustomSyntax(contentForPreview),
+        preprocessCustomSyntax(withImageAttrs),
         mathPlaceholders,
       )
       // M-1：经统一闸门 renderMarkdown（marked 解析 + DOMPurify 净化）。

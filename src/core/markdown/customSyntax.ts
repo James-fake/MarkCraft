@@ -22,6 +22,29 @@ export function escapeHtmlAttr(str: string): string {
 }
 
 /**
+ * 图片属性语法 `![alt](src){width="200" align="left"}` → HTML（**必须早于 marked 解析**）。
+ *
+ * ⚠️ **单一来源**：所见即所得（`features/editor/mdToHtml`）与**预览**（`hooks/useMarkdownRenderer`）
+ *    都必须调用本函数。此前只有所见即所得调用，预览漏了 —— 于是预览里图片对齐/缩放**毫无效果**，
+ *    且把 `{align="left"}` 当普通文本**原样显示**在图片下方（真实事故 2026-10-11）。
+ *
+ * 产物用**内联样式**承载对齐/宽度，故不依赖任何 CSS，预览与所见即所得表现一致。
+ */
+export function preprocessImageAttrs(md: string): string {
+  return md.replace(
+    /!\[([^\]]*)\]\(([^)]+)\)\{([^}]+)\}/g,
+    (_match, alt: string, src: string, attrsStr: string) => {
+      const widthMatch = attrsStr.match(/width="(\d+)"/)
+      const alignMatch = attrsStr.match(/align="(left|center|right)"/)
+      const width = widthMatch ? widthMatch[1] : ''
+      const align = alignMatch ? alignMatch[1] : 'center'
+      const widthAttr = width ? ` width="${width}"` : ''
+      return `<div data-align="${align}" style="text-align: ${align}; margin: 8px 0;"><img src="${src}" alt="${alt}"${widthAttr} style="max-width: 100%;${width ? ` width: ${width}px;` : ''}" /></div>`
+    }
+  )
+}
+
+/**
  * 自定义行内/块级语法 → HTML 的预处理（**必须早于 marked 解析**）。
  *
  * ⚠️ 单一来源：所见即所得（`markdownToHtml`）与**预览**（`useMarkdownRenderer`）都调它。

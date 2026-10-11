@@ -27,6 +27,9 @@ export const MARKDOWN_SANITIZE_CONFIG = {
     'data-src', 'data-pdf-id',
     // 高亮/下划线 16 色与媒体嵌入（video/audio）往返必需，同属 markdown 管线产出
     'data-highlight-color', 'data-underline-color', 'data-media-embed', 'data-media-type',
+    // 图片对齐 `![alt](src){align="left"}` 往返必需：ImageNode 靠 data-align 解析对齐，
+    // 缺失会被闸门剥除 → 对齐在「保存→markdown→重载」后丢失（真实事故 2026-10-11）。
+    'data-align',
     'title', 'xmlns', 'contenteditable',
   ],
   ALLOW_DATA_ATTR: false,
