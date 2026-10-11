@@ -1037,6 +1037,12 @@ export const templates = {
   deleteConfirm: '确认删除？',
   untitledTemplate: '未命名模板',
   renameHint: '模板名称',
+  favorites: '收藏',
+  recent: '最近',
+  filterAll: '全部',
+  insertPosition: '插入位置',
+  insertAtStart: '开头',
+  insertAtEnd: '末尾',
   badge: {
     'builtin-template': '内置',
     example: '范例',

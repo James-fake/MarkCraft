@@ -1001,6 +1001,12 @@ export const en: Translations = {
     deleteConfirm: 'Confirm delete?',
     untitledTemplate: 'Untitled template',
     renameHint: 'Template name',
+    favorites: 'Favorites',
+    recent: 'Recent',
+    filterAll: 'All',
+    insertPosition: 'Insert at',
+    insertAtStart: 'Start',
+    insertAtEnd: 'End',
     badge: {
       'builtin-template': 'Built-in',
       example: 'Example',

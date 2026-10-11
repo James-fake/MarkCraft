@@ -146,6 +146,48 @@ export function renameUserTemplate(id: string, name: string): void {
   localStorage.setItem(USER_TEMPLATES_KEY, JSON.stringify(templates));
 }
 
+// —— 收藏 / 最近使用（模板快速访问，localStorage）——
+const FAVORITES_KEY = 'markcraft-template-favorites'
+const RECENT_KEY = 'markcraft-template-recent'
+const RECENT_MAX = 6
+
+function readIdList(key: string): string[] {
+  try {
+    const raw = localStorage.getItem(key)
+    const parsed = raw ? JSON.parse(raw) : []
+    return Array.isArray(parsed) ? parsed.filter((x): x is string => typeof x === 'string') : []
+  } catch { return [] }
+}
+
+export function getFavoriteTemplateIds(): string[] {
+  return readIdList(FAVORITES_KEY)
+}
+
+export function isTemplateFavorite(id: string): boolean {
+  return getFavoriteTemplateIds().includes(id)
+}
+
+/** 切换收藏；返回切换后是否已收藏。 */
+export function toggleTemplateFavorite(id: string): boolean {
+  const favs = getFavoriteTemplateIds()
+  const idx = favs.indexOf(id)
+  if (idx >= 0) favs.splice(idx, 1)
+  else favs.push(id)
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(favs))
+  return idx < 0
+}
+
+export function getRecentTemplateIds(): string[] {
+  return readIdList(RECENT_KEY)
+}
+
+/** 记录一次使用（置顶，去重，最多 RECENT_MAX 条）。 */
+export function pushRecentTemplate(id: string): void {
+  const recents = getRecentTemplateIds().filter(r => r !== id)
+  recents.unshift(id)
+  localStorage.setItem(RECENT_KEY, JSON.stringify(recents.slice(0, RECENT_MAX)))
+}
+
 export function getAllTemplates(): Template[] {
   return [...BUILTIN_TEMPLATES, ...getUserTemplates()];
 }

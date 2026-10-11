@@ -226,7 +226,7 @@ export function useEditorIntegration(p: EditorIntegrationParams): EditorIntegrat
   // —— 弹层回调（与 App.tsx 行为守恒，复用真实 FileStore API）——
 
   const handleTemplateInsert = useCallback(
-    (content: string, meta?: { name?: string }) => {
+    (content: string, meta?: { name?: string; at?: 'start' | 'end' }) => {
       if (!activeFileId) {
         // 无活跃文件：用模板新建一篇，并**按模板名命名**（此前是「未命名-<时间戳>」）
         const base = (meta?.name || '未命名').replace(/[\\/:*?"<>|]/g, '').trim() || '未命名'
@@ -234,13 +234,16 @@ export function useEditorIntegration(p: EditorIntegrationParams): EditorIntegrat
         const id = createFile(rootFolder.id, finalName, content)
         if (id) openFile(id)
       } else {
-        const next = localContent ? localContent + '\n\n' + content : content
+        // 插入位置：末尾（默认）或开头
+        const next = meta?.at === 'start'
+          ? (localContent ? content + '\n\n' + localContent : content)
+          : (localContent ? localContent + '\n\n' + content : content)
         setLocalContent(next)
         scheduleSave(textToStorage(next))
       }
       auroraModal?.close('templateInsert')
-      // 聚焦编辑器并把光标移到文档末尾，让用户直接接着写
-      requestAnimationFrame(() => editorLayoutRef?.current?.focusEnd())
+      // 聚焦编辑器并把光标移到文档末尾（插入到开头时不动光标，避免跳到文末）
+      if (meta?.at !== 'start') requestAnimationFrame(() => editorLayoutRef?.current?.focusEnd())
     },
     [activeFileId, auroraModal, createFile, localContent, openFile, rootFolder, scheduleSave, setLocalContent, editorLayoutRef],
   )

@@ -11,6 +11,14 @@ import {
   getExamples,
   getExampleById,
   importSharedTemplate,
+  saveNoteAsTemplate,
+  renameUserTemplate,
+  deleteUserTemplate,
+  getUserTemplates,
+  isTemplateFavorite,
+  toggleTemplateFavorite,
+  getRecentTemplateIds,
+  pushRecentTemplate,
   type Template,
 } from './templateManager'
 
@@ -88,5 +96,39 @@ describe('共享模板导入（UGC）', () => {
     const tmpl = await importSharedTemplate(makeFile('mytpl.md', md))
     expect(tmpl.name).toBe('我的 Markdown 模板')
     expect(tmpl.content).toContain('正文内容')
+  })
+})
+
+describe('模板管理 · 存为模板 / 重命名 / 删除 / 收藏 / 最近（A+B 档）', () => {
+  it('saveNoteAsTemplate 存为用户模板，deleteUserTemplate 可删除', () => {
+    const t = saveNoteAsTemplate('我的模板', '# 内容')
+    expect(t.isBuiltIn).toBe(false)
+    expect(getUserTemplates().some(x => x.id === t.id)).toBe(true)
+    deleteUserTemplate(t.id)
+    expect(getUserTemplates().some(x => x.id === t.id)).toBe(false)
+  })
+
+  it('renameUserTemplate 改名（中英同步）', () => {
+    const t = saveNoteAsTemplate('旧名', 'x')
+    renameUserTemplate(t.id, '新名')
+    const found = getUserTemplates().find(x => x.id === t.id)
+    expect(found?.name).toBe('新名')
+    expect(found?.nameEn).toBe('新名')
+    deleteUserTemplate(t.id)
+  })
+
+  it('toggleTemplateFavorite 切换收藏', () => {
+    expect(isTemplateFavorite('meeting')).toBe(false)
+    expect(toggleTemplateFavorite('meeting')).toBe(true)
+    expect(isTemplateFavorite('meeting')).toBe(true)
+    expect(toggleTemplateFavorite('meeting')).toBe(false)
+    expect(isTemplateFavorite('meeting')).toBe(false)
+  })
+
+  it('pushRecentTemplate 置顶 + 去重', () => {
+    pushRecentTemplate('a')
+    pushRecentTemplate('b')
+    pushRecentTemplate('a') // 再次使用 → 置顶去重
+    expect(getRecentTemplateIds().slice(0, 2)).toEqual(['a', 'b'])
   })
 })

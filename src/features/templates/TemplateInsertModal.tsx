@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useLanguage } from '../../stores/LanguageStore'
-import { getAllTemplates, applyTemplate, importSharedTemplate, exportTemplateAsFile, getExamples, saveNoteAsTemplate, renameUserTemplate, deleteUserTemplate, Template, ExampleDoc } from './templateManager'
+import { getAllTemplates, applyTemplate, importSharedTemplate, exportTemplateAsFile, getExamples, saveNoteAsTemplate, renameUserTemplate, deleteUserTemplate, toggleTemplateFavorite, getFavoriteTemplateIds, getRecentTemplateIds, pushRecentTemplate, Template, ExampleDoc } from './templateManager'
 import { Button } from '../../components/ui'
 import { useToast } from '../../components/ui/ToastProvider'
 
 interface TemplateInsertModalProps {
   isOpen: boolean
   onClose: () => void
-  onInsert: (content: string, meta?: { name?: string }) => void
+  onInsert: (content: string, meta?: { name?: string; at?: 'start' | 'end' }) => void
   /** 打开模板发现层（P2-7） */
   onOpenDiscovery?: () => void
   /** 当前笔记名（解析 {{title}} / {{filename}}；无文件时为空） */
@@ -43,6 +43,10 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameValue, setRenameValue] = useState('')
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  // 收藏 / 最近过滤（仅模板标签）+ 插入位置
+  const [filter, setFilter] = useState<'all' | 'fav' | 'recent'>('all')
+  const [favVersion, setFavVersion] = useState(0)
+  const [insertAt, setInsertAt] = useState<'start' | 'end'>('end')
 
   // eslint-disable-next-line react-hooks/exhaustive-deps -- nonce: isOpen/version 为 getAllTemplates() 读取型调用的失效闸（打开弹窗与获取模板后刷新列表）
   const allTemplates = useMemo(() => getAllTemplates(), [isOpen, version])
@@ -50,15 +54,30 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
 
   // 当前标签页数据源（模板 or 范例）
   const list = useMemo<Array<Template | ExampleDoc>>(() => {
-    const base: Array<Template | ExampleDoc> = tab === 'template' ? allTemplates : examples
-    if (!searchQuery.trim()) return base
-    const q = searchQuery.toLowerCase()
-    return base.filter(t =>
-      t.name.toLowerCase().includes(q) ||
-      t.nameEn.toLowerCase().includes(q) ||
-      t.id.toLowerCase().includes(q)
-    )
-  }, [tab, allTemplates, examples, searchQuery])
+    let base: Array<Template | ExampleDoc> = tab === 'template' ? allTemplates : examples
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase()
+      base = base.filter(t =>
+        t.name.toLowerCase().includes(q) ||
+        t.nameEn.toLowerCase().includes(q) ||
+        t.id.toLowerCase().includes(q)
+      )
+    }
+    // 收藏 / 最近过滤（仅模板标签；按最近使用顺序重排）
+    if (tab === 'template' && filter === 'fav') {
+      const favs = new Set(getFavoriteTemplateIds())
+      base = base.filter(t => favs.has(t.id))
+    } else if (tab === 'template' && filter === 'recent') {
+      const byId = new Map(base.map(t => [t.id, t]))
+      base = getRecentTemplateIds().map(id => byId.get(id)).filter((t): t is Template => !!t)
+    }
+    return base
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- favVersion：收藏/最近变更后刷新
+  }, [tab, allTemplates, examples, searchQuery, filter, favVersion])
+
+  // 收藏集合（避免每行每渲染都读 localStorage）
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- favVersion：收藏变更后重建
+  const favSet = useMemo(() => new Set(getFavoriteTemplateIds()), [favVersion])
 
   const selectedTemplate = useMemo<Template | null>(
     () => (tab === 'template' ? (list as Template[]).find(t => t.id === selectedId) ?? null : null),
@@ -82,6 +101,7 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
       setSearchQuery('')
       setRenamingId(null)
       setPendingDeleteId(null)
+      setFilter('all')
       const firstId = list[0]?.id ?? ''
       setSelectedId(firstId)
       requestAnimationFrame(() => {
@@ -103,10 +123,14 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
     const item = list.find(t => t.id === selectedId)
     if (!item) return
     // 模板与范例都套变量（范例此前不套 → {{date}} 会原样插入）
-    // 附带名称：无活跃文件时用于「用模板新建命名笔记」
-    onInsertRef.current(applyTemplate(item, vars), { name: isZh ? item.name : item.nameEn })
+    // 附带名称（无文件时用于「用模板新建命名笔记」）与插入位置
+    onInsertRef.current(applyTemplate(item, vars), {
+      name: isZh ? item.name : item.nameEn,
+      at: insertAt,
+    })
+    if (tab === 'template') pushRecentTemplate(item.id)
     onCloseRef.current()
-  }, [selectedId, list, vars, isZh])
+  }, [selectedId, list, vars, isZh, insertAt, tab])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
@@ -149,6 +173,12 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
     deleteConfirm: TP.deleteConfirm,
     untitledTemplate: TP.untitledTemplate,
     renameHint: TP.renameHint,
+    favorites: TP.favorites,
+    recent: TP.recent,
+    filterAll: TP.filterAll,
+    insertPosition: TP.insertPosition,
+    insertAtStart: TP.insertAtStart,
+    insertAtEnd: TP.insertAtEnd,
   }), [TP])
 
   // 导入共享/社区模板（UGC：用户从文件导入他人分享的模板）
@@ -408,6 +438,34 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
               )
             })}
           </div>
+
+          {/* 收藏 / 最近过滤（仅模板标签） */}
+          {tab === 'template' && (
+            <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
+              {(['all', 'fav', 'recent'] as const).map((f) => {
+                const active = filter === f
+                const label = f === 'all' ? texts.filterAll : f === 'fav' ? texts.favorites : texts.recent
+                return (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    aria-label={label}
+                    style={{
+                      fontSize: 11,
+                      padding: '4px 10px',
+                      borderRadius: 999,
+                      border: active ? '1px solid var(--mc-accent)' : '1px solid var(--mc-border-subtle)',
+                      background: active ? 'var(--mc-accent-soft)' : 'transparent',
+                      color: active ? 'var(--mc-accent-text)' : 'var(--mc-text-secondary)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Body: List + Preview */}
@@ -508,6 +566,28 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
                             : texts.example}
                         </div>
                       </div>
+                      {tab === 'template' && (
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); toggleTemplateFavorite(tmpl.id); setFavVersion(v => v + 1) }}
+                          aria-label={texts.favorites}
+                          aria-pressed={favSet.has(tmpl.id)}
+                          title={texts.favorites}
+                          style={{
+                            background: 'transparent',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: 2,
+                            flexShrink: 0,
+                            lineHeight: 0,
+                            color: favSet.has(tmpl.id) ? 'var(--mc-warning)' : 'var(--mc-text-tertiary)',
+                          }}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill={favSet.has(tmpl.id) ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8-5.2-2.7-5.2 2.7 1-5.8L3.5 9.7l5.9-.9z" />
+                          </svg>
+                        </button>
+                      )}
                       {isSelected && (
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--mc-accent-text)" strokeWidth={2.5} style={{ flexShrink: 0 }}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
@@ -695,16 +775,47 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
         {/* Footer */}
         <div style={{
           display: 'flex',
-          justifyContent: 'flex-end',
+          alignItems: 'center',
+          justifyContent: 'space-between',
           gap: 8,
           padding: '16px 24px 20px',
         }}>
-          <Button variant="secondary" onClick={onCloseRef.current}>
-            {texts.cancel}
-          </Button>
-          <Button variant="brand" onClick={handleInsert} disabled={!current}>
-            {texts.insert}
-          </Button>
+          {/* 插入位置：开头 / 末尾 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--mc-text-secondary)' }}>
+            <span>{texts.insertPosition}</span>
+            {(['start', 'end'] as const).map((pos) => {
+              const active = insertAt === pos
+              const label = pos === 'start' ? texts.insertAtStart : texts.insertAtEnd
+              return (
+                <button
+                  key={pos}
+                  type="button"
+                  onClick={() => setInsertAt(pos)}
+                  aria-label={label}
+                  aria-pressed={active}
+                  style={{
+                    fontSize: 11,
+                    padding: '3px 10px',
+                    borderRadius: 999,
+                    border: active ? '1px solid var(--mc-accent)' : '1px solid var(--mc-border-subtle)',
+                    background: active ? 'var(--mc-accent-soft)' : 'transparent',
+                    color: active ? 'var(--mc-accent-text)' : 'var(--mc-text-secondary)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <Button variant="secondary" onClick={onCloseRef.current}>
+              {texts.cancel}
+            </Button>
+            <Button variant="brand" onClick={handleInsert} disabled={!current}>
+              {texts.insert}
+            </Button>
+          </div>
         </div>
 
         {/* 隐藏的文件输入：导入共享/社区模板（.json / .md） */}

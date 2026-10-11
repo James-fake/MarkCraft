@@ -1071,6 +1071,12 @@ export interface Translations {
     deleteConfirm: string
     untitledTemplate: string
     renameHint: string
+    favorites: string
+    recent: string
+    filterAll: string
+    insertPosition: string
+    insertAtStart: string
+    insertAtEnd: string
     badge: {
       'builtin-template': string
       example: string
