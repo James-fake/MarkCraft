@@ -165,7 +165,7 @@ const TemplateDiscoveryModal: React.FC<TemplateDiscoveryModalProps> = ({
           backgroundColor: 'var(--mc-bg-panel)',
           border: '1px solid var(--mc-border-subtle)',
           borderRadius: 'var(--mc-radius-lg)',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.1)',
+          boxShadow: 'var(--mc-shadow-popover)',
           opacity: visible ? 1 : 0,
           transform: visible ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(10px)',
           transition: 'opacity 0.3s ease, transform 0.3s ease',
@@ -179,7 +179,7 @@ const TemplateDiscoveryModal: React.FC<TemplateDiscoveryModalProps> = ({
           position: 'absolute',
           top: 0, left: 0, right: 0,
           height: '3px',
-          background: 'linear-gradient(90deg, #34d399, #a78bfa, #f472b6)',
+          background: 'var(--mc-accent)',
           borderRadius: 'var(--mc-radius-lg) var(--mc-radius-lg) 0 0',
         }} />
 
@@ -188,7 +188,7 @@ const TemplateDiscoveryModal: React.FC<TemplateDiscoveryModalProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
             <div style={{
               width: 36, height: 36, borderRadius: 10,
-              background: 'linear-gradient(135deg, #34d399, #a78bfa)',
+              background: 'var(--mc-accent)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -206,9 +206,9 @@ const TemplateDiscoveryModal: React.FC<TemplateDiscoveryModalProps> = ({
               fontSize: 11,
               padding: '4px 10px',
               borderRadius: 999,
-              color: '#34d399',
-              border: '1px solid rgba(52,211,153,0.35)',
-              background: 'rgba(52,211,153,0.08)',
+              color: 'var(--mc-success-text)',
+              border: '1px solid var(--mc-success)',
+              background: 'var(--mc-success-soft)',
               whiteSpace: 'nowrap',
             }}>
               {texts.localBadge}
@@ -246,7 +246,7 @@ const TemplateDiscoveryModal: React.FC<TemplateDiscoveryModalProps> = ({
               style={{
                 width: '100%', padding: '10px 14px 10px 36px', fontSize: 13,
                 border: '1px solid var(--mc-border-subtle)', borderRadius: 10,
-                backgroundColor: 'rgba(255,255,255,0.04)', color: 'var(--mc-text-primary)',
+                backgroundColor: 'var(--mc-bg-hover)', color: 'var(--mc-text-primary)',
                 outline: 'none', boxSizing: 'border-box',
               }}
             />
@@ -264,9 +264,9 @@ const TemplateDiscoveryModal: React.FC<TemplateDiscoveryModalProps> = ({
                   aria-label={label}
                   style={{
                     fontSize: 12, padding: '6px 14px', borderRadius: 999,
-                    border: active ? '1px solid rgba(167,139,250,0.4)' : '1px solid var(--mc-border-subtle)',
-                    background: active ? 'rgba(167,139,250,0.1)' : 'transparent',
-                    color: active ? '#a78bfa' : 'var(--mc-text-primary)',
+                    border: active ? '1px solid var(--mc-accent)' : '1px solid var(--mc-border-subtle)',
+                    background: active ? 'var(--mc-accent-soft)' : 'transparent',
+                    color: active ? 'var(--mc-accent-text)' : 'var(--mc-text-primary)',
                     cursor: 'pointer', fontWeight: active ? 600 : 400,
                   }}
                 >
@@ -293,7 +293,7 @@ const TemplateDiscoveryModal: React.FC<TemplateDiscoveryModalProps> = ({
                       display: 'flex', flexDirection: 'column', gap: 8,
                       padding: 12, borderRadius: 12,
                       border: '1px solid var(--mc-border-subtle)',
-                      backgroundColor: 'rgba(255,255,255,0.02)',
+                      backgroundColor: 'var(--mc-bg-elevated)',
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

@@ -236,7 +236,7 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
           backgroundColor: 'var(--mc-bg-panel)',
           border: '1px solid var(--mc-border-subtle)',
           borderRadius: 'var(--mc-radius-lg)',
-          boxShadow: '0 24px 64px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.1)',
+          boxShadow: 'var(--mc-shadow-popover)',
           opacity: visible ? 1 : 0,
           transform: visible ? 'scale(1) translateY(0)' : 'scale(0.95) translateY(10px)',
           transition: 'opacity 0.3s ease, transform 0.3s ease',
@@ -252,7 +252,7 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
           left: 0,
           right: 0,
           height: '3px',
-          background: 'linear-gradient(90deg, #a78bfa, #f472b6, #fbbf24)',
+          background: 'var(--mc-accent)',
           borderRadius: 'var(--mc-radius-lg) var(--mc-radius-lg) 0 0',
         }} />
 
@@ -268,7 +268,7 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
               width: 36,
               height: 36,
               borderRadius: 10,
-              background: 'linear-gradient(135deg, #a78bfa, #f472b6)',
+              background: 'var(--mc-accent)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -366,15 +366,15 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
                 fontSize: 13,
                 border: '1px solid var(--mc-border-subtle)',
                 borderRadius: 10,
-                backgroundColor: 'rgba(255,255,255,0.04)',
+                backgroundColor: 'var(--mc-bg-hover)',
                 color: 'var(--mc-text-primary)',
                 outline: 'none',
                 boxSizing: 'border-box',
                 transition: 'all 0.2s ease',
               }}
               onFocus={(e) => {
-                e.currentTarget.style.border = '1px solid rgba(167,139,250,0.5)'
-                e.currentTarget.style.boxShadow = '0 0 0 3px rgba(167,139,250,0.1)'
+                e.currentTarget.style.border = '1px solid var(--mc-accent)'
+                e.currentTarget.style.boxShadow = '0 0 0 3px var(--mc-accent-soft)'
               }}
               onBlur={(e) => {
                 e.currentTarget.style.border = '1px solid var(--mc-border-subtle)'
@@ -396,9 +396,9 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
                     fontSize: 12,
                     padding: '6px 14px',
                     borderRadius: 999,
-                    border: active ? '1px solid rgba(167,139,250,0.4)' : '1px solid var(--mc-border-subtle)',
-                    background: active ? 'rgba(167,139,250,0.1)' : 'transparent',
-                    color: active ? '#a78bfa' : 'var(--mc-text-primary)',
+                    border: active ? '1px solid var(--mc-accent)' : '1px solid var(--mc-border-subtle)',
+                    background: active ? 'var(--mc-accent-soft)' : 'transparent',
+                    color: active ? 'var(--mc-accent-text)' : 'var(--mc-text-primary)',
                     cursor: 'pointer',
                     fontWeight: active ? 600 : 400,
                   }}
@@ -425,7 +425,7 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
             flexShrink: 0,
             border: '1px solid var(--mc-border-subtle)',
             borderRadius: 10,
-            backgroundColor: 'rgba(255,255,255,0.02)',
+            backgroundColor: 'var(--mc-bg-elevated)',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
@@ -450,10 +450,10 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
                         cursor: 'pointer',
                         borderRadius: 8,
                         backgroundColor: isSelected
-                          ? 'rgba(167,139,250,0.08)'
+                          ? 'var(--mc-accent-soft)'
                           : 'transparent',
                         border: isSelected
-                          ? '1px solid rgba(167,139,250,0.2)'
+                          ? '1px solid var(--mc-accent-soft)'
                           : '1px solid transparent',
                         transition: 'all 0.15s ease',
                         position: 'relative',
@@ -461,7 +461,7 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
                       }}
                       onMouseEnter={(e) => {
                         if (!isSelected) {
-                          e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.04)'
+                          e.currentTarget.style.backgroundColor = 'var(--mc-bg-hover)'
                         }
                       }}
                       onMouseLeave={(e) => {
@@ -478,7 +478,7 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
                           bottom: 6,
                           width: 2,
                           borderRadius: 1,
-                          background: 'linear-gradient(180deg, #a78bfa, #f472b6)',
+                          background: 'var(--mc-accent)',
                         }} />
                       )}
                       <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>
@@ -509,7 +509,7 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
                         </div>
                       </div>
                       {isSelected && (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#a78bfa" strokeWidth={2.5} style={{ flexShrink: 0 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--mc-accent-text)" strokeWidth={2.5} style={{ flexShrink: 0 }}>
                           <path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" />
                         </svg>
                       )}
@@ -536,7 +536,7 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
             minWidth: 0,
             border: '1px solid var(--mc-border-subtle)',
             borderRadius: 10,
-            backgroundColor: 'rgba(255,255,255,0.02)',
+            backgroundColor: 'var(--mc-bg-elevated)',
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'column',
@@ -562,7 +562,7 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
                   width: 2,
                   height: 10,
                   borderRadius: 1,
-                  background: 'linear-gradient(180deg, #a78bfa, #f472b6)',
+                  background: 'var(--mc-accent)',
                   flexShrink: 0,
                 }} />
                 {texts.preview}
@@ -598,7 +598,7 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
                           {texts.renameTemplate}
                         </Button>
                         {pendingDeleteId === selectedTemplate.id ? (
-                          <Button variant="ghost" onClick={() => handleDelete(selectedTemplate.id)} style={{ fontSize: 11, padding: '4px 8px', color: '#e5484d' }} aria-label={texts.deleteConfirm}>
+                          <Button variant="ghost" onClick={() => handleDelete(selectedTemplate.id)} style={{ fontSize: 11, padding: '4px 8px', color: 'var(--mc-danger)' }} aria-label={texts.deleteConfirm}>
                             {texts.deleteConfirm}
                           </Button>
                         ) : (
@@ -666,8 +666,8 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
                   padding: '6px 10px',
                   fontSize: 11,
                   opacity: 0.5,
-                  backgroundColor: 'rgba(167,139,250,0.06)',
-                  border: '1px solid rgba(167,139,250,0.12)',
+                  backgroundColor: 'var(--mc-accent-soft)',
+                  border: '1px solid var(--mc-accent-soft)',
                   borderRadius: 8,
                   color: 'var(--mc-text-primary)',
                 }}>
