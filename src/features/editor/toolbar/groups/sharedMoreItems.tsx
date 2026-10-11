@@ -19,8 +19,6 @@ interface SharedMoreItemsParams {
   onOpenFile?: () => void
   onSaveAs?: () => void
   onPrint?: () => void
-  onToggleAutocomplete?: () => void
-  autocompleteEnabled?: boolean
   /** 打开模板选择器（Aurora 注入；传入才在更多菜单显示「使用模板」） */
   onUseTemplate?: () => void
 }
@@ -49,8 +47,6 @@ export function buildSharedMoreItems({
   onOpenFile,
   onSaveAs,
   onPrint,
-  onToggleAutocomplete,
-  autocompleteEnabled,
   onUseTemplate,
 }: SharedMoreItemsParams): MoreDropdownItem[] {
   const leading: MoreDropdownItem[] = []
@@ -196,17 +192,6 @@ export function buildSharedMoreItems({
         </svg>
       ),
       action: () => onPrint?.(),
-    },
-    {
-      label: t.toolbar.autocomplete || '自动补全',
-      icon: (
-        <svg style={{ width: '14px', height: '14px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-        </svg>
-      ),
-      action: () => onToggleAutocomplete?.(),
-      type: 'toggle' as const,
-      checked: autocompleteEnabled,
     },
   ]
 }

@@ -157,8 +157,6 @@ export default function MarkdownToolbar(props: MarkdownToolbarProps) {
       onOpenFile: props.onOpenFile,
       onSaveAs: props.onSaveAs,
       onPrint: props.onPrint ?? (() => window.print()),
-      onToggleAutocomplete: props.onToggleAutocomplete,
-      autocompleteEnabled: props.autocompleteEnabled,
       onUseTemplate: props.onUseTemplate,
     }),
   ]
