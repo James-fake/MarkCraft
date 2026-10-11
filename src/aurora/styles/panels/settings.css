@@ -614,3 +614,96 @@
   white-space: nowrap;
   border: 0;
 }
+
+/* ── 应用内浏览器视图（「关于」→ 官方网站 / 反馈问题 = Gitee 仓库） ──
+ * 占满设置内容区；`<webview>` 是 Electron 独立 webContents，不受 Gitee
+ * `X-Frame-Options: SAMEORIGIN` 限制（iframe 会被拒）。 */
+.aurora-settings__browser {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.aurora-settings__browser-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--mc-border-subtle);
+  flex-shrink: 0;
+}
+
+.aurora-settings__browser-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: var(--mc-radius-sm);
+  border: 1px solid var(--mc-border-subtle);
+  background: transparent;
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-sm);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color var(--mc-dur-micro) ease-out, color var(--mc-dur-micro) ease-out;
+}
+.aurora-settings__browser-btn:hover:not(:disabled) {
+  background: var(--mc-bg-hover);
+  color: var(--mc-text-primary);
+}
+.aurora-settings__browser-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.aurora-settings__browser-url {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 4px 10px;
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-bg-elevated);
+}
+
+.aurora-settings__browser-view {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: none;
+  background: var(--mc-bg-content);
+}
+
+.aurora-settings__browser-loading {
+  position: absolute;
+  top: 52px;
+  right: 18px;
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+  background: var(--mc-bg-elevated);
+  padding: 3px 8px;
+  border-radius: var(--mc-radius-sm);
+}
+
+.aurora-settings__browser-fallback {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 24px;
+  text-align: center;
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-sm);
+}
+.aurora-settings__browser-fallback a {
+  color: var(--mc-accent-text);
+  word-break: break-all;
+}

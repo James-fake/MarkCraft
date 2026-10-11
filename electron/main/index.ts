@@ -539,6 +539,14 @@ function createWindow(): void {
       contextIsolation: true,
       nodeIntegration: false,
       spellcheck: false,
+      /**
+       * 允许渲染进程使用 `<webview>`：用于「关于」里的**应用内浏览器视图**（Gitee 仓库/Issues）。
+       * 必要性：Gitee 响应头 `X-Frame-Options: SAMEORIGIN` + `frame-ancestors 'self'`，
+       * 普通 `<iframe>` 会被拒绝；`<webview>` 是独立 webContents（等同浏览器标签），不受该限制。
+       * 风险可控：本应用渲染进程只加载自有页面（无不可信内容），webview 自身不注入 preload、
+       * 不开 nodeIntegration。
+       */
+      webviewTag: true,
     },
   })
 

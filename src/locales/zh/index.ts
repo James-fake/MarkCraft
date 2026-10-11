@@ -1667,6 +1667,12 @@ export interface Translations {
     license: string
     openNewWindow: string
     openKbTitle: string
+    openInApp: string
+    browserBack: string
+    browserBackOne: string
+    browserReload: string
+    browserLoading: string
+    browserUnavailable: string
     docDeleted: string
     checkUpdate: string
     changelogBtn: string

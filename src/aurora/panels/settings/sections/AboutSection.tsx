@@ -35,10 +35,13 @@ export function AboutSection({
   query,
   toast,
   nav,
+  onOpenBrowser,
 }: {
   query?: string
   toast?: (msg: string) => void
   nav?: (id: string, param?: string) => void
+  /** 在**应用内浏览器视图**打开外链（如 Gitee 仓库 / Issues）；缺省回退 window.open */
+  onOpenBrowser?: (url: string) => void
 }) {
   const { q, match } = useSettingsQuery(query)
   const { rootFolder, createFolder, createFile, moveNode } = useFileManager()
@@ -139,8 +142,8 @@ export function AboutSection({
                   'aurora-settings__about-link',
                   enabled ? '' : 'aurora-settings__about-link--disabled',
                 ].filter(Boolean).join(' ')}
-                title={enabled ? A.openNewWindow : A.soon}
-                onClick={() => enabled && openExternal(url)}
+                title={enabled ? (onOpenBrowser ? A.openInApp : A.openNewWindow) : A.soon}
+                onClick={() => { if (enabled) (onOpenBrowser ?? openExternal)(url) }}
               >
                 {label}
                 {!enabled && <span className="aurora-settings__soon">{A.soon}</span>}

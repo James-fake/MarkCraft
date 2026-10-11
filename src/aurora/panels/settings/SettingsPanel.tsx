@@ -15,6 +15,7 @@ import { DataSection } from './sections/DataSection'
 import { ShortcutsSection } from './sections/ShortcutsSection'
 import { AboutSection } from './sections/AboutSection'
 import { UserSection } from './sections/UserSection'
+import { SettingsBrowser } from './SettingsBrowser'
 
 /**
  * 设置分类项
@@ -76,6 +77,8 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
   const { openCommandPalette } = useCommandPalette()
   const { t } = useLanguage()
   const SP = t.settingsPanel
+  /** 应用内浏览器视图（「关于」里的 官方网站 / 反馈问题）—— 非 null 时占满内容区 */
+  const [browserUrl, setBrowserUrl] = useState<string | null>(null)
 
   /**
    * 顶栏分类切换 = Apple 分段控件式滑块（需求 N 第四轮定案）。
@@ -121,7 +124,7 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
       case 'shortcuts':
         return <ShortcutsSection toast={toast} />
       case 'about':
-        return <AboutSection toast={toast} nav={nav} />
+        return <AboutSection toast={toast} nav={nav} onOpenBrowser={setBrowserUrl} />
       default:
         return <GeneralSection toast={toast} />
     }
@@ -172,7 +175,7 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
                       'aurora-settings__nav-tab',
                       isActive ? 'aurora-settings__nav-tab--active' : '',
                     ].filter(Boolean).join(' ')}
-                    onClick={() => setActiveCategory(cat.id)}
+                    onClick={() => { setActiveCategory(cat.id); setBrowserUrl(null) }}
                     title={cat.label}
                   >
                     <IconComp size={16} />
@@ -186,11 +189,17 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
 
         {/* 内容区：完全不参与滑动（需求 N 第四轮：内容区零位移，第三轮的「呼应位移」已删） */}
         <div className="aurora-settings__content">
-          <div className="aurora-settings__header">
-            <div className="aurora-settings__header-title">{categoryInfo.title}</div>
-            <div className="aurora-settings__header-desc">{categoryInfo.desc}</div>
-          </div>
-          {renderCategory(activeCategory)}
+          {browserUrl ? (
+            <SettingsBrowser url={browserUrl} onClose={() => setBrowserUrl(null)} />
+          ) : (
+            <>
+              <div className="aurora-settings__header">
+                <div className="aurora-settings__header-title">{categoryInfo.title}</div>
+                <div className="aurora-settings__header-desc">{categoryInfo.desc}</div>
+              </div>
+              {renderCategory(activeCategory)}
+            </>
+          )}
         </div>
       </div>
     </PageFrame>

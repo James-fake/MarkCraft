@@ -95,17 +95,17 @@ describe('Aurora SettingsPanel · 真实数据换芯', () => {
     expect(document.querySelector('[role="dialog"]')).toBeTruthy()
   })
 
-  it('D11 关于页外链真实可点（window.open），无后端项置灰', () => {
+  it('D11 关于页外链在应用内浏览器视图打开，无后端项置灰', () => {
     const { p } = renderSettings()
     fireEvent.click(p.getByText('关于'))
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
-    fireEvent.click(p.getByText('官方网站'))
-    // 真实仓库地址（2026-10-09 起指向 Gitee，替换原占位 github.com/markcraft/markcraft）
-    expect(openSpy).toHaveBeenCalledWith('https://gitee.com/James-fake/markcraft', '_blank', 'noopener,noreferrer')
-    openSpy.mockRestore()
     // 无后端项（检查更新）应 disabled
     const updateBtn = p.getByText('检查更新').closest('button') as HTMLButtonElement
     expect(updateBtn.disabled).toBe(true)
+    // 点击外链 → 在设置内容区打开「应用内浏览器视图」（不再是 window.open 新窗口）
+    // jsdom 非 Electron → 降级为「返回设置」+ 可点链接
+    fireEvent.click(p.getByText('官方网站'))
+    expect(p.getByText('返回设置')).toBeTruthy()
+    expect(p.getAllByText('https://gitee.com/James-fake/markcraft').length).toBeGreaterThanOrEqual(1)
   })
 
   it('D1 编辑器页提供「默认编辑器模式」下拉（源码/所见即所得）', () => {
