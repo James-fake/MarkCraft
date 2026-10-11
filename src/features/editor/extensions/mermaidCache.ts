@@ -64,10 +64,31 @@ try {
 
 let domRenderIdCounter = 0
 
-/** mermaid 在 strict 模式下已禁用内嵌 HTML/事件处理器，这里再对 SVG 兜底净化一次 */
+/**
+ * mermaid SVG 的兜底净化。
+ *
+ * ⚠️ 真实事故（2026-10-11 用户报障）：**思维导图只画出了框和连线，一个字都没有**。
+ *    根因：DOMPurify 的 **svg profile 会把 `<foreignObject>` 连同其内容一起剥掉**
+ *    （实测 `DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true } })` 把
+ *     `<foreignObject><div>文字</div></foreignObject>` 变成空的 `<foreignObject/>`），
+ *    而 mermaid 的 **HTML 标签**（flowchart / mindmap 的节点文字）恰恰就放在
+ *    `<foreignObject>` 里（`htmlLabels` 默认 true）→ 只剩形状、文字全没。
+ *
+ * 修法：先把每个 `<foreignObject>…</foreignObject>` 整块抽成占位，消毒其余 SVG，
+ * 再**原样放回**。foreignObject 内部的文字由 mermaid `securityLevel: 'strict'` 的
+ * `sanitizeText`（内部即 DOMPurify）负责消毒，故这里不做二次处理。
+ */
 export function sanitizeMermaidSvg(svg: string): string {
   try {
-    return DOMPurify.sanitize(svg, { USE_PROFILES: { svg: true, svgFilters: true } })
+    const foreignBlocks: string[] = []
+    const protectedSvg = svg.replace(/<foreignObject[\s\S]*?<\/foreignObject>/gi, (m) => {
+      const idx = foreignBlocks.length
+      foreignBlocks.push(m)
+      return `\uE000FO${idx}\uE001`
+    })
+    let out = DOMPurify.sanitize(protectedSvg, { USE_PROFILES: { svg: true, svgFilters: true } })
+    out = out.replace(/\uE000FO(\d+)\uE001/g, (_m, i: string) => foreignBlocks[Number(i)] ?? '')
+    return out
   } catch {
     return svg
   }
