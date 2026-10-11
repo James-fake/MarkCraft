@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import type { Editor } from '@tiptap/react'
 import type { EditorView } from '@tiptap/pm/view'
 import { useLinkIndex } from '@stores/LinkIndexStore'
+import { useFileManager } from '@stores/FileStore'
 import { useLanguage } from '@stores/LanguageStore'
 import { formatDate } from '../../fileManager/DailyNoteService'
 import type { FileNode } from '@src/types/fileManager'
@@ -42,6 +43,26 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
   const [headingMode, setHeadingMode] = useState<HeadingMode | null>(null)
   const [headingResults, setHeadingResults] = useState<string[]>([])
   const { searchFiles, getFileHeadings, resolveTarget, getFilePath } = useLinkIndex()
+  const { rootFolder } = useFileManager()
+
+  /**
+   * 文件 id → 修改日期（补全列表里显示，便于区分同名笔记）。
+   *
+   * ⚠️ 不能直接用 `searchFiles` 返回的 FileNode —— 那里 `updatedAt` 是硬编码的 0
+   *    （链接索引里只有名字与链接关系，没有时间戳），显示出来会全变成 1970 年。
+   *    真实时间戳只存在于文件树（FileManager）里，故在此单独建索引。
+   */
+  const updatedStampById = useMemo(() => {
+    const map = new Map<string, string>()
+    const walk = (node: FileNode) => {
+      if (node.type === 'file' && node.updatedAt) {
+        map.set(node.id, formatDate(new Date(node.updatedAt)))
+      }
+      node.children?.forEach(walk)
+    }
+    if (rootFolder) walk(rootFolder)
+    return map
+  }, [rootFolder])
   const containerRef = useRef<HTMLDivElement>(null)
 
   // Refs to avoid stale closures in the keydown handler
@@ -558,6 +579,16 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
           const hasDuplicateName = results.some(
             other => other.id !== file.id && stripMdExtension(other.name) === fileNameWithoutExt
           )
+          const stamp = updatedStampById.get(file.id)
+          // 第二行文案：重名时以路径为主（警告色，好分辨）；否则「首标题 · 路径」
+          const secondaryParts: string[] = []
+          if (hasDuplicateName && filePath) {
+            secondaryParts.push(filePath)
+          } else {
+            if (firstHeading) secondaryParts.push(firstHeading)
+            if (filePath) secondaryParts.push(filePath)
+          }
+          const secondaryText = secondaryParts.join(' · ') || file.id
           return (
             <div
               key={file.id}
@@ -591,43 +622,41 @@ const WikiLinkAutocomplete: React.FC<WikiLinkAutocompleteProps> = ({ editor }) =
                 >
                   {stripMdExtension(file.name)}
                 </span>
-                {hasDuplicateName && filePath ? (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'baseline',
+                    gap: 6,
+                    minWidth: 0,
+                  }}
+                >
                   <span
                     style={{
                       fontSize: 'var(--mc-font-xs)',
-                      color: 'var(--mc-warning)',
+                      color:
+                        hasDuplicateName && filePath
+                          ? 'var(--mc-warning)'
+                          : 'var(--mc-text-tertiary)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {filePath}
+                    {secondaryText}
                   </span>
-                ) : firstHeading ? (
-                  <span
-                    style={{
-                      fontSize: 'var(--mc-font-xs)',
-                      color: 'var(--mc-text-tertiary)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {firstHeading}
-                  </span>
-                ) : (
-                  <span
-                    style={{
-                      fontSize: 'var(--mc-font-xs)',
-                      color: 'var(--mc-text-tertiary)',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {file.id}
-                  </span>
-                )}
+                  {stamp ? (
+                    <span
+                      style={{
+                        fontSize: 'var(--mc-font-xs)',
+                        color: 'var(--mc-text-tertiary)',
+                        opacity: 0.75,
+                        flexShrink: 0,
+                      }}
+                    >
+                      {stamp}
+                    </span>
+                  ) : null}
+                </div>
               </div>
             </div>
           )

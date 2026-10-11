@@ -10,6 +10,9 @@ import {
   filterBlockCandidates,
   type BlockCandidate,
 } from '@services/clipMaterial'
+import { extractHeadings, stripMdExtension } from '@stores/linkIndexShared'
+import { rankFileMatches } from '@core/files/fileMatch'
+import { getRecentFiles } from '@core/files/recentFiles'
 
 /** 自动补全下拉项 + 源码模式格式化占位文案（可被调用方以目标语言覆盖） */
 export interface AutocompleteMessages {
@@ -134,26 +137,85 @@ function languageCompletions(context: CompletionContext) {
   return { from: match.from + 3, options }
 }
 
-// 从 localStorage 读取文件树中的所有文件名
-function getFileNamesFromStorage(): string[] {
+/** 补全候选：文件 + 它所在的目录（目录既用于排序「同目录优先」，也用于列表展示） */
+interface FileCandidate {
+  id: string
+  name: string
+  dir: string
+  updatedAt: number
+}
+
+/** 从 localStorage 的文件树展平成**带目录路径**的候选（补全排序与展示用） */
+function getFileCandidatesFromStorage(): FileCandidate[] {
   try {
     const saved = localStorage.getItem('markcraft-file-manager')
     if (!saved) return []
     const parsed = JSON.parse(saved) as { rootFolder: FileNode }
-    const names: string[] = []
-    const collect = (node: FileNode) => {
-      if (node.type === 'file') names.push(node.name)
-      if (node.children) node.children.forEach(collect)
+    if (!parsed?.rootFolder) return []
+    const out: FileCandidate[] = []
+    const walk = (node: FileNode, dir: string) => {
+      if (node.type === 'file') {
+        out.push({ id: node.id, name: node.name, dir, updatedAt: node.updatedAt ?? 0 })
+        return
+      }
+      const childDir = dir ? `${dir}/${node.name}` : node.name
+      node.children?.forEach((c) => walk(c, childDir))
     }
-    if (parsed.rootFolder) collect(parsed.rootFolder)
-    return names
+    parsed.rootFolder.children?.forEach((c) => walk(c, ''))
+    return out
   } catch {
     return []
   }
 }
 
-// WikiLink 补全 — 输入 [[ 后提示文件名
-function wikiLinkCompletions(context: CompletionContext) {
+// 从 localStorage 读取文件树中的所有文件名
+function getFileNamesFromStorage(): string[] {
+  return getFileCandidatesFromStorage().map((c) => c.name)
+}
+
+/**
+ * 按笔记名找文件内容（与 `getFileNamesFromStorage` 同源：localStorage 的文件树）。
+ *
+ * 匹配顺序：精确（去 .md） → 前缀 → 子串，取第一个命中 —— 用户在 `[[` 后面
+ * 可能写全名也可能只写前几个字，`#` 之前的部分必须能落到**唯一**一篇笔记上。
+ * 找不到返回 null（此时不弹补全，用户继续打字即可）。
+ */
+function findFileContentByName(query: string): string | null {
+  // 查询侧也要去 .md —— 用户可能写 `[[笔记.md#`，而文件树里的名字是 `笔记.md`
+  const q = stripMdExtension(query.trim()).toLowerCase()
+  if (!q) return null
+  try {
+    const saved = localStorage.getItem('markcraft-file-manager')
+    if (!saved) return null
+    const parsed = JSON.parse(saved) as { rootFolder: FileNode }
+    if (!parsed?.rootFolder) return null
+
+    const files: FileNode[] = []
+    const collect = (node: FileNode) => {
+      if (node.type === 'file') files.push(node)
+      node.children?.forEach(collect)
+    }
+    collect(parsed.rootFolder)
+
+    const strip = (n: string) => stripMdExtension(n).toLowerCase()
+    const hit =
+      files.find(f => strip(f.name) === q) ??
+      files.find(f => strip(f.name).startsWith(q)) ??
+      files.find(f => strip(f.name).includes(q))
+    return hit ? hit.content ?? '' : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * WikiLink 补全 —— `[[` 后补**文件名**；`[[文件名#` 后补**该文件的章节标题**。
+ *
+ * ⚠️ 2026-10-11 对齐两种模式：所见即所得（`WikiLinkAutocomplete`）早已支持
+ *    `#` 章节 / `|` 别名 / 日期建议，而源码模式**只补文件名** ——
+ *    写 `[[笔记#章节]]` 时章节名只能手打（还容易打错）。这里先把 `#` 补齐。
+ */
+export function wikiLinkCompletions(context: CompletionContext) {
   const match = context.matchBefore(/\[\[([^\]]*)/)
   if (!match) return null
   // 确保是以 [[ 开头（而非已经有 ]] 闭合的）
@@ -161,17 +223,49 @@ function wikiLinkCompletions(context: CompletionContext) {
   const afterMatch = fullText.slice(match.from, context.pos)
   if (afterMatch.includes(']]')) return null
 
-  const query = match.text.slice(2).toLowerCase()
-  const fileNames = getFileNamesFromStorage()
-  const options = fileNames
-    .filter(name => name.toLowerCase().includes(query))
-    .slice(0, 20)
-    .map(name => ({
-      label: name,
+  const raw = match.text.slice(2) // `[[` 之后到光标
+
+  // ① 章节模式：[[文件名# → 列出该文件的标题
+  const hashIdx = raw.indexOf('#')
+  if (hashIdx !== -1) {
+    const nameQuery = raw.slice(0, hashIdx)
+    const headingQuery = raw.slice(hashIdx + 1).toLowerCase()
+    const content = findFileContentByName(nameQuery)
+    if (content === null) return null
+
+    const base = stripMdExtension(nameQuery.trim())
+    const headings = extractHeadings(content)
+      .filter(h => !headingQuery || h.toLowerCase().includes(headingQuery))
+      .slice(0, 20)
+    if (headings.length === 0) return null
+
+    return {
+      // from 设为整个 `[[...` 的起点：apply 给出的是完整 `[[文件名#标题]]`
+      from: match.from,
+      options: headings.map(h => ({
+        label: h,
+        type: 'text' as const,
+        detail: 'Heading',
+        apply: `[[${base}#${h}]]`,
+      })),
+    }
+  }
+
+  // ② 文件名模式：与所见即所得共用同一份匹配与排序（@core/files/fileMatch），
+  //    不再按遍历顺序返回 —— 输入完整文件名时应排第一。
+  const ranked = rankFileMatches(raw, getFileCandidatesFromStorage(), {
+    recentFileIds: getRecentFiles().map((r) => r.fileId),
+  })
+  const options = ranked.slice(0, 20).map((c) => {
+    const base = stripMdExtension(c.name)
+    return {
+      label: base,
       type: 'text' as const,
-      detail: 'WikiLink',
-      apply: `[[${name}]]`,
-    }))
+      // 列表里显示所在文件夹：同名笔记能分辨是哪个（2026-10-11 优化）
+      detail: c.dir || 'WikiLink',
+      apply: `[[${base}]]`,
+    }
+  })
 
   if (options.length === 0) return null
   return { from: match.from, options }

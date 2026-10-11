@@ -1,7 +1,14 @@
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, beforeEach } from 'vitest'
 import { EditorView } from '@codemirror/view'
 import { EditorState, EditorSelection } from '@codemirror/state'
-import { cm6FormatStrike, cm6FormatInlineCode, cm6InsertLink } from './autocompleteExtension'
+import { CompletionContext } from '@codemirror/autocomplete'
+import type { FileNode } from '@src/types/fileManager'
+import {
+  cm6FormatStrike,
+  cm6FormatInlineCode,
+  cm6InsertLink,
+  wikiLinkCompletions,
+} from './autocompleteExtension'
 
 function makeView(doc: string, from: number, to: number): EditorView {
   return new EditorView({
@@ -58,5 +65,78 @@ describe('cm6 source-mode format helpers', () => {
     const view = track(makeView('abc', 0, 0))
     cm6InsertLink(view, 'https://x.com')
     expect(view.state.doc.toString()).toBe('[链接文字](https://x.com)abc')
+  })
+})
+
+/**
+ * 回归锁（2026-10-11 用户反馈后优化）：源码模式的 WikiLink 补全**也能补章节**。
+ *
+ * 所见即所得（`WikiLinkAutocomplete`）早已支持 `[[文件名#` 补章节、`|` 别名与日期建议，
+ * 而源码模式（`wikiLinkCompletions`）**只补文件名** —— 写 `[[笔记#章节]]` 时章节名只能手打
+ * （还容易打错）。这里锁住源码模式补齐后的行为。
+ */
+const ROOT: FileNode = {
+  id: 'root',
+  name: 'root',
+  type: 'folder',
+  createdAt: 0,
+  updatedAt: 0,
+  children: [
+    {
+      id: 'n',
+      name: '笔记.md',
+      type: 'file',
+      content: '# 引言\n正文\n## 方法\n### 细节\n',
+      createdAt: 0,
+      updatedAt: 0,
+    },
+  ],
+}
+
+function contextAt(doc: string): CompletionContext {
+  return new CompletionContext(EditorState.create({ doc }), doc.length, false)
+}
+
+describe('源码模式 · WikiLink 补全（含 # 章节）', () => {
+  beforeEach(() => {
+    localStorage.setItem('markcraft-file-manager', JSON.stringify({ rootFolder: ROOT }))
+  })
+  afterEach(() => {
+    localStorage.removeItem('markcraft-file-manager')
+  })
+
+  it('[[笔记# → 列出该笔记的章节标题，apply 出完整 [[笔记#标题]]', () => {
+    const res = wikiLinkCompletions(contextAt('[[笔记#'))
+    expect(res, '必须给出补全项').not.toBeNull()
+    const labels = res!.options.map(o => o.label)
+    expect(labels).toContain('引言')
+    expect(labels).toContain('方法')
+    expect(labels).toContain('细节')
+    expect(res!.options[0].apply).toBe('[[笔记#引言]]')
+  })
+
+  it('章节可按关键字过滤', () => {
+    const res = wikiLinkCompletions(contextAt('[[笔记#方'))
+    expect(res).not.toBeNull()
+    expect(res!.options.map(o => o.label)).toEqual(['方法'])
+  })
+
+  it('文件名带不带 .md 都能命中', () => {
+    expect(wikiLinkCompletions(contextAt('[[笔记.md#'))).not.toBeNull()
+  })
+
+  it('目标笔记不存在 → 不弹补全（返回 null）', () => {
+    expect(wikiLinkCompletions(contextAt('[[没这篇#'))).toBeNull()
+  })
+
+  it('文件名模式仍工作，且插入的是去 .md 的名字（与所见即所得一致）', () => {
+    const res = wikiLinkCompletions(contextAt('[[笔'))
+    expect(res).not.toBeNull()
+    expect(res!.options[0].label).toBe('笔记')
+    expect(res!.options[0].apply).toBe('[[笔记]]')
+  })
+
+  it('已闭合的 [[...]] 不再触发补全', () => {
+    expect(wikiLinkCompletions(contextAt('[[笔记]]'))).toBeNull()
   })
 })

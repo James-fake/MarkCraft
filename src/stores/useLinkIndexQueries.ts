@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
 import { FileNode } from '../types/fileManager';
 import { stripMdExtension } from './linkIndexShared';
+import { rankFileMatches } from '@core/files/fileMatch';
+import { getRecentFiles } from '@core/files/recentFiles';
 import type { FileLinkIndex, GraphData, GraphEdge, GraphNode, LinkRecord } from './linkIndexShared';
 
 /**
@@ -123,24 +125,30 @@ export function useLinkIndexQueries(
     return '';
   }, [filePathMap]);
 
+  /**
+   * 补全用的笔记搜索（所见即所得）。
+   *
+   * ⚠️ 2026-10-11：原实现是 `includes` 过滤后**按 Map 遍历顺序返回** —— 输入完整文件名时
+   *    它不一定排第一，补全就得上下翻找。现改用 `@core/files/fileMatch` 的统一排序
+   *    （精确 > 前缀 > 子串，再叠加最近打开 / 被引用数），与源码模式行为一致。
+   */
   const searchFiles = useCallback((query: string): FileNode[] => {
-    // We don't have access to rootFolder as state here; accept it via closure
-    // from the last rebuild. Since we track file names in the index, use that.
     if (!query) return [];
-    const lower = query.toLowerCase();
-    const results: FileNode[] = [];
-    for (const [, entry] of fileIndex) {
-      if (stripMdExtension(entry.fileName).toLowerCase().includes(lower)) {
-        results.push({
-          id: entry.fileId,
-          name: entry.fileName,
-          type: 'file',
-          createdAt: 0,
-          updatedAt: 0,
-        });
-      }
-    }
-    return results;
+    const candidates = [...fileIndex.values()].map((entry) => ({
+      id: entry.fileId,
+      name: entry.fileName,
+      // 被引用得多 = 更可能是用户想链的那篇（枢纽笔记）
+      backlinkCount: entry.backlinks.length,
+    }));
+    const recentFileIds = getRecentFiles().map((r) => r.fileId);
+    const ranked = rankFileMatches(query, candidates, { recentFileIds });
+    return ranked.map((c) => ({
+      id: c.id,
+      name: c.name,
+      type: 'file' as const,
+      createdAt: 0,
+      updatedAt: 0,
+    }));
   }, [fileIndex]);
 
   const getGraphData = useCallback((tagIndex?: Map<string, Set<string>>): GraphData => {
