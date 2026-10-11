@@ -239,6 +239,11 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [focusMode, updateSetting])
 
+  // 专注淡化强度：写入全局 CSS 变量，供 .mc-focus-dimmed 使用（源码/所见即所得共用）
+  useEffect(() => {
+    document.documentElement.style.setProperty('--mc-focus-dim-opacity', String(settings.focusDimOpacity))
+  }, [settings.focusDimOpacity])
+
   // 布局列推导（与真实 App 一致；右栏由 Aurora RightSidebar 接管，故 editorLayout 不再渲染 outline）
   const { effectiveShowSource, effectiveShowPreview, effectiveShowOutline, gridColumns } = useAppLayout({
     focusMode,

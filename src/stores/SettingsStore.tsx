@@ -16,6 +16,8 @@ export interface AppSettings {
   autocomplete: boolean
   focusMode: boolean
   typewriterMode: boolean
+  /** 专注模式下淡化非活动内容的不透明度（0.1–0.7） */
+  focusDimOpacity: number
   livePreview: boolean
   codeBlockDefaultLang: string
   paragraphIndent: boolean
@@ -79,6 +81,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   autocomplete: true,
   focusMode: false,
   typewriterMode: false,
+  focusDimOpacity: 0.35,
   livePreview: true,
   codeBlockDefaultLang: '',
   paragraphIndent: false,

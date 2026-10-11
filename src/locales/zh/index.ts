@@ -785,6 +785,12 @@ export interface Translations {
     codeLang: string
     codeLangDesc: string
     codeLangPlaceholder: string
+    focusTitle: string
+    focusDim: string
+    focusDimDesc: string
+    focusDimLight: string
+    focusDimMedium: string
+    focusDimStrong: string
   }
   settingsImage: {
     imgTitle: string

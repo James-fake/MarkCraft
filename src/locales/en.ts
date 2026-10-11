@@ -715,6 +715,12 @@ export const en: Translations = {
     codeLang: 'Default code block language',
     codeLangDesc: 'Default language for new code blocks',
     codeLangPlaceholder: 'Leave empty for auto',
+    focusTitle: 'Focus dimming',
+    focusDim: 'Dim strength',
+    focusDimDesc: 'How much to dim non-active content in focus mode — fainter is more focused',
+    focusDimLight: 'Light',
+    focusDimMedium: 'Medium',
+    focusDimStrong: 'Strong',
   },
   settingsImage: {
     imgTitle: 'Image Upload',

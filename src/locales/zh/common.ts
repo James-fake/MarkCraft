@@ -708,6 +708,12 @@ export const settingsEditor = {
   codeLang: '代码块默认语言',
   codeLangDesc: '新建代码块使用的默认语言',
   codeLangPlaceholder: '留空为自动',
+  focusTitle: '专注淡化',
+  focusDim: '淡化强度',
+  focusDimDesc: '专注模式下非当前内容的淡化程度，越淡越聚焦',
+  focusDimLight: '轻度',
+  focusDimMedium: '中度',
+  focusDimStrong: '重度',
 }
 
 export const settingsImage = {

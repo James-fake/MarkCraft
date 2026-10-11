@@ -420,7 +420,8 @@
    源码模式（CM6，加在 .cm-line）与所见即所得（Tiptap，加在块节点）共用同一类名，
    类名常量见 features/editor/focus/focusContract.ts（MC_FOCUS_DIM_CLASS）。 */
 .mc-focus-dimmed {
-  opacity: 0.35;
+  /* 淡化强度由设置驱动（--mc-focus-dim-opacity 由 EditorPanel 写入 :root） */
+  opacity: var(--mc-focus-dim-opacity, 0.35);
   transition: opacity 0.2s ease;
 }
 

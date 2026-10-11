@@ -28,6 +28,8 @@ export function EditorSection({ query }: { query?: string; toast?: (msg: string)
     [E.maxWidth, E.maxWidthDesc],
     [E.tabWidth, E.tabWidthDesc],
     [E.codeLang, E.codeLangDesc],
+    [E.focusTitle, ''],
+    [E.focusDim, E.focusDimDesc],
   ].some(([l, d]) => match(l, d))
   if (!hasAny) return null
 
@@ -172,6 +174,32 @@ export function EditorSection({ query }: { query?: string; toast?: (msg: string)
                 placeholder={E.codeLangPlaceholder}
                 value={settings.codeBlockDefaultLang}
                 onChange={e => updateSetting('codeBlockDefaultLang', e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="aurora-settings__section">
+        <div className="aurora-settings__section-title">{E.focusTitle}</div>
+        {/* 注：专注/打字机的「开/关」是会话态，仅由编辑器内联控制（视图菜单/快捷键），
+            设置面板只暴露「子选项」（淡化强度），避免与会话态开关重复。 */}
+        {match(E.focusDim, E.focusDimDesc) && (
+          <div className="aurora-settings__item">
+            <div className="aurora-settings__item-info">
+              <div className="aurora-settings__item-label">{E.focusDim}</div>
+              <div className="aurora-settings__item-desc">{E.focusDimDesc}</div>
+            </div>
+            <div className="aurora-settings__item-control">
+              <AuroraSelect
+                ariaLabel={E.focusDim}
+                value={String(settings.focusDimOpacity)}
+                onChange={(v) => updateSetting('focusDimOpacity', Number(v))}
+                options={[
+                  { value: '0.5', label: E.focusDimLight },
+                  { value: '0.35', label: E.focusDimMedium },
+                  { value: '0.2', label: E.focusDimStrong },
+                ]}
               />
             </div>
           </div>
