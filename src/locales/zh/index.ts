@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogCss, platformPublish, blogModal } from './blog'
-import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, auroraTabs, blog, editorPanel, diaryFormat, importDialog, importExternal, cssCompat, autocomplete, embedView, bootstrap, editorWidgets, graphExport, mindMap, linkRedirectDialog, autoLayout, auroraEditor, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels, writingAid, exportKit, legacyMigration, vaultNotWritable, mathBlock } from './common'
+import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, auroraTabs, blog, editorPanel, diaryFormat, importDialog, importExternal, cssCompat, autocomplete, embedView, bootstrap, editorWidgets, graphExport, mindMap, linkRedirectDialog, autoLayout, auroraEditor, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels, writingAid, exportKit, legacyMigration, vaultNotWritable, mathBlock, brokenLinkMenu } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -1756,6 +1756,11 @@ export interface Translations {
     miniGraphEmpty: string
     miniGraphAria: string
     miniGraphNoRelated: string
+    unlinkedMentions: string
+    unlinkedMentionsEmpty: string
+    unlinkedMentionsHint: string
+    convertToLink: string
+    convertToLinkFailed: string
   }
   exportKit: {
     vaultInvalidFormat: string
@@ -1854,6 +1859,11 @@ export interface Translations {
     body: string
     later: string
     chooseAnother: string
+  }
+  brokenLinkMenu: {
+    title: string
+    create: string
+    redirect: string
   }
   mathBlock: {
     empty: string
@@ -3013,6 +3023,7 @@ const zh: Translations = {
   legacyMigration,
   vaultNotWritable,
   mathBlock,
+  brokenLinkMenu,
   nav,
   shell,
   cmdPalette,

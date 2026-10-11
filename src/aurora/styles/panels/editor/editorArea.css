@@ -234,3 +234,52 @@
   flex-direction: column;
 }
 
+
+/* ── 断链点击菜单（BrokenLinkMenu · 2026-10-11）──
+   点红色 WikiLink 时跟随鼠标弹出。此前断链点击直接开「批量重定向」对话框
+   （改名后修链接的工具），缺少最常用的「以这个名字新建笔记」，故改为菜单。 */
+.broken-link-menu {
+  position: fixed;
+  z-index: 100001;
+  min-width: 200px;
+  max-width: 320px;
+  padding: 6px;
+  border-radius: var(--mc-radius-md, 8px);
+  border: 1px solid var(--mc-border-medium);
+  background: var(--mc-bg-panel, #1e1e2e);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.broken-link-menu__title {
+  padding: 6px 8px 4px;
+  font-size: var(--mc-font-xs, 12px);
+  color: var(--mc-text-tertiary);
+  word-break: break-all;
+}
+.broken-link-menu__item {
+  display: block;
+  width: 100%;
+  padding: 7px 10px;
+  border: none;
+  border-radius: var(--mc-radius-sm, 6px);
+  background: transparent;
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-sm, 13px);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out);
+}
+.broken-link-menu__item:hover {
+  background: var(--mc-bg-hover);
+  color: var(--mc-text-primary);
+}
+/* 「新建」是用户此刻最想要的动作 → 高亮排第一 */
+.broken-link-menu__item--primary {
+  color: var(--mc-accent);
+  font-weight: 500;
+}
+.broken-link-menu__item--primary:hover {
+  background: color-mix(in srgb, var(--mc-accent) 10%, transparent);
+}

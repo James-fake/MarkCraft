@@ -49,7 +49,7 @@ interface TiptapEditorProps {
   onToggleLivePreview?: () => void
   onOpenFile?: () => void
   onSaveAs?: () => void
-  onBrokenLinkClick?: (target: string) => void
+  onBrokenLinkClick?: (target: string, event: MouseEvent) => void
   /** 打开模板选择器（由 EditorLayout 透传，Aurora 注入） */
   onUseTemplate?: () => void
   /** 是否渲染内置 WYSIWYG 格式工具栏（Aurora 子面板可关闭，改用自身轻量工具栏） */

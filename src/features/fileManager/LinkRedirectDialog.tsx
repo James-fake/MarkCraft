@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useLinkIndex } from '../../stores/LinkIndexStore'
 import { useFileManager } from '../../stores/FileStore'
@@ -7,10 +7,15 @@ import { useLanguage } from '../../stores/LanguageStore'
 interface Props {
   visible: boolean
   onClose: () => void
+  /**
+   * 预填「从」字段（2026-10-11：断链菜单点「重定向到已有笔记」时传入）。
+   * 此时用户只需选「改成哪篇」，不必再手打一遍断链的目标名。
+   */
+  initialFrom?: string
 }
 
-const LinkRedirectDialog: React.FC<Props> = ({ visible, onClose }) => {
-  const [fromTarget, setFromTarget] = useState('')
+const LinkRedirectDialog: React.FC<Props> = ({ visible, onClose, initialFrom }) => {
+  const [fromTarget, setFromTarget] = useState(initialFrom ?? '')
   const [toTarget, setToTarget] = useState('')
   const [preview, setPreview] = useState<{ fileCount: number; linkCount: number } | null>(null)
   const { fileIndex, indexVersion } = useLinkIndex()
@@ -18,6 +23,16 @@ const LinkRedirectDialog: React.FC<Props> = ({ visible, onClose }) => {
   const { t } = useLanguage()
 
   void indexVersion
+
+  // 组件是常驻挂载的（仅靠 visible 控制显隐），state 不会自动重置 →
+  // 每次打开都要按 initialFrom 重新填「从」，否则第二次打开会残留上一次的值
+  useEffect(() => {
+    if (visible) {
+      setFromTarget(initialFrom ?? '')
+      setToTarget('')
+      setPreview(null)
+    }
+  }, [visible, initialFrom])
 
   const handlePreview = useCallback(() => {
     if (!fromTarget.trim()) return

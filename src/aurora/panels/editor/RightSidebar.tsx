@@ -5,6 +5,8 @@ import AuroraOutline from './AuroraOutline'
 import AuroraFootnotes from './AuroraFootnotes'
 import AuroraBacklinks from './AuroraBacklinks'
 import AuroraPublish from './AuroraPublish'
+import { useFileManager } from '@stores/FileStore'
+import { convertMentionToLink } from '@core/markdown/wikiLink'
 
 /**
  * Aurora 编辑器右栏（换芯 · Tab 式检查器）
@@ -58,10 +60,13 @@ interface RightSidebarProps {
   /** 知识库列表作用的目标笔记（缺省取 activeFileId；标签右键菜单可指定其它文件） */
   kbMenuFileId?: string | null
   onKbMenuOpenChange?: (open: boolean) => void
+  /** 轻提示（可选）：目前用于「未链接提及」转换失败时的说明 */
+  onNotice?: (message: string) => void
 }
 
-export function RightSidebar({ content, activeFileId, activeTab, forceExpand, onTabChange, onOpenNote, onChange, activeFileName, onPublishNote, kbMenuOpen, kbMenuFileId, onKbMenuOpenChange }: RightSidebarProps) {
+export function RightSidebar({ content, activeFileId, activeTab, forceExpand, onTabChange, onOpenNote, onChange, activeFileName, onPublishNote, kbMenuOpen, kbMenuFileId, onKbMenuOpenChange, onNotice }: RightSidebarProps) {
   const { t } = useLanguage()
+  const { getFileContent, updateFileContent } = useFileManager()
   const tabLabels: Record<InspectorTab, string> = {
     outline: t.editorPanel.tabOutline,
     footnote: t.editorPanel.tabFootnote,
@@ -105,6 +110,28 @@ export function RightSidebar({ content, activeFileId, activeTab, forceExpand, on
   const [kbOpenInternal, setKbOpenInternal] = useState(false)
   const kbOpen = kbMenuOpen ?? kbOpenInternal
   const setKbOpen = onKbMenuOpenChange ?? setKbOpenInternal
+
+  /**
+   * 「未链接提及」→ 真正建链：只改**源笔记的那一行**，把提及文本包成 `[[目标]]`。
+   *
+   * 用纯函数 `convertMentionToLink` 而非字符串全量替换 —— 后者会把正文里
+   * 同名的普通词一并改掉。返回 null 说明该行已找不到可包裹的位置（索引过期 /
+   * 内容已被改动），此时打开源笔记并给出说明，而不是静默失败。
+   */
+  const handleConvertMention = useCallback(
+    (sourceFileId: string, line: number, target: string) => {
+      const src = getFileContent(sourceFileId)
+      if (src == null) return
+      const next = convertMentionToLink(src, line, target)
+      if (next == null) {
+        onNotice?.(t.writingAid.convertToLinkFailed)
+        onOpenNote(sourceFileId)
+        return
+      }
+      updateFileContent(sourceFileId, next)
+    },
+    [getFileContent, updateFileContent, onNotice, onOpenNote, t],
+  )
 
   const toggleCollapse = useCallback(() => {
     setCollapsed((c) => {
@@ -232,7 +259,13 @@ export function RightSidebar({ content, activeFileId, activeTab, forceExpand, on
             activeFootnoteId={activeFootnoteId}
           />
         )}
-        {currentTab === 'backlinks' && <AuroraBacklinks activeFileId={activeFileId} onOpenNote={onOpenNote} />}
+        {currentTab === 'backlinks' && (
+          <AuroraBacklinks
+            activeFileId={activeFileId}
+            onOpenNote={onOpenNote}
+            onConvertMention={handleConvertMention}
+          />
+        )}
         {currentTab === 'aid' && (
           <AuroraPublish
             fileId={kbMenuFileId ?? activeFileId ?? null}

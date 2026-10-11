@@ -23,6 +23,7 @@ import { FileTree } from './FileTree'
 import { UsageDocBrief } from './UsageDocBrief'
 // 编辑器右栏：Aurora 外壳接管 EditorLayout 旧右栏（AuroraOutline + 真实功能面板）
 import { RightSidebar, type InspectorTab } from './RightSidebar'
+import { BrokenLinkMenu } from './BrokenLinkMenu'
 import { useFileManager } from '@stores/FileStore'
 import { useSettings } from '@stores/SettingsStore'
 import { useLanguage } from '@stores/LanguageStore'
@@ -78,6 +79,8 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   // 目标文件（右键标签菜单可指向非激活文件；缺省取当前激活文件）
   const [kbMenuFileId, setKbMenuFileId] = useState<string | null>(null)
   const [returnCtx, setReturnCtx] = useState<EditorReturnContext | null>(() => getEditorReturn())
+  /** 断链菜单的锚点（点击红色 WikiLink 时置位；null = 不显示） */
+  const [brokenLink, setBrokenLink] = useState<{ target: string; x: number; y: number } | null>(null)
 
   // —— 编辑模式机制（对齐项目真实实现 useEditorSettings）——
   // editorMode：源码 / 所见即所得（TipTap 富文本）双内核；sourceVisible/previewVisible 为源码模式下的窗格开关
@@ -362,11 +365,43 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
     }),
     [createFile, toast],
   )
-  const openLinkRedirect = useCallback(() => auroraModal?.open('linkRedirect'), [auroraModal])
+  /**
+   * 断链（红色 WikiLink）点击 → 弹上下文菜单（不再直接开「批量重定向」对话框）。
+   *
+   * ⚠️ 2026-10-11 优化：原来这里直接 `auroraModal.open('linkRedirect')` —— 那是「笔记改名后
+   *    批量修链接」的工具，既没有「以这个名字新建笔记」也没有「改指到已有笔记」，
+   *    与用户此刻的意图不匹配。而这恰是双链最核心的用法：边写边建。
+   *    通用入口仍在命令面板（`tools.linkRedirect`）与菜单栏，未受影响。
+   */
+  const handleBrokenLinkClick = useCallback((target: string, event: MouseEvent) => {
+    setBrokenLink({ target, x: event.clientX, y: event.clientY })
+  }, [])
+
+  /**
+   * 断链菜单 ·「以这个名字新建笔记并打开」—— 双链「边写边建」的核心动作。
+   * target 可能带 `#章节` 或路径（`folder/note`），新建时只取**笔记名**部分。
+   */
+  const handleCreateBrokenLinkNote = useCallback(
+    (target: string) => {
+      const base =
+        target
+          .split('#')[0]
+          .trim()
+          .split('/')
+          .pop()
+          ?.replace(/\.md$/i, '') || target
+      if (!base) return
+      const finalName = uniqueFileName(rootFolder, base)
+      const id = createFile(rootFolder.id, finalName, '')
+      if (id) openFile(id)
+    },
+    [createFile, openFile, rootFolder],
+  )
   // 弹层**回调**（导入 / 模板插入 / 快速捕捉）已随弹层一并迁入 useEditorIntegration。
 
   const realEditor = (
-    <EditorLayout
+    <>
+      <EditorLayout
       ref={editorLayoutRef}
       key={activeFileId ?? 'no-active'}
       localContent={localContent}
@@ -403,9 +438,19 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
       isDiary={isDiary}
       onPrint={() => window.print()}
       onImportFile={openImport}
-      onBrokenLinkClick={openLinkRedirect}
-      onUseTemplate={() => auroraModal?.open('templateInsert')}
-    />
+      onBrokenLinkClick={handleBrokenLinkClick}
+        onUseTemplate={() => auroraModal?.open('templateInsert')}
+      />
+      {brokenLink && (
+        <BrokenLinkMenu
+          target={brokenLink.target}
+          x={brokenLink.x}
+          y={brokenLink.y}
+          onClose={() => setBrokenLink(null)}
+          onCreate={handleCreateBrokenLinkNote}
+        />
+      )}
+    </>
   )
 
   return (
@@ -618,6 +663,7 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
                     kbMenuOpen={kbMenuOpen}
                     kbMenuFileId={aidTargetFileId}
                     onKbMenuOpenChange={setKbMenuOpen}
+                    onNotice={(m) => toast.show(m)}
                   />
                 </div>
               </div>

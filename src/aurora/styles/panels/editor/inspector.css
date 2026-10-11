@@ -135,6 +135,43 @@
   white-space: nowrap;
 }
 
+/* 未链接提及（2026-10-11 补界面）：正文提到本篇名但未加 [[]] 的那些位置 */
+.aurora-backlinks__mention {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 0;
+}
+.aurora-backlinks__mention + .aurora-backlinks__mention {
+  border-top: 1px solid var(--mc-border-subtle);
+}
+.aurora-backlinks__mention-line {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+}
+.aurora-backlinks__mention-context {
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+  line-height: 1.5;
+  word-break: break-word;
+}
+.aurora-backlinks__mention-convert {
+  align-self: flex-start;
+  padding: 2px 8px;
+  border-radius: var(--mc-radius-sm);
+  border: 1px solid color-mix(in srgb, var(--mc-accent) 30%, transparent);
+  background: transparent;
+  color: var(--mc-accent);
+  font-size: var(--mc-font-xs);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out);
+}
+.aurora-backlinks__mention-convert:hover {
+  background: color-mix(in srgb, var(--mc-accent) 10%, transparent);
+}
+
 /* 迷你图谱 */
 .aurora-minigraph {
   width: 100%;

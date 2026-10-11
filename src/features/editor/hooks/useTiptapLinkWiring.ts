@@ -14,7 +14,7 @@ export function useTiptapLinkWiring(
   editor: TiptapEditorType | null,
   linkIndex: ReturnType<typeof import('../../../stores/LinkIndexStore').useLinkIndex>,
   openFile: (fileId: string) => void,
-  onBrokenLinkClick?: (target: string) => void,
+  onBrokenLinkClick?: (target: string, event: MouseEvent) => void,
 ) {
   // Register WikiLink click handler for Ctrl+Click navigation
   useEffect(() => {

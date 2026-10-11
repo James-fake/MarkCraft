@@ -12,13 +12,17 @@ declare module '@tiptap/core' {
 
 // 模块级回调，供 ProseMirror plugin 调用
 let _onWikiLinkClick: ((target: string, event: MouseEvent) => void) | null = null
-let _onBrokenLinkClick: ((target: string) => void) | null = null
+// ⚠️ 必须把 event 一并传出：断链点击要弹「新建/重定向」菜单，菜单得知道鼠标位置。
+//    （2026-10-11 优化：原来只传 target，导致只能打开一个居中对话框。）
+let _onBrokenLinkClick: ((target: string, event: MouseEvent) => void) | null = null
 
 export function setWikiLinkClickHandler(handler: ((target: string, event: MouseEvent) => void) | null) {
   _onWikiLinkClick = handler
 }
 
-export function setBrokenLinkClickHandler(handler: ((target: string) => void) | null) {
+export function setBrokenLinkClickHandler(
+  handler: ((target: string, event: MouseEvent) => void) | null,
+) {
   _onBrokenLinkClick = handler
 }
 
@@ -176,7 +180,7 @@ const WikiLink = Mark.create({
             // Ctrl/Meta+Click: always navigate
             if (event.ctrlKey || event.metaKey) {
               if (isBroken && _onBrokenLinkClick) {
-                _onBrokenLinkClick(wikiTarget)
+                _onBrokenLinkClick(wikiTarget, event)
                 return true
               }
               if (_onWikiLinkClick) {
@@ -200,7 +204,7 @@ const WikiLink = Mark.create({
 
             // Cursor not inside this mark → navigate
             if (isBroken && _onBrokenLinkClick) {
-              _onBrokenLinkClick(wikiTarget)
+              _onBrokenLinkClick(wikiTarget, event)
               return true
             }
             if (_onWikiLinkClick) {

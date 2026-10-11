@@ -73,9 +73,11 @@ export const LINK_REGEX = /(!?)\[\[([^\]]+)\]\]/g;
 
 
 /** Strip .md extension if present. */
-export function stripMdExtension(name: string): string {
-  return name.endsWith('.md') ? name.slice(0, -3) : name;
-}
+// 已下沉 @core/files/fileMatch（两种编辑模式共用同一份匹配与排序）。
+// 此处 import 供本文件使用，并 re-export 保持既有导入路径不变。
+import { stripMdExtension } from '@core/files/fileMatch';
+
+export { stripMdExtension };
 
 /** Extract headings (H1-H6) from content */
 export function extractHeadings(content: string): string[] {
@@ -161,17 +163,9 @@ export function buildNameMap(rootFolder: FileNode): Map<string, string> {
   return map;
 }
 
-/** Check whether a given target text in content is inside [[...]] brackets. */
-export function isInsideLink(content: string, index: number): boolean {
-  // Look backwards for [[ that isn't closed by ]] before index
-  const before = content.substring(0, index);
-  const lastOpen = before.lastIndexOf('[[');
-  if (lastOpen === -1) return false;
-  const between = before.substring(lastOpen);
-  // If there's a ]] after [[ but before the match, it's not inside
-  const closeAfterOpen = between.indexOf(']]');
-  return closeAfterOpen === -1;
-}
+// 已下沉 @core/markdown/wikiLink（core 被 stores 与 features 两侧依赖，避免反向依赖）。
+// 此处保留 re-export，既有导入路径不变。
+export { isInsideLink } from '@core/markdown/wikiLink';
 
 /** Build a path→fileId map from a folder tree, e.g. "folderA/Note" → fileId */
 export function collectFilePaths(node: FileNode, basePath: string = ''): Map<string, string> {

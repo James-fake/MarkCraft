@@ -58,7 +58,7 @@ interface EditorLayoutProps {
   gridColumns: string
   showModeToolbar: boolean
   onImportFile?: () => void
-  onBrokenLinkClick?: (target: string) => void
+  onBrokenLinkClick?: (target: string, event: MouseEvent) => void
   onOpenDailyNote?: () => void
   isDiary?: boolean
   onBackToDiary?: () => void

@@ -1895,6 +1895,11 @@ export const en: Translations = {
     switchToEnDesc: 'Switch to English interface',
     switchToZhDesc: 'Switch to Chinese interface',
   },
+  brokenLinkMenu: {
+    title: 'Link "{name}" does not exist',
+    create: 'Create note "{name}" and open',
+    redirect: 'Redirect to an existing note…',
+  },
   mathBlock: {
     empty: 'Empty formula block',
     previewEmpty: 'Live preview',
@@ -2899,6 +2904,11 @@ export const en: Translations = {
     miniGraphEmpty: 'Open a note to see its context graph.',
     miniGraphAria: 'Context graph of the current note',
     miniGraphNoRelated: 'No related notes',
+    unlinkedMentions: 'Unlinked mentions · {n}',
+    unlinkedMentionsEmpty: 'No unlinked mentions.',
+    unlinkedMentionsHint: 'These notes mention this one by name without a link — convert with one click',
+    convertToLink: 'Convert to link',
+    convertToLinkFailed: 'Could not convert here (content may have changed) — opened the source note instead',
   },
   exportKit: {
     // vault backup (services/backupService.ts)

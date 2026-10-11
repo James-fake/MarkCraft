@@ -15,6 +15,12 @@ interface AuroraBacklinksProps {
   activeFileId?: string
   /** 点击反链 / 图谱节点时打开对应笔记 */
   onOpenNote: (fileId: string) => void
+  /**
+   * 「未链接提及」的「转为链接」回调。
+   * 不传则不渲染该按钮（面板其余部分照常可用）。
+   * 由上层负责真正改写源文件内容 —— 本组件只做展示与派发。
+   */
+  onConvertMention?: (sourceFileId: string, line: number, target: string) => void
 }
 
 /**
@@ -26,9 +32,23 @@ interface AuroraBacklinksProps {
  *          无旧界面的 #a78bfa 硬色 / 胶囊徽章 / Inter 字体。
  *  - 交互：反链项点击经 onOpenNote 跳转；图谱节点点击跳转；默认展开。
  */
-export function AuroraBacklinks({ activeFileId, onOpenNote }: AuroraBacklinksProps) {
+export function AuroraBacklinks({ activeFileId, onOpenNote, onConvertMention }: AuroraBacklinksProps) {
   const { t } = useLanguage()
-  const { getBacklinks, getGraphData, indexVersion } = useLinkIndex()
+  const { getBacklinks, getUnlinkedMentions, getGraphData, indexVersion } = useLinkIndex()
+
+  /**
+   * 未链接提及：正文提到了当前笔记名、但没写成 [[]] 的那些位置。
+   *
+   * ⚠️ 数据早在 `buildLinkIndex` / `LinkIndexStore` 里算好了（含增量缓存），
+   *    但此前**没有任何界面消费它** —— 而内置说明书三处承诺它在反链面板里
+   *    （如 defaultDocs/zh.ts「在反向链接面板的"未链接提及"区域找到这条引用」）。
+   *    这里把缺失的界面补上。
+   */
+  const mentions = useMemo(() => {
+    if (!activeFileId) return []
+    return getUnlinkedMentions(activeFileId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFileId, indexVersion])
 
   const backlinks = useMemo(() => {
     if (!activeFileId) return []
@@ -89,6 +109,43 @@ export function AuroraBacklinks({ activeFileId, onOpenNote }: AuroraBacklinksPro
               </button>
             ))}
           </div>
+        )}
+
+        <div className="aurora-backlinks__section-label">
+          {t.writingAid.unlinkedMentions.replace('{n}', String(mentions.length))}
+        </div>
+        {mentions.length === 0 ? (
+          <div className="aurora-backlinks__hint">{t.writingAid.unlinkedMentionsEmpty}</div>
+        ) : (
+          <>
+            <div className="aurora-backlinks__hint">{t.writingAid.unlinkedMentionsHint}</div>
+            <div className="aurora-backlinks__items">
+              {mentions.map((m, i) => (
+                <div key={`${m.sourceFileId}-${m.line}-${i}`} className="aurora-backlinks__mention">
+                  <button
+                    type="button"
+                    className="aurora-backlinks__item"
+                    onClick={() => onOpenNote(m.sourceFileId)}
+                    title={t.writingAid.openNote.replace('{name}', m.sourceFileName)}
+                  >
+                    <Icon.link size={13} className="aurora-backlinks__item-icon" />
+                    <span className="aurora-backlinks__item-title">{m.sourceFileName}</span>
+                    <span className="aurora-backlinks__mention-line">L{m.line}</span>
+                  </button>
+                  {m.text && <div className="aurora-backlinks__mention-context">{m.text}</div>}
+                  {onConvertMention && (
+                    <button
+                      type="button"
+                      className="aurora-backlinks__mention-convert"
+                      onClick={() => onConvertMention(m.sourceFileId, m.line, m.target)}
+                    >
+                      {t.writingAid.convertToLink}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         <div className="aurora-backlinks__section-label">{t.writingAid.miniGraph}</div>

@@ -2023,6 +2023,12 @@ export const writingAid = {
   miniGraphEmpty: '打开笔记后显示关联图谱。',
   miniGraphAria: '当前笔记关联图谱',
   miniGraphNoRelated: '暂无关联笔记',
+  // 「未链接提及」（2026-10-11 补界面）：正文提到了本篇名字但没加 [[]]
+  unlinkedMentions: '未链接提及 · {n}',
+  unlinkedMentionsEmpty: '暂无未链接的提及。',
+  unlinkedMentionsHint: '正文提到本篇名字但还没建链接，可一键转为链接',
+  convertToLink: '转为链接',
+  convertToLinkFailed: '该位置已无法转换（内容可能已改动），已为你打开源笔记',
 }
 
 // 导出 / 备份服务文案（非 React 模块：纯函数形参注入 messages，中文 DEFAULT_* 兜底）
@@ -2097,4 +2103,16 @@ export const mathBlock = {
   copy: '复制 LaTeX',
   copied: '已复制',
   remove: '删除',
+}
+
+/**
+ * 断链（红色 WikiLink）点击后的上下文菜单（BrokenLinkMenu）。
+ *
+ * 背景（2026-10-11）：此前断链点击直接打开「批量重定向」对话框（改名后修链接的工具），
+ * 缺少最常用的「以这个名字新建笔记」—— 而这正是双链「边写边建」的核心用法。
+ */
+export const brokenLinkMenu = {
+  title: '链接「{name}」不存在',
+  create: '新建「{name}」笔记并打开',
+  redirect: '重定向到已有笔记…',
 }
