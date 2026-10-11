@@ -18,6 +18,10 @@ export interface AppSettings {
   typewriterMode: boolean
   /** 专注模式下淡化非活动内容的不透明度（0.1–0.7） */
   focusDimOpacity: number
+  /** 日记模板 id（空 = 用内置 daily-journal） */
+  dailyTemplateId: string
+  /** `{{date}}` 的默认格式（空 = 本地化日期） */
+  templateDateFormat: string
   livePreview: boolean
   codeBlockDefaultLang: string
   paragraphIndent: boolean
@@ -82,6 +86,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   focusMode: false,
   typewriterMode: false,
   focusDimOpacity: 0.35,
+  dailyTemplateId: '',
+  templateDateFormat: '',
   livePreview: true,
   codeBlockDefaultLang: '',
   paragraphIndent: false,

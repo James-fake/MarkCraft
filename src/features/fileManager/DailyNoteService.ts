@@ -1,6 +1,6 @@
 import { findDailyNote, findOrCreateDailyFolder } from './DailyNoteManager'
 import { FileNode } from '../../types/fileManager'
-import { resolveDailyJournalTemplate } from '@services/templates/templateData'
+import { resolveDailyJournalTemplate, type Template } from '@services/templates/templateData'
 import { applyTemplate } from '@services/templates/templateApply'
 
 /**
@@ -37,12 +37,20 @@ function generateDailyNoteTemplate(date: Date): string {
  * Find or create a daily note for the given date.
  * Returns the fileId.
  */
+export interface DailyNoteOptions {
+  /** 指定日记模板（用户在设置里选的，或调用方解析的）；缺省回退内置 daily-journal */
+  template?: Template
+  /** `{{date}}` 的默认格式（设置项） */
+  dateFormat?: string
+}
+
 export function openDailyNote(
   date: Date,
   rootFolder: FileNode,
   createFile: (parentId: string, name: string, content?: string) => string,
   createFolder: (parentId: string, name: string) => string,
   openFile: (fileId: string) => void,
+  opts?: DailyNoteOptions,
 ): string | undefined {
   const dateStr = formatDate(date)
   const fileName = `${dateStr}.md`
@@ -57,9 +65,12 @@ export function openDailyNote(
   // Find or create the journal folder
   const folderId = findOrCreateDailyFolder(rootFolder, createFolder)
 
-  // Apply daily template if available, otherwise use default
-  const dailyTemplate = resolveDailyJournalTemplate()
-  const content = dailyTemplate ? applyTemplate(dailyTemplate) : generateDailyNoteTemplate(date)
+  // Apply daily template if available, otherwise use default.
+  // 注意：`date` 必须透传（否则 {{date}} 恒为今天 —— 打开既往/未来日记日期会错）。
+  const dailyTemplate = opts?.template ?? resolveDailyJournalTemplate()
+  const content = dailyTemplate
+    ? applyTemplate(dailyTemplate, { date, dateFormat: opts?.dateFormat })
+    : generateDailyNoteTemplate(date)
 
   // Create the daily note
   const newId = createFile(folderId, fileName, content)

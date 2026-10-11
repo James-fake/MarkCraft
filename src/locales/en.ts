@@ -721,6 +721,10 @@ export const en: Translations = {
     focusDimLight: 'Light',
     focusDimMedium: 'Medium',
     focusDimStrong: 'Strong',
+    tplTitle: 'Template variables',
+    dateFormat: 'Date format ({{date}})',
+    dateFormatDesc: 'Default format of {{date}} in templates',
+    dateFormatLocale: 'Locale (2026/10/11)',
   },
   settingsImage: {
     imgTitle: 'Image Upload',
@@ -1007,6 +1011,7 @@ export const en: Translations = {
     insertPosition: 'Insert at',
     insertAtStart: 'Start',
     insertAtEnd: 'End',
+    dailyTemplate: 'Daily template',
     badge: {
       'builtin-template': 'Built-in',
       example: 'Example',

@@ -791,6 +791,10 @@ export interface Translations {
     focusDimLight: string
     focusDimMedium: string
     focusDimStrong: string
+    tplTitle: string
+    dateFormat: string
+    dateFormatDesc: string
+    dateFormatLocale: string
   }
   settingsImage: {
     imgTitle: string
@@ -1077,6 +1081,7 @@ export interface Translations {
     insertPosition: string
     insertAtStart: string
     insertAtEnd: string
+    dailyTemplate: string
     badge: {
       'builtin-template': string
       example: string

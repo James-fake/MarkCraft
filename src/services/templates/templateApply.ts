@@ -17,6 +17,10 @@
 export interface TemplateVars {
   title?: string
   filename?: string
+  /** 覆盖「当前时间」：日记按目标日期生成（否则 {{date}} 恒为今天 —— 修既往日记日期错） */
+  date?: Date
+  /** `{{date}}` 的默认格式（如 YYYY-MM-DD）；缺省用本地化日期（2026/10/11） */
+  dateFormat?: string
 }
 
 function pad2(n: number): string {
@@ -48,7 +52,7 @@ function substitute(text: string, now: Date, extraVars?: TemplateVars): string {
   let result = text
   result = result.replace(/\{\{date:([^}]+)\}\}/g, (_m, fmt: string) => formatDatePattern(now, fmt))
   result = result.replace(/\{\{time:([^}]+)\}\}/g, (_m, fmt: string) => formatDatePattern(now, fmt))
-  result = result.replace(/\{\{date\}\}/g, now.toLocaleDateString('zh-CN'))
+  result = result.replace(/\{\{date\}\}/g, extraVars?.dateFormat ? formatDatePattern(now, extraVars.dateFormat) : now.toLocaleDateString('zh-CN'))
   result = result.replace(/\{\{time\}\}/g, now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }))
   result = result.replace(/\{\{weekday\}\}/g, now.toLocaleDateString('zh-CN', { weekday: 'long' }))
   result = result.replace(/\{\{year\}\}/g, String(now.getFullYear()))
@@ -61,5 +65,5 @@ function substitute(text: string, now: Date, extraVars?: TemplateVars): string {
 
 /** 应用模板变量，返回最终 markdown 文本。接受任意带 content 的对象（模板 / 范例通用）。 */
 export function applyTemplate(template: { content: string }, extraVars?: TemplateVars): string {
-  return substitute(template.content, new Date(), extraVars)
+  return substitute(template.content, extraVars?.date ?? new Date(), extraVars)
 }

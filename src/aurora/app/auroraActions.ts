@@ -13,6 +13,8 @@ import type { useSettings } from '../../stores/SettingsStore'
 import type { useLinkIndex } from '../../stores/LinkIndexStore'
 import type { EditorCommandBridge, AuroraModalId } from '../panels/editor/EditorPanel'
 import { openDailyNote } from '../../features/fileManager/DailyNoteService'
+import { getAllTemplates } from '../../features/templates/templateManager'
+import { loadSettings } from '../../stores/SettingsStore'
 import { generateReverseMoc } from '../../features/fileManager/MocGenerator'
 import { pickAndImportFile } from '../../features/import/importFlow'
 import { findNode } from '@core/files/fileTree'
@@ -69,7 +71,17 @@ export function buildAuroraActions(deps: AuroraActionDeps): Record<string, (() =
 
   return {
     'file.newFile': () => { createFile(rootFolder.id, `${labels.untitled}-${Date.now()}.md`, ''); nav('editor') },
-    'file.openDailyNote': () => { openDailyNote(new Date(), rootFolder, createFile, createFolder, openFile) },
+    'file.openDailyNote': () => {
+      // 日记模板可在设置里指定（空 = 内置 daily-journal）；日期格式亦来自设置。
+      const s = loadSettings()
+      const dailyTemplate = s.dailyTemplateId
+        ? getAllTemplates().find(t => t.id === s.dailyTemplateId)
+        : undefined
+      openDailyNote(new Date(), rootFolder, createFile, createFolder, openFile, {
+        template: dailyTemplate,
+        dateFormat: s.templateDateFormat,
+      })
+    },
     'view.toggleTheme': () => updateSetting('theme', theme === 'dark' ? 'light' : 'dark'),
     'settings.switchLanguage': () => toggleLanguage(),
     'settings.openSettings': () => nav('settings'),

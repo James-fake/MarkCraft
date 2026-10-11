@@ -30,6 +30,8 @@ export function EditorSection({ query }: { query?: string; toast?: (msg: string)
     [E.codeLang, E.codeLangDesc],
     [E.focusTitle, ''],
     [E.focusDim, E.focusDimDesc],
+    [E.tplTitle, ''],
+    [E.dateFormat, E.dateFormatDesc],
   ].some(([l, d]) => match(l, d))
   if (!hasAny) return null
 
@@ -199,6 +201,30 @@ export function EditorSection({ query }: { query?: string; toast?: (msg: string)
                   { value: '0.5', label: E.focusDimLight },
                   { value: '0.35', label: E.focusDimMedium },
                   { value: '0.2', label: E.focusDimStrong },
+                ]}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="aurora-settings__section">
+        <div className="aurora-settings__section-title">{E.tplTitle}</div>
+        {match(E.dateFormat, E.dateFormatDesc) && (
+          <div className="aurora-settings__item">
+            <div className="aurora-settings__item-info">
+              <div className="aurora-settings__item-label">{E.dateFormat}</div>
+              <div className="aurora-settings__item-desc">{E.dateFormatDesc}</div>
+            </div>
+            <div className="aurora-settings__item-control">
+              <AuroraSelect
+                ariaLabel={E.dateFormat}
+                value={settings.templateDateFormat}
+                onChange={(v) => updateSetting('templateDateFormat', v)}
+                options={[
+                  { value: '', label: E.dateFormatLocale },
+                  { value: 'YYYY-MM-DD', label: 'YYYY-MM-DD' },
+                  { value: 'YYYY/MM/DD', label: 'YYYY/MM/DD' },
                 ]}
               />
             </div>

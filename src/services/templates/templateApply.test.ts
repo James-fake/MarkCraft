@@ -46,4 +46,14 @@ describe('applyTemplate · 变量（模板优化 A 档）', () => {
   it('未知变量保持原样（不静默吞掉）', () => {
     expect(applyTemplate(tpl('{{nope}}'))).toBe('{{nope}}')
   })
+
+  it('vars.date 覆盖「当前时间」（修日记按目标日期生成）', () => {
+    expect(applyTemplate(tpl('{{date:YYYY-MM-DD}}'), { date: new Date(2020, 0, 2) })).toBe('2020-01-02')
+  })
+
+  it('vars.dateFormat 决定默认 {{date}} 的格式', () => {
+    expect(applyTemplate(tpl('{{date}}'), { date: new Date(2026, 9, 11), dateFormat: 'YYYY-MM-DD' })).toBe('2026-10-11')
+    // 未指定 dateFormat 时保持本地化日期（含年份）
+    expect(applyTemplate(tpl('{{date}}'), { date: new Date(2026, 9, 11) })).toContain('2026')
+  })
 })

@@ -714,6 +714,10 @@ export const settingsEditor = {
   focusDimLight: '轻度',
   focusDimMedium: '中度',
   focusDimStrong: '重度',
+  tplTitle: '模板变量',
+  dateFormat: '日期格式（{{date}}）',
+  dateFormatDesc: '模板中 {{date}} 的默认格式',
+  dateFormatLocale: '本地化（2026/10/11）',
 }
 
 export const settingsImage = {
@@ -1043,6 +1047,7 @@ export const templates = {
   insertPosition: '插入位置',
   insertAtStart: '开头',
   insertAtEnd: '末尾',
+  dailyTemplate: '日记模板',
   badge: {
     'builtin-template': '内置',
     example: '范例',

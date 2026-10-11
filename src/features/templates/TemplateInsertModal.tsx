@@ -3,6 +3,7 @@ import { useLanguage } from '../../stores/LanguageStore'
 import { getAllTemplates, applyTemplate, importSharedTemplate, exportTemplateAsFile, getExamples, saveNoteAsTemplate, renameUserTemplate, deleteUserTemplate, toggleTemplateFavorite, getFavoriteTemplateIds, getRecentTemplateIds, pushRecentTemplate, Template, ExampleDoc } from './templateManager'
 import { Button } from '../../components/ui'
 import { useToast } from '../../components/ui/ToastProvider'
+import { useSettings } from '../../stores/SettingsStore'
 
 interface TemplateInsertModalProps {
   isOpen: boolean
@@ -36,6 +37,7 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
   const searchRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const toast = useToast()
+  const { settings, updateSetting } = useSettings()
 
   // 模板变量：{{title}}/{{filename}} 取当前笔记名（修复此前恒为空）
   const vars = useMemo(() => ({ title: currentTitle, filename: currentTitle }), [currentTitle])
@@ -179,6 +181,7 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
     insertPosition: TP.insertPosition,
     insertAtStart: TP.insertAtStart,
     insertAtEnd: TP.insertAtEnd,
+    dailyTemplate: TP.dailyTemplate,
   }), [TP])
 
   // 导入共享/社区模板（UGC：用户从文件导入他人分享的模板）
@@ -689,6 +692,15 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
                       </>
                     )
                   )}
+                  <Button
+                    variant="ghost"
+                    onClick={() => updateSetting('dailyTemplateId', settings.dailyTemplateId === selectedTemplate.id ? '' : selectedTemplate.id)}
+                    aria-pressed={settings.dailyTemplateId === selectedTemplate.id}
+                    title={texts.dailyTemplate}
+                    style={{ fontSize: 11, padding: '4px 8px', flexShrink: 0, color: settings.dailyTemplateId === selectedTemplate.id ? 'var(--mc-accent-text)' : undefined }}
+                  >
+                    {texts.dailyTemplate}
+                  </Button>
                   <Button
                     variant="ghost"
                     onClick={handleShare}
