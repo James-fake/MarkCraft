@@ -1,5 +1,5 @@
 import { useRef, useCallback, useState, useEffect } from 'react'
-import { EditorView, keymap, placeholder as cmPlaceholder } from '@codemirror/view'
+import { EditorView, keymap } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { languages } from '@codemirror/language-data'
@@ -313,7 +313,8 @@ export function useCM6State({
         }),
         createMathPreviewExtension(),
         createLintExtension(lintMarkdown, fixIssue),
-        cmPlaceholder(t?.editor?.placeholder || ''),
+        // 源码模式不再显示「在此输入 Markdown…」占位符（用户要求删除；所见即所得模式的
+        // 占位符仍保留，见 useTiptapExtensions 的 Placeholder.configure）。
         // 输入处理器（标题自动空格、粗体自动闭合、链接自动补全、代码围栏补全）
         createInputHandlers(appSettings.codeBlockDefaultLang, appSettings.autoPairMarkdown),
         // 自动配对（括号、引号）
