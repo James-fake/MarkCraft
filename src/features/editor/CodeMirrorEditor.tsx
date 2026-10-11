@@ -380,7 +380,7 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
 
   return (
     <EditorUIContext.Provider value={editorUIValue}>
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col relative">
       {!focusMode && (
         <EditorToolbarSlot />
       )}
@@ -445,7 +445,8 @@ const CodeMirrorEditor = forwardRef<CodeMirrorEditorHandle, CodeMirrorEditorProp
         <EditorScrollSlot />
       </div>
 
-      <EditorStatusBarSlot />
+      {/* 专注模式：隐藏状态栏（与所见即所得模式一致） */}
+      {!focusMode && <EditorStatusBarSlot />}
 
       <input ref={fileInputRef} type="file" accept=".md,.markdown" multiple={false} onChange={handleFileChange} className="hidden" aria-hidden="true" />
       <input ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/bmp,image/svg+xml" multiple={false} onChange={handleImageFileChange} className="hidden" aria-hidden="true" />

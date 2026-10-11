@@ -224,6 +224,21 @@ export function EditorPanel({ nav, auroraModal, cmdBridge, onOpenCommandPalette 
   const autocompleteEnabled = !!settings.autocomplete
   const livePreview = !!settings.livePreview
 
+  // 专注模式：Esc 退出（仅在编辑器本身持有焦点、且事件未被其它处理器消费时触发，
+  // 避免与弹窗 / 搜索 / 自动补全的 Esc 抢占）
+  useEffect(() => {
+    if (!focusMode) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return
+      const ae = document.activeElement as HTMLElement | null
+      if (ae && (ae.closest('.cm-editor') || ae.closest('.tiptap'))) {
+        updateSetting('focusMode', false)
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [focusMode, updateSetting])
+
   // 布局列推导（与真实 App 一致；右栏由 Aurora RightSidebar 接管，故 editorLayout 不再渲染 outline）
   const { effectiveShowSource, effectiveShowPreview, effectiveShowOutline, gridColumns } = useAppLayout({
     focusMode,

@@ -11,7 +11,7 @@ import TableBubbleMenu from './TableBubbleMenu'
 import TableContextMenu from './extensions/TableContextMenu'
 import EditorContextMenu from './EditorContextMenu'
 import { EditorUIContext, EditorCoreContext, EditorModalsContext, EditorInsertContext } from './EditorUIContext'
-import { EditorWysiwygToolbarSlot, EditorScrollSlot, EditorStatusBarSlot, EditorModalsSlot } from './EditorSlots'
+import { EditorWysiwygToolbarSlot, EditorFocusModeToolbarSlot, EditorScrollSlot, EditorStatusBarSlot, EditorModalsSlot } from './EditorSlots'
 import { calculateStats } from './stats'
 import type { WordCountMode } from './editorTypes'
 import { useTiptapSearch } from './hooks/useTiptapSearch'
@@ -474,7 +474,9 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
       '--editor-line-height': String(appSettings.lineHeight),
       '--editor-code-font-family': appSettings.codeFontFamily,
     } as React.CSSProperties}>
-      {showToolbar && <EditorWysiwygToolbarSlot />}
+      {/* 专注模式：隐藏主工具栏，改用浮动退出条（与源码模式一致） */}
+      {showToolbar && !focusMode && <EditorWysiwygToolbarSlot />}
+      {focusMode && <EditorFocusModeToolbarSlot />}
       {searchMode && (
         <SearchReplaceBar
           editor={editor}
@@ -501,7 +503,7 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
         mode="wysiwyg"
         onClose={() => setCtxMenu({ visible: false, x: 0, y: 0 })}
       />
-      {showStatusBar && <EditorStatusBarSlot />}
+      {showStatusBar && !focusMode && <EditorStatusBarSlot />}
       <WikiLinkAutocomplete editor={editor} />
       <WikiLinkHoverPreview editor={editor} />
       <input ref={fileInputRef as React.LegacyRef<HTMLInputElement>} type="file" accept=".md,.markdown" multiple={false} onChange={handleFileChange} className="hidden" aria-hidden="true" />
