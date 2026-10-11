@@ -13,7 +13,7 @@ import EditorContextMenu from './EditorContextMenu'
 import { EditorUIContext, EditorCoreContext, EditorModalsContext, EditorInsertContext } from './EditorUIContext'
 import { EditorWysiwygToolbarSlot, EditorScrollSlot, EditorStatusBarSlot, EditorModalsSlot } from './EditorSlots'
 import { calculateStats } from './stats'
-import type { WordCountMode } from './hooks/useEditorState'
+import type { WordCountMode } from './editorTypes'
 import { useTiptapSearch } from './hooks/useTiptapSearch'
 import { useTiptapLint } from './hooks/useTiptapLint'
 import { useTiptapFileOps } from './hooks/useTiptapFileOps'
@@ -239,6 +239,14 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
     if (editor.isDestroyed) return
     editor.commands.setLivePreviewEnabled(!!livePreview)
   }, [editor, livePreview])
+
+  // 同步 focusMode / typewriterMode 到 FocusModeExtension（P0：与源码模式对齐）
+  useEffect(() => {
+    if (!editor) return
+    if (editor.isDestroyed) return
+    editor.commands.setFocusModeEnabled(!!focusMode)
+    editor.commands.setTypewriterModeEnabled(!!typewriterMode)
+  }, [editor, focusMode, typewriterMode])
 
   // Lint jump to issue
   const handleJumpToIssue = useCallback((issue: LintIssue) => {

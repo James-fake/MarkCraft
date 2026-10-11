@@ -2,7 +2,7 @@ import { RefObject } from 'react'
 import type { LintIssue } from '@utils/lintTypes'
 import type { Translations } from '../../types/translations'
 import { DocumentStats } from './stats'
-import { WordCountMode } from './hooks/useEditorState'
+import { WordCountMode } from './editorTypes'
 
 interface EditorStatusBarProps {
   stats: DocumentStats

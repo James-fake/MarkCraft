@@ -29,7 +29,7 @@ import { rainbowBrackets } from './rainbowBrackets'
 import { spellCheckExtension } from '../extensions/SpellCheckExtension'
 import { saveEditorScrollCM } from '@services/scrollPositionManager'
 import { smartPunctuation } from '../extensions/SmartPunctuation'
-import { createFocusModeExtension, createTypewriterModeExtension, focusModeTheme, focusModeState, typewriterModeState } from './focusModeExtension'
+import { createFocusModeExtension, createTypewriterModeExtension, focusModeState, typewriterModeState } from './focusModeExtension'
 import { createWikiLinkHoverTooltip } from './wikiLinkHoverTooltip'
 import type { NoteHoverData } from '../components/NoteHoverCard'
 import { useCM6UndoRedo, createUndoRedoKeymap } from './useCM6UndoRedo'
@@ -364,7 +364,6 @@ export function useCM6State({
         typewriterModeState,
         createFocusModeExtension(),
         createTypewriterModeExtension(),
-        focusModeTheme,
         EditorView.updateListener.of((update) => {
           if (update.docChanged && !isInternalUpdate.current && !isUndoRedoRef.current) {
             const newValue = update.state.doc.toString()

@@ -416,57 +416,16 @@
   }
 }
 
-.focus-mode {
-  transition: background-color var(--mc-dur-base) var(--mc-ease-out);
-}
-
-.focus-mode .focus-editor-container {
-  max-width: 800px;
-  margin: 0 auto;
-  border: none !important;
-}
-
-.focus-mode .line-numbers-container {
-  display: none;
-}
-
-.focus-mode .editor-area {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.focus-current-line {
-  position: relative;
+/* 专注模式 · 非活动内容淡化
+   源码模式（CM6，加在 .cm-line）与所见即所得（Tiptap，加在块节点）共用同一类名，
+   类名常量见 features/editor/focus/focusContract.ts（MC_FOCUS_DIM_CLASS）。 */
+.mc-focus-dimmed {
+  opacity: 0.35;
   transition: opacity 0.2s ease;
 }
 
-.focus-current-line::before {
-  content: '';
-  position: absolute;
-  left: -16px;
-  right: -16px;
-  top: 0;
-  height: 100%;
-  background: rgba(59, 130, 246, 0.06);
-  border-left: 2px solid rgba(59, 130, 246, 0.3);
-  pointer-events: none;
-  border-radius: 0 4px 4px 0;
-}
-
-.typewriter-cursor-line {
-  position: relative;
-}
-
-.typewriter-cursor-line::before {
-  content: '';
-  position: absolute;
-  left: -16px;
-  right: -16px;
-  top: 0;
-  height: 100%;
-  background: rgba(59, 130, 246, 0.06);
-  border-left: 2px solid rgba(59, 130, 246, 0.3);
-  pointer-events: none;
-  border-radius: 0 4px 4px 0;
+.mc-focus-dimmed:hover {
+  opacity: 0.7;
 }
 
 .katex-display-wrapper {

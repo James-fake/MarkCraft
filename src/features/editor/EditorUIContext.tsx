@@ -3,7 +3,7 @@ import type { EditorView } from '@codemirror/view'
 import type { Editor } from '@tiptap/react'
 import type { LintIssue } from '@utils/lintTypes'
 import type { ImageStoreAPI } from '@core/storage/imageStoreTypes'
-import type { WordCountMode } from './hooks/useEditorState'
+import type { WordCountMode } from './editorTypes'
 import type { DocumentStats } from './stats'
 import type { Translations } from '../../types/translations'
 

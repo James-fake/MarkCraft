@@ -1,7 +1,9 @@
 import { useState, useCallback, useMemo } from 'react'
 import { calculateStats, type DocumentStats } from '../stats'
+import type { WordCountMode } from '../editorTypes'
 
-export type WordCountMode = 'text' | 'standard'
+// 类型单一来源：editorTypes；此处 re-export 保持既有导入路径可用
+export type { WordCountMode } from '../editorTypes'
 
 interface UseCM6StatsParams {
   value: string

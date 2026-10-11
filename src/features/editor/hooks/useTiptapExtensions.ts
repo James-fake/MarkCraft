@@ -41,6 +41,7 @@ import HeadingIdAssign from '../extensions/HeadingIdAssign'
 import LivePreviewExtension from '../extensions/LivePreviewExtension'
 import LivePreviewHeading from '../extensions/LivePreviewHeading'
 import LivePreviewBlockquote from '../extensions/LivePreviewBlockquote'
+import FocusModeExtension from '../extensions/FocusModeExtension'
 import TransitionExtension from '../extensions/TransitionExtension'
 import CodeBlockSmartIndent from '../extensions/CodeBlockSmartIndent'
 import TocNode from '../extensions/TocNode'
@@ -150,6 +151,9 @@ export function useTiptapExtensions({ t, livePreview, undoFnRef, redoFnRef }: Us
       // Live Preview 始终注册，通过 enabled 选项控制初始状态
       // 运行时切换由 setLivePreviewEnabled command 处理
       LivePreviewExtension.configure({ enabled: !!livePreview }),
+      // 专注 / 打字机（P0）：始终注册，运行时由 setFocusModeEnabled /
+      // setTypewriterModeEnabled 命令切换（TiptapEditor 内同步设置）
+      FocusModeExtension,
       TransitionExtension,
     ]
   }, [t, appSettings.codeBlockDefaultLang, appSettings.tabSize, livePreview])

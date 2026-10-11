@@ -1,6 +1,7 @@
 import { Decoration, DecorationSet, EditorView, ViewPlugin, ViewUpdate } from '@codemirror/view'
 import { RangeSetBuilder } from '@codemirror/state'
 import { StateField, StateEffect } from '@codemirror/state'
+import { MC_FOCUS_DIM_CLASS, centerRectInContainer } from '../focus/focusContract'
 
 // 专注模式状态
 export const toggleFocusMode = StateEffect.define<boolean>()
@@ -56,7 +57,7 @@ export function createFocusModeExtension() {
         while (pos <= to) {
           const line = view.state.doc.lineAt(pos)
           if (line.number !== cursorLine) {
-            const deco = Decoration.line({ class: 'cm-focus-dimmed' })
+            const deco = Decoration.line({ class: MC_FOCUS_DIM_CLASS })
             builder.add(line.from, line.from, deco)
           }
           pos = line.to + 1
@@ -89,26 +90,11 @@ export function createTypewriterModeExtension() {
       const coords = view.coordsAtPos(pos)
       if (!coords) return
 
-      const scroller = view.scrollDOM
-      const viewHeight = scroller.clientHeight
-      const cursorY = coords.top - scroller.getBoundingClientRect().top
-      const targetScrollTop = scroller.scrollTop + cursorY - viewHeight / 2
-
-      scroller.scrollTo({
-        top: Math.max(0, targetScrollTop),
-        behavior: 'smooth',
+      // 居中算法与所见即所得模式共用（focusContract），保证两模式手感一致
+      centerRectInContainer(view.scrollDOM, {
+        top: coords.top,
+        height: coords.bottom - coords.top,
       })
     })
   })
 }
-
-// 专注模式样式
-export const focusModeTheme = EditorView.baseTheme({
-  '.cm-focus-dimmed': {
-    opacity: '0.35',
-    transition: 'opacity 0.2s',
-  },
-  '.cm-line.cm-focus-dimmed:hover': {
-    opacity: '0.7',
-  },
-})
