@@ -17,7 +17,7 @@ import { useBookmark } from '@stores/BookmarkStore'
 import { useFileManager } from '@stores/FileStore'
 import { useLinkIndex } from '@stores/LinkIndexStore'
 import { getRecentFiles } from '@core/files/recentFiles'
-import { buildRecentWikilink, buildReferenceTemplate, buildRelatedTemplate, buildBackindexTemplate, buildTodayWikilink, buildBacklinksList } from '@features/editor/toolbar/groups/linkTemplates'
+import { buildRecentWikilink, buildReferenceTemplate, buildRelatedTemplate, buildRelatedListText, mergeRelatedNotes, buildBackindexTemplate, buildTodayWikilink, buildBacklinksList } from '@features/editor/toolbar/groups/linkTemplates'
 import { cm6InsertTemplate } from '@features/editor/cm6/autocompleteExtension'
 import { findNode } from '@services/fileService'
 import { getShortcut } from '@features/editor/toolbar/ShortcutManager'
@@ -123,7 +123,20 @@ export default function MarkdownToolbar(props: MarkdownToolbarProps) {
       },
       onInsertRelated: () => {
         const view = props.editorViewRef.current
-        if (view) cm6InsertTemplate(view, buildRelatedTemplate())
+        if (!view) return
+        // B1：有当前笔记时基于全局链接索引（反链 ∪ 出链，排除自己）插入实时相关笔记
+        if (activeFileId) {
+          const back = linkIndex.getBacklinks(activeFileId).map((r) => ({ title: r.sourceFileName, fileId: r.sourceFileId }))
+          const out = linkIndex.getOutgoingLinks(activeFileId)
+            .map((r) => linkIndex.resolveTarget(r.target))
+            .filter((id): id is string => Boolean(id))
+            .map((id) => ({ title: linkIndex.fileIndex.get(id)?.fileName ?? id, fileId: id }))
+          const merged = mergeRelatedNotes(back, out, activeFileId)
+          cm6InsertTemplate(view, buildRelatedListText(merged.map((m) => m.title)))
+          return
+        }
+        // 无激活笔记时退回扫描正文双链
+        cm6InsertTemplate(view, buildRelatedTemplate(view.state.doc.toString(), activeFileName))
       },
       onInsertBackindex: () => {
         const view = props.editorViewRef.current

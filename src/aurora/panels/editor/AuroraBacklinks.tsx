@@ -6,6 +6,7 @@ import {
   extractNeighborhood,
   layoutMiniGraph,
 } from '@features/editor/noteGraphUtils'
+import { mergeRelatedNotes } from '@features/editor/toolbar/groups/linkTemplates'
 
 const GRAPH_W = 224
 const GRAPH_H = 168
@@ -34,7 +35,7 @@ interface AuroraBacklinksProps {
  */
 export function AuroraBacklinks({ activeFileId, onOpenNote, onConvertMention }: AuroraBacklinksProps) {
   const { t } = useLanguage()
-  const { getBacklinks, getUnlinkedMentions, getGraphData, indexVersion } = useLinkIndex()
+  const { getBacklinks, getOutgoingLinks, getUnlinkedMentions, getGraphData, resolveTarget, fileIndex, indexVersion } = useLinkIndex()
 
   /**
    * 未链接提及：正文提到了当前笔记名、但没写成 [[]] 的那些位置。
@@ -60,6 +61,22 @@ export function AuroraBacklinks({ activeFileId, onOpenNote, onConvertMention }: 
       list.push({ id: rec.sourceFileId, title: rec.sourceFileName })
     }
     return list
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeFileId, indexVersion])
+
+  /**
+   * 「相关笔记」：当前笔记的出链目标 ∪ 反链来源（排除自己）的聚合视图。
+   * 这是把原本分散在反链列表 / 迷你图谱里的"邻居"显式聚合到一个可一键跳转的清单，
+   * 与工具栏「相关笔记」实时插入（B1）共用 mergeRelatedNotes 同一套纯函数语义。
+   */
+  const relatedNotes = useMemo(() => {
+    if (!activeFileId) return []
+    const back = getBacklinks(activeFileId).map((r) => ({ title: r.sourceFileName, fileId: r.sourceFileId }))
+    const out = getOutgoingLinks(activeFileId)
+      .map((r) => resolveTarget(r.target))
+      .filter((id): id is string => Boolean(id))
+      .map((id) => ({ title: fileIndex.get(id)?.fileName ?? id, fileId: id }))
+    return mergeRelatedNotes(back, out, activeFileId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeFileId, indexVersion])
 
@@ -91,6 +108,27 @@ export function AuroraBacklinks({ activeFileId, onOpenNote, onConvertMention }: 
       </div>
 
       <div className="aurora-backlinks__list">
+        <div className="aurora-backlinks__section-label">{t.writingAid.relatedNotes.replace('{n}', String(relatedNotes.length))}</div>
+        {relatedNotes.length === 0 ? (
+          <div className="aurora-backlinks__hint">{t.writingAid.relatedNotesEmpty}</div>
+        ) : (
+          <div className="aurora-backlinks__items">
+            {relatedNotes.map((n) => (
+              <button
+                key={n.fileId ?? n.title}
+                type="button"
+                className="aurora-backlinks__item"
+                disabled={!n.fileId}
+                onClick={() => n.fileId && onOpenNote(n.fileId)}
+                title={t.writingAid.openNote.replace('{name}', n.title)}
+              >
+                <Icon.link size={13} className="aurora-backlinks__item-icon" />
+                <span className="aurora-backlinks__item-title">{n.title}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
         <div className="aurora-backlinks__section-label">{t.writingAid.backlinks.replace('{n}', String(backlinks.length))}</div>
         {backlinks.length === 0 ? (
           <div className="aurora-backlinks__hint">{t.writingAid.backlinksEmpty}</div>

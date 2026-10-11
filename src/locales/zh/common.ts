@@ -2030,6 +2030,9 @@ export const writingAid = {
   unlinkedMentionsHint: '正文提到本篇名字但还没建链接，可一键转为链接',
   convertToLink: '转为链接',
   convertToLinkFailed: '该位置已无法转换（内容可能已改动），已为你打开源笔记',
+  // 「相关笔记」聚合小节（B2）：当前笔记的出链 ∪ 反链邻居，可一键跳转
+  relatedNotes: '相关笔记 · {n}',
+  relatedNotesEmpty: '暂无相关笔记（建立 [[双链]] 后这里会自动出现）。',
 }
 
 // 导出 / 备份服务文案（非 React 模块：纯函数形参注入 messages，中文 DEFAULT_* 兜底）

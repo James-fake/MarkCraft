@@ -4,6 +4,9 @@ import {
   buildReferenceList,
   mergeFootnoteEntries,
   buildRelatedTemplate,
+  buildRelatedListText,
+  mergeRelatedNotes,
+  extractWikiLinkTargets,
   buildBackindexTemplate,
   buildRecentWikilink,
   buildTodayWikilink,
@@ -65,9 +68,70 @@ describe('知识链接模板纯函数（Slash 命令迁移，两模式共享防�
     })
   })
 
-  describe('buildRelatedTemplate 相关笔记', () => {
-    it('产出 H2 + 2 个空 WikiLink', () => {
-      expect(buildRelatedTemplate()).toBe('## 相关笔记\n- [[]]\n- [[]]')
+  describe('extractWikiLinkTargets 提取双链目标', () => {
+    it('提取 [[name]] 去重（去后缀、大小写归一、保持顺序）', () => {
+      const md = '见 [[笔记A]] 与 [[笔记B]]，再提 [[笔记a]]'
+      expect(extractWikiLinkTargets(md)).toEqual(['笔记A', '笔记B'])
+    })
+    it('忽略 #标题段与 |别名段，并去 .md', () => {
+      expect(extractWikiLinkTargets('[[笔记A#章节|别名]] 与 [[笔记B.md]]')).toEqual(['笔记A', '笔记B'])
+    })
+    it('包含 ![[嵌入]]', () => {
+      expect(extractWikiLinkTargets('![[图片说明]] 和 [[正文]]')).toEqual(['图片说明', '正文'])
+    })
+    it('无双链时返回空数组', () => {
+      expect(extractWikiLinkTargets('普通文本 [不是链接]')).toEqual([])
+    })
+  })
+
+  describe('buildRelatedListText 相关笔记文本', () => {
+    it('无标题时返回标题 + 单占位', () => {
+      expect(buildRelatedListText([])).toBe('## 相关笔记\n- [[]]')
+    })
+    it('有标题时生成 - [[name]] 列表（去 .md）', () => {
+      expect(buildRelatedListText(['A.md', 'B'])).toBe('## 相关笔记\n- [[A]]\n- [[B]]')
+    })
+    it('排除自己（按去后缀小写）', () => {
+      expect(buildRelatedListText(['当前笔记', '其它'], '当前笔记.md')).toBe('## 相关笔记\n- [[其它]]')
+    })
+  })
+
+  describe('mergeRelatedNotes 合并相关笔记', () => {
+    it('反链 ∪ 出链，去重（fileId 优先），排除自己，反链优先', () => {
+      const back = [
+        { title: '来源A', fileId: 'a' },
+        { title: '共享', fileId: 'c' },
+      ]
+      const out = [
+        { title: '共享', fileId: 'c' }, // 与反链重复 → 去重
+        { title: '目标B', fileId: 'b' },
+        { title: '自己', fileId: 'self' }, // 排除
+      ]
+      const merged = mergeRelatedNotes(back, out, 'self')
+      expect(merged).toEqual([
+        { title: '来源A', fileId: 'a' },
+        { title: '共享', fileId: 'c' },
+        { title: '目标B', fileId: 'b' },
+      ])
+    })
+    it('无 fileId 时按去后缀小写标题去重', () => {
+      const back: Array<{ title: string; fileId?: string }> = [{ title: '笔记A' }]
+      const out: Array<{ title: string; fileId?: string }> = [{ title: '笔记a' }]
+      expect(mergeRelatedNotes(back, out)).toHaveLength(1)
+    })
+  })
+
+  describe('buildRelatedTemplate 相关笔记（自动生成）', () => {
+    it('无双链时仅返回标题 + 单占位', () => {
+      expect(buildRelatedTemplate()).toBe('## 相关笔记\n- [[]]')
+    })
+    it('扫描正文双链自动汇总成清单', () => {
+      const md = '本文关联 [[笔记A]] 与 [[笔记B]]，又提到 [[笔记A]]。'
+      expect(buildRelatedTemplate(md)).toBe('## 相关笔记\n- [[笔记A]]\n- [[笔记B]]')
+    })
+    it('排除指向自己的双链', () => {
+      const md = '回顾 [[当前笔记]] 与 [[其它笔记]]'
+      expect(buildRelatedTemplate(md, '当前笔记.md')).toBe('## 相关笔记\n- [[其它笔记]]')
     })
   })
 

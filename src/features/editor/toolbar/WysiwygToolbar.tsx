@@ -15,7 +15,7 @@ import { useLanguage } from '@stores/LanguageStore'
 import { useLinkIndex } from '@stores/LinkIndexStore'
 import { useFileManager } from '@stores/FileStore'
 import { getRecentFiles } from '@core/files/recentFiles'
-import { buildRecentWikilink, buildRelatedTemplate, buildBackindexTemplate, buildTodayWikilink, buildBacklinksList, buildReferenceList } from '@features/editor/toolbar/groups/linkTemplates'
+import { buildRecentWikilink, buildRelatedTemplate, buildRelatedListText, mergeRelatedNotes, buildBackindexTemplate, buildTodayWikilink, buildBacklinksList, buildReferenceList } from '@features/editor/toolbar/groups/linkTemplates'
 import { extractFootnotes } from '@features/editor/footnote'
 import { getShortcutLabel } from '@features/editor/toolbar/ShortcutManager'
 import { UnderlineColorButton, HighlightColorButton } from '@features/editor/toolbar/WysiwygColorButtons'
@@ -160,7 +160,21 @@ export default function WysiwygToolbar({
         const textEntries = extractFootnotes(editor.getText()).map((f) => ({ id: f.id, content: f.fullContent }))
         editor.chain().focus().insertContent(buildReferenceList([...nodeEntries, ...textEntries], editor.getText())).run()
       },
-      onInsertRelated: () => editor.chain().focus().insertContent(buildRelatedTemplate()).run(),
+      onInsertRelated: () => {
+        // B1：有当前笔记时基于全局链接索引（反链 ∪ 出链，排除自己）插入实时相关笔记
+        if (activeFileId) {
+          const back = getBacklinks(activeFileId).map((r) => ({ title: r.sourceFileName, fileId: r.sourceFileId }))
+          const out = linkIndex.getOutgoingLinks(activeFileId)
+            .map((r) => linkIndex.resolveTarget(r.target))
+            .filter((id): id is string => Boolean(id))
+            .map((id) => ({ title: linkIndex.fileIndex.get(id)?.fileName ?? id, fileId: id }))
+          const merged = mergeRelatedNotes(back, out, activeFileId)
+          editor.chain().focus().insertContent(buildRelatedListText(merged.map((m) => m.title))).run()
+          return
+        }
+        // 无激活笔记时退回扫描正文双链
+        editor.chain().focus().insertContent(buildRelatedTemplate(editor.getText(), activeFileName)).run()
+      },
       onInsertBackindex: () => editor.chain().focus().insertContent(buildBackindexTemplate(activeFileName)).run(),
       onInsertToday: () => editor.chain().focus().insertContent(buildTodayWikilink()).run(),
       onInsertBacklinks: () => {

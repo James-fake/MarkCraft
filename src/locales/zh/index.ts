@@ -1767,6 +1767,8 @@ export interface Translations {
     unlinkedMentionsHint: string
     convertToLink: string
     convertToLinkFailed: string
+    relatedNotes: string
+    relatedNotesEmpty: string
   }
   exportKit: {
     vaultInvalidFormat: string

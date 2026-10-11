@@ -2916,6 +2916,8 @@ export const en: Translations = {
     unlinkedMentionsHint: 'These notes mention this one by name without a link — convert with one click',
     convertToLink: 'Convert to link',
     convertToLinkFailed: 'Could not convert here (content may have changed) — opened the source note instead',
+    relatedNotes: 'Related notes · {n}',
+    relatedNotesEmpty: 'No related notes yet (create [[wikilinks]] and they will appear here).',
   },
   exportKit: {
     // vault backup (services/backupService.ts)

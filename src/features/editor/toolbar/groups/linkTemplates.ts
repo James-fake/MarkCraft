@@ -19,6 +19,12 @@ export interface ReferenceEntry {
   content: string
 }
 
+/** 相关笔记条目（出链 / 反链邻居；fileId 用于点击跳转，可缺省） */
+export interface RelatedNoteEntry {
+  title: string
+  fileId?: string
+}
+
 /** 去重合并脚注条目（按 id；同名时优先带内容的） */
 export function mergeFootnoteEntries(entries: ReferenceEntry[]): ReferenceEntry[] {
   const map = new Map<string, ReferenceEntry>()
@@ -59,9 +65,75 @@ export function buildReferenceTemplate(content = ''): string {
   )
 }
 
-/** 相关笔记模板 */
-export function buildRelatedTemplate(): string {
-  return '## 相关笔记\n- [[]]\n- [[]]'
+/**
+ * 从正文提取唯一的 WikiLink 目标名（含 `![[嵌入]]`）。
+ * 去除 .md 后缀、#标题段、|别名段，并按去后缀小写归一去重。
+ * 返回保持首次出现顺序的展示名数组。
+ */
+export function extractWikiLinkTargets(content: string): string[] {
+  const re = /!?\[\[([^\]]+?)\]\]/g
+  const seen = new Set<string>()
+  const out: string[] = []
+  let m: RegExpExecArray | null
+  while ((m = re.exec(content)) !== null) {
+    let inner = m[1].trim()
+    // [[name#heading|alias]] → name
+    inner = inner.split('#')[0].split('|')[0].trim()
+    inner = stripMdExt(inner)
+    if (!inner) continue
+    const norm = inner.toLowerCase()
+    if (seen.has(norm)) continue
+    seen.add(norm)
+    out.push(inner)
+  }
+  return out
+}
+
+/** 由相关笔记标题列表生成「## 相关笔记」文本（去后缀、排除自己、空则单占位） */
+export function buildRelatedListText(titles: string[], currentFileName = ''): string {
+  const self = currentFileName ? stripMdExt(currentFileName).toLowerCase() : ''
+  const filtered = self
+    ? titles.filter((t) => stripMdExt(t).toLowerCase() !== self)
+    : titles
+  if (filtered.length === 0) return '## 相关笔记\n- [[]]'
+  return `## 相关笔记\n${filtered.map((t) => `- [[${stripMdExt(t)}]]`).join('\n')}`
+}
+
+/**
+ * 合并相关笔记：反链来源 ∪ 出链目标，去重（优先 fileId，否则去后缀小写标题），
+ * 排除自己（excludeFileId）。反链优先于出链排在前面。
+ */
+export function mergeRelatedNotes(
+  backlinks: RelatedNoteEntry[],
+  outgoing: RelatedNoteEntry[],
+  excludeFileId = '',
+): RelatedNoteEntry[] {
+  const seenIds = new Set<string>()
+  const seenTitles = new Set<string>()
+  const out: RelatedNoteEntry[] = []
+  const add = (e: RelatedNoteEntry) => {
+    if (excludeFileId && e.fileId === excludeFileId) return
+    if (e.fileId) {
+      if (seenIds.has(e.fileId)) return
+      seenIds.add(e.fileId)
+    }
+    const norm = stripMdExt(e.title).toLowerCase()
+    if (seenTitles.has(norm)) return
+    seenTitles.add(norm)
+    out.push(e)
+  }
+  backlinks.forEach(add)
+  outgoing.forEach(add)
+  return out
+}
+
+/**
+ * 相关笔记模板（升级为自动生成）：扫描正文 [[双链]]，去重、排除自己，
+ * 汇总成「相关笔记」列表。无链接时仅插入标题 + 单占位 WikiLink。
+ */
+export function buildRelatedTemplate(content = '', currentFileName = ''): string {
+  const targets = extractWikiLinkTargets(content)
+  return buildRelatedListText(targets, currentFileName)
 }
 
 /** 反向索引模板（基于当前文件名；无文件名时保留占位符） */
