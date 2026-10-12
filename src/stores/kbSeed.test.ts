@@ -17,7 +17,7 @@
  * 知识库持久化走磁盘存储层（jsdom 下自动退化为内存后端）。
  */
 import { describe, it, expect, beforeEach } from 'vitest'
-import { kvSet, kvClear } from '@core/storage/kv'
+import { kvClear } from '@core/storage/kv'
 import { collectAllFiles } from '@core/files/fileTree'
 import type { FileNode } from '../types/fileManager'
 import { ensureUsageDocsKb, USAGE_DOCS_SEED_KEY, type UsageDocsSeedDeps } from './kbSeed'

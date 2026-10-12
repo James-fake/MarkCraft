@@ -54,7 +54,7 @@ function Smoke() {
 
       // 序列化往返
       const snap = eng.serialize()
-      push('serialize.version=' + (snap as any).version + ' shapes=' + (snap as any).shapes.length)
+      push('serialize.version=' + snap.version + ' shapes=' + snap.shapes.length)
 
       // 第二个卡片 + 连线（箭头）
       const id2 = eng.createShape({
@@ -66,8 +66,8 @@ function Smoke() {
       push('created second id=' + id2)
       push('FINAL shapes=' + eng.getCurrentPageShapes().length)
       push('DONE-OK')
-    } catch (err: any) {
-      push('EXCEPTION: ' + (err?.message ?? String(err)))
+    } catch (err: unknown) {
+      push('EXCEPTION: ' + (err instanceof Error ? err.message : String(err)))
     }
   }
 

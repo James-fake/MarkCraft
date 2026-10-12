@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Connect, type Plugin, type PreviewServer, type ResolvedConfig, type ViteDevServer } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import { existsSync, statSync, createReadStream, mkdirSync, readdirSync, copyFileSync } from 'fs'
@@ -71,7 +71,7 @@ function healDeletedFiles(dir: string) {
   }
 }
 
-function excalidrawLocalAssets(): any {
+function excalidrawLocalAssets(): Plugin {
   const srcDir = join(process.cwd(), 'node_modules/@excalidraw/excalidraw/dist')
   let outDir = join(process.cwd(), 'dist')
   const mimeTypes: Record<string, string> = {
@@ -83,7 +83,7 @@ function excalidrawLocalAssets(): any {
     '.wasm': 'application/wasm',
   }
 
-  const serveFrom = (rootDir: string) => (req: any, res: any, next: any) => {
+  const serveFrom = (rootDir: string): Connect.NextHandleFunction => (req, res, next) => {
     try {
       const urlPath = decodeURIComponent((req.url || '/').split('?')[0])
       const filePath = join(rootDir, urlPath)
@@ -127,15 +127,15 @@ function excalidrawLocalAssets(): any {
   return {
     name: 'excalidraw-local-assets',
     // 记录构建解析后的真实 outDir（默认 dist），使资源拷贝与 outDir 保持一致
-    configResolved(config: any) {
+    configResolved(config: ResolvedConfig) {
       outDir = join(process.cwd(), config.build.outDir || 'dist')
     },
-    configureServer(server: any) {
+    configureServer(server: ViteDevServer) {
       // dev 启动时还原干净字体（若守卫再次重命名，serveFrom 的兜底仍可解析）
       try { healDeletedFiles(srcDir) } catch { /* ignore */ }
       server.middlewares.use('/excalidraw-assets', serveFrom(srcDir))
     },
-    configurePreviewServer(server: any) {
+    configurePreviewServer(server: PreviewServer) {
       const previewDir = join(outDir, 'excalidraw-assets')
       try { healDeletedFiles(previewDir) } catch { /* ignore */ }
       server.middlewares.use('/excalidraw-assets', serveFrom(previewDir))
