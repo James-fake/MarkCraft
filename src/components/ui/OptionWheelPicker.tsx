@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
+import { useWheelListGestures } from './useWheelListGestures'
 
 /**
  * 苹果风格「文字滚轮选择器」本体（参考 iOS / macOS 日期·时间选择器，但承载任意 string 选项）
@@ -36,6 +37,8 @@ export function OptionWheelPicker({ options, value, onChange, onPick, onClose }:
   )
 
   const listRef = useRef<HTMLDivElement | null>(null)
+  // 滚轮精准步进 + 按住拖拽滚动（修复「一滑跳 2 项」与「拖动被当成切页」）
+  useWheelListGestures(listRef, ITEM_H)
   const lastCommitted = useRef<string>('')
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
