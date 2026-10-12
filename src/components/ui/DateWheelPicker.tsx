@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useUiLabels } from './UiLabels'
+import { useWheelListGestures } from './useWheelListGestures'
 
 /**
  * 苹果风格日期滚轮鼓（年 / 月 / 日 三列，参考 iOS 日期选择器）
@@ -39,6 +40,8 @@ function DrumColumn({
   ariaLabel?: string
 }) {
   const listRef = useRef<HTMLDivElement | null>(null)
+  // 滚轮精准步进 + 按住拖拽滚动（与设置区滚轮鼓一致）
+  useWheelListGestures(listRef, ITEM_H)
   const lastIdx = useRef(selectedIndex)
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange

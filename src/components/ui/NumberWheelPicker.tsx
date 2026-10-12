@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useWheelListGestures } from './useWheelListGestures'
 
 /**
  * 苹果风格数字滚轮鼓（参考 iOS / macOS 日期·时间选择器）
@@ -93,6 +94,8 @@ export function NumberWheelPicker({
       )
 
   const listRef = useRef<HTMLDivElement | null>(null)
+  // 滚轮精准步进 + 按住拖拽滚动（修复「一滑跳 2 项」与「拖动被当成切页」）
+  useWheelListGestures(listRef, ITEM_H)
   const lastCommitted = useRef<number>(NaN)
   const pendingRecenter = useRef(false)
   const onChangeRef = useRef(onChange)

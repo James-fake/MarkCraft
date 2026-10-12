@@ -7,6 +7,34 @@
 import { CanvasEngine } from './CanvasEngine'
 import { isTldrawSnapshot, migrateTldrawToEngine } from '../canvasPersistence'
 
+// 本地桩类型（dev 测试桩，避免引入 any）
+interface FakeElement {
+  id: string
+  type: string
+  x: number
+  y: number
+  width: number
+  height: number
+  isDeleted?: boolean
+  customData?: { cardType?: string; bg?: string; [k: string]: unknown }
+  points?: number[][]
+  boundElements?: Array<{ id: string }>
+  startBinding?: { elementId?: string }
+  endBinding?: { elementId?: string }
+  version?: number
+  versionNonce?: number
+  [k: string]: unknown
+}
+
+interface FakeAppState {
+  scrollX: number
+  scrollY: number
+  zoom: number
+  selectedElementIds: Record<string, boolean>
+  activeTool: { type: string }
+  draggingElement?: { id: string; type: string } | null
+}
+
 let failures = 0
 function assert(cond: boolean, msg: string) {
   if (cond) {
@@ -21,11 +49,11 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
 
 // ── 内存版 Excalidraw API 桩 ──
 function makeFakeApi() {
-  const elements: any[] = []
-  const appState: any = { scrollX: 0, scrollY: 0, zoom: 1, selectedElementIds: {}, activeTool: { type: 'selection' } }
+  const elements: FakeElement[] = []
+  const appState: FakeAppState = { scrollX: 0, scrollY: 0, zoom: 1, selectedElementIds: {}, activeTool: { type: 'selection' } }
   return {
     api: {
-      updateScene: (scene: any) => {
+      updateScene: (scene: { elements?: FakeElement[]; appState?: Partial<FakeAppState>; files?: unknown }) => {
         // 真实 Excalidraw 的 updateScene 会「整体替换」场景（与 merge 不同）
         if (scene.elements) {
           elements.length = 0
@@ -35,14 +63,14 @@ function makeFakeApi() {
         }
         if (scene.appState) Object.assign(appState, scene.appState)
       },
-      updateElement: (el: any) => {
+      updateElement: (el: FakeElement) => {
         const i = elements.findIndex((e) => e.id === el.id)
         if (i >= 0) elements[i] = { ...elements[i], ...el }
         else elements.push(el)
       },
       getSceneElements: () => elements,
       getAppState: () => appState,
-      setActiveTool: (t: any) => {
+      setActiveTool: (t: { type: string }) => {
         appState.activeTool = t
       },
       scrollToContent: () => {},
@@ -56,11 +84,11 @@ async function run() {
   console.log('\n[1] 创建卡片 + 代理矩形同步')
   const fake = makeFakeApi()
   const engine = new CanvasEngine()
-  const container: any = {
+  const container = {
     clientWidth: 1000,
     clientHeight: 800,
     getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 800 }),
-  }
+  } as unknown as HTMLDivElement
   engine.attach(fake.api, container)
 
   const id = engine.createShape({
@@ -107,7 +135,7 @@ async function run() {
 
   console.log('\n[6] 序列化往返')
   const id2 = engine.createShape({ type: 'note-card', x: 50, y: 50, props: { w: 260, h: 200, text: 'A', color: '#22c55e' } })
-  const snap = engine.serialize() as any
+  const snap = engine.serialize()
   assert(snap.version === 2, 'serialize version=2')
   assert(snap.shapes.length === 1 && snap.shapes[0].id === id2, 'serialize 包含 card shape')
   engine.loadDocument(snap)
@@ -231,16 +259,16 @@ async function run() {
   await sleep(50)
   const arrowId = engine.createBoundArrow(aId, bId)
   assert(!!arrowId, 'createBoundArrow 返回 id')
-  const arrowEl = fake.elements.find((e) => e.id === arrowId)
+  const arrowEl = fake.elements.find((e) => e.id === arrowId)!
   assert(!!arrowEl && arrowEl.type === 'arrow', '场景中存在 arrow 元素')
   assert(arrowEl.startBinding?.elementId === aId && arrowEl.endBinding?.elementId === bId, '箭头绑定到两张卡片')
-  const aCard = fake.elements.find((e) => e.id === aId)
-  const bCard = fake.elements.find((e) => e.id === bId)
-  assert(aCard.boundElements?.some((x: any) => x.id === arrowId), '卡片A boundElements 含箭头')
-  assert(bCard.boundElements?.some((x: any) => x.id === arrowId), '卡片B boundElements 含箭头')
+  const aCard = fake.elements.find((e) => e.id === aId)!
+  const bCard = fake.elements.find((e) => e.id === bId)!
+  assert(aCard.boundElements?.some((x) => x.id === arrowId), '卡片A boundElements 含箭头')
+  assert(bCard.boundElements?.some((x) => x.id === arrowId), '卡片B boundElements 含箭头')
   // 起点端点应吸附到卡片A边缘外（而非插入卡片内部）
-  const sx = arrowEl.x + arrowEl.points[0][0]
-  const sy = arrowEl.y + arrowEl.points[0][1]
+  const sx = arrowEl.x + arrowEl.points![0][0]
+  const sy = arrowEl.y + arrowEl.points![0][1]
   assert(
     sx >= aCard.x - 12 && sx <= aCard.x + aCard.width + 12 &&
     sy >= aCard.y - 12 && sy <= aCard.y + aCard.height + 12,
@@ -252,19 +280,19 @@ async function run() {
   // 移动卡片A，箭头起点应跟随
   const startBefore = { x: sx, y: sy }
   engine.updateShape({ id: aId, x: aCard.x + 200, y: aCard.y - 100 })
-  const movedArrow = fake.elements.find((e) => e.id === arrowId)
-  const nsx = movedArrow.x + movedArrow.points[0][0]
-  const nsy = movedArrow.y + movedArrow.points[0][1]
+  const movedArrow = fake.elements.find((e) => e.id === arrowId)!
+  const nsx = movedArrow.x + movedArrow.points![0][0]
+  const nsy = movedArrow.y + movedArrow.points![0][1]
   assert(Math.abs(nsx - startBefore.x) > 30 || Math.abs(nsy - startBefore.y) > 30, '移动卡片A后箭头起点跟随移动')
-  const newA = fake.elements.find((e) => e.id === aId)
+  const newA = fake.elements.find((e) => e.id === aId)!
   assert(
     nsx >= newA.x - 12 && nsx <= newA.x + newA.width + 12 &&
     nsy >= newA.y - 12 && nsy <= newA.y + newA.height + 12,
     '移动后起点仍吸附卡片A新边缘（持续绑定）',
   )
   // 同时终点也应仍吸附卡片B边缘
-  const nex = movedArrow.x + movedArrow.points[1][0]
-  const ney = movedArrow.y + movedArrow.points[1][1]
+  const nex = movedArrow.x + movedArrow.points![1][0]
+  const ney = movedArrow.y + movedArrow.points![1][1]
   assert(
     nex >= bCard.x - 12 && nex <= bCard.x + bCard.width + 12 &&
     ney >= bCard.y - 12 && ney <= bCard.y + bCard.height + 12,
@@ -318,7 +346,7 @@ async function run() {
   {
     const f3 = makeFakeApi()
     const eng3 = new CanvasEngine()
-    eng3.attach(f3.api, { clientWidth: 1000, clientHeight: 800, getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 800 }) } as any)
+    eng3.attach(f3.api, { clientWidth: 1000, clientHeight: 800, getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 800 }) } as unknown as HTMLDivElement)
     eng3.loadDocument({ version: 2, viewport: { scrollX: 0, scrollY: 0, zoom: 1 }, elements: [], shapes: [] })
     // 模拟用户选择「画笔」工具（Excalidraw 会保持该工具用于后续每次绘制）
     eng3.setCurrentTool('draw')
@@ -340,8 +368,8 @@ async function run() {
     await drawStroke('s2')
     await drawStroke('s3')
 
-    console.log('    history depth (undoStack length):', (eng3 as any).undoStack.length)
-    assert((eng3 as any).undoStack.length >= 4, '每个笔画都生成了独立的历史条目（基线 + 3 步）')
+    console.log('    history depth (undoStack length):', eng3.undoStack.length)
+    assert(eng3.undoStack.length >= 4, '每个笔画都生成了独立的历史条目（基线 + 3 步）')
     assert(eng3.getCanUndo() === true, '存在可撤销步骤')
     assert(f3.elements.length === 3, '当前场景含 3 条笔画')
 
@@ -363,7 +391,7 @@ async function run() {
   {
     const f4 = makeFakeApi()
     const eng4 = new CanvasEngine()
-    eng4.attach(f4.api, { clientWidth: 1000, clientHeight: 800, getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 800 }) } as any)
+    eng4.attach(f4.api, { clientWidth: 1000, clientHeight: 800, getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 800 }) } as unknown as HTMLDivElement)
     eng4.loadDocument({ version: 2, viewport: { scrollX: 0, scrollY: 0, zoom: 1 }, elements: [], shapes: [] })
     eng4.setCurrentTool('draw')
     await sleep(5)
@@ -387,8 +415,8 @@ async function run() {
     await drawRapid('r2')
     await drawRapid('r3')
 
-    console.log('    rapid history depth:', (eng4 as any).undoStack.length)
-    assert((eng4 as any).undoStack.length >= 4, '快速 3 笔仍各自独立成历史条目（基线 + 3）')
+    console.log('    rapid history depth:', eng4.undoStack.length)
+    assert(eng4.undoStack.length >= 4, '快速 3 笔仍各自独立成历史条目（基线 + 3）')
     assert(f4.elements.length === 3, '当前含 3 笔')
 
     // 重做栈应为空（新绘制后清空）
@@ -415,7 +443,7 @@ async function run() {
   // 以真实指针边界作为「一次操作」的权威边界，收笔后经 setTimeout(0) 提交「一条」历史，
   // 完全不依赖 Excalidraw 内部字段。本测试刻意「不清 draggingElement」来模拟最坏时序，
   // 证明即便 Excalidraw 内部字段未及时清零，DOM 手势仍能可靠提交历史。
-  const drawFreedraw = async (f: any, eng: any, id: string) => {
+  const drawFreedraw = async (f: ReturnType<typeof makeFakeApi>, eng: CanvasEngine, id: string) => {
     // 选中画笔工具（Excalidraw 会保持该工具连续绘制）
     eng.setCurrentTool('draw')
     await sleep(5)
@@ -426,8 +454,8 @@ async function run() {
     f.elements.push({ id, type: 'freedraw', x: 0, y: 0, width: 2, height: 2, isDeleted: false, points: [[0, 0]], version: 1, versionNonce: 1, customData: {} })
     eng.syncFromScene()
     // pointermove：增点、变大
-    const el = f.elements.find((e: any) => e.id === id)!
-    el.points.push([10, 8]); el.width = 12; el.height = 8; el.version = 2
+    const el = f.elements.find((e) => e.id === id)!
+    el.points!.push([10, 8]); el.width = 12; el.height = 8; el.version = 2
     eng.syncFromScene()
     // pointerup（容器 capture 阶段）：手势结束 → 引擎延迟提交一条历史
     // 注意：此处刻意「不清 draggingElement」，模拟 Excalidraw 内部字段清零时序不可靠的最坏情况
@@ -441,12 +469,12 @@ async function run() {
   {
     const fa = makeFakeApi()
     const enga = new CanvasEngine()
-    enga.attach(fa.api, { clientWidth: 1000, clientHeight: 800, getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 800 }) } as any)
-    assert((enga as any).undoStack.length === 1, 'attach 未走 loadDocument 时也自动播种基线（栈深=1）')
+    enga.attach(fa.api, { clientWidth: 1000, clientHeight: 800, getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 800 }) } as unknown as HTMLDivElement)
+    assert(enga.undoStack.length === 1, 'attach 未走 loadDocument 时也自动播种基线（栈深=1）')
     assert(enga.getCanUndo() === false, '基线之上尚无操作，canUndo=false')
     await drawFreedraw(fa, enga, 'free1')
     assert(fa.elements.length === 1, '场景含 1 条画笔笔迹')
-    assert((enga as any).undoStack.length === 2, '首笔画笔收笔即生成独立历史条目（基线 + 1 笔）')
+    assert(enga.undoStack.length === 2, '首笔画笔收笔即生成独立历史条目（基线 + 1 笔）')
     assert(enga.getCanUndo() === true, '首笔画笔后即可撤销（修复：不再需要再画/加卡片）')
     // 撤销 → 笔迹消失
     enga.undo()
@@ -462,15 +490,15 @@ async function run() {
   {
     const fb = makeFakeApi()
     const engb = new CanvasEngine()
-    engb.attach(fb.api, { clientWidth: 1000, clientHeight: 800, getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 800 }) } as any)
+    engb.attach(fb.api, { clientWidth: 1000, clientHeight: 800, getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 800 }) } as unknown as HTMLDivElement)
     engb.loadDocument({ version: 2, viewport: { scrollX: 0, scrollY: 0, zoom: 1 }, elements: [], shapes: [] })
     assert(engb.getCanUndo() === false, 'loadDocument 后 canUndo=false')
     await drawFreedraw(fb, engb, 'free1')
-    assert((engb as any).undoStack.length === 2, '首笔画笔收笔即生成独立历史条目（基线 + 1 笔）')
+    assert(engb.undoStack.length === 2, '首笔画笔收笔即生成独立历史条目（基线 + 1 笔）')
     assert(engb.getCanUndo() === true, '首笔画笔后即可撤销（loadDocument 场景同样修复）')
     // 再画第二笔 → 应独立成第三条历史
     await drawFreedraw(fb, engb, 'free2')
-    assert((engb as any).undoStack.length === 3, '第二笔独立成历史（基线 + 2 笔）')
+    assert(engb.undoStack.length === 3, '第二笔独立成历史（基线 + 2 笔）')
     engb.undo()
     assert(fb.elements.length === 1, '撤销仅移除最近一笔（free2）')
     engb.undo()
@@ -483,7 +511,7 @@ async function run() {
     // Excalidraw 内部字段根本不可见），仅靠 DOM begin/endPointerGesture 也必须能提交历史。
     const fc = makeFakeApi()
     const engc = new CanvasEngine()
-    engc.attach(fc.api, { clientWidth: 1000, clientHeight: 800, getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 800 }) } as any)
+    engc.attach(fc.api, { clientWidth: 1000, clientHeight: 800, getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 800 }) } as unknown as HTMLDivElement)
     engc.setCurrentTool('draw')
     await sleep(5)
     engc.beginPointerGesture()
@@ -491,7 +519,7 @@ async function run() {
     engc.syncFromScene() // 无任何 appState 手势字段
     engc.endPointerGesture()
     await sleep(5)
-    assert((engc as any).undoStack.length === 2, '无内部字段时，仅 DOM 手势也生成了历史条目')
+    assert(engc.undoStack.length === 2, '无内部字段时，仅 DOM 手势也生成了历史条目')
     assert(engc.getCanUndo() === true, '无内部字段时首笔仍可撤销')
     engc.undo()
     assert(fc.elements.length === 0, '撤销后笔迹移除')
@@ -508,7 +536,7 @@ async function run() {
     // 且此刻 getCanUndo()===true（即 React 端能读到可撤销）。
     const fd = makeFakeApi()
     const engd = new CanvasEngine()
-    engd.attach(fd.api, { clientWidth: 1000, clientHeight: 800, getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 800 }) } as any)
+    engd.attach(fd.api, { clientWidth: 1000, clientHeight: 800, getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 800 }) } as unknown as HTMLDivElement)
     // 用对象持有观测值，避免 TS 对带初始值 let 的控制流字面量窄化
     const obs = { docFired: 0, canUndoAtDoc: false }
     // 复刻 CanvasView：document 监听器负责刷新 canUndo；session 监听器不碰 canUndo
@@ -525,11 +553,11 @@ async function run() {
   {
     const fl = makeFakeApi()
     const engl = new CanvasEngine()
-    engl.attach(fl.api, { clientWidth: 1000, clientHeight: 800, getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 800 }) } as any)
+    engl.attach(fl.api, { clientWidth: 1000, clientHeight: 800, getBoundingClientRect: () => ({ left: 0, top: 0, width: 1000, height: 800 }) } as unknown as HTMLDivElement)
 
     // 创建：默认尺寸 120×36，代理矩形同步到 Excalidraw 且 cardType 正确
     const lid = engl.createShape({ type: 'label-card', x: 100, y: 100, props: { text: '重点', bg: '#FDE68A', fontSize: 14, borderOn: true } })
-    const proxy = fl.elements.find((e: any) => e.id === lid)
+    const proxy = fl.elements.find((e) => e.id === lid)!
     assert(!!proxy, '标签创建后代理矩形已同步到 Excalidraw 场景')
     assert(proxy.customData?.cardType === 'label-card', '代理矩形 customData.cardType=label-card')
     assert(proxy.width === 120 && proxy.height === 36, '标签默认尺寸 120×36')
@@ -538,13 +566,13 @@ async function run() {
     engl.updateShape({ id: lid, props: { text: '非常重要的标注', w: 180, fontSize: 18, bg: '#93C5FD' } })
     const s1 = engl.getShape(lid)!
     assert(s1.props.text === '非常重要的标注' && s1.props.fontSize === 18, '文本与字号变更已写入引擎状态')
-    const proxy2 = fl.elements.find((e: any) => e.id === lid)
+    const proxy2 = fl.elements.find((e) => e.id === lid)!
     assert(proxy2.width === 180, '代理矩形宽度随标签自适应更新')
     assert(proxy2.customData?.bg === '#93C5FD', '背景色变更同步到代理矩形 customData')
 
     // 拖拽（位置写回）：代理矩形跟随
     engl.updateShape({ id: lid, x: 300, y: 240 })
-    const proxy3 = fl.elements.find((e: any) => e.id === lid)
+    const proxy3 = fl.elements.find((e) => e.id === lid)!
     assert(proxy3.x === 300 && proxy3.y === 240, '标签拖拽后代理矩形位置跟随')
 
     // 复制：副本偏移 +24/+24，样式继承
@@ -559,9 +587,9 @@ async function run() {
 
     // 删除：代理矩形标记删除 + 绑定箭头级联删除
     engl.deleteShapes([copyId])
-    const copyEl = fl.elements.find((e: any) => e.id === copyId)
+    const copyEl = fl.elements.find((e) => e.id === copyId)
     assert(!copyEl || copyEl.isDeleted === true, '删除标签后代理矩形被标记删除')
-    const arrowEl = fl.elements.find((e: any) => e.id === arrowId)
+    const arrowEl = fl.elements.find((e) => e.id === arrowId)
     assert(!arrowEl || arrowEl.isDeleted === true, '删除标签后绑定箭头级联删除')
 
     // 撤销/重做：标签操作进入统一历史栈

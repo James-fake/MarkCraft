@@ -15,8 +15,8 @@ module.exports = {
       'warn',
       { allowConstantExport: true },
     ],
-    '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
-    '@typescript-eslint/no-explicit-any': 'warn',
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-explicit-any': 'error',
     '@typescript-eslint/no-empty-interface': 'off',
     // 箭头函数空实现是 React 占位回调的惯用法（() => {}），不构成问题；
     // 保留对具名函数/方法空实现的检查（那些往往是「忘写实现」的真信号）
@@ -58,6 +58,15 @@ module.exports = {
       files: ['src/**/__tests__/**/*.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
       rules: {
         'no-console': 'off',
+      },
+    },
+    {
+      // dev/ 下为一次性开发工具脚本（canvas 引擎手测、截图配置等），不进打包产物，
+      // 其 console 诊断与 react-refresh 约束均不适用，豁免以免污染 --max-warnings 0 门禁。
+      files: ['dev/**/*.{ts,tsx}'],
+      rules: {
+        'no-console': 'off',
+        'react-refresh/only-export-components': 'off',
       },
     },
   ],

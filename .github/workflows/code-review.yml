@@ -1,0 +1,50 @@
+name: code-review
+
+on:
+  pull_request:
+    branches: [master]
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # —— 合并前门禁：类型 / 测试 / 规范 任一失败即红 ——
+      - name: Typecheck (src / electron / e2e)
+        run: npx tsc --noEmit && npm run typecheck:electron && npm run typecheck:e2e
+
+      - name: Unit & smoke tests
+        run: npx vitest run
+
+      # 硬门禁：error 级违规（no-explicit-any / no-unused-vars 等）阻断合并。
+      # 存量债已于 2026-10-11 清零（0 error，仅剩 dev/ 下 no-console 等 warning，
+      # 不计入失败），故转硬门禁，持续拦截新增 any / 未用变量回归。
+      - name: Lint
+        run: npm run lint
+
+      # —— 补充审查：OpenCodeReview 逐行 AI 审查 ——
+      # 前置：仓库 Secrets 需配置 OCR_LLM_TOKEN（与 OCR_LLM_MODEL）。
+      # 该步骤为「补充」定位，不阻断合并；High 项由 reviewer 在 PR 中处理。
+      - name: OpenCodeReview
+        continue-on-error: true
+        env:
+          OCR_LLM_TOKEN: ${{ secrets.OCR_LLM_TOKEN }}
+          OCR_LLM_MODEL: ${{ secrets.OCR_LLM_MODEL }}
+        run: |
+          npm i -g @alibaba-group/open-code-review
+          ocr config set llm.auth_token "$OCR_LLM_TOKEN" || true
+          ocr config set llm.model "$OCR_LLM_MODEL" || true
+          ocr review --from master --to "$GITHUB_HEAD_REF" --audience agent

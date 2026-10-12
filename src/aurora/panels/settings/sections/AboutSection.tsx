@@ -99,6 +99,20 @@ export function AboutSection({
           <div>{A.chg200_4}</div>
           <div>{A.chg200_5}</div>
           <div>{A.chg200_6}</div>
+          <div style={{ marginTop: 12 }}><strong>{A.chg200FixTitle}</strong></div>
+          <div>{A.chg200_7}</div>
+          <div>{A.chg200_8}</div>
+          <div>{A.chg200_9}</div>
+          <div>{A.chg200_10}</div>
+          <div>{A.chg200_11}</div>
+          <div>{A.chg200_12}</div>
+          <div>{A.chg200_13}</div>
+          <div>{A.chg200_14}</div>
+          <div>{A.chg200_15}</div>
+          <div>{A.chg200_16}</div>
+          <div>{A.chg200_17}</div>
+          <div>{A.chg200_18}</div>
+          <div>{A.chg200_19}</div>
           <div style={{ marginTop: 12 }}><strong>{A.chg180Title}</strong></div>
           <div>{A.chg180_1}</div>
           <div>{A.chg180_2}</div>

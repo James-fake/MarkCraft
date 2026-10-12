@@ -179,7 +179,12 @@ export function AuroraSelect({
         role="dialog"
         aria-label={ariaLabel ?? ui.wheelSelect}
         onMouseEnter={cancelClose}
-        onMouseLeave={scheduleClose}
+        onMouseLeave={(e) => {
+          // 拖动滚轮鼓时指针可能短暂移出浮层：左键仍按住（buttons&1）说明是拖拽中，
+          // 不要收起，否则表现为「一拖就切走设置页」
+          if (e.buttons & 1) return
+          scheduleClose()
+        }}
       >
         <OptionWheelPicker
           options={options.map((o) => ({ value: o.value, label: o.label, disabled: o.disabled }))}

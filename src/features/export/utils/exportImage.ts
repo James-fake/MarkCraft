@@ -1,5 +1,5 @@
 import domToImage from 'dom-to-image-more'
-import { downloadBlob } from '../exportUtils'
+import { downloadBlob } from './downloadBlob'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import { textToStorage } from '@core/storage/imageStore'

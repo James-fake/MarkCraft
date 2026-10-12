@@ -1,0 +1,44 @@
+{
+  "rules": [
+    {
+      "path": "src/features/**/*.{ts,tsx}",
+      "rule": "MarkCraft 分层守卫（强制）：src/features 严禁 import src/aurora（包括 @aurora 别名，以及解析后落入 src/aurora 的相对路径如 ../aurora/...）。逻辑/功能层不得反向依赖 UI 外壳层。若确需消费界面能力，必须经 @components/ui 或 @stores 暴露的入口。此项为红线，违反即阻塞合并。",
+      "merge_system_rule": true
+    },
+    {
+      "path": "src/stores/**/*.{ts,tsx}",
+      "rule": "MarkCraft 分层守卫（强制）：src/stores 严禁 import src/aurora。注意 stores/*.tsx（useXxxStore hook 与 Context Provider 同文件）是该层固有形态，允许存在，不视为违反。其余分层规则同 features。",
+      "merge_system_rule": true
+    },
+    {
+      "path": "src/services/**/*.{ts,tsx}",
+      "rule": "MarkCraft 分层守卫（强制）：src/services 严禁 import src/aurora。Services 为纯逻辑/IO 层，不得依赖任何 UI。",
+      "merge_system_rule": true
+    },
+    {
+      "path": "src/locales/**/*.ts",
+      "rule": "i18n 同步（强制）：新增或修改用户可见文案键时，必须在以下三处同步：1) src/locales/zh/common.ts 提供中文运行值；2) src/locales/en.ts 提供英文运行值（受 : Translations 类型约束，键集必须覆盖）；3) src/locales/zh/index.ts 的类型声明中补该键为 string。禁止在组件内硬编码用户可见字符串（应归集到 locales）。遗漏任一处会导致类型错误或运行时缺翻译。",
+      "merge_system_rule": false
+    },
+    {
+      "path": "src/platform/**/*.{ts,tsx}",
+      "rule": "Electron 平台边界（强制）：所有文件系统/对话框/网络/进程能力必须经 @platform 单例访问，禁止在业务代码中直接 require('electron') 或直接读取 window.markcraft（读取也须经 @platform 封装）。主进程 IPC 通道命名 mc:<area>:<action> 必须在三处同步：preload 暴露、types/electron.d.ts 增强、src/platform/electron.ts 实现。文件写入须原子（先写 <path>.<pid>.<ts>.tmp 再 rename），父目录自动创建。警惕：应用自身的写盘会被主进程 selfWrites 3s TTL 抑制回显，避免误判外部改动。",
+      "merge_system_rule": false
+    },
+    {
+      "path": "src/aurora/**/*.{ts,tsx}",
+      "rule": "UI 设计基线（强制，详见 docs/MarkCraft-Desktop-Native-Baseline.md §18）：色值一律走 --mc-* token，禁止新增硬编码 hex，禁止紫粉渐变；圆角仅 --mc-radius-sm/md/lg/pill，禁止裸 px 圆角；字号仅 --mc-font-*，禁止裸 font-size；动效仅 transform/opacity、< 300ms、ease-out，且须在 prefers-reduced-motion 下仍可理解；危险操作（删除等）右置 + 分隔，不平铺；可点元素接真实行为，不可点去指针；弹层统一走 Modal，遮罩无 blur；图标须有 label，保证键盘可达与合理焦点序。",
+      "merge_system_rule": false
+    },
+    {
+      "path": "src/**/*.{ts,tsx}",
+      "rule": "通用类型与质量：禁用 any（@typescript-eslint/no-explicit-any 应为 error）；未使用变量/参数以 _ 前缀忽略（varsIgnorePattern/argsIgnorePattern: ^_）。行尾一致性：本项目部分文件为 mixed 行尾（如 src/features/editor/EditorLayout.tsx），修改前用 git ls-files --eol 排查，避免 Edit 把全文统一成 LF 产生巨大假 diff。提交前确认 tsc --noEmit（src）、typecheck:electron、typecheck:e2e 三处均通过。",
+      "merge_system_rule": true
+    },
+    {
+      "path": "src/**/*.test.{ts,tsx}",
+      "rule": "测试注意事项：jsdom 环境无 IndexedDB，Dexie 会打印 MissingAPIError 到 stderr，这是环境噪音，不代表用例失败——判断结果以失败断言本身为准。单文件运行 vitest run <path> 稳定；多文件并行可能因 Temp\\web EPERM 噪声中断，属环境 shim，非测试失败。断言应针对行为而非实现细节。",
+      "merge_system_rule": false
+    }
+  ]
+}

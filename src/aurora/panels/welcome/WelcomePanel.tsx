@@ -262,8 +262,6 @@ export function WelcomePanel({ nav }: WelcomePanelProps) {
           </div>
         </div>
 
-        {/* 版本号 */}
-        <div className="aurora-welcome__version">MarkCraft v2.0.0 · Aurora</div>
       </div>
     </PageFrame>
   )
