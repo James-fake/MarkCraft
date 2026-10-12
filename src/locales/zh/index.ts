@@ -1655,6 +1655,20 @@ export interface Translations {
     chg200_4: string
     chg200_5: string
     chg200_6: string
+    chg200FixTitle: string
+    chg200_7: string
+    chg200_8: string
+    chg200_9: string
+    chg200_10: string
+    chg200_11: string
+    chg200_12: string
+    chg200_13: string
+    chg200_14: string
+    chg200_15: string
+    chg200_16: string
+    chg200_17: string
+    chg200_18: string
+    chg200_19: string
     chg180Title: string
     chg180_1: string
     chg180_2: string

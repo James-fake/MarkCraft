@@ -13,7 +13,7 @@
 - **主区** `.aurora-welcome__launchpad`（左大右小非对称 flex）：
   - 左大卡 `.aurora-welcome__hero`：编辑器 = 上次停留（`getRecentFiles()[0]` 作「继续《…》」；无则「新建笔记」）。
   - 右 2×3 网格 `.aurora-welcome__tiles`：日记 / 知识库 / 白板 / 博客 / 设置 / 搜索（搜索 = 命令面板）。
-- **页脚** `.aurora-welcome__version` = `Markcraft v2.0.0 · Aurora`。
+- **页脚**：已移除版本号文案（`MarkCraft v2.0.0 · Aurora`），保持欢迎页界面简洁。
 
 ## 2. 人情味问候（真实数据，零假 affordance）
 
