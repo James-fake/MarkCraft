@@ -35,6 +35,16 @@
 
 ![导出](https://img.shields.io/badge/导出-12%20格式-success)
 
+## 📥 下载
+
+> 📦 安装包（Windows 版）托管在**独立的发行仓库**，不放在本源码仓库中，以保持源码仓库轻量、`clone` 迅速。
+
+| 渠道 | 安装包 | 说明 |
+| :--- | :--- | :--- |
+| 最新稳定版 | [MarkCraft-Setup-*.exe](https://gitee.com/James-fake/markcraftxiazaicangdianhua/releases)（安装版）· [MarkCraft-Portable-*.exe](https://gitee.com/James-fake/markcraftxiazaicangdianhua/releases)（免安装版） | 到发行仓库的 **Releases** 页下载对应版本 |
+
+> 🔗 安装包仓库：[James-fake/markcraftxiazaicangdianhua](https://gitee.com/James-fake/markcraftxiazaicangdianhua)（仅托管安装包；本项目源码见本仓库）
+
 ### 🎯 功能一览
 
 |        模块       |   数量  | 说明                               |
