@@ -191,9 +191,19 @@ export const githubAdapter: PlatformAdapter = {
         body: JSON.stringify({ source: { branch, path: '/' } }),
       })
     } catch (err) {
-      // 已启用 → 幂等可忽略；其余（403 无权限 / 私有库需 Pro / 404 等）必须上抛，
+      if (err instanceof DeployApiError && err.status === PAGES_ALREADY_ENABLED) {
+        // 已启用 ≠ 源分支正确：站点可能一直指向 main 等旧分支，渲染 README 而非博客
+        // （实测 2026-11-02：gh-pages 内容完好，线上却是 main 的 Jekyll README 页）。
+        // 故 409 后必须 PATCH 校正源分支；PATCH 失败则上抛 → 上层转为「需手动处理」警告，
+        // 而不是静默「成功」后站点仍显示旧内容。
+        await ghFetch(`/repos/${owner}/${repo}/pages`, token, {
+          method: 'PATCH',
+          body: JSON.stringify({ source: { branch, path: '/' } }),
+        })
+        return
+      }
+      // 其余（403 无权限 / 私有库需 Pro / 404 等）必须上抛，
       // 否则用户会看到「部署成功 + 访问 URL」而站点其实不可用。
-      if (err instanceof DeployApiError && err.status === PAGES_ALREADY_ENABLED) return
       throw err
     }
   },

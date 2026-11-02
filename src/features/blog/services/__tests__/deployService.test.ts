@@ -140,16 +140,35 @@ describe('deployToPages · GitHub', () => {
     expect(lastJsonBody('POST', /\/git\/commits$/)).not.toHaveProperty('parents')
   })
 
-  it('Pages 已启用（409）→ 仍成功且无警告', async () => {
+  it('Pages 已启用（409）→ PATCH 把源分支校正为 gh-pages，仍成功且无警告', async () => {
     seedGithubRepo()
     on('GET', /\/git\/ref\/heads\/main$/, { status: 200, body: { object: { sha: 'COMMIT1' } } })
     on('GET', /\/git\/commits\/COMMIT1$/, { status: 200, body: { tree: { sha: 'TREE1' } } })
     on('POST', /\/pages$/, { status: 409, body: { message: 'Conflict' } })
+    on('PATCH', /\/pages$/, { status: 200, body: {} })
 
     const progress: DeployProgress[] = []
     await deployToPages([{ path: 'a.html', content: 'a' }], { platform: 'github', token: 't', owner: 'octocat', repo: 'blog' }, (p) => progress.push(p))
     expect(progress.at(-1)!.stage).toBe('done')
     expect(progress.at(-1)!.warningKey).toBeUndefined()
+
+    // 🚨 核心回归：409（已启用）不能直接跳过——旧站点可能指向 main 渲染 README。
+    // 必须发 PATCH 把 source 强制校正回本次部署分支（未指定 branch 时为默认 gh-pages）。
+    const patchBody = lastJsonBody('PATCH', /\/pages$/)
+    expect(patchBody.source).toEqual({ branch: 'gh-pages', path: '/' })
+  })
+
+  it('Pages 已启用但 PATCH 校正失败 → 部署成功但带警告（不静默假成功）', async () => {
+    seedGithubRepo()
+    on('GET', /\/git\/ref\/heads\/main$/, { status: 200, body: { object: { sha: 'COMMIT1' } } })
+    on('GET', /\/git\/commits\/COMMIT1$/, { status: 200, body: { tree: { sha: 'TREE1' } } })
+    on('POST', /\/pages$/, { status: 409, body: { message: 'Conflict' } })
+    on('PATCH', /\/pages$/, { status: 403, body: { message: 'Forbidden' } })
+
+    const progress: DeployProgress[] = []
+    await deployToPages([{ path: 'a.html', content: 'a' }], { platform: 'github', token: 't', owner: 'octocat', repo: 'blog' }, (p) => progress.push(p))
+    expect(progress.at(-1)!.stage).toBe('done')
+    expect(progress.at(-1)!.warningKey).toBe('deployPagesManualHint')
   })
 
   it('Pages 启用失败（403 无权限）→ 部署仍成功，但带「需手动启用」警告（不再假成功）', async () => {
