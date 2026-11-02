@@ -75,4 +75,21 @@ describe('generateBlog — 嵌套页面相对链接', () => {
     expect(post).toContain('href="../../manifest.json"')
     expect(post).toContain("register('../../sw.js')")
   })
+
+  it('Service Worker：缓存名随构建变化 + 导航网络优先（否则重新部署后浏览器永远读旧缓存）', () => {
+    const sw1 = findFile(generateBlog(sample, { enablePwa: true }).files, 'sw.js')!.content
+    // ⚠️ buildId 取 Date.now()：两次生成必然不同 → sw.js 字节变化 → 浏览器检测到更新
+    const sw2 = findFile(generateBlog(sample, { enablePwa: true }).files, 'sw.js')!.content
+
+    expect(sw1).toMatch(/CACHE_NAME = 'markcraft-blog-[a-z0-9]+'/)
+    expect(sw1).not.toBe(sw2)
+
+    // 页面导航必须网络优先（旧的纯 cache-first 是「部署后仍见旧站」的元凶）
+    expect(sw1).toContain("event.request.mode === 'navigate'")
+    expect(sw1.indexOf("mode === 'navigate'")).toBeLessThan(sw1.indexOf('caches.match(event.request)'))
+
+    // 预缓存清单相对路径（根绝对 /x 在项目页部署下 404，会导致 addAll 失败、SW 装不上）
+    expect(sw1).toContain("'posts/first/index.html'")
+    expect(sw1).not.toContain("'/posts/first/index.html'")
+  })
 })

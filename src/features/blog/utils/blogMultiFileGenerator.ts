@@ -256,19 +256,6 @@ export function generateBlog(
     content: generate404Html(mergedConfig),
   })
 
-  // PWA files
-  if (mergedConfig.enablePwa) {
-    blogFiles.push({
-      path: 'manifest.json',
-      content: generateManifestJson(mergedConfig),
-    })
-    const allAssetPaths = blogFiles.map(f => f.path)
-    blogFiles.push({
-      path: 'sw.js',
-      content: generateServiceWorker(allAssetPaths),
-    })
-  }
-
   // 友情链接页
   if (mergedConfig.friendLinks && mergedConfig.friendLinks.length > 0) {
     blogFiles.push({
@@ -332,6 +319,20 @@ export function generateBlog(
         content: generatePostHtml(post, mergedConfig, prevPost, nextPost, publishedPosts),
       })
     }
+  }
+
+  // PWA files（必须在全部页面就绪后再生成：sw.js 预缓存清单取自完整文件列表，
+  // 原位置在文章页 push 之前，导致预缓存缺文章页、离线不完整）
+  if (mergedConfig.enablePwa) {
+    blogFiles.push({
+      path: 'manifest.json',
+      content: generateManifestJson(mergedConfig),
+    })
+    const allAssetPaths = blogFiles.map(f => f.path)
+    blogFiles.push({
+      path: 'sw.js',
+      content: generateServiceWorker(allAssetPaths),
+    })
   }
 
   return { files: blogFiles, posts, config: mergedConfig }
