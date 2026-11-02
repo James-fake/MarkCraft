@@ -12,11 +12,11 @@ import {
   type Template,
   type ExampleDoc,
 } from '@services/templates/templateData'
-import { applyTemplate } from '@services/templates/templateApply'
+import { applyTemplate, applyTemplateWithCursor } from '@services/templates/templateApply'
 import { safeJsonParseOrNull } from '@utils/safeJson'
 import { platform } from '@platform'
 
-export { BUILTIN_TEMPLATES, BUILTIN_EXAMPLES, getExamples, getExampleById, applyTemplate }
+export { BUILTIN_TEMPLATES, BUILTIN_EXAMPLES, getExamples, getExampleById, applyTemplate, applyTemplateWithCursor }
 export type { Template, ExampleDoc }
 
 // 社区/共享模板文件格式

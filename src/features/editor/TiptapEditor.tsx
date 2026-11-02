@@ -2,6 +2,7 @@ import { useEditor, EditorContent } from '@tiptap/react'
 import { djb2Hash } from '../../utils/hash'
 import { useEffect, useRef, useImperativeHandle, forwardRef, useCallback, useState, useMemo } from 'react'
 import { htmlToMarkdown } from './markdownConvert'
+import { markdownOffsetToPmPos } from './tiptapMarkdownOffset'
 import { useLanguage } from '../../stores/LanguageStore'
 import { useUndoRedo } from '../../stores/UndoRedoStore'
 import { useSettings } from '../../stores/SettingsStore'
@@ -71,6 +72,12 @@ export interface TiptapEditorHandle {
   find: () => void
   /** 打开「另存为」弹层（文件菜单 · 命令桥） */
   openSaveAs: () => void
+  /**
+   * 把光标定位到最终 markdown 文本的指定偏移（模板 {{cursor}} 落点）。
+   * fullMd 必须是当前编辑器内的完整 markdown（与 offset 同一坐标系）。
+   * 解析失败回退到文档末尾。
+   */
+  focusMarkdownOffset: (mdOffset: number, fullMd: string) => void
 }
 
 const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value, onChange, onPushUndo, onUndoRedoStateChange, onActiveHeadingChange, fileId, theme, focusMode, typewriterMode, livePreview, onToggleFocusMode, onToggleTypewriterMode, onToggleLivePreview, onOpenFile, onSaveAs, onBrokenLinkClick, onUseTemplate, showToolbar = true, showStatusBar = true }, ref) => {
@@ -303,6 +310,14 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
     redo: () => redoFnRef.current(),
     find: () => openSearchRef.current('search'),
     openSaveAs: () => setShowSaveAsModal(true),
+    focusMarkdownOffset: (mdOffset: number, fullMd: string) => {
+      const ed = editorRef.current
+      if (!ed || ed.isDestroyed) return
+      const pos = markdownOffsetToPmPos(ed, fullMd, mdOffset)
+      // 解析失败（-1）回退到文档末尾
+      const target = pos === -1 ? ed.state.doc.content.size : pos
+      ed.chain().focus().setTextSelection(target).run()
+    },
     scrollToHeading,
     restoreScroll,
   }), [editor, fileId, undoRedo, scrollToHeading, restoreScroll, setShowSaveAsModal])

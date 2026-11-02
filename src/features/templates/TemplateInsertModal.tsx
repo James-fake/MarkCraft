@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useLanguage } from '../../stores/LanguageStore'
-import { getAllTemplates, applyTemplate, importSharedTemplate, exportTemplateAsFile, getExamples, saveNoteAsTemplate, renameUserTemplate, deleteUserTemplate, toggleTemplateFavorite, getFavoriteTemplateIds, getRecentTemplateIds, pushRecentTemplate, Template, ExampleDoc } from './templateManager'
+import { getAllTemplates, applyTemplate, applyTemplateWithCursor, importSharedTemplate, exportTemplateAsFile, getExamples, saveNoteAsTemplate, renameUserTemplate, deleteUserTemplate, toggleTemplateFavorite, getFavoriteTemplateIds, getRecentTemplateIds, pushRecentTemplate, Template, ExampleDoc } from './templateManager'
 import { Button } from '../../components/ui'
 import { useToast } from '../../components/ui/ToastProvider'
 import { useSettings } from '../../stores/SettingsStore'
@@ -8,7 +8,7 @@ import { useSettings } from '../../stores/SettingsStore'
 interface TemplateInsertModalProps {
   isOpen: boolean
   onClose: () => void
-  onInsert: (content: string, meta?: { name?: string; at?: 'start' | 'end' }) => void
+  onInsert: (content: string, meta?: { name?: string; at?: 'start' | 'end'; /** {{cursor}} 在 content 中的偏移；null/undefined = 模板未声明 */ cursorOffset?: number | null }) => void
   /** 打开模板发现层（P2-7） */
   onOpenDiscovery?: () => void
   /** 当前笔记名（解析 {{title}} / {{filename}}；无文件时为空） */
@@ -125,10 +125,12 @@ const TemplateInsertModal: React.FC<TemplateInsertModalProps> = ({
     const item = list.find(t => t.id === selectedId)
     if (!item) return
     // 模板与范例都套变量（范例此前不套 → {{date}} 会原样插入）
-    // 附带名称（无文件时用于「用模板新建命名笔记」）与插入位置
-    onInsertRef.current(applyTemplate(item, vars), {
+    // 附带名称（无文件时用于「用模板新建命名笔记」）、插入位置与 {{cursor}} 光标落点
+    const { content, cursorOffset } = applyTemplateWithCursor(item, vars)
+    onInsertRef.current(content, {
       name: isZh ? item.name : item.nameEn,
       at: insertAt,
+      cursorOffset,
     })
     if (tab === 'template') pushRecentTemplate(item.id)
     onCloseRef.current()

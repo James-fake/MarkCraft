@@ -24,7 +24,7 @@ export const BUILTIN_TEMPLATES: Template[] = [
     name: '会议记录',
     nameEn: 'Meeting Notes',
     icon: '📋',
-    content: `# 会议记录\n\n**日期**: {{date}}\n**参与人**: \n**主题**: \n\n## 议程\n1. \n\n## 讨论内容\n\n## 待办事项\n- [ ] \n`,
+    content: `# 会议记录\n\n**日期**: {{date}}\n**参与人**: \n**主题**: \n\n## 议程\n1. \n\n## 讨论内容\n{{cursor}}\n\n## 待办事项\n- [ ] \n`,
     isBuiltIn: true,
   },
   {
@@ -48,7 +48,7 @@ export const BUILTIN_TEMPLATES: Template[] = [
     name: '每日日记',
     nameEn: 'Daily Journal',
     icon: '📔',
-    content: `# {{date}}\n\n## 今日计划\n- [ ] \n\n## 今日记录\n\n## 心得与感悟\n\n## 明日计划\n- [ ] \n`,
+    content: `# {{date}}\n\n## 今日计划\n- [ ] {{cursor}}\n\n## 今日记录\n\n## 心得与感悟\n\n## 明日计划\n- [ ] \n`,
     isBuiltIn: true,
   },
   {

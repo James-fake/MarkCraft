@@ -10,6 +10,8 @@
  * - `{{year}}` `{{month}}` `{{day}}`  数字年/月/日
  * - `{{title}}`             标题（由调用方传入：当前笔记名 / 新建名）
  * - `{{filename}}`          文件名（缺省回退到 title）
+ * - `{{cursor}}`            光标落点（applyTemplate 直接剥除；applyTemplateWithCursor
+ *                           额外返回该位置在产出文本中的偏移，由插入方定位光标）
  *
  * P2-4 自 features 下沉至 services；本次（模板优化 A 档）扩展变量集并修复 `{{title}}`
  * 恒为空的问题（此前插入方从不传 extraVars）。
@@ -63,7 +65,36 @@ function substitute(text: string, now: Date, extraVars?: TemplateVars): string {
   return result
 }
 
-/** 应用模板变量，返回最终 markdown 文本。接受任意带 content 的对象（模板 / 范例通用）。 */
+/** {{cursor}} 占位符（变量替换不动它，由 applyTemplate / applyTemplateWithCursor 各自处理） */
+export const CURSOR_MARKER = '{{cursor}}'
+
+/** 剥除全部 {{cursor}} 标记，得到干净文本。 */
+function stripCursorMarkers(text: string): string {
+  return text.split(CURSOR_MARKER).join('')
+}
+
+/**
+ * 应用模板变量，返回最终 markdown 文本。接受任意带 content 的对象（模板 / 范例通用）。
+ * `{{cursor}}` 被剥除（不落盘）——需要光标落点时改用 {@link applyTemplateWithCursor}。
+ */
 export function applyTemplate(template: { content: string }, extraVars?: TemplateVars): string {
-  return substitute(template.content, extraVars?.date ?? new Date(), extraVars)
+  return stripCursorMarkers(substitute(template.content, extraVars?.date ?? new Date(), extraVars))
+}
+
+export interface AppliedTemplateWithCursor {
+  /** 已替换变量并剥除全部 {{cursor}} 标记的最终文本 */
+  content: string
+  /** 首个 {{cursor}} 在 content 中的字符偏移；模板未声明时为 null（调用方回退到末尾） */
+  cursorOffset: number | null
+}
+
+/**
+ * 应用模板变量并解析 `{{cursor}}` 光标落点。
+ * 偏移是**纯 markdown 文本偏移**：源码模式（CM6）可 1:1 定位；所见即所得由编辑器侧近似映射。
+ */
+export function applyTemplateWithCursor(template: { content: string }, extraVars?: TemplateVars): AppliedTemplateWithCursor {
+  const resolved = substitute(template.content, extraVars?.date ?? new Date(), extraVars)
+  const idx = resolved.indexOf(CURSOR_MARKER)
+  const content = stripCursorMarkers(resolved)
+  return { content, cursorOffset: idx === -1 ? null : idx }
 }

@@ -60,8 +60,8 @@ export interface EditorIntegrationParams {
     isOpen: (id: string) => boolean
   }
   language: 'zh' | 'en'
-  /** 编辑器布局句柄：插入模板后聚焦编辑器并把光标移到末尾（可选，缺省则跳过） */
-  editorLayoutRef?: React.RefObject<{ focusEnd: () => void } | null>
+  /** 编辑器布局句柄：插入模板后聚焦编辑器并落光标（focusEnd / {{cursor}} 的 focusCursorAt，可选缺省跳过） */
+  editorLayoutRef?: React.RefObject<{ focusEnd: () => void; focusCursorAt: (offset: number) => void } | null>
 }
 
 export interface EditorIntegration {
@@ -226,7 +226,13 @@ export function useEditorIntegration(p: EditorIntegrationParams): EditorIntegrat
   // —— 弹层回调（与 App.tsx 行为守恒，复用真实 FileStore API）——
 
   const handleTemplateInsert = useCallback(
-    (content: string, meta?: { name?: string; at?: 'start' | 'end' }) => {
+    (content: string, meta?: { name?: string; at?: 'start' | 'end'; cursorOffset?: number | null }) => {
+      // {{cursor}} 落点换算到「拼接后」的最终 markdown：
+      // - 无活跃文件（新建）→ 光标偏移即模板内偏移
+      // - 插到开头 → 模板在前，偏移即模板内偏移
+      // - 插到末尾 → 要加上前缀（原有内容 + 分隔空行）的长度
+      const prefixLen = activeFileId && meta?.at !== 'start' && localContent ? localContent.length + 2 : 0
+      const cursorOffset = typeof meta?.cursorOffset === 'number' ? prefixLen + meta.cursorOffset : null
       if (!activeFileId) {
         // 无活跃文件：用模板新建一篇，并**按模板名命名**（此前是「未命名-<时间戳>」）
         const base = (meta?.name || '未命名').replace(/[\\/:*?"<>|]/g, '').trim() || '未命名'
@@ -242,8 +248,15 @@ export function useEditorIntegration(p: EditorIntegrationParams): EditorIntegrat
         scheduleSave(textToStorage(next))
       }
       auroraModal?.close('templateInsert')
-      // 聚焦编辑器并把光标移到文档末尾（插入到开头时不动光标，避免跳到文末）
-      if (meta?.at !== 'start') requestAnimationFrame(() => editorLayoutRef?.current?.focusEnd())
+      // 聚焦编辑器并落光标：模板声明了 {{cursor}} → 落在标记处；
+      // 否则保持旧行为（插入到开头时不动光标，避免跳到文末；末尾落到文末接着写）
+      requestAnimationFrame(() => {
+        if (cursorOffset !== null) {
+          editorLayoutRef?.current?.focusCursorAt(cursorOffset)
+        } else if (meta?.at !== 'start') {
+          editorLayoutRef?.current?.focusEnd()
+        }
+      })
     },
     [activeFileId, auroraModal, createFile, localContent, openFile, rootFolder, scheduleSave, setLocalContent, editorLayoutRef],
   )

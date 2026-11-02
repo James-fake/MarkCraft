@@ -86,6 +86,11 @@ export interface EditorLayoutHandle {
   openSaveAs: () => void
   /** 插入模板后：聚焦编辑器并把光标移到文档末尾（源码 / 所见即所得统一出口） */
   focusEnd: () => void
+  /**
+   * 插入模板后：把光标定位到最终 markdown 文本的指定偏移（{{cursor}} 落点）。
+   * 源码模式 1:1 精确；所见即所得由内核近似映射（±1 字符）。
+   */
+  focusCursorAt: (offset: number) => void
 }
 
 export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(function EditorLayout({
@@ -318,7 +323,20 @@ export const EditorLayout = forwardRef<EditorLayoutHandle, EditorLayoutProps>(fu
         tiptapRef.current?.getEditor()?.commands.focus('end')
       }
     },
-  }), [editorMode])
+    // {{cursor}} 落点：源码模式 CM6 文本 === markdown，偏移 1:1；WYSIWYG 走近似映射
+    focusCursorAt: (offset: number) => {
+      if (editorMode === 'source') {
+        const view = editorRef.current?.getView()
+        if (view) {
+          const pos = Math.max(0, Math.min(offset, view.state.doc.length))
+          view.dispatch({ selection: { anchor: pos } })
+          view.focus()
+        }
+      } else {
+        tiptapRef.current?.focusMarkdownOffset(offset, localContent)
+      }
+    },
+  }), [editorMode, localContent])
 
   // Go to line callback
   const handleGoToLine = useCallback((line: number) => {
