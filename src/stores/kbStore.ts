@@ -247,9 +247,28 @@ export async function createKbInFolder(
  */
 export async function rebindKbFolder(kbId: string, folderId: string): Promise<void> {
   const kb = await loadKb(kbId)
-  if (!kb) return
-  kb.folderId = folderId
-  await saveKb(kb)
+  if (kb) {
+    kb.folderId = folderId
+    await saveKb(kb)
+    return
+  }
+  // ⚠️ 文档缺失（旧版本 / 半截写入）时**不能静默 return** —— 否则「自愈」只重建了文件夹、
+  //    却没把 folderId 落盘，知识库照旧指向幽灵 → 依旧 0 篇（自愈看着成功、用户却看不到笔记）。
+  //    此处按列表项重建一份最小文档，把 folderId 真正写进去。
+  const item = (await getKbList()).find((i) => i.id === kbId)
+  if (!item) return
+  const rebuilt: KnowledgeBase = {
+    id: kbId,
+    name: item.name,
+    description: item.description ?? '',
+    folderId,
+    createdAt: item.createdAt,
+    updatedAt: Date.now(),
+    canvasIds: [],
+    fileIds: [],
+    rules: [],
+  }
+  await saveKb(rebuilt)
 }
 
 /**

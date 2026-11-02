@@ -149,23 +149,45 @@ function ShellInner() {
   }, [settings.contrast])
   const { toggleLanguage, language, t } = useLanguage()
 
-  // —— 内置「使用文档」知识库：一次性播种 ——
+  // —— 内置「使用文档」知识库：播种 + 自愈（幂等）——
   // 用户需求（2026-09-21）：首次进入 MarkCraft，知识库界面默认已有「MarkCraft 使用文档」。
-  // ensureUsageDocsKb 自身保证幂等（已有同名库直接复用）与「不复活」（用户删过就不再建）；
-  // 此处仅做「终态去重」——rootFolder 每次变更都会换引用，避免重复走一遍对账。
+  // ensureUsageDocsKb 自身保证幂等（已有同名库直接复用）与「不复活」（用户删过就不再建）。
   //
-  // ⚠️ 必须等 `hydrated` —— FileStore 的 state 先给同步兜底树、再由 IndexedDB 权威树整体覆盖。
-  //    若在兜底树上播种，建出的文件夹会被随后的权威树覆盖成幽灵节点，而 KB 已把该幽灵
-  //    folderId 持久化 → 「知识库能进、里面 0 篇」（老用户升级路径的真实缺陷）。
-  const usageDocsSeededRef = useRef(false)
+  // ⚠️ 必须等 `hydrated` —— FileStore 的 state 先给同步兜底树、再由权威树（IndexedDB / 磁盘
+  //    Vault）整体覆盖。若在兜底树上播种，建出的文件夹会被随后的权威树覆盖成幽灵节点，而
+  //    KB 已把该幽灵 folderId 持久化 → 「知识库能进、里面 0 篇」。
+  //
+  // ⚠️⚠️ 不能只播一次（2026-10-13 修复）：内置使用文档**从不落盘**
+  //    （`vaultService.doSync` 用 `resolveUsageDocsScope().hiddenIds` 跳过它们），只活在**内存
+  //    文件树**里。Vault 模式下文件树一旦被整体替换（`loadVault` 重载 / 重新水合 → 节点 id 全变），
+  //    内存里的使用文档随之消失、知识库的 folderId 变成幽灵 → 库空（0 篇）；旧实现用一次性
+  //    标记 `usageDocsSeededRef` 记账，让它**永不重播**，用户只能靠「设置 → 关于 → 使用文档」才自愈。
+  //    改为按**树根 id** 记账：根 id 变了（= 换了一棵新树）就重新播种/自愈。
+  //    根 id 在内容编辑时保持不变（`updateNodeContent` 不改根 id），故不会每次输入都重跑。
+  const seededRootIdRef = useRef<string | null>(null)
   useEffect(() => {
     if (!hydrated) return
-    if (usageDocsSeededRef.current) return
-    logger.info('[kbSeed] 播种 effect 触发（hydrated 已就位）')
+    if (seededRootIdRef.current === rootFolder.id) return
+    logger.info('[kbSeed] 播种/自愈 effect 触发（hydrated 已就位，树根变更）')
     void ensureUsageDocsKb({ rootFolder, lang: language, createFolder, createFile, moveNode })
-      .then(() => { usageDocsSeededRef.current = true })   // 有 id 或 null（不复活）都算终态
+      .then(() => { seededRootIdRef.current = rootFolder.id })   // 有 id 或 null（不复活）都算终态
       .catch((err) => { console.warn('[KB] 内置使用文档播种失败，将在下次树变更时重试：', err) })
   }, [hydrated, rootFolder, language, createFolder, createFile, moveNode])
+
+  // 兜底自愈：进入「知识库」视图时再幂等跑一次。
+  // 直接覆盖「点开使用文档知识库却是空的」这条路径 —— 即便本次会话内文件树未被替换、
+  // 只是首播时 folderId 落成了幽灵，这里也能把它修回来（自愈路径见 kbSeed 的 1b）。
+  // 健康时 1a 短路、用户删过则返回 null（不复活），故无副作用；按 (视图, 树根) 去重避免重复对账。
+  const healedKbViewRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!hydrated) return
+    if (view !== 'kb') return
+    const key = `${view}:${rootFolder.id}`
+    if (healedKbViewRef.current === key) return
+    healedKbViewRef.current = key
+    void ensureUsageDocsKb({ rootFolder, lang: language, createFolder, createFile, moveNode })
+      .catch(() => { /* 自愈失败不打断浏览 */ })
+  }, [hydrated, view, rootFolder, language, createFolder, createFile, moveNode])
 
   // —— 弹层开关（Phase 3d · 方案 B：单一数据源在 AuroraShell，面板就近渲染）——
   const [modals, setModals] = useState<Partial<Record<AuroraModalId, boolean>>>({})
