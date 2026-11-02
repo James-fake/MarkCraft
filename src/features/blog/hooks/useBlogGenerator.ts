@@ -169,7 +169,11 @@ export const THEME_STYLE_TAGS: Array<{ key: ThemeTag; zh: string; en: string }> 
 ]
 
 export const THEME_INFO_LIST: ThemeInfo[] = [
-  // === 现有 16 个主题 ===
+  // === 现有 15 个主题 ===
+  // ⚠️ 主题总数 = 本组 15 + 后续各组 18/12/10/8 = **63 个预设主题**。
+  //    这个数字被 README、官网与内置文档引用，曾被本注释误导写成 64（误把 `custom`
+  //    也算进去了 —— `custom` 只是 `ThemeStyle` 联合类型里的占位，不在本数组中）。
+  //    改动主题后请同步 `themeCatalog.test.ts` 的期望值。
   { key: 'magazine', name: { zh: '杂志', en: 'Magazine' }, description: { zh: '多栏杂志布局，适合资讯类博客', en: 'Multi-column magazine layout' }, category: 'magazine', tags: ['grid', 'typography'], features: ['responsive', 'darkmode', 'social'], gradient: 'linear-gradient(135deg, #d97706, #e11d48)', icon: 'M4 4h16v16H4V4zm2 2v12h12V6H6zm2 2h3v3H8V8zm5 0h3v3h-3V8zm-5 5h8v2H8v-2z', featured: true },
   { key: 'minimal', name: { zh: '极简', en: 'Minimal' }, description: { zh: '极简设计，专注内容阅读', en: 'Minimalist design, content-focused' }, category: 'personal', tags: ['minimal', 'typography'], features: ['responsive', 'darkmode'], gradient: 'linear-gradient(135deg, #6b7280, #9ca3af)', icon: 'M4 6h16M4 10h16M4 14h10M4 18h7' },
   { key: 'classic', name: { zh: '经典', en: 'Classic' }, description: { zh: '经典博客风格，简洁大方', en: 'Classic blog style, clean and elegant' }, category: 'personal', tags: ['minimal'], features: ['responsive', 'darkmode', 'social'], gradient: 'linear-gradient(135deg, #059669, #34d399)', icon: 'M4 4h8v8H4V4zm10 0h6v3h-6V4zm0 5h6v3h-6V9zM4 14h16v6H4v-6z' },

@@ -133,7 +133,7 @@ MarkCraft 提供两种核心编辑引擎，通过工具栏按钮随时切换：
 ## 3.3 自动保存与崩溃恢复
 
 - 自动保存间隔可在设置中调整（5-300 秒，默认 30 秒，500ms 防抖）
-- 数据存储于浏览器 localStorage，key 为 \`markdown-editor-data\`（数据版本 v5）
+- 数据以 JSON 文件存于 \`%APPDATA%\\MarkCraft\\storage\\\`（笔记树 key：\`markcraft-file-manager\`）；localStorage 只保留版本号与崩溃恢复副本
 - 支持崩溃恢复，意外关闭后可恢复未保存内容
 
 ## 3.4 文件导入
@@ -495,7 +495,7 @@ MarkCraft 内置丰富的智能编辑能力，让写作更流畅：
 ## 8.5 自动保存
 
 - 间隔 5-300 秒可调（默认 30 秒，500ms 防抖）
-- 数据存于 localStorage（key：\`markdown-editor-data\`，版本 v5）
+- 数据存于 \`%APPDATA%\\MarkCraft\\storage\\\`（笔记树 key：\`markcraft-file-manager\`）；localStorage 仅存版本号与崩溃副本
 - 崩溃恢复：意外关闭后自动恢复未保存内容
 
 ## 8.6 图片功能
@@ -577,15 +577,17 @@ MarkCraft 支持 12 种导出格式，点击工具栏「另存为」即可选择
 
 独立的全屏设计工作室，采用三栏布局：左侧配置 + 中间预览 + 右侧控制。支持桌面 / 平板 / 手机设备模拟，中间预览采用 iframe srcdoc 沙箱（500ms 防抖实时刷新）。
 
-## 10.1 博客主题（共 64 种，分 5 批）
+## 10.1 博客主题（共 63 种预设 + 自定义，分 5 批）
 
 | 批次 | 数量 | 主题示例 |
 |------|------|----------|
-| 第 1 批 | 16 | magazine 杂志、minimal 极简、classic 经典、ink-wash 水墨、terminal 终端、newspaper 报纸、glassmorphism 玻璃拟态、bento 便当盒、narrative 叙事、cyberpunk 赛博朋克、aurora 极光、academia 学术、retro 复古、garden 花园、midnight 午夜、custom 自定义 |
+| 第 1 批 | 15 | magazine 杂志、minimal 极简、classic 经典、ink-wash 水墨、terminal 终端、newspaper 报纸、glassmorphism 玻璃拟态、bento 便当盒、narrative 叙事、cyberpunk 赛博朋克、aurora 极光、academia 学术、retro 复古、garden 花园、midnight 午夜 |
 | 第 2 批 | 18 | poetry 诗歌、typewriter 打字机、ocean 海洋、sunset 日落、editorial 社论、trending 热门、dispatch 快讯、carbon 碳黑、blueprint 蓝图、hacker 黑客、showcase 展示、mosaic 马赛克、gallery 画廊、cinematic 电影、docs 文档、wiki 百科、neon 霓虹、origami 折纸 |
 | 第 3 批 | 12 | swiss 瑞士国际主义、bauhaus 包豪斯、artdeco 装饰艺术、zen 禅意、brutalist 粗野主义、vaporwave 蒸汽波、pixel 像素、neumorphism 新拟态、corporate 企业、fashion 时尚、forest 森林、notion 笔记 |
 | 第 4 批 | 10 | cafe 咖啡馆、travel 旅行、music 音乐、sketch 手绘、cosmos 宇宙、claymorphism 粘土、ice-crystal 冰晶、rams 拉姆斯、luxury 奢华、comic 漫画 |
 | 第 5 批 | 8 | steampunk 蒸汽朋克、gothic 哥特、noir 黑色电影、recipe 食谱、timeline 时间线、feed 动态流、pastel 粉彩、newsletter 简报 |
+
+> \`custom\`（自定义）不计入 63 个预设，它是允许用户自行编写样式的额外选项。
 
 ## 10.2 主题分类与筛选
 
@@ -832,7 +834,7 @@ MarkCraft 内置完整的知识管理体系，让笔记从「孤岛」连接成�
 
 ## Q: 数据保存在哪里？会丢失吗？
 
-数据保存在浏览器 localStorage（key：\`markdown-editor-data\`，版本 v5）。默认每 30 秒自动保存一次（可在设置中调整为 5-300 秒）。意外关闭后支持崩溃恢复。建议重要文档定期导出备份。
+笔记正文以真实 \`.md\` 文件存于你选择的 Vault 文件夹；应用自身状态（笔记树 / 知识库 / 白板 / 版本历史）以 JSON 存于 \`%APPDATA%\\MarkCraft\\storage\\\`，设置、主题等小项存 localStorage。默认每 30 秒自动保存一次（可在设置中调整为 5-300 秒），编辑时另有 500ms 防抖。意外关闭后支持崩溃恢复。建议重要文档定期导出备份。
 
 ## Q: 图片太大怎么办？
 

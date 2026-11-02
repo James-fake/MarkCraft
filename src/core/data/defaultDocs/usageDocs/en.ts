@@ -161,7 +161,7 @@ Press \`Ctrl+P\` for fuzzy file search — type part of a filename to instantly 
 
 - Automatically saves after each edit (500ms debounce)
 - Adjustable interval: 5–300 seconds in Settings
-- Data stored in browser localStorage with key \`markdown-editor-data\` (version v5)
+- Data stored as JSON files under \`%APPDATA%\\MarkCraft\\storage\\\` (file tree key: \`markcraft-file-manager\`); localStorage keeps only the version tag and crash-recovery copy
 - Crash recovery: restore unsaved changes after unexpected closes
 
 ## 3.6 File Import
@@ -696,10 +696,12 @@ MarkCraft's Blog Studio lets you turn your Markdown documents into a beautiful b
 
 **Real-time preview:** iframe sandbox with 500ms debounce
 
-## 10.2 Blog Themes (64 Total, 5 Batches)
+## 10.2 Blog Themes (63 Presets + Custom, 5 Batches)
 
-**Batch 1 — 16 Classic:**
-magazine, minimal, classic, ink-wash, terminal, newspaper, glassmorphism, bento, narrative, cyberpunk, aurora, academia, retro, garden, midnight, custom
+**Batch 1 — 15 Classic:**
+magazine, minimal, classic, ink-wash, terminal, newspaper, glassmorphism, bento, narrative, cyberpunk, aurora, academia, retro, garden, midnight
+
+> \`custom\` is an extra option outside the 63 presets, letting you write your own style.
 
 **Batch 2 — 18 Themes:**
 poetry, typewriter, ocean, sunset, editorial, trending, dispatch, carbon, blueprint, hacker, showcase, mosaic, gallery, cinematic, docs, wiki, neon, origami
@@ -1018,7 +1020,7 @@ Open the command palette with \`Ctrl+P\` (Quick Open) or use the dedicated short
 
 ## Q: Will my edits be lost if I close the browser?
 
-No. MarkCraft automatically saves your content to browser localStorage. Your work is preserved after page refresh or closing and reopening the browser. The auto-save interval is adjustable from 5 to 300 seconds.
+Your notes are stored as real \`.md\` files in the Vault folder you choose. App state (file tree / knowledge base / canvas / version history) is stored as JSON under \`%APPDATA%\\MarkCraft\\storage\\\`, while settings and themes live in localStorage. Auto-save runs every 30 seconds by default (adjustable 5–300s) plus a 500ms debounce while editing, and crash recovery restores unsaved changes after an unexpected close.
 
 ## Q: How do I move a file to another folder?
 
@@ -1034,7 +1036,7 @@ Yes! Go to Settings → Shortcuts tab. There you can record custom shortcuts, se
 
 ## Q: How many blog themes are there?
 
-64 themes across 5 batches, with category filters and tags to help you find the perfect style. You can also customize colors, fonts, and layout to make it your own.
+63 preset themes across 5 batches (plus a \`custom\` option), with category filters and tags to help you find the perfect style. You can also customize colors, fonts, and layout to make it your own.
 
 ## Q: How do I create links between notes?
 

@@ -56,3 +56,9 @@ splash-shots/
 dev/
 # Trae IDE 规则
 .trae/
+
+# ===== 官网（已迁出主仓）=====
+# 官网项目已迁至 D:/TracSolo_Project/MarkCraft Official Website（原根目录 website/）。
+# 保留下面的忽略规则，防止旧路径的残留目录被误提交。
+website/
+

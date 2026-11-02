@@ -2,7 +2,7 @@
 
 ### 现代化 Markdown 编辑器 · 个人知识工坊 · 博客生成器
 
-一款基于 React + TypeScript 构建的**桌面端** Markdown 编辑器（Electron），集成双引擎编辑、知识链接体系、3D 知识图谱、Excalidraw 白板、AI 知识库、64 种主题的博客工坊，让笔记从「孤岛」连接成「网络」，再让知识库成为「第二大脑」。
+一款基于 React + TypeScript 构建的**桌面端** Markdown 编辑器（Electron），集成双引擎编辑、知识链接体系、知识图谱（4 种布局）、Excalidraw 白板、知识库（本地检索）、63 种预设主题的博客工坊，让笔记从「孤岛」连接成「网络」，再让知识库成为「第二大脑」。
 
 > 🌈 **MarkCraft** = `Markdown` + `Craft`，意为「**雕琢你的笔记**」 ✨
 
@@ -14,10 +14,11 @@
 
 ![CodeMirror](https://img.shields.io/badge/CodeMirror-6-D307075?logo=codemirror\&logoColor=white)
 
+
+
 ![Tiptap](https://img.shields.io/badge/Tiptap-3.24-0DBDE7)
 
 ![Excalidraw](https://img.shields.io/badge/Excalidraw-0.17-6965F6)
-
 
 ![License](https://img.shields.io/badge/License-MIT-success)
 
@@ -27,42 +28,42 @@
 
 ![白板](https://img.shields.io/badge/白板-Excalidraw%20混合引擎-9333EA)
 
-![知识库](https://img.shields.io/badge/知识库-AI%20智能化-EC4899)
+![知识库](https://img.shields.io/badge/知识库-本地检索-EC4899)
 
-![知识图谱](https://img.shields.io/badge/知识图谱-3D%20球体-orange)
+![知识图谱](https://img.shields.io/badge/知识图谱-4%20布局-orange)
 
-![博客](https://img.shields.io/badge/博客-64%20主题-critical)
+![博客](https://img.shields.io/badge/博客-63%20预设主题-critical)
 
 ![导出](https://img.shields.io/badge/导出-12%20格式-success)
 
 ## 📥 下载
 
-> 📦 安装包（Windows 版）托管在**独立的安装包仓库**，不放在本源码仓库中，以保持源码仓库轻量、`clone` 迅速。
-> 由于 Gitee 免费版对单个文件限制 100MB（含 Releases 附件），安装包以**分卷（volume）**形式存入安装包仓库，`git clone` 后一条命令合并即可还原。
+> 📦 安装包（Windows 版）托管在**独立的安装包仓库**，不放在本源码仓库中，以保持源码仓库轻量、`clone` 迅速。  
+> 由于 Gitee 免费版对单个文件限制 100MB（含 Releases 附件），安装包以**分卷（volume）**&#x5F62;式存入安装包仓库，`git clone` 后一条命令合并即可还原。
 
-| 渠道 | 安装包 | 说明 |
-| :--- | :--- | :--- |
+| 渠道    | 安装包                                                            | 说明                                                                                                        |
+| :---- | :------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------- |
 | 最新稳定版 | `MarkCraft-Setup-*.exe`（安装版）· `MarkCraft-Portable-*.exe`（免安装版） | 见安装包仓库的 [`README`](https://gitee.com/James-fake/markcraftxiazaicangdianhua#下载与合并) —— `git clone` 后用脚本合并分卷 |
 
 > 🔗 安装包仓库：[James-fake/markcraftxiazaicangdianhua](https://gitee.com/James-fake/markcraftxiazaicangdianhua)（仅托管安装包；本项目源码见本仓库）
 
 ### 🎯 功能一览
 
-|        模块       |   数量  | 说明                               |
-| :-------------: | :---: | :------------------------------- |
-|      📝 编辑器     | 2 种引擎 | CodeMirror 6 源码 + Tiptap 所见即所得   |
-| 🎨 白板 Canvas v2 |  混合引擎 | Excalidraw + HTML 卡片浮层 + 自研兼容层   |
-|      📚 知识库     | 7 大模块 | 多库管理 · 检索/问答 · 健康度 · MOC         |
-|     🔗 知识链接     |  双向链接 | WikiLink / 反链 / 提及 / 块引用 / 嵌入    |
-|     🌐 知识图谱     | 4 种布局 | 力导向 / 同心圆 / 树 / 网格               |
-|     🏷️ 标签系统    |  嵌套树  | 支持 `#父/子` 多层嵌套                   |
-|     🎨 博客主题     |  64 种 | 主题市场全部可选，精品置顶                    |
-|     📤 导出格式     |  12 种 | Markdown → PDF / DOCX / EPUB ... |
-|      ⌨️ 快捷键     |  三套绑定 | Tiptap / CodeMirror 6 / 全局可配置表   |
-|      🎨 主题      | 6+6 种 | 6 编辑器主题 + 6 代码主题                 |
-|     📋 命令面板     |  47 条 | 9 个命令域，模糊搜索 + 文件搜索               |
-|     🤖 AI 能力    |  3 项  | 问答 / 相似检索 / 统一服务入口               |
-|      💾 存储      |   双层  | localStorage（小数据）+ 磁盘文件（笔记树/知识库/白板/版本）  |
+|        模块       |   数量  | 说明                                     |
+| :-------------: | :---: | :------------------------------------- |
+|      📝 编辑器     | 2 种引擎 | CodeMirror 6 源码 + Tiptap 所见即所得           |
+| 🎨 白板 Canvas v2 |  混合引擎 | Excalidraw + HTML 卡片浮层 + 自研兼容层         |
+|      📚 知识库     | 7 大模块 | 多库管理 · 检索/问答 · 健康度 · MOC               |
+|     🔗 知识链接     |  双向链接 | WikiLink / 反链 / 提及 / 块引用 / 嵌入          |
+|     🌐 知识图谱     | 4 种布局 | 力导向 / 同心圆 / 树 / 网格                     |
+|     🏷️ 标签系统    |  嵌套树  | 支持 `#父/子` 多层嵌套                         |
+|     🎨 博客主题     |  63 种预设 | 主题市场全部可选，精品置顶                      |
+|     📤 导出格式     |  12 种 | Markdown → PDF / DOCX / EPUB ...       |
+|      ⌨️ 快捷键     |  三套绑定 | Tiptap / CodeMirror 6 / 全局可配置表         |
+|      🎨 主题      | 6+6 种 | 6 编辑器主题 + 6 代码主题                       |
+|     📋 命令面板     |  48 条 | 8 个命令分类，模糊搜索 + 文件搜索                  |
+|     🔎 知识检索    |  2 项  | 问答（关键词检索 + 词频摘句）/ 相似检索              |
+|      💾 存储      |  两层  | localStorage（设置/主题/崩溃备份）+ 磁盘文件（笔记树/知识库/白板/索引/版本） |
 
 ---
 
@@ -86,7 +87,7 @@
 - [🌐 知识图谱](#知识图谱)
 - [🎨 Canvas v2 白板](#canvas-v2-白板)
 - [📚 知识库系统](#知识库系统)
-- [🤖 AI 能力](#ai-能力)
+- [🔎 知识库检索](#知识库检索)
 - [🎨 个人博客工坊](#个人博客工坊)
 - [🖱️ 界面与体验](#界面与体验)
 - [📁 文件管理](#文件管理)
@@ -119,7 +120,7 @@
 
 |      🎨     |      🎭      |     📚    |       🔗       |      🌐     |         🪧        |       🚀      |
 | :---------: | :----------: | :-------: | :------------: | :---------: | :---------------: | :-----------: |
-| **64 博客主题** |   **双内核编辑**  | **知识库系统** |    **知识链接**    | **4 种图谱布局** | **Excalidraw 白板** |  **12 种导出格式** |
+| **63 预设主题** |   **双内核编辑**  | **知识库系统** |    **知识链接**    | **4 种图谱布局** | **Excalidraw 白板** |  **12 种导出格式** |
 |   覆盖全场景审美   | CM6 + Tiptap | 检索/问答/健康度 | WikiLink/反链/嵌入 |   力导向等 4 种  |     卡片 + 画笔混合     | PDF/DOCX/EPUB |
 
 - 🎯 **双内核编辑** — CodeMirror 6 源码 + Tiptap 所见即所得，**以 Markdown 为唯一交换格式**（WYSIWYG 走 HTML↔Markdown 往返）
@@ -128,15 +129,15 @@
 - 🔗 **知识链接体系** — WikiLink 双向链接、反向链接、未链接提及、块引用 `((id))`、嵌入引用
 - 🌐 **知识图谱** — 4 种布局（力导向 / 同心圆 / 树 / 网格）+ 度数统计 + 局部 BFS 展开 + 快照对比
 - 🏷️ **嵌套标签系统** — 支持 `#父/子` 多层嵌套，自动构建标签树
-- 🎨 **64 种博客主题** — 杂志/极简/赛博朋克/水墨禅意... 覆盖所有审美，主题市场默认全部可选、精品置顶
+- 🎨 **63 种预设博客主题** — 杂志/极简/赛博朋克/水墨... 覆盖各类审美，主题市场全部可选、精品置顶
 - 📤 **12 种导出格式** — Markdown / HTML / PDF / Word / EPUB / LaTeX ...
 - ⌨️ **三套快捷键绑定** — Tiptap / CodeMirror 6 / 全局可配置绑定表（localStorage 持久化）
 - 🎴 **6+6 种主题** — 6 种编辑器主题 + 6 种独立代码主题
-- 💾 **双层存储** — localStorage（设置/书签/最近文件）+ **磁盘文件**（`%APPDATA%\MarkCraft\storage\`，笔记树/知识库/白板/版本历史）
+- 💾 **两层存储** — localStorage（设置 / 主题 / 会话 / 最近文件 / 崩溃备份）+ **磁盘文件**（`%APPDATA%\MarkCraft\storage\`，**笔记树** / 知识库 / 白板 / 版本历史 / 向量索引）。磁盘写入失败时才会降级到 localStorage
 - 🔍 **本地检索优先** — 内置零依赖本地向量引擎（384 维词频 hash 向量），无需后端即可使用
 - 🌍 **中英双语** — 界面全国际化
 
-**运行环境**：**桌面端应用（Electron）**，笔记以真实 `.md` 存在你选择的 Vault 文件夹；应用自身状态（设置/书签/知识库/白板/版本历史）存 `%APPDATA%\MarkCraft`（小数据走 localStorage，大数据走磁盘文件）。本地检索引擎零依赖、可离线运行；远程语义引擎的接入位已在代码中预留（当前无 UI 配置入口）。
+**运行环境**：**桌面端应用（Electron）**，笔记以真实 `.md` 存在你选择的 Vault 文件夹；应用自身状态（笔记树 / 知识库 / 白板 / 版本历史 / 向量索引）以 JSON 文件存于 `%APPDATA%\MarkCraft\storage\`，设置、主题、会话等小项存 localStorage。本地检索引擎零依赖、可离线运行；远程语义引擎的接入位已在代码中预留（当前无 UI 配置入口）。
 
 ### 🎬 工作流程
 
@@ -144,7 +145,7 @@
 flowchart LR
     A[📝 编写笔记<br/>CodeMirror / Tiptap] --> B[🔗 建立链接<br/>WikiLink / 标签]
     B --> C[🌐 图谱可视化<br/>4 种布局]
-    C --> D[🎨 生成博客<br/>64 主题]
+    C --> D[🎨 生成博客<br/>63 预设主题]
     D --> E[📤 导出分享<br/>12 格式]
 ```
 
@@ -307,7 +308,8 @@ MarkCraft 的白板模块采用「混合引擎」架构：底层使用 Excalidra
 | 底层画布    | Excalidraw（z-0）                | 自由绘制、矩形/椭圆/箭头/文本/连线           |
 | HTML 浮层 | `CardOverlay` / `OverlayCards` | 富文本卡片、文件引用、嵌入内容               |
 | 适配器     | `CanvasEngine`                 | 鸭子类型伪装 tldraw Editor API，统一调度 |
-| 持久化     | `canvasPersistence.ts`         | 磁盘存储序列化 / 加载              |
+| 持久化     | `canvasPersistence.ts`         | 磁盘存储序列化 / 加载                  |
+
 
 ### 🎴 8 种卡片类型
 
@@ -386,17 +388,25 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 > 📌 **历史说明**：早期版本规划过「任务 / 目标 / 回顾 / 盲区」4 个模块，已从 `TABS` 中移除
 > （源码注释：避免半成品模块分散注意力），当前 7 个 Tab **全部接入真实功能组件、无占位桩**。
 
-### 🤖 AI 能力（3 项）
+### 🔎 知识库检索（问答 / 相似检索）
 
-> ⚠️ **实现现状**：`ai/` 目录下只有 3 个文件（`aiService` / `kbChat` / `semanticSearch`）。
-> 默认引擎是**本地 hash 词袋向量**（384 维，中文 2-gram + 英文词，**无 IDF 计算**）——反映的是
-> 关键词分布而非深层语义；远程 OpenAI 兼容引擎的代码存在，但**当前无 UI 配置入口，实际不可达**。
+> ⚠️ **能力边界（务必读）**：知识库的「问答」与「相似检索」是**本地统计检索**，
+> **不是 AI、不是大模型、没有语义理解** —— 提问用词与原文不同就检索不到。
+>
+> - **问答** = 分词 → 与各段落做**关键词重合度**打分 → 取最相关段落 → 按**词频**摘 3 句
+>   （`kbChat.ts` + `aiService.ts` 的 `TfidfEngine.chat()`）。
+> - **相似检索** = 把文本 hash 成 384 维词袋向量（中文 2-gram + 英文词，**无 IDF**）→ 余弦 top-K
+>   （`semanticSearch.ts`）。
+>
+> `aiService.ts` 里虽然写了一个 OpenAI 兼容的 `RemoteEngine`（可真正调用大模型），
+> 但它**从未被实例化**（`getAiService()` 调用 `createAiService()` 不传 settings；`setAiService` 全仓无调用点），
+> 也没有任何配置 UI —— 属于**未接线的死代码**。因此**当前版本不具备 AI 能力**。
 
 | 能力       | 实现                  | 说明                                      |
 | -------- | ------------------- | --------------------------------------- |
-| 💬 KB 问答 | `kbChat.ts`         | 段落切分 → 向量化 → 余弦 top-5 → 拼接上下文，抽取式回答       |
-| 🔎 相似检索  | `semanticSearch.ts` | 文件级向量索引 + 余弦 top-K，按内容 hash 增量更新          |
-| 🤖 AI 服务 | `aiService.ts`      | 统一入口；本地引擎恒可用，远程引擎代码保留但未接线                |
+| 💬 知识库问答 | `kbChat.ts`         | 段落切分 → 词频向量 → 余弦 top-5 → **关键词重合度选段 → 词频摘句**（**非生成式**） |
+| 🔎 相似检索  | `semanticSearch.ts` | 文件级词频向量索引 + 余弦 top-K，按内容 hash 增量更新       |
+| 🧩 服务入口 | `aiService.ts`      | 统一入口，**当前恒为本地 `TfidfEngine`**；`RemoteEngine` 为未接线死代码 |
 
 ### 🩺 健康度评分系统
 
@@ -416,7 +426,7 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 | 数据     | 存储位置                    | 说明                                |
 | ------ | ----------------------- | --------------------------------- |
 | 知识库元数据 | 磁盘存储（KV） | `kb-list` 列表 + `kb-doc-{id}` 单文档  |
-| 文件树    | localStorage            | `markdown-editor-data`            |
+| 文件树    | 磁盘存储                 | `markcraft-file-manager`         |
 | 白板     | 磁盘存储                 | `canvas-list` + `canvas-doc-{id}` |
 | 向量索引   | 磁盘存储                 | 语义搜索用                             |
 
@@ -441,11 +451,11 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 
 ---
 
-**🎨 64 主题 · 12 色环 · 3 设备预览 · 5 部署平台 · 3 评论系统**
+**🎨 63 预设主题 · 12 色环 · 3 设备预览 · 5 部署平台 · 3 评论系统**
 
 
 - 🎨 **Blog Studio** — 独立全屏设计工作室，深色工作台 + 专业设计工具风格界面
-- 🎭 **64 种博客风格** — 分 5 批，一键切换，实时预览，覆盖个人博客、杂志、作品集、技术、摄影、文档、创意等场景
+- 🎭 **63 种预设博客风格** — 分 5 批，一键切换，实时预览，覆盖个人博客、杂志、作品集、技术、摄影、文档、创意等场景
 - 🎨 **12 色环配色 + 自定义** — 红/橙红/橙/橙黄/黄/黄绿/绿/蓝绿/蓝/蓝紫/紫/紫红 + 自定义色值
 - 🎚️ **色彩调节** — 亮度 / 饱和度 / 锐度三轴调节
 - 📁 **文件选择/排除** — 勾选需要包含的 Markdown 文档，排除不想加入博客的文件
@@ -472,7 +482,7 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 
 #### 🎭 博客风格分类
 
-64 种主题分 5 批，按场景分类：
+63 种预设主题分 5 批，按场景分类：
 
 
 |   个人博客 📝  |  杂志资讯 📰  |  作品集 🖼️ |  技术博客 💻  |
@@ -499,7 +509,7 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 #### ⚙️ 博客配置选项
 
 - 站点标题、描述、作者、语言（zh-CN / en）、每页文章数、日期格式、站点 URL
-- 博客风格（64 种）
+- 博客风格（63 种预设 + 自定义）
 - 配色方案（12 色环 + 自定义色值，支持亮度/饱和度/锐度调节）
 - 主题模式（浅色/深色）
 - 字体风格（衬线 / 无衬线 / 等宽）
@@ -516,7 +526,7 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 ### 🖱️ 界面与体验
 
 - 🌗 **深色/浅色主题** — CSS 变量驱动，偏好持久化到 localStorage，所有弹窗和面板跟随主题切换
-- 🎨 **5 种编辑器主题** — light（默认浅色）、dark（默认深色）、github、sepia（护眼暖色）、nord，支持自定义主题（导入 CSS 解析变量）
+- 🎨 **6 种编辑器主题** — light（默认浅色）、dark（默认深色）、github、sepia（护眼暖色）、nord、system（跟随系统），支持自定义主题（导入 CSS 解析变量）
 - 💻 **6 种代码主题** — default、monokai、dracula、one-dark、github-dark、solarized，独立于编辑器主题
 - 🎯 **专注模式** — `F8` 隐藏所有面板，编辑区居中 800px，增大字号和行高，当前行高亮 + 非当前行淡出
 - ⌨️ **打字机模式** — `F9` 光标始终保持在编辑区垂直居中，当前行蓝色竖线高亮
@@ -528,7 +538,7 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 - 🔼 **滚动按钮** — 编辑区和预览区各有一键到顶/到底悬浮按钮
 - 🏠 **欢迎页面** — 温暖文艺感全屏沉浸式布局，鼠标跟随光效、4 种动效、功能卡片网格
 - 🌍 **中英双语** — 界面支持中文/英文切换，所有文案均国际化
-- 📋 **命令面板** — `Ctrl+P` 唤出，47 条命令（9 个命令域），子串 + 子序列模糊匹配，融合文件搜索
+- 📋 **命令面板** — `Ctrl+P` 唤出，48 条命令（8 个命令分类），子串 + 子序列模糊匹配，融合文件搜索
 - ↩️ **导航历史** — `Alt+←` / `Alt+→` 后退/前进，跨文件跳转历史
 - ⚡ **快速切换器** — `Ctrl+O` 最近文件快速切换
 - 💾 **崩溃恢复** — 意外关闭后自动恢复未保存内容
@@ -540,7 +550,7 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 - 🤝 **拖拽移动与排序** — 文件/文件夹拖拽到不同位置，三种放置区域视觉反馈
 - 📑 **多标签页** — 打开多个文件，标签页切换、关闭、重排、关闭其他/右侧全部
 - 🔍 **快速打开** — `Ctrl+P` 模糊搜索文件名，最近打开优先
-- 💾 **自动保存** — 编辑后 500ms 防抖自动保存到 localStorage，切换文件时立即保存
+- 💾 **自动保存** — 编辑后 500ms 防抖写入磁盘存储（另每 30s 兜底一次，间隔可在设置中调 5–300s），切换文件时立即落盘；崩溃备份副本暂存 localStorage
 - 📂 **打开本地文件** — 支持 .md 和 .markdown 格式
 - 📥 **文件导入** — 支持 Markdown、Word（.docx，基于 mammoth 解析）、HTML 导入
 - 📅 **日记功能** — 一键创建今日日记，文件名 `YYYY-MM-DD.md`，自动查找/创建「日记」或「Daily Notes」文件夹
@@ -573,6 +583,7 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 - ✨ **上下标 / 高亮 / 缩写** — `H~2~O`、`x^2^`、`==高亮==`、`*[HTML]: 超文本标记语言*`
 
 
+
 ### 📋 大纲导航
 
 - 📋 **标题树形展示** — 6 色层级色彩系统，层级缩进，折叠/展开
@@ -594,8 +605,8 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 
 |      📊     |      🎨      |   🔣  |    🌐   |     💾    |        🤖       |   🧪   |
 | :---------: | :----------: | :---: | :-----: | :-------: | :-------------: | :----: |
-|  marked 14  | highlight.js | KaTeX | Mermaid | DOMPurify | 本地 TF-IDF | Vitest |
-| Markdown 解析 |     代码高亮     |  数学公式 |   图表渲染  |    安全净化   |   AI 检索引擎   |  测试框架  |
+|  marked 14  | highlight.js | KaTeX | Mermaid | DOMPurify | 本地词频检索 | Vitest |
+| Markdown 解析 |     代码高亮     |  数学公式 |   图表渲染  |    安全净化   |  本地检索引擎  |  测试框架  |
 
 
 | 类别            | 技术                                    | 版本                | 说明                               |
@@ -608,7 +619,7 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 | 所见即所得编辑器      | Tiptap                                | ^3.24.0           | 富文本编辑、节点视图                       |
 | **白板绘制**      | **Excalidraw**                        | **^0.17.6**       | **手绘风格自由绘制（Canvas v2 底层）**       |
 | **白板引擎**      | **CanvasEngine（自研适配层）**              | **—**             | **鸭子类型兼容 tldraw Editor API 形状；已不依赖 tldraw** |
-| **AI 检索**      | **本地 TF-IDF + 可选远程 API**             | **—**             | **零依赖本地统计检索；可接 OpenAI 兼容远程引擎**      |
+| **知识检索**     | **本地词频 hash 词袋**                    | **—**             | **零依赖本地统计检索（类名 `TfidfEngine`，实为词频 hash 词袋、无 IDF）；`RemoteEngine` 未接线，暂不可用** |
 | **虚拟列表**      | **react-window**                      | **^2.2.7**        | **大列表虚拟滚动（知识库/白板列表）**            |
 | **ZIP 打包**    | **JSZip**                             | **^3.10.1**       | **博客/白板多文件导出**                   |
 | Markdown 解析   | marked                                | ^14.1.3           | GFM + breaks                     |
@@ -961,6 +972,8 @@ npm run preview
 
 
 
+
+
 ---
 
 ## 🔧 配置说明
@@ -977,7 +990,8 @@ npm run preview
 
 | 参数                  | 默认值                             | 说明                                   |
 | ------------------- | ------------------------------- | ------------------------------------ |
-| 自动保存延迟              | 500ms                           | 编辑后防抖自动保存到 localStorage              |
+| 自动保存延迟              | 500ms                           | 编辑后防抖写入**磁盘存储**（崩溃备份副本在 localStorage） |
+| 文件树落盘防抖             | 300ms                           | `saveState()` 把文件树写入磁盘存储              |
 | 自动保存间隔              | 30s                             | 定时保存（可在设置中调整 5-300s）                 |
 | 撤销栈最大步数             | 100                             | 自定义撤销/重做历史记录上限                       |
 | 滚动同步节流              | 8ms                             | 编辑器与预览区滚动同步的节流间隔                     |
@@ -993,10 +1007,10 @@ npm run preview
 | **KB 文档 key**       | `kb-doc-{id}`                   | 磁盘 KV，单个知识库完整文档                  |
 | **Canvas 列表 key**   | `canvas-list`                   | 磁盘 KV，白板列表                       |
 | **Canvas 文档 key**   | `canvas-doc-{id}`               | 磁盘 KV，单个白板文档                     |
-| **AI 引擎（默认）**       | 本地 TF-IDF                       | 零依赖离线统计检索，无需后端                          |
-| **AI 引擎（可选）**       | OpenAI 兼容远程 API                | 配置 `remoteBaseUrl` 后启用，失败自动回退本地           |
-| **AI 向量维度**         | 384 维                           | 本地词频向量维度；远程引擎由所选模型决定                    |
-| **KB 健康度评分**        | 0-100                           | 综合覆盖度/链接密度/连通性/活跃度/标签均衡              |
+| **检索引擎（唯一）**       | 本地词频 hash 词袋                   | 零依赖离线统计检索；384 维，无 IDF 计算。**当前仅此一种**    |
+| **检索向量维度**         | 384 维                           | 本地词频向量维度                                |
+| **大模型 / 远程 AI**      | 无（`RemoteEngine` 未接线）           | 代码存在但从未实例化、无配置 UI，**当前不可用**            |
+| **KB 健康度评分**        | 0-100                           | 4 个维度各 25 分：链接密度 / 孤立率 / 标签覆盖率 / 30 天内更新率 |
 | **白板 feature flag** | `VITE_CANVAS_ENGINE=excalidraw` | 启用 Excalidraw 混合引擎                   |
 | **Excalidraw 资源路径** | `/excalidraw-assets/`           | `window.EXCALIDRAW_ASSET_PATH` 本地化字体 |
 
@@ -1093,6 +1107,7 @@ MarkCraft/
 > 由本地 ESLint 规则 `local/no-aurora-ui-import` 在 pre-commit（lint-staged）阶段强制守卫。
 
 
+
 ### 🧩 核心模块说明
 
 #### 🌐 知识图谱模块 (`aurora/panels/kb/graph/`)
@@ -1126,7 +1141,7 @@ MarkCraft/
 | `hooks/useBlogGenerator.ts`        | 博客生成状态管理，设计配置 + 预览更新                               |
 | `services/`                        | 5 种部署平台适配器（GitHub/Gitee/Vercel/Cloudflare/Netlify） |
 | `templates/`                       | 博客页面模板（首页/文章/归档/标签/搜索/RSS/Sitemap/404）             |
-| `themes/`                          | 15 种博客主题的完整 CSS 生成                                 |
+| `themes/`                          | 12 个独立主题的专属 CSS（另有 `custom`）+ `generators/` 下 48 个「一主题一文件」；`magazine`/`minimal`/`classic` 三个基础布局主题在 `utils/singleFile/` |
 | `utils/blogSingleFileGenerator.ts` | 单文件 SPA 博客生成器，含 Mermaid/KaTeX/TOC 支持               |
 | `utils/blogMultiFileGenerator.ts`  | 多文件博客生成器                                           |
 | `frontMatter.ts`                   | Front Matter YAML 解析与生成                            |
@@ -1158,7 +1173,7 @@ MarkCraft/
 | `engine/useCanvasEngine.tsx`  | 引擎状态 Hook                                                                                                                                        |
 | `shapes/`                     | 卡片形状定义（便签 / 图片 / 文件 / 嵌入 / 分组 / 嵌套白板 / 画布引用 / 标签，共 8 种）                                                                |
 | `components/`                 | 功能组件（Topbar / BottomBar / FloatingToolbar / ContextMenu / LayersPanel / PropertyPanel / SearchPanel / TemplateManager / PresentationViewer 等） |
-| `utils/`                      | 布局算法（forceLayout/treeLayout/hierarchy）、图构建、TF-IDF、相似度、搜索索引、模板 IO、演示顺序                                                                            |
+| `utils/`                      | 布局算法（forceLayout/treeLayout/hierarchy）、图构建、相似度、搜索索引、模板 IO、演示顺序                                                                            |
 | `hooks/useShortcuts.ts`       | 白板快捷键                                                                                                                                            |
 | `theme/canvasTheme.ts`        | 卡片配色 / 关系类型颜色 / 暗色模式                                                                                                                             |
 
@@ -1169,13 +1184,13 @@ MarkCraft/
 | `kbStore.ts`                   | 磁盘持久化层，多知识库列表 + 单文档分离存储           |
 | `useKbStore.ts`                | 知识库状态 Hook（activeKb/loadActiveKb/getFiles/saveKb 等） |
 | `types.ts`                     | `KnowledgeBase` 类型定义（含已下线的任务/目标/回顾/盲区字段）           |
-| `healthScore.ts`               | 健康度评分（0-100），综合覆盖度/链接密度/连通性/活跃度/标签均衡                |
+| `healthScore.ts`               | 健康度评分（0-100），4 维各 25 分：链接密度 / 孤立率 / 标签覆盖率 / 更新活跃度 |
 | `mocGenerator.ts`              | MOC 自动生成（标签模式 / 中心文件模式 / 3 种模板）                     |
 | `reviewGenerator.ts`           | 间隔重复回顾计划生成                                          |
 | `kbTheme.ts`                   | Atelier Glass 主题色（KB_STAT_COLORS 等）                 |
 | `kb-ui.css`                    | 玻璃质感样式（.kb-* 类，--kb-* token）                      |
-| `ai/aiService.ts`              | 统一 AI 服务入口（本地引擎恒可用 + 远程引擎代码位）                      |
-| `ai/kbChat.ts`                 | KB 问答（段落向量化 + 余弦 top-5 + 抽取式回答）                     |
+| `ai/aiService.ts`              | 检索服务入口（**当前恒为本地词频引擎**；`RemoteEngine` 未接线）          |
+| `ai/kbChat.ts`                 | KB 问答（段落词频向量 + 余弦 top-5 + **关键词重合度选段 + 词频摘句**）   |
 | `ai/semanticSearch.ts`         | 相似检索（本地 hash 词袋向量，按内容 hash 增量更新）                   |
 | `components/KbManager.tsx`     | 知识库管理器（常驻挂载 + 覆盖层切换）                                |
 | `components/KbDashboard.tsx`   | 详情仪表盘（7 模块：概览 / 笔记 / 搜索 / 问答 / 依赖 / MOC / 导出）       |
@@ -1202,13 +1217,26 @@ MarkCraft/
 
 #### 首次启动
 
-启动后显示欢迎页面，左侧文件树包含三个内置示例文件：
+启动后显示欢迎页面，左侧文件树的「MarkCraft 使用文档」文件夹内置 14 篇编号文档（只读）：
 
-- **用户手册.md** — 编辑器功能完整使用指南
-- **Markdown 入门教程.md** — Markdown 语法入门教程
-- **知识链接体系指南.md** — 双向链接、标签、图谱、MOC 的实战指南
+| 文件 | 内容 |
+|---|---|
+| `00 开始使用.md` | 安装、Vault、首次启动 |
+| `01 界面布局.md` | 标题栏 / 侧栏 / 编辑区 / 状态栏 |
+| `02 编辑器模式.md` | 源码 ⇄ 所见即所得切换 |
+| `03 文件管理.md` | 树操作、标签页、快速打开 |
+| `04 编辑基础.md` | 快捷键与格式化工具栏 |
+| `05 基础格式.md` | 标题 / 列表 / 引用 / 表格 |
+| `06 进阶语法.md` | Front Matter、脚注、上下标、Callout |
+| `07 智能补全与专注模式.md` | 自动补全、专注 / 打字机 / 全屏 |
+| `08 高级功能.md` | 图片、模板、书签、导入 |
+| `09 导出与博客发布.md` | 12 种格式与博客工坊 |
+| `10 知识链接体系.md` | WikiLink、反链、标签、图谱、MOC |
+| `11 快捷键大全.md` | 全部默认键位（可在设置中自定义） |
+| `12 命令面板与设置.md` | 命令搜索与设置项 |
+| `13 实用技巧与常见问题.md` | 排错与使用建议 |
 
-双击文件即可打开编辑。
+> 老版本升级用户还会看到按旧名迁移进同一文件夹的《用户手册.md》《Markdown 入门教程.md》《知识链接体系指南.md》三篇历史文档（保留原名以护住已有 `[[双链]]`），它们同样属于内置说明书，只读。
 
 #### 文件操作
 
@@ -1247,6 +1275,14 @@ MarkCraft/
 | 反缩进  | `Shift+Tab`    | —        |
 | 撤销   | `Ctrl+Z`       | —        |
 | 重做   | `Ctrl+Shift+Z` | —        |
+
+> ⚠️ **已知键位冲突（尚未修复）**：删除线的默认键 `Ctrl+Shift+S` 与「另存为」相同，
+> 下标的默认键 `Ctrl+,` 与「设置」相同。二者在 `src/features/editor/toolbar/ShortcutManager.ts`
+> 中分别登记在 `format`（不可自定义）与 `file` / `view`（可自定义）分类下，实际以先注册者生效。
+> 若发现某个键不生效，请到「设置 → 快捷键」里改绑另一组合。
+>
+> 完整默认键位共 **32 条 / 5 类**（format 14、file 3、view 6、edit 5、insert 4），
+> 单一数据源为 `ShortcutManager.ts` 的 `DEFAULT_BINDINGS`。
 
 #### 写作模式
 
@@ -1324,7 +1360,7 @@ MarkCraft/
 1. 在欢迎页面或侧边栏点击「博客工作室」入口
 2. 进入 Blog Studio 设计工作室
 3. 在左侧「内容」Tab 中勾选需要包含的 Markdown 文档
-4. 在左侧「风格」和「配色」Tab 中选择博客风格（64 种）、配色、字体等
+4. 在左侧「风格」和「配色」Tab 中选择博客风格（63 种预设）、配色、字体等
 5. 中间区域实时预览博客效果，可切换桌面/平板/手机视图
 6. 配置站点信息、评论系统、打赏、关于页面、友链等
 7. 点击右侧「生成博客」按钮生成博客文件
@@ -1400,13 +1436,12 @@ MarkCraft/
 
 #### 添加知识图谱布局算法
 
-在 `src/aurora/panels/kb/graph/` 中（布局算法见 `useGraphEngine.ts` / `graphModel.ts`）：
+在 `src/aurora/panels/kb/graph/` 中（布局算法集中在 `useGraphEngine.ts` 的 `computeTargets()`）：
 
-1. 编写 `computeXxxLayout(nodes, width, height): Map<string, {x, y}>` 函数
-2. 在 `LayoutType` 联合类型中添加新 key
-3. 在 `simulate` 函数的非力导向分支中处理新布局（参考球体分支的 isSphere 判断）
-4. 在布局切换 `useEffect` 中添加 `case 'xxx'` 调用新算法
-5. 在顶栏布局选择器中添加按钮
+1. 在 `graphModel.ts` 的 `Layout` 联合类型中添加新 key（当前为 `'force' | 'concentric' | 'tree' | 'grid'`）
+2. 在 `useGraphEngine.ts` 的 `computeTargets(lay)` 里增加一条 `if (lay === 'xxx')` 分支，算出每个节点的目标坐标 `n.tx / n.ty` 后 `return`（`grid` 分支是最简范例）
+3. 非力导向布局无需改力模拟：切换 `p.layout` 时下面的 `useEffect` 会自动调用 `computeTargets()` 并 `reheat(0.5)` 做平滑过渡
+4. 在 `GraphSidebar.tsx` 的布局选择器数组中加入 `['xxx', G.layoutXxx]`，并补齐 `locales` 里的中文名
 
 #### 自定义知识图谱配色
 
@@ -1433,14 +1468,14 @@ MarkCraft/
 4. 在 `engine/cardHelpers.ts` 中添加卡片创建 / 更新工具函数
 5. 如需关系连线，在 `engine/useCanvasEngine.tsx` 中扩展 `RELATION_TYPES`
 
-#### 扩展知识库 AI 能力
+#### 扩展知识库检索能力
 
 在 `src/features/knowledgeBase/ai/` 中：
 
 1. 创建 `xxxAnalyzer.ts`，实现分析逻辑
 2. 在 `aiService.ts` 中注册新能力
 3. 在 `KbDashboard.tsx` 对应模块面板中调用并展示结果
-4. AI 检索默认走本地 TF-IDF 引擎（零依赖、离线可用）；如需更强语义效果，可在设置中配置 OpenAI 兼容的远程 API（`remoteBaseUrl`），无需自建后端
+4. ⚠️ 当前只有本地词频引擎（`TfidfEngine`），**没有接大模型**。若要真正接入 LLM，需先打通 `RemoteEngine`：持久化 `AiSettings`（`mode: 'remote'` + `remoteBaseUrl` + `remoteApiKey`）→ 在设置面板加配置 UI → 让 `getAiService()` 读取该配置（它现在调用 `createAiService()` 不传参，永远返回本地引擎）
 
 #### 知识库扩展注意事项
 
@@ -1468,7 +1503,9 @@ MarkCraft/
 ### 💾 数据存储结构
 
 ```typescript
-// localStorage key: 'markdown-editor-data'
+// 磁盘存储键（%APPDATA%\MarkCraft\storage\kv\ 下的一个 JSON）；
+// localStorage 仅存版本标记与崩溃备份副本
+const STORAGE_KEY = 'markcraft-file-manager'
 interface StorageData {
   version: string          // 存储版本号（当前 'v5'）
   rootFolder: FileNode     // 文件树根节点
@@ -1476,8 +1513,8 @@ interface StorageData {
   activeTabId: string | null
 }
 
-// localStorage key: 'app-theme-preference'
-type ThemePreference = 'dark' | 'light'
+// localStorage key: 主题偏好
+const THEME_KEY = 'app-theme-preference'  // 'dark' | 'light' | 'system'
 ```
 
 ### 🗃️ Store API
@@ -1485,7 +1522,7 @@ type ThemePreference = 'dark' | 'light'
 | Store          | 位置                          | 主要方法                                                   |
 | -------------- | --------------------------- | ------------------------------------------------------ |
 | FileStore      | `stores/FileStore.tsx`      | `useFileManager()` → 文件CRUD、标签页、搜索、内容读写                |
-| ThemeStore     | `stores/ThemeStore.tsx`     | `useTheme()` → `{ theme, toggleTheme }`                |
+| ThemeStore     | `features/themes/useTheme.ts` | `useTheme()` → `{ theme, toggleTheme }`               |
 | LanguageStore  | `stores/LanguageStore.tsx`  | `useLanguage()` → `{ t, language, toggleLanguage }`    |
 | ModalStore     | `stores/ModalStore.tsx`     | `useModal()` → `openInputModal`, `openCreateFileModal` |
 | UndoRedoStore  | `stores/UndoRedoStore.tsx`  | `useUndoRedo()` → `{ canUndo, canRedo, undo, redo }`   |
@@ -1567,13 +1604,13 @@ npm run e2e:report
 
 ### 📊 测试规模
 
-当前仓库共 **147 个测试文件、1800+ 条用例**，全量通过。
+当前仓库共 **179 个测试文件、1700+ 条用例**，全量通过。
 
 | 层次     | 位置                                                    | 覆盖内容                                     |
 | ------ | ----------------------------------------------------- | ---------------------------------------- |
 | 单元 / 组件 | 与源码同级的 `__tests__/` 或 `*.test.ts(x)`                   | 编辑器、图谱、白板、知识库、博客、日记等各领域模块                |
 | 契约测试   | `src/aliasSync.test.ts`、`aurora/panels/__tests__/auroraNav.contract.test.ts` | 路径别名四处同步、导航 id ↔ 路由 id 契约                 |
-| 冒烟测试   | `aurora/panels/**/*.smoke.test.tsx`                   | 各主要面板挂载与关键交互                             |
+| 冒烟测试   | `aurora/panels/**/*.smoke.test.tsx` 与 `aurora/components/**/*.smoke.test.tsx` | 各主要面板 / 外壳组件的挂载与关键交互 |
 | 样式守卫   | `aurora/styles/*.test.ts`                             | 死 CSS 清理、指针门控、按压反馈等视觉约定                  |
 | 真机 E2E  | `e2e/*.spec.ts`                                       | 真实 Electron 桌面端下的启动、文件系统、Vault、导入导出、网络代理、Pandoc 等全链路 |
 
@@ -1657,8 +1694,8 @@ docker run -p 8080:80 markdown-editor
 <summary>📖 点击查看已知问题（4 项）</summary>
 
 - 📄 PDF 导出依赖 html2pdf.js，复杂布局可能出现分页问题
-- 🐌 大规模图谱（>500 节点）在低端设备可能卡顿，已通过 LOD / 视口裁剪 / 空间索引优化
-- 🤖 AI 检索默认使用本地 TF-IDF 统计引擎，反映的是**关键词/词频分布而非深层语义**；如需语义级效果，请在设置中配置 OpenAI 兼容的远程 API
+- 🐌 大规模图谱（>500 节点）在低端设备可能卡顿；**尚未实现** LOD / 视口裁剪 / 空间索引，仅有力导向布局的单帧位移上限作为缓解
+- 🔎 知识库的「问答 / 相似检索」是**本地统计检索**（关键词重合度 + 词频摘句），**不是 AI**；`aiService.ts` 里的远程大模型 `RemoteEngine` 未接线、无配置 UI，**当前不可用**
 - ⚠️ Tiptap 与 CodeMirror 切换时部分扩展可能产生 Duplicate extension 警告（不影响功能）
 
 </details>
@@ -1677,7 +1714,8 @@ docker run -p 8080:80 markdown-editor
 |     ✅ 导出格式     | `██████████` 100% |
 | ✅ Canvas v2 白板 | `██████████` 100% |
 |     ✅ 知识库系统    | `██████████` 100% |
-|  ✅ AI 能力（双引擎）  | `████████░░` 80%  |
+|  ✅ 知识库检索（本地）  | `██████████` 100% |
+|  🚧 AI / 大模型     | `░░░░░░░░░░` 0%   |
 |    🚧 移动端适配    | `██░░░░░░░░` 20%  |
 |     🚧 协作编辑    | `░░░░░░░░░░` 0%   |
 |     🚧 云端同步    | `░░░░░░░░░░` 0%   |
@@ -1692,25 +1730,25 @@ docker run -p 8080:80 markdown-editor
 - [ ] 🚀 GitHub Pages 一键部署博客
 - [ ] 🎨 Hexo 主题融合方案
 - [ ] 📲 PWA 离线支持
-- [ ] 🤖 更多 AI 模型（embedding / reranker / 生成式摘要）
+- [ ] 🤖 **接入大模型** — 打通 `RemoteEngine`（配置 UI + 持久化 `AiSettings`），实现真正的语义检索与生成式问答
 
 #### ✅ 已完成
 
 - [x] 🌍 国际化（i18n）— 已支持中英双语
 - [x] 🔗 知识链接体系 — WikiLink / 反链 / 标签 / 图谱 / MOC
 - [x] 🌐 知识图谱 — 4 种布局 + 度数统计 + 局部展开 + 快照/导出
-- [x] 🎨 64 种博客主题
+- [x] 🎨 63 种预设博客主题
 - [x] 📤 12 种导出格式
-- [x] 📋 命令面板（47 条命令）
+- [x] 📋 命令面板（48 条命令）
 - [x] 📅 日记功能
 - [x] 🪧 **Canvas v2 白板** — Excalidraw 渲染 + 自研 CanvasEngine 兼容层 + HTML 卡片浮层 + 8 种卡片类型
 - [x] 📚 **知识库系统** — 7 大模块 + 多库管理 + 健康度评分 + 磁盘持久化
-- [x] 🤖 **AI 能力** — 盲区分析 / KB 问答 / 推荐 / 相似检索 / 主题聚类（本地 TF-IDF + 可选远程 API）
+- [x] 🔎 **知识库检索** — 问答 / 相似检索（本地词频 hash 词袋 + 余弦相似度；**非 AI**、无大模型；图谱着色是关键词匹配归类，也不是聚类算法）
 - [x] 💾 **磁盘存储层** — 自研 KV/记录/Blob 存储（`core/storage`），知识库/白板/向量索引分离存储
 - [x] 🔖 书签系统
 - [x] 📋 模板系统
 - [x] 📥 **导入保真** — docx / html 导入启用 GFM 表格转换，统一产出高质量 Markdown
-- [x] 🔍 **代码审查闭环** — Critical / High / Medium / Low 全层级修复，测试 147/147 全绿
+- [x] 🔍 **代码审查闭环** — Critical / High / Medium / Low 全层级修复，测试全量通过
 
 ---
 
@@ -1797,9 +1835,9 @@ Copyright © 2026 MarkCraft Contributors
 
 ⭐ **Star** · 🍴 **Fork** · 📋 **Issue** · 🔀 **PR**
 
-|  🎯 |  🪧 |  📚 |  🤖 |  🔗  |  🌐  |   📤  |
+|  🎯 |  🪧 |  📚 |  🔎 |  🔗  |  🌐  |   📤  |
 | :-: | :-: | :-: | :-: | :--: | :--: | :---: |
-| 双引擎 |  白板 | 知识库 |  AI | 知识链接 | 知识图谱 | 多格式导出 |
+| 双引擎 |  白板 | 知识库 | 本地检索 | 知识链接 | 知识图谱 | 多格式导出 |
 
 **让笔记从「孤岛」连成「网络」，让知识库成为「第二大脑」** ✨🔗🌐📚
 
@@ -1809,15 +1847,15 @@ Copyright © 2026 MarkCraft Contributors
 |  📝 编辑器  | 2 引擎（CodeMirror 6 + Tiptap 3）     |
 |   🪧 白板  | Excalidraw 渲染 + 自研 CanvasEngine / 8 种卡片类型 |
 |  📚 知识库  | 7 模块 / 多库管理 / 健康度评分                 |
-| 🤖 AI 能力 | 3 项 / 本地检索引擎 / 无需后端               |
+| 🔎 知识检索 | 问答 / 相似检索 / 本地词频引擎（非 AI）          |
 |  🔗 知识链接 | 双向链接 / 反链 / 提及 / 块引用               |
 |  🌐 知识图谱 | 4 布局 / 跟随主主题                       |
-|  🎨 博客主题 | 64 种 / 5 批                        |
+|  🎨 博客主题 | 63 种预设 / 5 批                   |
 |  📤 导出格式 | 12 种                              |
 |  ⌨️ 快捷键  | 三套绑定                              |
 |  🎴 主题样式 | 6 编辑器 + 6 代码                      |
-|  📋 命令面板 | 47 条                              |
-|   💾 存储  | localStorage（小数据）+ 磁盘文件（大数据）  |
+|  📋 命令面板 | 48 条 / 8 类                      |
+|   💾 存储  | localStorage（设置/备份）+ 磁盘文件（笔记树/知识库/白板） |
 
 
 
