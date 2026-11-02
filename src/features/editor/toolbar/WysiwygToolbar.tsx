@@ -375,7 +375,8 @@ export default function WysiwygToolbar({
       {/* ── Insert (link, image, table) ── */}
       <WysiwygToolbarButton
         onClick={() => setShowLinkModal(true)}
-        title={`${t.toolbar.link} (${getShortcutLabel('format.link')})`}
+        // 链接无键盘快捷键（Ctrl+K 实际是命令面板）—— 不显示虚假的键位声明
+        title={t.toolbar.link}
         active={editor.isActive('link')}
       >
         <svg style={{ width: '16px', height: '16px' }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

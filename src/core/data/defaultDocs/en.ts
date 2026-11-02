@@ -180,10 +180,10 @@ Use \`#\` symbols or press \`Ctrl+1/2/3\`:
 | Bold | \`Ctrl+B\` | \`**text**\` | **text** |
 | Italic | \`Ctrl+I\` | \`*text*\` | *text* |
 | Underline | \`Ctrl+U\` | \`<u>text</u>\` | <u>text</u> |
-| Strikethrough | \`Ctrl+Shift+S\` | \`~~text~~\` | ~~text~~ |
+| Strikethrough | \`Ctrl+Shift+X\` | \`~~text~~\` | ~~text~~ |
 | Highlight | \`Ctrl+Shift+H\` | \`==text==\` | ==text== |
 | Inline Code | \`Ctrl+E\` | \`\\\`code\\\`\` | \`code\` |
-| Subscript | \`Ctrl+,\` | \`~text~\` | H~2~O |
+| Subscript | \`Ctrl+Shift+,\` | \`~text~\` | H~2~O |
 | Superscript | \`Ctrl+.\` | \`^text^\` | x^2^ |
 
 ### 5.3 Lists
@@ -256,8 +256,6 @@ Shortcut: \`Ctrl+Shift+-\`
 \`\`\`markdown
 [Link text](https://example.com)
 \`\`\`
-
-Shortcut: \`Ctrl+K\`
 
 **Link features:**
 - Hover preview in WYSIWYG mode
@@ -780,19 +778,18 @@ Full-screen canvas visualization of your knowledge network:
 
 MarkCraft has 28 shortcuts across 5 categories. Most are customizable in Settings → Shortcuts.
 
-### 12.1 Format (13 Shortcuts)
+### 12.1 Format (11 Shortcuts)
 
 | Shortcut | Function | Customizable |
 |----------|----------|-------------|
 | \`Ctrl+B\` | Bold | No (internal) |
 | \`Ctrl+I\` | Italic | No |
 | \`Ctrl+U\` | Underline | No |
-| \`Ctrl+Shift+S\` | Strikethrough | No |
+| \`Ctrl+Shift+X\` | Strikethrough | No |
 | \`Ctrl+Shift+H\` | Highlight | No |
 | \`Ctrl+E\` | Inline code | No |
-| \`Ctrl+,\` | Subscript | No |
+| \`Ctrl+Shift+,\` | Subscript | No |
 | \`Ctrl+.\` | Superscript | No |
-| \`Ctrl+K\` | Link | No |
 | \`Ctrl+1/2/3\` | Heading 1/2/3 | No |
 | \`Ctrl+Shift+B\` | Blockquote | No |
 | \`Ctrl+Alt+C\` | Code block | No |
@@ -826,11 +823,10 @@ MarkCraft has 28 shortcuts across 5 categories. Most are customizable in Setting
 | \`Ctrl+Shift+Z\` | Redo | — |
 | \`Ctrl+G\` | Go to Line | — |
 
-### 12.5 Insert (4 Shortcuts)
+### 12.5 Insert (3 Shortcuts)
 
 | Shortcut | Function | Customizable |
 |----------|----------|-------------|
-| \`Ctrl+K\` | Insert Link | — |
 | \`Ctrl+Shift+I\` | Insert Image | — |
 | \`Ctrl+Shift+T\` | Insert Table | — |
 | \`Ctrl+Shift+-\` | Horizontal Rule | — |
@@ -1141,7 +1137,7 @@ Wrap text with **two tildes** \`~~\`:
 
 **Result:** ~~This text is strikethrough~~
 
-> 📌 **Shortcut**: \`Ctrl+Shift+S\`
+> 📌 **Shortcut**: \`Ctrl+Shift+X\`
 
 ### 4.5 Underline
 
@@ -1190,7 +1186,7 @@ E = mc^2^
 
 **Result:** H~2~O is water, E = mc^2^
 
-> 📌 **Shortcuts**: Subscript \`Ctrl+,\` / Superscript \`Ctrl+.\`
+> 📌 **Shortcuts**: Subscript \`Ctrl+Shift+,\` / Superscript \`Ctrl+.\`
 
 ### 4.9 Style Cheat Sheet
 
@@ -1198,11 +1194,11 @@ E = mc^2^
 |-------|--------|----------|--------|
 | Bold | \`**text**\` | \`Ctrl+B\` | **text** |
 | Italic | \`*text*\` | \`Ctrl+I\` | *text* |
-| Strikethrough | \`~~text~~\` | \`Ctrl+Shift+S\` | ~~text~~ |
+| Strikethrough | \`~~text~~\` | \`Ctrl+Shift+X\` | ~~text~~ |
 | Underline | \`<u>text</u>\` | \`Ctrl+U\` | <u>text</u> |
 | Highlight | \`==text==\` | \`Ctrl+Shift+H\` | ==text== |
 | Inline Code | \`\` \`code\` \`\` | \`Ctrl+E\` | \`code\` |
-| Subscript | \`H~2~O\` | \`Ctrl+,\` | H~2~O |
+| Subscript | \`H~2~O\` | \`Ctrl+Shift+,\` | H~2~O |
 | Superscript | \`x^2^\` | \`Ctrl+.\` | x^2^ |
 
 ---
@@ -1324,7 +1320,7 @@ Links use the format \`[display text](URL)\`:
 
 **Result:** [Visit GitHub](https://github.com)
 
-> 📌 **MarkCraft tip**: Typing \`[\` automatically completes the link syntax. Shortcut: \`Ctrl+K\`.
+> 📌 **MarkCraft tip**: Typing \`[\` automatically completes the link syntax.
 
 ### 6.2 Links with Titles
 
@@ -2126,12 +2122,11 @@ In WYSIWYG mode, type \`/\` at the beginning of a line to see a menu of quick in
 | \`Ctrl+B\` | Bold |
 | \`Ctrl+I\` | Italic |
 | \`Ctrl+U\` | Underline |
-| \`Ctrl+Shift+S\` | Strikethrough |
+| \`Ctrl+Shift+X\` | Strikethrough |
 | \`Ctrl+Shift+H\` | Highlight |
 | \`Ctrl+E\` | Inline code |
-| \`Ctrl+,\` | Subscript |
+| \`Ctrl+Shift+,\` | Subscript |
 | \`Ctrl+.\` | Superscript |
-| \`Ctrl+K\` | Insert link |
 | \`Ctrl+1\` / \`2\` / \`3\` | Heading level 1/2/3 |
 
 **Blocks & Elements:**

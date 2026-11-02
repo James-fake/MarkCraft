@@ -1,14 +1,6 @@
 import type { Translations } from '@src/types/translations'
 import { useCallback } from 'react'
 import { ToolbarButton, GroupProps, applyFormatToCM6 } from '@features/editor/toolbar/groups/shared'
-import { getShortcut } from '@features/editor/toolbar/ShortcutManager'
-
-function formatShortcut(key: string): string {
-  return key
-    .replace('Mod', navigator.platform.includes('Mac') ? '⌘' : 'Ctrl')
-    .replace('Shift', '⇧')
-    .replace('Alt', '⌥')
-}
 
 export default function InsertGroup({ t, editorViewRef, onChange, onPushUndo }: GroupProps & { t: Translations }) {
   const applyFormat = useCallback((
@@ -40,7 +32,8 @@ export default function InsertGroup({ t, editorViewRef, onChange, onPushUndo }: 
   return (
     <ToolbarButton
       onClick={insertLink}
-      title={`${t.toolbar.link} (${formatShortcut(getShortcut('format.link'))})`}
+      // 链接无键盘快捷键（Ctrl+K 实际是命令面板）—— 不显示虚假的键位声明
+      title={t.toolbar.link}
       ariaLabel={t.toolbarAria.link}
     >
       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>

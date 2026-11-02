@@ -3,7 +3,7 @@ import { EditorView } from '@codemirror/view'
 import { EditorSelection } from '@codemirror/state'
 import {
   cm6FormatBold, cm6FormatItalic, cm6FormatCodeBlock,
-  cm6FormatInlineMath, cm6FormatBlockMath, cm6InsertFootnote,
+  cm6FormatInlineMath, cm6FormatBlockMath, cm6FormatStrike, cm6InsertFootnote,
 } from './autocompleteExtension'
 
 // Tab 缩进
@@ -142,6 +142,8 @@ export function createKeymapExtension() {
     // 格式化快捷键
     { key: 'Mod-b', run: (view) => cm6FormatBold(view) },
     { key: 'Mod-i', run: (view) => cm6FormatItalic(view) },
+    // 删除线 = Mod+Shift+x（与 WYSIWYG 统一；Mod+Shift+s 让位给全局「另存为」）
+    { key: 'Mod-Shift-x', run: (view) => cm6FormatStrike(view) },
     { key: 'Mod-Shift-k', run: (view) => cm6FormatCodeBlock(view) },
     { key: 'Mod-m', run: (view) => cm6FormatInlineMath(view) },
     { key: 'Mod-Shift-m', run: (view) => cm6FormatBlockMath(view) },

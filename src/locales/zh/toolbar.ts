@@ -4,7 +4,7 @@ export const toolbar = {
   bold: '加粗 (Ctrl+B)',
   italic: '斜体 (Ctrl+I)',
   underline: '下划线 (Ctrl+U)',
-  strikethrough: '删除线 (Ctrl+Shift+S)',
+  strikethrough: '删除线 (Ctrl+Shift+X)',
   insertTable: '插入表格',
   inlineCode: '行内代码 (Ctrl+`)',
   highlight: '高亮',

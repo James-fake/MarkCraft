@@ -62,7 +62,7 @@ export const en: Translations = {
     bold: 'Bold (Ctrl+B)',
     italic: 'Italic (Ctrl+I)',
     underline: 'Underline (Ctrl+U)',
-    strikethrough: 'Strikethrough (Ctrl+Shift+S)',
+    strikethrough: 'Strikethrough (Ctrl+Shift+X)',
     insertTable: 'Insert Table',
     inlineCode: 'Inline Code (Ctrl+`)',
     highlight: 'Highlight',
