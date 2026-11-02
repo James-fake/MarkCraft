@@ -2277,6 +2277,8 @@ export interface Translations {
     deployFailed: string
     deployValidateFailed: string
     deployPagesManualHint: string
+    deployPagesUnavailable: string
+    deployGiteeBadge: string
     deployStageAuthenticating: string
     deployStageCreatingRepo: string
     deployStagePreparing: string

@@ -2328,6 +2328,8 @@ export const en: Translations = {
     deployFailed: 'Deployment failed',
     deployValidateFailed: 'Verification failed',
     deployPagesManualHint: 'Content pushed, but Pages could not be enabled automatically — please enable it manually in the repository Settings → Pages.',
+    deployPagesUnavailable: 'Pages service is unavailable — content has been pushed to the repository, but the site will not go live. Try again later or use another platform.',
+    deployGiteeBadge: 'Pages down',
     deployStageAuthenticating: 'Verifying {platform} identity...',
     deployStageCreatingRepo: 'Checking repository...',
     deployStagePreparing: 'Preparing upload...',

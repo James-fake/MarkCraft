@@ -165,6 +165,52 @@ describe('deployToPages · GitHub', () => {
   })
 })
 
+describe('deployToPages · Gitee', () => {
+  /** Gitee 仓库「已存在且默认分支为 master」的通用前置（分支形状是 { commit: { sha } }，与 GitHub 不同） */
+  function seedGiteeRepo() {
+    on('GET', /\/user$/, { status: 200, body: { login: 'giteecat', name: 'Gitee Cat' } })
+    on('GET', /\/repos\/giteecat\/blog$/, { status: 200, body: { default_branch: 'master' } })
+    on('GET', /\/repos\/giteecat\/blog\/branches\/master$/, { status: 200, body: { commit: { sha: 'GCOMMIT1' } } })
+    on('GET', /\/repos\/giteecat\/blog\/git\/commits\/GCOMMIT1$/, { status: 200, body: { tree: { sha: 'GTREE1' } } })
+    on('POST', /\/git\/blobs$/, { status: 201, body: { sha: 'GBLOB1' } })
+    on('POST', /\/git\/trees$/, { status: 201, body: { sha: 'GTREE_NEW' } })
+    on('POST', /\/git\/commits$/, { status: 201, body: { sha: 'GCOMMIT_NEW' } })
+    on('PATCH', /\/git\/refs\/heads\//, { status: 200, body: {} })
+    on('POST', /\/pages\/builds$/, { status: 201, body: {} })
+  }
+
+  it('Pages 端点 404（服务已下架，Gitee Pages 2024-05 停服）→ 部署成功但警告为「服务不可用」，而非误导性的「需手动开启」', async () => {
+    seedGiteeRepo()
+    on('POST', /\/pages\/builds$/, { status: 404, body: { message: 'Not Found' } })
+
+    const progress: DeployProgress[] = []
+    const url = await deployToPages(
+      [{ path: 'index.html', content: '<h1>hi</h1>' }],
+      { platform: 'gitee', token: 't', owner: 'giteecat', repo: 'blog' },
+      (p) => progress.push(p),
+    )
+
+    // 内容推送本身完成（Git Data API 不受 Pages 停服影响）
+    expect(lastJsonBody('POST', /\/git\/trees$/).base_tree).toBe('GTREE1')
+    expect(progress.at(-1)!.stage).toBe('done')
+    // 🚨 核心回归：404 必须归类为「服务不可用」——此时仓库里根本没有 Pages 入口可手动开启
+    expect(progress.at(-1)!.warningKey).toBe('deployPagesUnavailable')
+    expect(url).toBe('https://giteecat.gitee.io/blog')
+  })
+
+  it('Pages 已启用 / 构建中（409 / 400）→ 幂等成功且无警告', async () => {
+    for (const status of [400, 409]) {
+      seedGiteeRepo()
+      on('POST', /\/pages\/builds$/, { status, body: { message: 'Conflict' } })
+
+      const progress: DeployProgress[] = []
+      await deployToPages([{ path: 'a.html', content: 'a' }], { platform: 'gitee', token: 't', owner: 'giteecat', repo: 'blog' }, (p) => progress.push(p))
+      expect(progress.at(-1)!.stage).toBe('done')
+      expect(progress.at(-1)!.warningKey).toBeUndefined()
+    }
+  })
+})
+
 describe('deployToPages · Vercel', () => {
   it('digest 为 SHA-1（40 位十六进制），且 files 载荷为 { file, sha, size }；body 带 name 与 project', async () => {
     on('GET', /\/v2\/user$/, { status: 200, body: { user: { username: 'me', name: 'Me' } } })

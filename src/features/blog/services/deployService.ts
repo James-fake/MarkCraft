@@ -1,4 +1,5 @@
 import type { DeployConfig, DeployProgressCallback, PlatformAdapter, GitTreeItem } from './deployTypes'
+import { DeployApiError } from './deployTypes'
 import { githubAdapter } from './githubAdapter'
 import { giteeAdapter } from './giteeAdapter'
 import { vercelAdapter } from './vercelAdapter'
@@ -78,12 +79,18 @@ export async function deployToPages(
   // Pages 配置失败不致命（内容已推送、Pages 启用是幂等且可重试的）：
   // 但**不能静默吞掉** —— 否则用户会看到「部署成功 + URL」而站点实际不可访问。
   // 改为成功态附带 warning，UI 一并展示，让用户知道需要手动开启 Pages。
+  //
+  // ⚠️ 404 单独分类：端点不存在 ≠ 无权限。Gitee Pages 已于 2024-05 暂停服务，
+  // /pages/builds 恒返 404 —— 此时"请手动开启"是误导（根本没有入口可开），
+  // 必须明确告知"站点不会上线"。
   let pagesWarningKey: string | undefined
   onProgress({ stage: 'configuring-pages', message: '配置 Pages...', messageKey: 'deployStageConfiguringPages', progress: 95 })
   try {
     await adapter.configurePages(config.owner, config.repo, branch, config.token)
-  } catch {
-    pagesWarningKey = 'deployPagesManualHint'
+  } catch (err) {
+    pagesWarningKey = err instanceof DeployApiError && err.status === 404
+      ? 'deployPagesUnavailable'
+      : 'deployPagesManualHint'
   }
 
   const deployUrl = adapter.getPagesUrl(config.owner, config.repo)

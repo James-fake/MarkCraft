@@ -352,6 +352,10 @@ export const blogCss = {
   deployValidateFailed: '验证失败',
   /** 内容已推送但 Pages 未能自动启用（私有库需 Pro / 无权限等）时的提示 */
   deployPagesManualHint: '内容已推送，但 Pages 未能自动启用 —— 请到仓库 Settings → Pages 手动开启。',
+  /** Pages 端点 404（服务已下架，如 Gitee Pages 2024-05 起停服）——与「无权限」不同，站点不会上线 */
+  deployPagesUnavailable: 'Pages 服务暂不可用 —— 内容已推送至仓库，但站点不会上线。可稍后重试或改用其他平台。',
+  /** 平台选择器上 Gitee 的停服角标 */
+  deployGiteeBadge: 'Pages 停服',
   // ---- 部署进度（按 stage 本地化，替代服务层中文 message）----
   deployStageAuthenticating: '验证 {platform} 身份...',
   deployStageCreatingRepo: '检查仓库...',
