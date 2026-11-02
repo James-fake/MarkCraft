@@ -62,3 +62,8 @@ dev/
 # 保留下面的忽略规则，防止旧路径的残留目录被误提交。
 website/
 
+
+# playwright-cli 会话快照产物
+.playwright-cli/
+*.yaml
+!playwright.config.ts
