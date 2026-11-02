@@ -1,0 +1,87 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - banner [ref=e5]:
+        - generic [ref=e6]:
+          - generic [ref=e12]: MarkCraft
+          - menubar "应用菜单" [ref=e13]:
+            - menuitem "文件" [ref=e15] [cursor=pointer]
+            - menuitem "编辑" [ref=e17] [cursor=pointer]
+            - menuitem "视图" [ref=e19] [cursor=pointer]
+            - menuitem "前往" [ref=e21] [cursor=pointer]
+            - menuitem "工具" [ref=e23] [cursor=pointer]
+            - menuitem "窗口" [ref=e25] [cursor=pointer]
+            - menuitem "帮助" [ref=e27] [cursor=pointer]
+          - generic "博客工作室" [ref=e29]
+        - group "窗口控制" [ref=e33]:
+          - button "最小化" [ref=e34] [cursor=pointer]
+          - button "最大化" [ref=e36] [cursor=pointer]
+          - button "关闭" [ref=e39] [cursor=pointer]
+      - generic [ref=e43]:
+        - complementary "主导航" [ref=e44]:
+          - navigation [ref=e45]:
+            - generic [ref=e46]:
+              - generic: 工作区
+              - generic [ref=e48]:
+                - button "欢迎页" [ref=e49] [cursor=pointer]
+                - button "编辑器" [ref=e55] [cursor=pointer]
+                - button "日记" [ref=e59] [cursor=pointer]
+            - generic [ref=e63]:
+              - generic: 发布
+              - button "博客" [ref=e66] [cursor=pointer]
+            - generic [ref=e71]:
+              - button "更多" [expanded]
+              - generic [ref=e73]:
+                - button "白板" [ref=e74] [cursor=pointer]
+                - button "双链图谱" [ref=e78] [cursor=pointer]
+                - button "知识库" [ref=e85] [cursor=pointer]
+                - button "设置" [ref=e90] [cursor=pointer]
+          - generic [ref=e98]:
+            - button "管理账户设置" [ref=e99] [cursor=pointer]:
+              - generic [ref=e100]: 用
+              - generic: 用户
+            - button "展开侧栏" [ref=e102] [cursor=pointer]
+        - main [ref=e105]:
+          - generic [ref=e107]:
+            - generic [ref=e108]:
+              - tablist "功能分组切换" [ref=e109]:
+                - generic [ref=e110]:
+                  - tab "主题" [selected] [ref=e111] [cursor=pointer]
+                  - tab "数据" [ref=e114] [cursor=pointer]
+                  - tab "高级" [ref=e120] [cursor=pointer]
+              - tablist "子面板切换" [ref=e128]:
+                - generic [ref=e129]:
+                  - tab "样式" [selected] [ref=e130] [cursor=pointer]
+                  - tab "配色" [ref=e131] [cursor=pointer]
+              - generic [ref=e133]:
+                - button "桌面" [ref=e134] [cursor=pointer]
+                - button "平板" [ref=e138] [cursor=pointer]
+                - button "手机" [ref=e141] [cursor=pointer]
+            - iframe [ref=e148]:
+              - generic [ref=f1e2]:
+                - generic [ref=f1e8]: 暂无待预览文档
+                - generic [ref=f1e9]: 诊断：文件库中未发现任何 .md 文档（若编辑器侧边栏有文件，请反馈此信息）
+      - status [ref=e149]:
+        - generic [ref=e150]:
+          - generic [ref=e151]: 博客工作室
+          - generic [ref=e152]: ·
+          - generic [ref=e153]: 0 篇待发布
+        - generic [ref=e154]:
+          - generic [ref=e155]: 主题 杂志
+          - generic [ref=e156]: ·
+          - generic [ref=e157]: 浅色
+          - generic [ref=e158]: ·
+          - generic [ref=e159] [cursor=pointer]: ⌘K 命令面板
+    - region "通知"
+    - region "通知"
+  - status "MarkCraft 正在启动" [ref=e160]:
+    - generic [aria-hidden] [ref=e161]:
+      - generic [ref=e162]: M
+      - generic [ref=e163]: a
+      - generic [ref=e164]: r
+      - generic [ref=e165]: k
+      - generic [ref=e166]: C
+      - generic [ref=e167]: r
+      - generic [ref=e168]: a
+      - generic [ref=e169]: f
+      - generic [ref=e170]: t

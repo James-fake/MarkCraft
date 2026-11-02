@@ -1,0 +1,64 @@
+- generic [ref=e2]:
+  - generic [ref=e5]:
+    - banner [ref=e6]:
+      - generic [ref=e7]:
+        - generic [ref=e13]: MarkCraft
+        - menubar "应用菜单" [ref=e14]:
+          - menuitem "文件" [ref=e16] [cursor=pointer]
+          - menuitem "编辑" [ref=e18] [cursor=pointer]
+          - menuitem "视图" [ref=e20] [cursor=pointer]
+          - menuitem "前往" [ref=e22] [cursor=pointer]
+          - menuitem "工具" [ref=e24] [cursor=pointer]
+          - menuitem "窗口" [ref=e26] [cursor=pointer]
+          - menuitem "帮助" [ref=e28] [cursor=pointer]
+      - group "窗口控制" [ref=e31]:
+        - button "最小化" [ref=e32] [cursor=pointer]
+        - button "最大化" [ref=e34] [cursor=pointer]
+        - button "关闭" [ref=e37] [cursor=pointer]
+    - generic [ref=e41]:
+      - complementary "主导航" [ref=e42]:
+        - navigation [ref=e43]:
+          - generic [ref=e44]:
+            - generic: 工作区
+            - generic [ref=e46]:
+              - button "欢迎页" [ref=e47] [cursor=pointer]
+              - button "编辑器" [ref=e53] [cursor=pointer]
+              - button "日记" [ref=e57] [cursor=pointer]
+          - generic [ref=e61]:
+            - generic: 发布
+            - button "博客" [ref=e64] [cursor=pointer]
+          - generic [ref=e69]:
+            - button "更多" [expanded]
+            - generic [ref=e71]:
+              - button "白板" [ref=e72] [cursor=pointer]
+              - button "双链图谱" [ref=e76] [cursor=pointer]
+              - button "知识库" [ref=e83] [cursor=pointer]
+              - button "设置" [ref=e88] [cursor=pointer]
+        - generic [ref=e96]:
+          - button "管理账户设置" [ref=e97] [cursor=pointer]:
+            - generic [ref=e98]: 用
+            - generic: 用户
+          - button "展开侧栏" [ref=e100] [cursor=pointer]
+      - main [ref=e103]:
+        - generic [ref=e107]:
+          - generic [ref=e113]: 未打开文档
+          - generic [ref=e114]:
+            - text: 在下方文件列表中选择一篇笔记，或按
+            - generic [ref=e115]: ⌘K
+            - text: 打开命令面板快速定位
+          - generic [ref=e116]:
+            - generic [ref=e117]:
+              - textbox "新文件名" [active] [ref=e122]:
+                - /placeholder: 为这篇笔记起个名字…
+              - button "新建笔记" [ref=e123] [cursor=pointer]
+            - button "打开文件" [ref=e124] [cursor=pointer]
+          - generic [ref=e128]: 还没有文件，点击上方「新建笔记」开始写作
+    - status [ref=e132]:
+      - generic [ref=e133]:
+        - generic [ref=e134]: 所见即所得
+        - generic [ref=e135]: ·
+        - generic [ref=e136]: Markdown
+        - generic [ref=e137]: ·
+        - generic [ref=e138] [cursor=pointer]: ⌘K 命令面板
+  - region "通知"
+  - region "通知"

@@ -14,6 +14,8 @@ import { findNode } from '@core/files/fileTree'
 import { peekBlogEntryFileId, clearBlogEntryFileId } from '@services/blogEntry'
 import { useBlogGenerator } from '@features/blog/hooks/useBlogGenerator'
 import { generateSingleFileBlog } from '@features/blog'
+import { StudioThemeProvider } from '@features/blog/components/StudioControls'
+import { useTheme } from '@features/themes/useTheme'
 import '../../styles/panels/blog.css'
 import { PANELS, PANEL_GROUPS, THEME_MARKET, DEFAULT_CONFIG, toRealBlogConfig, collectMdFiles, toBlogDoc,
   type PanelKey, type BlogConfig, type BlogFriend, type BlogSeries } from './blogStudioModel'
@@ -84,6 +86,12 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
   const { t, language } = useLanguage()
   const isZh = language === 'zh'
   const B = t.blog
+  // Studio 主题上下文：features 侧复用组件（如 DeployPanel）经 useStudioTheme() 区分明暗。
+  // ⚠️ 此前 Aurora 面板树从未挂载 StudioThemeProvider，context 恒为默认 { isDark: true } ——
+  // 浅色模式下 DeployPanel 全按暗色分支渲染（白色系文字落在浅底上，显示不清）。
+  // 此处在面板根部统一供值（与旧 BlogStudio 同源：应用主题派生），树内所有 features 复用组件自动跟随。
+  const { theme: appTheme } = useTheme()
+  const studioIsDark = appTheme === 'dark'
   // 顶栏分组 tab 与组内子面板 label（注册表 blogStudioModel 只留 key/icon，文案在此解析）
   const groupLabels: Record<string, string> = {
     theme: B.groupTheme,
@@ -426,6 +434,7 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
   }
 
   return (
+    <StudioThemeProvider value={{ isDark: studioIsDark }}>
     <PageFrame
       sidebarGroups={buildAuroraSidebarGroups(t)}
       sidebarActiveId="blog"
@@ -572,5 +581,6 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
         </div>
       </div>
     </PageFrame>
+    </StudioThemeProvider>
   )
 }

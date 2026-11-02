@@ -33,6 +33,20 @@ describe('DeployPanel · 语言包挂载回归', () => {
     expect(screen.getByText(/One-click Deploy/)).toBeTruthy()
   })
 
+  it('浅色模式（isDark:false）下完整挂载 —— 回归 2026-11-02 Aurora 面板未供主题上下文导致暗色分支渲染', () => {
+    const { container } = render(
+      <StudioThemeProvider value={{ isDark: false }}>
+        <DeployPanel result={fakeResult} t={zh} />
+      </StudioThemeProvider>,
+    )
+    expect(screen.getByText(/一键部署/)).toBeTruthy()
+    // 浅色模式下内联文字必须走暗色分支（不再出现白色系 rgba(255,255,255,*) 文字色）
+    const lightText = Array.from(container.querySelectorAll('span,div')).some((el) =>
+      (el as HTMLElement).style.color.includes('255, 255, 255'),
+    )
+    expect(lightText, '浅色模式不应有白色系内联文字色').toBe(false)
+  })
+
   it('zh/en 语言包均含 DeployPanel 所需的全部 deploy* 键（结构性锁）', () => {
     const need = ['deployStep', 'deployStart', 'deployFailed', 'deployValidateFailed'] as const
     for (const pack of [zh, en]) {
