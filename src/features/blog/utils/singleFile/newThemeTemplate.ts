@@ -23,7 +23,8 @@ import { sanitizeCssFast } from '../cssSanitizer'
 import { safeJsonLd } from '../jsonLd'
 import { getNewThemeJsInteractions } from './jsInteractions'
 
-const THEME_NAV_LABELS: Record<string, { home: { zh: string; en: string }; archive: { zh: string; en: string }; tags: { zh: string; en: string } }> = {
+// 导出供多文件主题渲染器（utils/multiFile/themeSite.ts）复用同一套导航文案（单一数据源）
+export const THEME_NAV_LABELS: Record<string, { home: { zh: string; en: string }; archive: { zh: string; en: string }; tags: { zh: string; en: string } }> = {
   'ink-wash': { home: { zh: '首页', en: 'Home' }, archive: { zh: '归档', en: 'Archive' }, tags: { zh: '标签', en: 'Tags' } },
   'terminal': { home: { zh: 'ls home', en: 'ls home' }, archive: { zh: 'cat archive', en: 'cat archive' }, tags: { zh: 'grep tags', en: 'grep tags' } },
   'newspaper': { home: { zh: '首页', en: 'Front Page' }, archive: { zh: '归档', en: 'Archive' }, tags: { zh: '标签', en: 'Index' } },

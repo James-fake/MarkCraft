@@ -27,6 +27,13 @@ import { generateNewThemeSingleFileBlog, generateCustomThemeSingleFileBlog } fro
 
 export { generateNewThemeSingleFileBlog, generateCustomThemeSingleFileBlog } from './newThemeTemplate'
 
+/**
+ * 拥有专属主题模板的主题风格清单（48 生成器 + 12 独立）。
+ * 单文件管线据此分派到 generateNewThemeSingleFileBlog；
+ * 多文件主题渲染器（utils/multiFile/themeSite.ts）据此分派主题路径（单一数据源，禁两处各自维护）。
+ */
+export const NEW_THEME_STYLES: ReadonlySet<string> = new Set(['ink-wash', 'terminal', 'newspaper', 'glassmorphism', 'bento', 'narrative', 'cyberpunk', 'aurora', 'academia', 'retro', 'garden', 'midnight', 'poetry', 'typewriter', 'ocean', 'sunset', 'editorial', 'trending', 'dispatch', 'carbon', 'blueprint', 'hacker', 'showcase', 'mosaic', 'gallery', 'cinematic', 'docs', 'wiki', 'neon', 'origami', 'swiss', 'bauhaus', 'artdeco', 'zen', 'brutalist', 'vaporwave', 'pixel', 'neumorphism', 'corporate', 'fashion', 'forest', 'notion', 'cafe', 'travel', 'music', 'sketch', 'cosmos', 'claymorphism', 'ice-crystal', 'rams', 'luxury', 'comic', 'steampunk', 'gothic', 'noir', 'recipe', 'timeline', 'feed', 'pastel', 'newsletter'])
+
 export function generateSingleFileBlog(
   files: Array<{
     name: string

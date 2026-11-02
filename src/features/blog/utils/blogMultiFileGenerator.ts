@@ -31,6 +31,8 @@ import { generateSearchHtml } from '../templates/searchTemplate'
 import { generatePageHtml } from '../templates/pageTemplate'
 import { generate404Html } from '../templates/404Template'
 import { generateSingleFileBlog } from './blogSingleFileGenerator'
+import { generateThemedSiteFiles } from './multiFile/themeSite'
+import { NEW_THEME_STYLES } from './singleFile'
 import { generateLinksHtml } from '../templates/linksTemplate'
 import { generateAboutHtml } from '../templates/aboutTemplate'
 import { generateSeriesHtml, generateSeriesDetailHtml } from '../templates/seriesTemplate'
@@ -208,20 +210,37 @@ export function generateBlog(
     }
   }
 
-  blogFiles.push({
-    path: 'index.html',
-    content: generateIndexHtml(publishedPosts, mergedConfig),
-  })
+  // —— 主题分派（专项 2026-11-03：部署站点与预览同源）——
+  // 非经典主题（60 个，NEW_THEME_STYLES 单一数据源）→ 主题渲染器整站产出
+  // （index/archive/tags/about/links/series/posts/pages/404，DOM 词汇表与单文件
+  // 主题系统一致）。经典布局（magazine/minimal/classic）走原多文件管线。
+  // 公共辅助文件（rss/sitemap/robots/search/PWA）两路共用，在下方统一追加。
+  const themeStyle = mergedConfig.themeStyle || ''
+  const themed = NEW_THEME_STYLES.has(themeStyle)
 
-  blogFiles.push({
-    path: 'archive.html',
-    content: generateArchiveHtml(publishedPosts, mergedConfig),
-  })
+  if (themed) {
+    blogFiles.push(...generateThemedSiteFiles({
+      posts,
+      published: publishedPosts,
+      config: mergedConfig,
+      themeStyle,
+    }))
+  } else {
+    blogFiles.push({
+      path: 'index.html',
+      content: generateIndexHtml(publishedPosts, mergedConfig),
+    })
 
-  blogFiles.push({
-    path: 'tags.html',
-    content: generateTagsHtml(publishedPosts, mergedConfig),
-  })
+    blogFiles.push({
+      path: 'archive.html',
+      content: generateArchiveHtml(publishedPosts, mergedConfig),
+    })
+
+    blogFiles.push({
+      path: 'tags.html',
+      content: generateTagsHtml(publishedPosts, mergedConfig),
+    })
+  }
 
   blogFiles.push({
     path: 'rss.xml',
@@ -250,22 +269,24 @@ export function generateBlog(
     })
   }
 
-  // 404 page
-  blogFiles.push({
-    path: '404.html',
-    content: generate404Html(mergedConfig),
-  })
+  // 404 page（经典路径专用；主题路径由 generateThemedSiteFiles 产出带主题样式的 404）
+  if (!themed) {
+    blogFiles.push({
+      path: '404.html',
+      content: generate404Html(mergedConfig),
+    })
+  }
 
-  // 友情链接页
-  if (mergedConfig.friendLinks && mergedConfig.friendLinks.length > 0) {
+  // 友情链接页（经典路径；主题路径内含）
+  if (!themed && mergedConfig.friendLinks && mergedConfig.friendLinks.length > 0) {
     blogFiles.push({
       path: 'links.html',
       content: generateLinksHtml(mergedConfig.friendLinks, mergedConfig),
     })
   }
 
-  // 关于页面
-  if (mergedConfig.aboutConfig?.enable) {
+  // 关于页面（经典路径；主题路径内含）
+  if (!themed && mergedConfig.aboutConfig?.enable) {
     blogFiles.push({
       path: 'about.html',
       content: generateAboutHtml(mergedConfig.aboutConfig, mergedConfig),
@@ -273,36 +294,39 @@ export function generateBlog(
   }
 
   // 系列文章页面（P1-3：从已发布文章自动发现 series 字段，兼容 seriesConfig 的描述/封面）
-  {
-    const seriesGroups = collectSeries(publishedPosts, {
-      descriptions: Object.fromEntries(
-        (mergedConfig.seriesConfig || []).map(s => [s.name, s.description]),
-      ),
-      covers: Object.fromEntries(
-        (mergedConfig.seriesConfig || []).map(s => [s.name, s.coverImage]),
-      ),
+  // （经典路径；主题路径由 generateThemedSiteFiles 内含 series 页）
+  if (!themed) {
+  const seriesGroups = collectSeries(publishedPosts, {
+    descriptions: Object.fromEntries(
+      (mergedConfig.seriesConfig || []).map(s => [s.name, s.description]),
+    ),
+    covers: Object.fromEntries(
+      (mergedConfig.seriesConfig || []).map(s => [s.name, s.coverImage]),
+    ),
+  })
+
+  if (seriesGroups.length > 0) {
+    const seriesConfigForTpl = groupsToSeriesConfig(seriesGroups)
+
+    blogFiles.push({
+      path: 'series/index.html',
+      content: generateSeriesHtml(publishedPosts, seriesConfigForTpl, mergedConfig),
     })
 
-    if (seriesGroups.length > 0) {
-      const seriesConfigForTpl = groupsToSeriesConfig(seriesGroups)
-
-      blogFiles.push({
-        path: 'series/index.html',
-        content: generateSeriesHtml(publishedPosts, seriesConfigForTpl, mergedConfig),
-      })
-
-      for (const grp of seriesGroups) {
-        if (grp.posts.length > 0) {
-          const cfg = seriesConfigForTpl.find(s => s.slug === grp.slug)!
-          blogFiles.push({
-            path: `series/${grp.slug}/index.html`,
-            content: generateSeriesDetailHtml(cfg, grp.posts, mergedConfig),
-          })
-        }
+    for (const grp of seriesGroups) {
+      if (grp.posts.length > 0) {
+        const cfg = seriesConfigForTpl.find(s => s.slug === grp.slug)!
+        blogFiles.push({
+          path: `series/${grp.slug}/index.html`,
+          content: generateSeriesDetailHtml(cfg, grp.posts, mergedConfig),
+        })
       }
     }
   }
+  }
 
+  // 文章页（经典路径；主题路径内含带主题样式的文章页与 page 布局页）
+  if (!themed) {
   for (let i = 0; i < publishedPosts.length; i++) {
     const post = publishedPosts[i]
     const prevPost = i > 0 ? publishedPosts[i - 1] : undefined
@@ -319,6 +343,7 @@ export function generateBlog(
         content: generatePostHtml(post, mergedConfig, prevPost, nextPost, publishedPosts),
       })
     }
+  }
   }
 
   // PWA files（必须在全部页面就绪后再生成：sw.js 预缓存清单取自完整文件列表，
