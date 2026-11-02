@@ -227,14 +227,16 @@ function ExportPanel({ cfg, docs, onGenerate, isGenerating, result, onOpenPrevie
 
       {genError && <div className="aurora-blog-banner aurora-blog-banner--error">{genError}</div>}
 
-      <SectionLabel>步骤 1 · 生成</SectionLabel>
+      {/* 出口语义（2026-11-02 重构）：生成是唯一串行前置；生成后「预览/下载」与
+          「发布」是两条**并列出路**（无先后依赖），不再使用「步骤 2/3」伪串行编号 */}
+      <SectionLabel>{B.sectionGenerate}</SectionLabel>
       <button className={`aurora-blog-generate ${isGenerating ? 'is-loading' : ''}`} onClick={onGenerate} disabled={isGenerating || docCount === 0}>
         {isGenerating ? <><Icon.refresh size={15} className="spin" /> {B.generating}</> : <><Icon.sparkle size={15} /> {B.generateSite}</>}
       </button>
 
       {result && (
         <>
-          <SectionLabel>步骤 2 · 查看 / 下载</SectionLabel>
+          <SectionLabel>{B.sectionPreviewDownload}</SectionLabel>
           <div className="aurora-blog-download">
             <button className="aurora-blog-dl" onClick={onOpenPreview}><Icon.externalLink size={18} /><span>{B.openBtn}</span><em>{B.openNewTab}</em></button>
             <button className="aurora-blog-dl" onClick={onDownloadFolder} disabled={isDownloading}><Icon.folder size={18} /><span>{B.folderBtn}</span><em>{B.multiFile}</em></button>
@@ -242,6 +244,7 @@ function ExportPanel({ cfg, docs, onGenerate, isGenerating, result, onOpenPrevie
           </div>
 
           {/* P0 · 1.2：真实部署面板（平台选择/Token 验证/仓库/进度/成功 URL，deployToPages）。
+              区块标题「一键部署」由 DeployPanel 内部 SectionLabel 输出（t.blogCss.deployStep）。
               ⚠️ 必须传 t：DeployPanel 读取 t.blogCss.deploy* 渲染文案。
               2026-11-02 修复「Cannot read properties of undefined (reading 'blogCss')」——
               此前注释谎称「实现中不使用 t」并用 as unknown as 抹掉 props 类型后不传，

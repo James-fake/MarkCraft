@@ -1165,6 +1165,8 @@ export const blog = {
   statTheme: '主题',
   generating: '生成中…',
   generateSite: '生成博客站点',
+  sectionGenerate: '生成',
+  sectionPreviewDownload: '预览与下载',
   openBtn: '打开',
   openNewTab: '新标签页',
   folderBtn: '文件夹',

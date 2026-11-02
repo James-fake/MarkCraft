@@ -1320,6 +1320,8 @@ export const en: Translations = {
     statTheme: 'Theme',
     generating: 'Generating…',
     generateSite: 'Generate site',
+    sectionGenerate: 'Generate',
+    sectionPreviewDownload: 'Preview & download',
     openBtn: 'Open',
     openNewTab: 'New tab',
     folderBtn: 'Folder',

@@ -1274,6 +1274,8 @@ export interface Translations {
     statTheme: string
     generating: string
     generateSite: string
+    sectionGenerate: string
+    sectionPreviewDownload: string
     openBtn: string
     openNewTab: string
     folderBtn: string

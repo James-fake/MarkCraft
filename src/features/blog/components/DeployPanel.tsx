@@ -100,7 +100,10 @@ export default function DeployPanel({ result, t }: DeployPanelProps) {
 
   return (
     <div>
-      <SectionLabel>Step 3 · {t.blogCss.deployStep}</SectionLabel>
+      {/* 区块标题不带步骤编号：本面板在 Aurora 导出面板中是与「预览与下载」并列的出路，
+          不是串行步骤（2026-11-02 去 "Step 3 ·" 前缀——旧编号体系中它被标为第 3 步，
+          实际排在第 4 位，且与 Aurora 侧中文「步骤 N」编号体系混排） */}
+      <SectionLabel>{t.blogCss.deployStep}</SectionLabel>
 
       {/* Platform Selector */}
       <div style={{
