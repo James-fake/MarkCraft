@@ -14,6 +14,14 @@ vi.mock('../../../stores/kbStore', async () => {
   }
 })
 
+// 监视 generateBlog（保留真实实现）：断言「生成后改主题 → result 自动重生成」。
+// useBlogGenerator 与 @features/blog index 都从该模块取 generateBlog，mock 一处两路同源。
+vi.mock('@features/blog/blogGenerator', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@features/blog/blogGenerator')>()
+  return { ...actual, generateBlog: vi.fn(actual.generateBlog) }
+})
+import { generateBlog } from '@features/blog/blogGenerator'
+
 // jsdom 无 ResizeObserver，BlogPanel 的 useLayoutEffect 用其做功能列表贴边对齐，需 stub
 beforeAll(() => {
   // @ts-expect-error 注入测试桩
@@ -266,4 +274,41 @@ describe('BlogPanel 接真实数据（FileStore 文档 + 真实主题市场）',
     expect(builtinHeadings.length).toBeGreaterThan(0)
     for (const h of builtinHeadings) expect(src).not.toContain(h)
   })
+
+  // 报障回归（用户 2026-11-02）：生成站点后换主题，一键部署上去的还是旧主题——
+  // result 只在点「生成」时产生，cfg 漂移只刷新预览。修复 = 生成过一次后配置签名漂移自动重生成。
+  it('生成后更换主题 → result 自动重生成（部署与预览同源，不再部署旧主题）', async () => {
+    const spy = vi.mocked(generateBlog)
+    const { container } = renderPanel()
+
+    // 打开「高级」组（[2] = css/export，落到 css）→ 点「导出」子 tab
+    fireEvent.click(container.querySelectorAll('.aurora-blog__tab')[2])
+    const exportTab = Array.from(container.querySelectorAll('.aurora-blog__subseg-btn'))
+      .find((b) => (b.textContent ?? '') === '导出')
+    expect(exportTab, '高级组应有「导出」子面板').toBeTruthy()
+    fireEvent.click(exportTab!)
+
+    // 手动生成：result 产生 → 部署区块（DeployPanel）挂载
+    fireEvent.click(await screen.findByText('生成博客站点'))
+    await screen.findByText('Personal Access Token')
+    const callsAfterManual = spy.mock.calls.length
+    expect(callsAfterManual).toBeGreaterThan(0)
+    const manualTheme = (spy.mock.calls.at(-1)![1] as { themeStyle?: string }).themeStyle
+    expect(manualTheme).toBe('magazine') // 默认主题
+
+    // 回主题面板切换「终端」→ 预览防抖 300ms + 自动重生成节流 400ms
+    fireEvent.click(container.querySelectorAll('.aurora-blog__tab')[0])
+    const terminalCard = Array.from(container.querySelectorAll('.aurora-blog-theme'))
+      .find((el) => el.querySelector('.aurora-blog-theme__name b')?.textContent === '终端')
+    expect(terminalCard, '主题市场应渲染「终端」主题卡').toBeTruthy()
+    fireEvent.click(terminalCard!)
+
+    await waitFor(
+      () => expect(spy.mock.calls.length).toBeGreaterThan(callsAfterManual),
+      { timeout: 5000 },
+    )
+    // 自动重生成的必须是新主题的配置（部署拿到的 result 与预览一致）
+    const autoCfg = spy.mock.calls.at(-1)![1] as { themeStyle?: string }
+    expect(autoCfg.themeStyle).toBe('terminal')
+  }, 20000)
 })

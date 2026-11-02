@@ -452,7 +452,10 @@ export function useBlogGenerator(
   // 真实 BlogStudio 不传 → 行为不变（仍走 designConfig）；Aurora BlogPanel 传入面板 cfg 映射，
   // 修复「预览用面板配置、生成/发布却走 DEFAULT_DESIGN_CONFIG」的分裂脑。调用处禁止把本函数
   // 直接作为 onClick 引用（event 会被误当 override），须包一层 () => handleGenerate(...)。
-  const handleGenerate = useCallback((configOverride?: Partial<BlogConfig>) => {
+  //
+  // opts.recordTrace（2026-11-02）：Aurora 侧「配置漂移自动重生成」会高频调用本函数，
+  // 那是保持 result 同源，不是一次用户发布 → 传 false 跳过发布留痕，避免污染发布记录。
+  const handleGenerate = useCallback((configOverride?: Partial<BlogConfig>, opts?: { recordTrace?: boolean }) => {
     setIsGenerating(true)
     setError(null)
     try {
@@ -461,20 +464,22 @@ export function useBlogGenerator(
       setResult(genResult)
 
       // P1-3: 发布后本地留痕（仅记录已发布文章，失败不影响主流程）
-      try {
-        const now = new Date()
-        const entries: PublishTraceEntry[] = genResult.posts
-          .filter(p => (p.status || 'published') === 'published' && !(p.publishDate && new Date(p.publishDate) > now))
-          .map(p => ({
-            slug: p.slug,
-            title: p.title,
-            status: 'published' as PostStatus,
-            publishedAt: now.toISOString(),
-            series: p.series,
-          }))
-        if (entries.length > 0) recordPublish(entries, now)
-      } catch {
-        // 留痕失败不阻断发布
+      if (opts?.recordTrace !== false) {
+        try {
+          const now = new Date()
+          const entries: PublishTraceEntry[] = genResult.posts
+            .filter(p => (p.status || 'published') === 'published' && !(p.publishDate && new Date(p.publishDate) > now))
+            .map(p => ({
+              slug: p.slug,
+              title: p.title,
+              status: 'published' as PostStatus,
+              publishedAt: now.toISOString(),
+              series: p.series,
+            }))
+          if (entries.length > 0) recordPublish(entries, now)
+        } catch {
+          // 留痕失败不阻断发布
+        }
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : t.blogStudio.unknownError

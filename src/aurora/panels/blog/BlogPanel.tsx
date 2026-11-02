@@ -240,6 +240,48 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
   const debouncedFriends = useDebouncedValue(friends, 300)
   const debouncedSeries = useDebouncedValue(series, 300)
 
+  // —— 修复「部署/下载与预览不同源」（2026-11-02 实测：生成后换主题再一键部署，上线的是旧主题）——
+  // result 只在点「生成站点」那一刻产生；此后 cfg/友链/系列/文档变化只刷新预览，
+  // 一键部署与下载仍用旧 result。对策：生成过一次后（result 非空），配置签名漂移即自动静默重生成，
+  // result 与预览恒同源。
+  const cfgRef = useRef(cfg)
+  cfgRef.current = cfg
+  const friendsRef = useRef(friends)
+  friendsRef.current = friends
+  const seriesRef = useRef(series)
+  seriesRef.current = series
+
+  // 生成签名：cfg（防抖后）+ 友链/系列 + 文档集合（名称:内容长度）任一变化都算漂移。
+  // 内容只取长度不入 JSON——文档可能很大，签名在每次渲染都重算，不能 O(内容)。
+  const genSignature = useMemo(
+    () =>
+      JSON.stringify({
+        cfg: debouncedCfg,
+        friends: debouncedFriends,
+        series: debouncedSeries,
+        docs: blogFiles.map((f) => `${f.name}:${f.content.length}`),
+      }),
+    [debouncedCfg, debouncedFriends, debouncedSeries, blogFiles],
+  )
+  const lastGenSignatureRef = useRef<string | null>(null)
+
+  // 自动重生成：仅「生成过一次」的场景生效（保持「生成站点」按钮的显式语义）；
+  // recordTrace:false —— 自动重生成不是一次用户发布，不写发布留痕。
+  useEffect(() => {
+    if (!result || lastGenSignatureRef.current === genSignature) return
+    const timer = setTimeout(() => {
+      lastGenSignatureRef.current = genSignature
+      handleGenerate(toRealBlogConfig(cfgRef.current, friendsRef.current, seriesRef.current), { recordTrace: false })
+    }, 400)
+    return () => clearTimeout(timer)
+  }, [genSignature, result, handleGenerate])
+
+  // 导出面板「生成站点」：手动生成并记录当下签名（此后配置漂移交给上面的自动重生成兜底）
+  const handleGenerateManual = useCallback(() => {
+    handleGenerate(toRealBlogConfig(cfg, friends, series))
+    lastGenSignatureRef.current = genSignature
+  }, [handleGenerate, cfg, friends, series, genSignature])
+
   // P0 修复：预览 = 真实 generateSingleFileBlog（themeStyle 驱动 60+ 主题模板渲染）。
   // 与真实 BlogStudio 的 updatePreview 同源（单一数据源），themeKey/colorScheme/font/
   // 自定义 CSS/友链/系列/功能开关任一变化都会（防抖 ~300ms 后）重新生成并反映到 iframe。
@@ -420,7 +462,8 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
           docs={docs}
           // 批次债①：生成必须携带面板 cfg 映射——否则 handleGenerate 内部走
           // DEFAULT_DESIGN_CONFIG（red/Anonymous），与预览（toRealBlogConfig）分裂。
-          onGenerate={() => handleGenerate(toRealBlogConfig(cfg, friends, series))}
+          // handleGenerateManual：生成后记录签名，此后 cfg 漂移自动重生成（部署不拿到旧主题）。
+          onGenerate={handleGenerateManual}
           isGenerating={isGenerating}
           result={result}
           onOpenPreview={handleOpenPreview}
