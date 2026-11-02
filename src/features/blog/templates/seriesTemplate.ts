@@ -42,7 +42,7 @@ export function generateSeriesHtml(posts: BlogPost[], config: SeriesConfig[], bl
     const postCount = posts.length
     
     return `
-      <a href="/series/${escapeHtml(series.slug)}/" class="series-card">
+      <a href="${escapeHtml(series.slug)}/index.html" class="series-card">
         <div class="series-cover" style="${series.coverImage ? `background-image: ${safeCssUrl(series.coverImage)}` : ''}">
           ${!series.coverImage ? '<span class="series-icon">📚</span>' : ''}
         </div>
@@ -71,7 +71,8 @@ export function generateSeriesHtml(posts: BlogPost[], config: SeriesConfig[], bl
     </div>
   `
 
-  return wrapHtml(`${bl === 'en' ? 'Series' : '系列文章'} - ${blogConfig.siteTitle}`, content, blogConfig)
+  // 系列列表页在 series/ 一层深；卡片指向 series/<slug>/index.html（相对本页）
+  return wrapHtml(`${bl === 'en' ? 'Series' : '系列文章'} - ${blogConfig.siteTitle}`, content, blogConfig, undefined, undefined, undefined, '../')
 }
 
 export function generateSeriesDetailHtml(series: SeriesConfig, posts: BlogPost[], blogConfig: BlogConfig): string {
@@ -99,7 +100,7 @@ export function generateSeriesDetailHtml(series: SeriesConfig, posts: BlogPost[]
     const isCompleted = post.seriesOrder !== undefined ? post.seriesOrder <= readCount : false
     
     return `
-      <a href="/posts/${post.slug}/" class="series-post-item ${isCompleted ? 'completed' : ''}">
+      <a href="../../posts/${post.slug}/index.html" class="series-post-item ${isCompleted ? 'completed' : ''}">
         <div class="series-post-number">${index + 1}</div>
         <div class="series-post-content">
           <h3 class="series-post-title">${escapeHtml(post.title)}</h3>
@@ -119,7 +120,7 @@ export function generateSeriesDetailHtml(series: SeriesConfig, posts: BlogPost[]
   const content = `
     <div class="container">
       <div class="series-detail-header">
-        <a href="/series/" class="back-link">← ${bl === 'en' ? 'Back to series' : '返回系列列表'}</a>
+        <a href="../index.html" class="back-link">← ${bl === 'en' ? 'Back to series' : '返回系列列表'}</a>
         <div class="series-detail-cover" style="${series.coverImage ? `background-image: ${safeCssUrl(series.coverImage)}` : ''}">
           ${!series.coverImage ? '<span class="series-icon-large">📚</span>' : ''}
         </div>
@@ -140,5 +141,6 @@ export function generateSeriesDetailHtml(series: SeriesConfig, posts: BlogPost[]
     </div>
   `
 
-  return wrapHtml(`${series.name} - ${bl === 'en' ? 'Series' : '系列文章'} - ${blogConfig.siteTitle}`, content, blogConfig)
+  // 系列详情页在 series/<slug>/ 两层深 → 外壳导航带两层根前缀
+  return wrapHtml(`${series.name} - ${bl === 'en' ? 'Series' : '系列文章'} - ${blogConfig.siteTitle}`, content, blogConfig, undefined, undefined, undefined, '../../')
 }

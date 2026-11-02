@@ -11,8 +11,20 @@ function getAdmonitionStyles(): string {
   return getAdmonitionCss()
 }
 
-export function wrapHtml(title: string, body: string, config: BlogConfig, extraClass?: string, seoMeta?: SeoMeta, hasMermaid?: boolean): string {
+/**
+ * 生成页面外壳。
+ *
+ * @param rootPrefix 当前页面到站点根目录的相对前缀（'' = 根页面，'../' = 一层深，
+ *   '../../' = 两层深）。外壳里的站点标题 / 导航 / PWA 链接都是根相对路径，
+ *   嵌套页面（posts/&lt;slug&gt;/、series/&lt;slug&gt;/ 等）必须带前缀，
+ *   否则点导航会落到不存在的 &lt;dir&gt;/index.html（实测 2026-11-02：文章页点「首页」→ posts/index.html 404）。
+ */
+export function wrapHtml(title: string, body: string, config: BlogConfig, extraClass?: string, seoMeta?: SeoMeta, hasMermaid?: boolean, rootPrefix = ''): string {
   const bl: 'zh' | 'en' = config.language === 'en' ? 'en' : 'zh'
+
+  // 站内相对链接统一加根前缀；绝对地址（http(s):、//、/、#、mailto:）原样保留
+  const isNonRelative = (u: string) => /^(https?:|\/\/|\/|#|mailto:)/.test(u)
+  const withPrefix = (u: string) => (isNonRelative(u) ? u : `${rootPrefix}${u}`)
 
   // 默认导航
   const defaultNav = [
@@ -29,7 +41,7 @@ export function wrapHtml(title: string, body: string, config: BlogConfig, extraC
     if (config.aboutConfig?.enable) navLinks.push({ label: bl === 'en' ? 'About' : '关于', url: 'about.html' })
     if (config.friendLinks && config.friendLinks.length > 0) navLinks.push({ label: bl === 'en' ? 'Links' : '友链', url: 'links.html' })
   }
-  const navHtml = navLinks.map(l => `<a href="${escapeAttr(l.url)}">${escapeHtml(l.label)}</a>`).join('\n        ')
+  const navHtml = navLinks.map(l => `<a href="${escapeAttr(withPrefix(l.url))}">${escapeHtml(l.label)}</a>`).join('\n        ')
 
   // 社交链接
   const socialIcons: Record<string, string> = {
@@ -154,13 +166,13 @@ document.addEventListener('DOMContentLoaded',function(){
   ${seoMeta ? generateJsonLd(seoMeta, config) : ''}
   ${analyticsScript}
   <style>${getAdmonitionStyles()}</style>
-  ${config.enablePwa ? getPwaHeadTags(config) : ''}
+  ${config.enablePwa ? getPwaHeadTags(config, rootPrefix) : ''}
 </head>
 <body>
   <div id="reading-progress" class="reading-progress"></div>
   <header class="site-header">
     <div class="header-inner">
-      <div class="site-title"><a href="index.html">${escapeHtml(config.siteTitle)}</a></div>
+      <div class="site-title"><a href="${escapeAttr(withPrefix('index.html'))}">${escapeHtml(config.siteTitle)}</a></div>
       <nav class="site-nav">
         ${navHtml}
       </nav>
@@ -189,7 +201,7 @@ ${body}
   <script>(function(){var pres=document.querySelectorAll('.post-content pre');if(!pres.length)return;pres.forEach(function(pre){if(pre.querySelector('.code-copy-btn'))return;var code=pre.querySelector('code');if(!code)return;var btn=document.createElement('button');btn.className='code-copy-btn';btn.textContent='Copy';btn.addEventListener('click',function(){var text=code.textContent||code.innerText;navigator.clipboard.writeText(text).then(function(){btn.textContent='Copied';btn.classList.add('copied');setTimeout(function(){btn.textContent='Copy';btn.classList.remove('copied');},2000);}).catch(function(){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');btn.textContent='Copied';btn.classList.add('copied');setTimeout(function(){btn.textContent='Copy';btn.classList.remove('copied');},2000);}catch(e){}document.body.removeChild(ta);});});pre.appendChild(btn);});})();</script>
   <script>(function(){var imgs=document.querySelectorAll('.post-content img[data-lightbox]');if(!imgs.length)return;var overlay=document.createElement('div');overlay.id='lightbox-overlay';var imgEl=document.createElement('img');overlay.appendChild(imgEl);document.body.appendChild(overlay);imgs.forEach(function(i){i.addEventListener('click',function(){imgEl.src=i.src;overlay.style.display='flex';document.body.style.overflow='hidden';});});overlay.addEventListener('click',function(){overlay.style.display='none';document.body.style.overflow='';});document.addEventListener('keydown',function(e){if(e.key==='Escape'){overlay.style.display='none';document.body.style.overflow='';}});})();</script>
   <script>(function(){document.addEventListener('click',function(e){if(e.target.tagName==='IMG'&&e.target.closest('.post-content')&&!e.target.closest('.mermaid')){var o=document.createElement('div');o.className='lightbox-overlay';var img=document.createElement('img');img.src=e.target.src;img.alt=e.target.alt||'';o.appendChild(img);o.onclick=function(){document.body.removeChild(o)};document.body.appendChild(o);}});document.addEventListener('keydown',function(e){if(e.key==='Escape'){var o=document.querySelector('.lightbox-overlay');if(o)document.body.removeChild(o)}});})();</script>
-  ${config.enablePwa ? getPwaRegistrationScript() : ''}
+  ${config.enablePwa ? getPwaRegistrationScript(rootPrefix) : ''}
 </body>
 </html>`
 }

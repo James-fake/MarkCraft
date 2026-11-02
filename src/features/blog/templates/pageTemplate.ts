@@ -9,7 +9,7 @@ export function generatePageHtml(post: BlogPost, config: BlogConfig): string {
       <h1>${escapeHtml(post.title)}</h1>
     </div>
     <div class="post-content">${post.content}</div>
-    <a href="index.html" class="back-link">${bl === 'en' ? 'Back to Home' : '返回首页'}</a>
+    <a href="../index.html" class="back-link">${bl === 'en' ? 'Back to Home' : '返回首页'}</a>
   `
   const hasMermaid = post.content.includes('mermaid-diagram')
   // P1-2: 独立页面此前只继承站点级描述，这里补齐页面自身的 SEO 元数据
@@ -21,5 +21,6 @@ export function generatePageHtml(post: BlogPost, config: BlogConfig): string {
     type: 'website',
     author: post.author || config.author,
   }
-  return wrapHtml(post.title, body, config, 'post-detail', seoMeta, hasMermaid)
+  // 独立页面在 <slug>/ 一层深 → 外壳导航与返回链接都带一层前缀
+  return wrapHtml(post.title, body, config, 'post-detail', seoMeta, hasMermaid, '../')
 }

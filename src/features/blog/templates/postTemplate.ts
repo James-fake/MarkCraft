@@ -91,7 +91,8 @@ export function generatePostHtml(
   const tocScript = tocItems.length > 0 ? getTocScript() : ''
 
   const tagsHtml = post.tags.map(t =>
-    `<a href="../tags.html#${tagId(t)}" class="tag">${escapeHtml(t)}</a>`
+    // 文章页固定在 posts/<slug>/index.html（两层深），根级链接必须带 ../../
+    `<a href="../../tags.html#${tagId(t)}" class="tag">${escapeHtml(t)}</a>`
   ).join('')
 
   const categoryHtml = post.category
@@ -118,8 +119,8 @@ export function generatePostHtml(
   // Share buttons
   const shareHtml = generateShareButtons(post, config.siteUrl, bl)
 
-  // 面包屑导航
-  const breadcrumb = `<nav class="breadcrumb" aria-label="${bl === 'en' ? 'Breadcrumb' : '面包屑导航'}"><ol itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem"><a itemprop="item" href="../index.html"><span itemprop="name">${bl === 'en' ? 'Home' : '首页'}</span></a><meta itemprop="position" content="1" /></li>${post.category ? `<li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem"><a itemprop="item" href="../tags.html#${tagId(post.category)}"><span itemprop="name">${escapeHtml(post.category)}</span></a><meta itemprop="position" content="2" /></li>` : ''}<li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem" class="breadcrumb-current"><span itemprop="name">${escapeHtml(post.title)}</span><meta itemprop="position" content="${post.category ? '3' : '2'}" /></li></ol></nav>`
+  // 面包屑导航（首页/分类标签在站点根，文章页两层深 → ../../）
+  const breadcrumb = `<nav class="breadcrumb" aria-label="${bl === 'en' ? 'Breadcrumb' : '面包屑导航'}"><ol itemscope itemtype="https://schema.org/BreadcrumbList"><li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem"><a itemprop="item" href="../../index.html"><span itemprop="name">${bl === 'en' ? 'Home' : '首页'}</span></a><meta itemprop="position" content="1" /></li>${post.category ? `<li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem"><a itemprop="item" href="../../tags.html#${tagId(post.category)}"><span itemprop="name">${escapeHtml(post.category)}</span></a><meta itemprop="position" content="2" /></li>` : ''}<li itemprop="itemListElement" itemscope itemtype="https://schema.org/ListItem" class="breadcrumb-current"><span itemprop="name">${escapeHtml(post.title)}</span><meta itemprop="position" content="${post.category ? '3' : '2'}" /></li></ol></nav>`
 
   // 上一篇/下一篇导航
   const navHtml = generatePostNav(prevPost, nextPost, bl)
@@ -158,7 +159,7 @@ export function generatePostHtml(
   ${commentHtml}
   ${navHtml}
   ${relatedHtml}
-  <a href="../index.html" class="back-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>${bl === 'en' ? 'Back to Home' : '返回首页'}</a>
+  <a href="../../index.html" class="back-link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>${bl === 'en' ? 'Back to Home' : '返回首页'}</a>
   ${tocScript}
   ${extraScripts.join('\n')}
   `
@@ -177,5 +178,6 @@ export function generatePostHtml(
 
   const postHasMermaid = post.content.includes('mermaid-diagram')
 
-  return wrapHtml(post.title, body, config, 'post-detail', seoMeta, postHasMermaid)
+  // 文章页在 posts/<slug>/ 两层深 → 外壳导航也要带根前缀（上一篇/下一篇 ../<slug>/ 是兄弟层级，保持不变）
+  return wrapHtml(post.title, body, config, 'post-detail', seoMeta, postHasMermaid, '../../')
 }

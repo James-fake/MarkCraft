@@ -54,20 +54,24 @@ self.addEventListener('activate', event => {
 
 /**
  * Generate the manifest link and SW registration script for HTML head
+ *
+ * @param rootPrefix 页面到站点根的相对前缀（'' / '../' / '../../'）。
+ *   原实现硬编码根绝对路径 /manifest.json、/sw.js —— 用户页（xxx.github.io）可用，
+ *   项目页（xxx.github.io/repo/）会 404；改为相对路径后两种部署形态都正确。
  */
-export function getPwaHeadTags(_config: BlogConfig): string {
-  return `<link rel="manifest" href="/manifest.json">
+export function getPwaHeadTags(_config: BlogConfig, rootPrefix = ''): string {
+  return `<link rel="manifest" href="${rootPrefix}manifest.json">
 <meta name="theme-color" content="#e74c3c">`
 }
 
 /**
  * Generate the Service Worker registration script for HTML body
  */
-export function getPwaRegistrationScript(): string {
+export function getPwaRegistrationScript(rootPrefix = ''): string {
   return `<script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js').catch(function(err) {
+    navigator.serviceWorker.register('${rootPrefix}sw.js').catch(function(err) {
       console.log('SW registration failed: ', err);
     });
   });
