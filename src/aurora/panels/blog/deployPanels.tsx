@@ -13,8 +13,6 @@ import type { BlogGenerationResult } from '@features/blog/utils/blogMultiFileGen
 import { THEME_MARKET, type BlogConfig, type BlogDoc } from './blogStudioModel'
 import { useSettings } from '@stores/SettingsStore'
 import { SectionLabel, StudioToggle, StudioButton } from './studioAtoms'
-// 真实 DeployPanel 声明了 t prop 但实现中不使用（仅解构 result）；此处窄化 props 类型，避免调用处传翻译对象
-const RealDeployPanel = DeployPanel as unknown as React.ComponentType<{ result: BlogGenerationResult }>
 
 
 /* ============================================================
@@ -243,8 +241,12 @@ function ExportPanel({ cfg, docs, onGenerate, isGenerating, result, onOpenPrevie
             <button className="aurora-blog-dl" onClick={onDownloadSingleFile} disabled={isDownloading}><Icon.file size={18} /><span>{B.singleFile}</span><em>{B.selfContained}</em></button>
           </div>
 
-          {/* P0 · 1.2：真实部署面板（平台选择/Token 验证/仓库/进度/成功 URL，deployToPages） */}
-          <RealDeployPanel result={result} />
+          {/* P0 · 1.2：真实部署面板（平台选择/Token 验证/仓库/进度/成功 URL，deployToPages）。
+              ⚠️ 必须传 t：DeployPanel 读取 t.blogCss.deploy* 渲染文案。
+              2026-11-02 修复「Cannot read properties of undefined (reading 'blogCss')」——
+              此前注释谎称「实现中不使用 t」并用 as unknown as 抹掉 props 类型后不传，
+              DeployPanel 首渲染即崩（TS 因强转静默通过）。 */}
+          <DeployPanel result={result} t={t} />
         </>
       )}
     </div>
