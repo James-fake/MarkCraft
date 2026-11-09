@@ -154,6 +154,34 @@ describe('FileStore · Vault 根登记必须先于载入', () => {
     renderHook(() => useFileManager(), { wrapper: Wrapper })
     await waitFor(() => expect(h.loadVault).toHaveBeenCalledWith('C:/vault'))
   })
+
+  it('[回归] checkVaultWritable 探针必须在 registerRoot 之后（否则白名单缺位误报不可写）', async () => {
+    // 真实事故（2026-11-09 v11）：探针写走 mc:fs:writeFile → assertAllowedPath，
+    // 若在 registerRoot 之前跑，根不在白名单 → OUT_OF_BOUNDS → 误报「无法写入」。
+    const order: string[] = []
+    h.registerRoot.mockImplementation(async () => {
+      order.push('registerRoot')
+    })
+    h.checkVaultWritable.mockImplementation(async () => {
+      order.push('checkVaultWritable')
+      return true
+    })
+    h.loadVault.mockImplementation(async () => {
+      order.push('loadVault')
+      return vaultTree()
+    })
+
+    renderHook(() => useFileManager(), { wrapper: Wrapper })
+    await waitFor(() => expect(h.loadVault).toHaveBeenCalled())
+
+    const iRegister = order.indexOf('registerRoot')
+    const iWritable = order.indexOf('checkVaultWritable')
+    const iLoad = order.indexOf('loadVault')
+    expect(iRegister).toBeGreaterThanOrEqual(0)
+    expect(iWritable).toBeGreaterThanOrEqual(0)
+    expect(iRegister).toBeLessThan(iWritable)
+    expect(iWritable).toBeLessThan(iLoad)
+  })
 })
 
 describe('FileStore · 恢复备份必须等到写盘冲刷完成', () => {

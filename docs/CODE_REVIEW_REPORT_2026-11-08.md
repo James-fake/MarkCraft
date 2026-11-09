@@ -323,6 +323,18 @@
 - 产出拷回 `release/`：`MarkCraft-Setup-1.0.0-x64.exe`（210,942,009 B）、`MarkCraft-Portable-1.0.0-x64.exe`（210,661,226 B）、blockmap（221,579 B），时间戳 2026-11-09 13:36。
 - ⚠️ 已装旧版（如 `E:/MK/MarkCraft`）需用新 Setup 重装，或替换其 `resources/app.asar` 为本次产物，才能生效。
 
+### 11.3 运行时回归修复：Vault 可写性探针顺序（2026-11-09，release-v12）
+
+**现象**：升级后（v11）打开历史 Vault（E 盘 `E:\Markcraft_catch`）提示「文件夹无法写入」，即使**以管理员身份运行也一样**。
+
+**根因**：`FileStore.hydrateFromVault` 顺序反了——先 `checkVaultWritable(root)`（探针写）后 `registerRoot(root)`（登记 fs 白名单）。探针写走 `mc:fs:writeFile → assertAllowedPath`，此时根尚未进 `allowedRoots`（升级首启 / 从历史 localStorage 恢复的 Vault / 安装向导目录都未经新的授权文件），探针被 `OUT_OF_BOUNDS` 拒绝 → 误报不可写并回退内部存储。**这是应用层白名单拒绝，与 OS 权限无关**，所以管理员身份无效。
+
+**修复**：`hydrateFromVault` 改为**先 `registerRoot`（走 C-1 授权 / 老版本升级迁移窗口）再 `checkVaultWritable`**。`openVault` / `migrateLegacyToVault` 因先经 `dialog.openDirectory`（返回时已 `authorizeVaultRoot`）不受影响。
+
+**复核**：`src/stores/FileStore.vaultWrite.test.tsx` 新增回归锁「checkVaultWritable 必须在 registerRoot 之后」，4/4 通过；`tsc` / `lint` 全绿。
+
+**根因佐证**：用户 userData 下**没有** `authorized-vault-roots.json`（证明 registerRoot 从未执行到）；`markcraft.lastVault` 与 `markcraft.setupVaultApplied` 均为 `E:\Markcraft_catch`。
+
 ## 12. CI 实跑（2026-11-08 夜）——根因：Gitee 仓库 × GitHub Actions
 
 **目标**：真正跑一次 CI（而非本地零散命令）。

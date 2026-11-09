@@ -167,6 +167,22 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     //    一个都不落盘」的静默失败状态（真实事故）。不可写 → 保持内部存储（数据不丢）
     //    + 弹告警让用户换位置，而不是把笔记写进一个永远写不进去的目录。
     const hydrateFromVault = async (root: string): Promise<void> => {
+      // ⚠️ 顺序铁律（2026-11-09 回归修复）：**先登记根，再做可写性探针**。
+      //    checkVaultWritable 的探针写走 mc:fs:writeFile → assertAllowedPath（fs 白名单）。
+      //    若此时根尚未登记进 allowedRoots（升级首启 / 通过 localStorage 恢复的历史 Vault /
+      //    安装向导选的目录），探针写会被 OUT_OF_BOUNDS 拒绝 → 误报「文件夹无法写入」并回退
+      //    内部存储（真实事故：v11 升级后 E 盘 Vault 即使管理员也报无法写入）。
+      //    先登记后探针：registerRoot 走 C-1 授权（老版本升级迁移窗口会放行首个合法根），
+      //    把根加入白名单，探针才能正常落盘、真实反映 OS 权限。
+      // ⚠️ 必须 **await**（2026-11-08 审查 M-C-3）：registerRoot 与 loadVault 的 readDir
+      //    是两次独立 invoke，主进程可并发处理 —— 不 await 时 readDir 完全可能先到，
+      //    命中白名单缺位被整体拒绝。登记失败仅记日志：后续 fs 会继续拒绝，错误在
+      //    loadVault / 探针处可见，这里不额外阻断启动。
+      try {
+        await platform.vault?.registerRoot(root)
+      } catch (err) {
+        logger.error('[FileStore] Vault 根登记失败：', err)
+      }
       const writable = await checkVaultWritable(root)
       if (cancelled) return
       if (!writable) {
@@ -174,16 +190,6 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         setVaultError({ path: root })
         hydrateFromIdb()
         return
-      }
-      // S0 红线：Vault 载入前先向主进程登记根目录（fs IPC 白名单的动态部分）。
-      // ⚠️ 必须 **await**（2026-11-08 审查 M-C-3）：registerRoot 与 loadVault 的 readDir
-      //    是两次独立 invoke，主进程可并发处理 —— 不 await 时 readDir 完全可能先到，
-      //    命中白名单缺位被整体拒绝。失败仅记日志（沿用原策略）：白名单缺位时后续 fs
-      //    会继续拒绝，错误会在 loadVault 处可见，这里不额外阻断启动。
-      try {
-        await platform.vault?.registerRoot(root)
-      } catch (err) {
-        logger.error('[FileStore] Vault 根登记失败：', err)
       }
       const tree = await loadVault(root)
       if (cancelled) return
