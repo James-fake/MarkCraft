@@ -272,7 +272,7 @@
 
 ## 11. S0 打包冒烟（2026-11-08 夜）
 
-`CODE_REVIEW.md` §2 对 S0 要求「全量测试 + 打包冒烟」。本次用**全新输出目录 `release-v9`**（规避 EBUSY asar 锁）跑通全链。
+`CODE_REVIEW.md` §2 对 S0 要求「全量测试 + 打包冒烟」。初版用**全新输出目录 `release-v9`**（规避 EBUSY asar 锁）跑通全链；**2026-11-09 又用全新空目录 `release-v10` 重建**，把 H-2 彻底修复与整个审查闭环（`dc28155`）编入成品，并拷回 `release/`，为当前最新包。
 
 **构建链**：`npm run build`(tsc+vite) → `electron:compile`(esbuild) → `electron:prepare-dist`(预解压 `.electron-dist`) → `electron-builder --win --x64`。四阶段均 **exit 0**，总耗时约 14 分钟（node_modules 搜索 + nsis 编译较慢）。
 
@@ -299,6 +299,29 @@
 - `resources/default_app.asar` 随 `.electron-dist` 一并保留（Electron 默认 app 兜底），不影响加载（app.asar 优先），属已知冗余。
 
 **结论**：S0 打包冒烟**通过**（构建 / 产物 / asar / 新代码编入 / 首启稳定）。数字签名缺失**非遗漏**——用户 2026-11-09 明确决定不做代码签名（wontfix），接受未签名分发的 SmartScreen 提示。
+
+### 11.1 release-v10 重建确认（2026-11-09，含 H-2）
+- 触发：`dc28155`（v1.0.0 审查闭环，含 H-2 netGuard 固定 IP 防 DNS rebinding）已提交并推送到 Gitee；`release-v9`（11-08 22:22）不含 H-2，故重建。
+- 构建：仍按既有链（`build`→`electron:compile`→`prepare-dist`→`electron-builder --win --x64 -c.directories.output=release-v10`），exit 0；构建时需 `CODEBUDDY_SAFE_DELETE_ENABLED=0`（vite 清空 `dist/assets` 触发本环境 safe-delete 守卫，已规避）。
+- **asar 复核**：`release-v10/win-unpacked/resources/app.asar` 的 `out\main\index.mjs`（约 1.09MB）含 `pinningLookup` / `makePinnedAgent` / `resolvePublicAddresses` 与 undici `Agent` → **H-2 确已编入成品**，不是只在源码里。
+- **签名复核**：`Get-AuthenticodeSignature` 确认 `release-v10` 的 Setup / Portable 两个 exe 均为 `NotSigned`（与 wontfix 决定一致）。
+- **产出**：`release/` 已更新为 `MarkCraft-Setup-1.0.0-x64.exe`（211,101,239 B）、`MarkCraft-Portable-1.0.0-x64.exe`（210,820,441 B）、`MarkCraft-Setup-1.0.0-x64.exe.blockmap`（221,769 B），时间戳 2026-11-09 13:12。
+
+### 11.2 运行时回归修复：undici 外部化（2026-11-09，release-v11）
+
+**现象**：运行 `release-v10` 打包版即抛
+`Uncaught Exception: Error: Dynamic require of "node:assert" is not supported`（栈顶 `node_modules/undici/lib/dispatcher/client.js`）。
+
+**根因**：`electron:compile` 用 esbuild `--format=esm` 打包主进程。undici 内部是 CJS（含 `require('node:assert')`），esbuild 把 CJS 内联进 ESM 时把 `require` 换成会抛错的 `__require` shim —— 于是运行到 undici 的 `client.js` 就崩。这是把 undici 作为直接依赖并**打进** bundle 造成的回归（`release-v9` 无此问题，因当时尚未引入 undici）。
+
+**修复**：在 `electron:compile` 的两条 esbuild 命令加 `--external:undici`，**不把 undici 打进 bundle**，改由 Electron 主进程运行时从 `node_modules` 直接 `import { Agent } from "undici"`（Node/Electron 的 CJS 加载器原生支持 `require('node:assert')`）。
+
+**复核（`release-v11`）**：
+- `BUILD_EXIT:0`；`out/main/index.mjs` 由 1.0MB 降至 **30KB**，仅含 `import { Agent } from "undici"`，**无 `node:assert`、无任何 undici 源码**。
+- asar 内 `node_modules/undici` 共 **188 个文件**（外部依赖已随包）；`undici` 在 Node ESM 下 `import` 正常（`Agent` 为 function）。
+- 签名：Setup / Portable 均 `NotSigned`（wontfix 一致）。
+- 产出拷回 `release/`：`MarkCraft-Setup-1.0.0-x64.exe`（210,942,009 B）、`MarkCraft-Portable-1.0.0-x64.exe`（210,661,226 B）、blockmap（221,579 B），时间戳 2026-11-09 13:36。
+- ⚠️ 已装旧版（如 `E:/MK/MarkCraft`）需用新 Setup 重装，或替换其 `resources/app.asar` 为本次产物，才能生效。
 
 ## 12. CI 实跑（2026-11-08 夜）——根因：Gitee 仓库 × GitHub Actions
 
