@@ -228,7 +228,7 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 | 目标 | win：`nsis`（安装包）+ `portable`（绿色版）；mac：`dmg`/`zip`；linux：`AppImage` |
 | 文件关联 | `.md` / `.markdown` → `role: Editor`（双击用 MarkCraft 打开） |
 | 脚本 | `electron:pack`（--dir 快速验证）、`electron:dist`（全平台）、`electron:dist:win`（Windows x64） |
-| 产物 | `MarkCraft-Setup-0.1.0-x64.exe`（NSIS 安装包）+ `MarkCraft-Portable-0.1.0-x64.exe`（绿色版） |
+| 产物 | `MarkCraft-Setup-1.0.0-x64.exe`（NSIS 安装包）+ `MarkCraft-Portable-1.0.0-x64.exe`（绿色版） |
 
 **关键设计决定 / 踩坑：**
 - **生产 `base: './'`**（vite.config）：打包后渲染进程经 `app.isPackaged` 走 `loadFile(dist/index.html)`（file:// 协议），绝对 `/assets/...` 会 404 白屏 → 生产改相对 base；dev 仍 '/'（E2E 走 dev server 不受影响）。
@@ -404,7 +404,7 @@ MarkCraft 的**知识库 / 双链 / 图谱 / MOC / 日记**都要求「一个文
 | Q3 | 是否支持多 Vault 同时打开？ | **先单 Vault**（最近打开列表记忆，多 Vault 留后续） |
 | Q4 | 打包工具 | 已改：弃 `electron-vite`（安装 EBUSY），改用项目既有 **esbuild** 直接编译 main/preload |
 | Q5 | 首发是否签名？ | **先不签**（见 §7，下载页附 SHA256） |
-| Q6 | 版本号策略 | 首个可分发版本定 **`0.1.0`**，之后语义化 |
+| Q6 | 版本号策略 | 首个可分发版本定为 **`1.0.0`**，之后语义化 |
 
 > ⚠️ P4 关键约束（实现时务必遵守）：网页 / jsdom 单测 / 浏览器 E2E 仍走 **IndexedDB 后端**（既有行为不变，54 用例全绿为回归证据）；
 > 只有 `platform.kind === 'electron'` 才走**真实磁盘后端**。即 FileStore 必须支持双后端分派，不能让 `platform.fs` 在浏览器路径被硬依赖。

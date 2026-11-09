@@ -47,9 +47,9 @@ CSC_LINK="C:/certs/markcraft.pfx" CSC_KEY_PASSWORD="***" npm run electron:dist:w
 
 ```powershell
 # 查看签名（应显示你的主体名，而非「未签名」）
-Get-AuthenticodeSignature "release\MarkCraft-Setup-0.1.0-x64.exe" | Format-List
+Get-AuthenticodeSignature "release\MarkCraft-Setup-1.0.0-x64.exe" | Format-List
 # 或
-signtool verify /pa /v "release\MarkCraft-Setup-0.1.0-x64.exe"
+signtool verify /pa /v "release\MarkCraft-Setup-1.0.0-x64.exe"
 ```
 
 ---
@@ -84,7 +84,7 @@ APPLE_TEAM_ID="XXXXXXXXXX"
 - 附上产物的 **SHA256 校验值**，让用户可自行校验完整性：
 
 ```powershell
-Get-FileHash "release\MarkCraft-Setup-0.1.0-x64.exe" -Algorithm SHA256
+Get-FileHash "release\MarkCraft-Setup-1.0.0-x64.exe" -Algorithm SHA256
 ```
 
 - 等有用户量或进企业渠道时再上证书（详见迁移计划 §7 的成本对比）。

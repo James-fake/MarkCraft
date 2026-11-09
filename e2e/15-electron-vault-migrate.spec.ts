@@ -79,6 +79,11 @@ test.beforeAll(async () => {
   mkdirSync(kvDir, { recursive: true })
   writeFileSync(join(kvDir, 'markcraft-file-manager.json'), JSON.stringify(LEGACY_STATE))
 
+  // 首启独立引导是整屏的，会挡住迁移弹窗断言 → 预置「已问过」标记（下次 reload 生效）
+  await win.addInitScript(() => {
+    localStorage.setItem('markcraft.onboardingProfile.v1', '1')
+  })
+
   // reload → 加载分支读到旧数据 → 触发迁移引导
   await win.reload()
   await waitMount()

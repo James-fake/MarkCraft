@@ -281,16 +281,7 @@
 .aurora-settings__about-logo {
   width: 72px;
   height: 72px;
-  border-radius: var(--mc-radius-lg);
-  background: linear-gradient(135deg, var(--mc-accent) 0%, var(--mc-accent-pressed) 100%);
-  color: var(--mc-text-inverse);
-  font-size: var(--mc-font-display);
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   margin-bottom: 20px;
-  box-shadow: var(--mc-shadow-panel);
 }
 
 .aurora-settings__about-name {
@@ -349,10 +340,22 @@
 }
 
 .aurora-settings__about-link {
+  padding: 0;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  background: transparent;
+  font-family: inherit;
   font-size: var(--mc-font-sm);
+  line-height: inherit;
   color: var(--mc-accent-text);
   cursor: pointer;
   transition: opacity var(--mc-dur-micro) ease-out;
+}
+
+/* 原生 button 化后必须有键盘焦点环（隐私政策 / 服务条款为合规关键入口） */
+.aurora-settings__about-link:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--mc-bg-content), 0 0 0 3px var(--mc-accent);
 }
 
 .aurora-settings__about-link:hover {
@@ -527,6 +530,57 @@
   border-radius: var(--mc-radius-lg);
 }
 
+/* 大头像本身即头像选择器的触发按钮（macOS「用户与群组」同款） */
+.aurora-settings__user-avatar-trigger {
+  position: relative;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  display: block;
+  cursor: pointer;
+  transition: box-shadow var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-settings__user-avatar-trigger:focus-visible,
+.aurora-settings__user-avatar-trigger[data-picker-open] {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--mc-bg-elevated), 0 0 0 4px var(--mc-accent);
+}
+
+/* 右下角相机角标：hover / 聚焦 / 展开时才出现，暗示「可更换」 */
+.aurora-settings__user-avatar-badge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--mc-bg-content);
+  border: 1px solid var(--mc-border-medium);
+  color: var(--mc-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: scale(0.85);
+  pointer-events: none;
+  transition:
+    opacity var(--mc-dur-fast) var(--mc-ease-out),
+    transform var(--mc-dur-fast) var(--mc-ease-spring);
+}
+
+.aurora-settings__user-avatar-trigger:hover .aurora-settings__user-avatar-badge,
+.aurora-settings__user-avatar-trigger:focus-visible .aurora-settings__user-avatar-badge,
+.aurora-settings__user-avatar-trigger[data-picker-open] .aurora-settings__user-avatar-badge {
+  opacity: 1;
+  transform: scale(1);
+}
+
 .aurora-settings__user-avatar-lg {
   width: 64px;
   height: 64px;
@@ -540,13 +594,6 @@
   font-size: var(--mc-font-xl);
   font-weight: 600;
   overflow: hidden;
-}
-
-.aurora-settings__user-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
 }
 
 .aurora-settings__user-meta {
@@ -683,12 +730,38 @@
 .aurora-settings__browser-loading {
   position: absolute;
   top: 52px;
-  right: 18px;
-  font-size: var(--mc-font-xs);
-  color: var(--mc-text-tertiary);
-  background: var(--mc-bg-elevated);
-  padding: 3px 8px;
-  border-radius: var(--mc-radius-sm);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--mc-bg-window);
+}
+
+.aurora-settings__browser-loading-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.aurora-settings__browser-loading-text {
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-secondary);
+}
+
+.aurora-settings__browser-spin-arc {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: mc-browser-spin 1s linear infinite;
+}
+@keyframes mc-browser-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .aurora-settings__browser-spin-arc { animation: none; }
 }
 
 .aurora-settings__browser-fallback {

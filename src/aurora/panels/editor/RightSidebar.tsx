@@ -90,6 +90,8 @@ export function RightSidebar({ content, activeFileId, activeTab, forceExpand, on
   })
   const [isResizing, setIsResizing] = useState(false)
   const resizing = useRef(false)
+  /** 脚注高亮 3s 定时器（卸载时清理，见下方 useEffect） */
+  const footnoteTimerRef = useRef<number | null>(null)
   // 拖拽中注册到 window 的监听引用，便于组件在拖拽进行中卸载时也能解除，
   // 否则监听泄漏（审查 M3-RightSidebar）
   const dragListeners = useRef<{ move: (e: MouseEvent) => void; up: (e: MouseEvent) => void } | null>(null)
@@ -142,6 +144,11 @@ export function RightSidebar({ content, activeFileId, activeTab, forceExpand, on
   }, [])
 
   const handleFootnoteClick = useCallback((footnoteId: string, _line: number) => {
+    // 连续点击不同脚注时先取消上一个高亮定时器（否则多定时器叠加，旧回调会清掉新高亮）
+    if (footnoteTimerRef.current !== null) {
+      window.clearTimeout(footnoteTimerRef.current)
+      footnoteTimerRef.current = null
+    }
     const ref = document.getElementById(`footnote-ref-${footnoteId}`)
     const def = document.getElementById(`footnote-${footnoteId}`)
     const target = ref || def
@@ -149,10 +156,23 @@ export function RightSidebar({ content, activeFileId, activeTab, forceExpand, on
       target.scrollIntoView({ behavior: 'smooth', block: 'center' })
       target.classList.add('footnote-highlight')
       setActiveFootnoteId(footnoteId)
-      window.setTimeout(() => {
+      // ⚠️ 定时器必须清理（2026-11-03 审查 P2）：3 秒内切走视图会 setState 到已卸载组件
+      //    （React 18 静默）并操作游离 DOM。沿用本文件其它地方的卸载清理模式。
+      const timer = window.setTimeout(() => {
         target.classList.remove('footnote-highlight')
         setActiveFootnoteId((prev) => (prev === footnoteId ? null : prev))
       }, 3000)
+      footnoteTimerRef.current = timer
+    }
+  }, [])
+
+  // 脚注高亮定时器清理（组件卸载 / 重复点击新脚注时取消上一个）
+  useEffect(() => {
+    return () => {
+      if (footnoteTimerRef.current !== null) {
+        window.clearTimeout(footnoteTimerRef.current)
+        footnoteTimerRef.current = null
+      }
     }
   }, [])
 

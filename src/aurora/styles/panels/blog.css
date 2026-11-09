@@ -1055,6 +1055,7 @@
   background-color: var(--mc-bg-window);
 }
 .aurora-blog__preview-stage {
+  position: relative;
   flex: 1;
   min-height: 0;
   display: flex;
@@ -1063,6 +1064,85 @@
   padding: 16px;
   overflow: auto;
 }
+
+/* 预览加载覆盖层（设计「手稿书写」）：首屏 / 内容较多重生成时，预览区不再是整片空白，
+   而以一张被书写的纸 + 品牌折角便签 M 给出"排稿中"的明确反馈，消除"像 bug"的错觉。
+   背景沿用 --mc-bg-window（随主题），覆盖层仅在此态出现。 */
+.aurora-blog__loading {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  background: var(--mc-bg-window);
+}
+/* 加载骨架：模拟「一张白纸正在被书写」。#fafafa 纸面、#c9c9c4/#2c2c2a 模拟正文与
+   标题的灰度，属「描绘外部文档内容」而非 app chrome，故刻意不走 --mc-* token
+   （同图片内容豁免）；若改用深色 token 会变成一块深色方块，失去「文档」语义。 */
+.aurora-blog__loading-paper {
+  position: relative;
+  width: 240px;
+  height: 168px;
+  background: #fafafa;
+  border-radius: var(--mc-radius-md);
+  border: 0.5px solid rgba(0, 0, 0, 0.08);
+  box-shadow: var(--mc-shadow-panel);
+  padding: 22px 20px;
+  box-sizing: border-box;
+}
+.aurora-blog__loading-badge {
+  position: absolute;
+  left: -10px;
+  top: -10px;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--mc-radius-md);
+  background: var(--mc-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--mc-text-inverse);
+  font-weight: 500;
+  font-size: var(--mc-font-md);
+}
+.aurora-blog__loading-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin-top: 6px;
+}
+.aurora-blog__loading-lines span {
+  height: 7px;
+  border-radius: var(--mc-radius-sm);
+  background: #c9c9c4;
+  transform-origin: left center;
+  animation: aurora-blog-write 2.2s ease-in-out infinite;
+}
+.aurora-blog__loading-lines span.is-title {
+  height: 11px;
+  width: 70%;
+  background: #2c2c2a;
+  animation-delay: 0s;
+}
+.aurora-blog__loading-lines span:nth-child(2) { width: 100%; animation-delay: 0.15s; }
+.aurora-blog__loading-lines span:nth-child(3) { width: 92%; animation-delay: 0.3s; }
+.aurora-blog__loading-lines span:nth-child(4) { width: 96%; animation-delay: 0.45s; }
+.aurora-blog__loading-lines span.is-short { width: 60%; animation-delay: 0.6s; }
+.aurora-blog__loading-cap {
+  margin: 0;
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-base);
+  letter-spacing: 0.3px;
+}
+@keyframes aurora-blog-write {
+  0%, 12% { transform: scaleX(0); }
+  42%, 100% { transform: scaleX(1); }
+}
+/* 设备预览框内是「渲染出来的网页」本身（白底），#fff 属内容底色而非 app chrome，
+   故不走 token；外框 bezel 用 --mc-border-subtle 收口。 */
 .aurora-blog__frame {
   box-sizing: border-box;
   width: 100%;
@@ -1075,12 +1155,12 @@
 }
 .aurora-blog__frame--tablet {
   max-width: 768px;
-  border: 8px solid #1a1d28;
+  border: 8px solid var(--mc-border-subtle);
   border-radius: var(--mc-radius-lg);
 }
 .aurora-blog__frame--mobile {
   max-width: 375px;
-  border: 8px solid #1a1d28;
+  border: 8px solid var(--mc-border-subtle);
   border-radius: var(--mc-radius-lg);
 }
 .aurora-blog__frame iframe {

@@ -66,6 +66,9 @@ export interface AppSettings {
   // Diagram (E3)
   /** PlantUML 渲染端点（SVG 输出）。留空则禁用远程渲染，图表降级为代码块。 */
   plantumlEndpoint: string
+  // Telemetry（opt-in，默认关闭）
+  /** 匿名体验改善计划授权状态：'unset' = 首次运行尚未选择；'granted' = 已加入；'denied' = 已拒绝。 */
+  telemetryConsent: 'unset' | 'granted' | 'denied'
 }
 
 const SETTINGS_KEY = 'markcraft_settings'
@@ -97,7 +100,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   autoPairQuotes: true,
   autoPairMarkdown: true,
   defaultSidebarVisible: true,
-  theme: 'dark',
+  // 首次运行默认「跟随系统」：浅色系统→浅色，深色系统→深色（ThemeManager 监听系统切换）。
+  // 老用户已显式存的 'dark'/'light' 不会被这里覆盖。
+  theme: 'system',
   contrast: 'normal',
   fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   fontSize: 15,
@@ -118,6 +123,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   defaultExportFormat: 'html',
   defaultExportStyle: 'default',
   plantumlEndpoint: DEFAULT_PLANTUML_ENDPOINT,
+  // 默认不加入匿名统计（opt-in）；首次运行会弹出授权询问
+  telemetryConsent: 'unset',
 }
 
 export function loadSettings(): AppSettings {
@@ -127,6 +134,15 @@ export function loadSettings(): AppSettings {
       const rawParsed = safeJsonParseOrNull<Partial<AppSettings>>(raw)
       const validRaw: Partial<AppSettings> = rawParsed && isRecord(rawParsed) ? rawParsed : {}
       const parsed = { ...DEFAULT_SETTINGS, ...validRaw }
+      // 迁移：默认主题由 'dark' 改为 'system'（2026-11-08 审查 M-C-6）。
+      // 老用户「有存储但缺 theme 字段」= 从未表达过主题偏好，旧版本靠 DEFAULT_SETTINGS
+      // 给他们 'dark'。若不迁移，升级后会被静默切到「跟随系统」（浅色系统上突然变白）。
+      // 一次性：写入显式 'dark' 后字段即存在，后续加载不再命中；新用户（无 SETTINGS_KEY）
+      // 走 DEFAULT_SETTINGS，仍然是 'system'。
+      if (typeof validRaw.theme !== 'string') {
+        parsed.theme = 'dark'
+        saveSettings(parsed)
+      }
       // 迁移：旧的 'split' 模式已废弃，统一回退为 'source'
       if ((parsed.editorMode as string) === 'split') {
         parsed.editorMode = 'source'

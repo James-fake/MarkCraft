@@ -197,6 +197,17 @@ export interface AppAPI {
 export interface Platform {
   readonly kind: PlatformKind
 
+  /**
+   * Vault 根登记（S0 红线：fs IPC 路径白名单的动态部分）。仅桌面端提供。
+   * Vault 载入前必须先 registerRoot —— 主进程的 mc:fs:* 只放行
+   * 「userData + 已登记 Vault 根 + 对话框授权路径」内的路径。
+   * 浏览器/测试替身无 Vault 概念 → undefined，调用方用可选链跳过。
+   */
+  readonly vault?: {
+    registerRoot(root: string): Promise<void>
+    unregisterRoot(root: string): Promise<void>
+  }
+
   /** 是否具备「原生文件选择 / 保存」能力（浏览器 = File System Access API 可用） */
   canPickFiles(): boolean
 

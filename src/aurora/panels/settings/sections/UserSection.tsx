@@ -1,20 +1,24 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
+import type { MouseEvent } from 'react'
 import {
   useUserProfile,
   updateUserProfile,
   userDisplayName,
   getUserAge,
   getConstellationKey,
-  compressAvatarFile,
+  CLEAR_AVATAR_PATCH,
 } from '@stores/UserProfileStore'
 import { useSettingsQuery } from '../settingsSearch'
 import { useLanguage } from '@stores/LanguageStore'
 import { DateWheelInput } from '@components/ui/DateWheelInput'
+import { AvatarPicker, type AvatarPatch } from '../../../components/AvatarPicker'
+import { UserAvatar } from '../../../components/UserAvatar'
 
 /**
  * 用户设置（人情味功能）
- * - 头像预览卡：展示当前昵称 / 头像，并附生日推导的星座与年龄（桌面应用的「人情味」）；
- * - 资料编辑：昵称、上传头像（自动压缩、白底兜底）、生日。
+ * - 头像预览卡：点大头像（或「选择头像」按钮）即从该元素下方展开选择器气泡，
+ *   macOS「用户与群组」同款；照片 / 表情 / 背景自由搭配，点选即时生效；
+ * - 资料编辑：昵称、生日。
  * 数据走 useUserProfile()，写入即持久化到 localStorage。
  */
 export function UserSection({ query, toast }: { query?: string; toast?: (msg: string) => void }) {
@@ -22,7 +26,10 @@ export function UserSection({ query, toast }: { query?: string; toast?: (msg: st
   const { t } = useLanguage()
   const U = t.settingsUser
   const { q, match } = useSettingsQuery(query)
-  const fileRef = useRef<HTMLInputElement>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  // 手动锚点 ref：两个入口（大头像 / 选择头像按钮）谁的 mousedown 先到就锚定谁，
+  // 浮层永远从「用户刚点的那个元素」下方展开，且 outside-click 判定天然豁免它。
+  const avatarAnchorRef = useRef<HTMLElement | null>(null)
 
   const displayName = userDisplayName(profile)
   const age = getUserAge(profile.birthday)
@@ -36,31 +43,23 @@ export function UserSection({ query, toast }: { query?: string; toast?: (msg: st
   ].some(([l, d]) => match(l, d))
   if (!hasAny) return null
 
-  const onPickFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    e.target.value = '' // 允许重复选择同一文件
-    if (!file) return
-    if (!file.type.startsWith('image/')) {
-      toast?.(U.pickImage)
-      return
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast?.(U.imageTooLarge)
-      return
-    }
-    try {
-      const dataUrl = await compressAvatarFile(file)
-      updateUserProfile({ avatarUrl: dataUrl })
-      toast?.(U.avatarUpdated)
-    } catch {
-      toast?.(U.avatarFailed)
-    }
+  const hasAvatar = Boolean(profile.avatarUrl || profile.avatarEmoji)
+
+  const applyAvatar = (patch: AvatarPatch) => {
+    updateUserProfile(patch)
   }
 
-  const removeAvatar = () => {
-    updateUserProfile({ avatarUrl: '' })
+  const resetAvatar = () => {
+    updateUserProfile(CLEAR_AVATAR_PATCH)
     toast?.(U.avatarRemoved)
   }
+
+  // mousedown 先于 document 的 outside 监听（冒泡顺序），此刻换锚点可避免误关；
+  // click 只负责 toggle，因此「再点一次关闭」也能正常工作。
+  const setAnchor = (e: MouseEvent<HTMLElement>) => {
+    avatarAnchorRef.current = e.currentTarget
+  }
+  const togglePicker = () => setPickerOpen((v) => !v)
 
   const subBits: string[] = []
   if (constellation) subBits.push(constellation)
@@ -69,15 +68,32 @@ export function UserSection({ query, toast }: { query?: string; toast?: (msg: st
 
   return (
     <div>
-      {/* 头像预览卡 */}
+      {/* 头像预览卡：大头像本身即选择器触发按钮 */}
       <div className="aurora-settings__user-card">
-        <div className="aurora-settings__user-avatar-lg">
-          {profile.avatarUrl ? (
-            <img src={profile.avatarUrl} alt={displayName} className="aurora-settings__user-avatar-img" />
-          ) : (
-            <span>{displayName.slice(0, 1).toUpperCase()}</span>
-          )}
-        </div>
+        <button
+          type="button"
+          className="aurora-settings__user-avatar-trigger"
+          data-picker-open={pickerOpen || undefined}
+          aria-haspopup="dialog"
+          aria-expanded={pickerOpen}
+          aria-label={U.uploadAvatar}
+          title={U.uploadAvatar}
+          onMouseDown={setAnchor}
+          onClick={togglePicker}
+        >
+          <UserAvatar
+            profile={profile}
+            size={64}
+            className="aurora-settings__user-avatar-lg"
+            label={displayName}
+          />
+          <span className="aurora-settings__user-avatar-badge" aria-hidden="true">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+              <circle cx="12" cy="13" r="4" />
+            </svg>
+          </span>
+        </button>
         <div className="aurora-settings__user-meta">
           <div className="aurora-settings__user-nickname">{displayName}</div>
           <div className="aurora-settings__user-sub">{subText}</div>
@@ -104,7 +120,7 @@ export function UserSection({ query, toast }: { query?: string; toast?: (msg: st
         </div>
       )}
 
-      {/* 头像 */}
+      {/* 头像：说明 + 两个入口（按钮与大头像等价，各自锚定自己） */}
       {match(U.avatar, U.avatarSearchDesc) && (
         <div className="aurora-settings__item">
           <div className="aurora-settings__item-info">
@@ -112,18 +128,18 @@ export function UserSection({ query, toast }: { query?: string; toast?: (msg: st
             <div className="aurora-settings__item-desc">{U.avatarDesc}</div>
           </div>
           <div className="aurora-settings__item-control">
-            <input
-              ref={fileRef}
-              type="file"
-              accept="image/*"
-              className="aurora-settings__file-hidden"
-              onChange={onPickFile}
-            />
-            <button type="button" className="aurora-settings__btn" onClick={() => fileRef.current?.click()}>
+            <button
+              type="button"
+              className="aurora-settings__btn"
+              aria-haspopup="dialog"
+              aria-expanded={pickerOpen}
+              onMouseDown={setAnchor}
+              onClick={togglePicker}
+            >
               {U.uploadAvatar}
             </button>
-            {profile.avatarUrl && (
-              <button type="button" className="aurora-settings__btn aurora-settings__btn--ghost" onClick={removeAvatar}>
+            {hasAvatar && (
+              <button type="button" className="aurora-settings__btn aurora-settings__btn--ghost" onClick={resetAvatar}>
                 {U.removeAvatar}
               </button>
             )}
@@ -148,6 +164,15 @@ export function UserSection({ query, toast }: { query?: string; toast?: (msg: st
           </div>
         </div>
       )}
+
+      <AvatarPicker
+        open={pickerOpen}
+        anchorRef={avatarAnchorRef}
+        onClose={() => setPickerOpen(false)}
+        profile={profile}
+        onChange={applyAvatar}
+        toast={toast}
+      />
     </div>
   )
 }

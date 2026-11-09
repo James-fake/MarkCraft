@@ -81,6 +81,11 @@ test.beforeAll(async () => {
     env,
   })
   win = await app.firstWindow()
+  // 首启独立引导是整屏的，会挡住侧栏/文件树断言 → 预置「已问过」标记后重载
+  await win.addInitScript(() => {
+    localStorage.setItem('markcraft.onboardingProfile.v1', '1')
+  })
+  await win.reload()
   await win.waitForFunction(
     () => {
       const root = document.getElementById('aurora-root')
@@ -184,6 +189,8 @@ test.describe('安装向导位置优先于历史 lastVault（用户报的 bug �
     win2 = await app2.firstWindow()
     await win2.addInitScript((stale: string) => {
       localStorage.setItem('markcraft.lastVault', stale)
+      // 首启独立引导是整屏的，会挡住主界面断言 → 预置「已问过」标记
+      localStorage.setItem('markcraft.onboardingProfile.v1', '1')
     }, staleDir)
     await win2.reload()
     await win2.waitForFunction(

@@ -279,6 +279,19 @@ export const electronPlatform: Platform = {
   // 真实文件系统（P3）
   fs: desktopFs,
   dialog: desktopDialog,
+  // S0 红线：Vault 根登记（主进程 fs IPC 白名单的动态部分）
+  vault: {
+    registerRoot(root) {
+      const a = api()
+      if (!a) return Promise.reject(new Error('vault 登记不可用'))
+      return a.vault.registerRoot(root)
+    },
+    unregisterRoot(root) {
+      const a = api()
+      if (!a) return Promise.reject(new Error('vault 注销不可用'))
+      return a.vault.unregisterRoot(root)
+    },
+  },
   // 主进程网络代理（P6）
   net: desktopNet,
   // Pandoc sidecar（P6.2）：委托 preload；不可用则如实返回 false / error

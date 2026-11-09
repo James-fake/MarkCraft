@@ -22,18 +22,22 @@ export async function migrateLocalStorageToStorage(): Promise<void> {
   if (localStorage.getItem(MIGRATION_KEY) === 'done') return
 
   const backend = await getStorageBackend()
+  // ⚠️ 有任一键搬迁失败就不置 done（2026-11-03 审查 P2）：此前失败也写标记，
+  //    后续启动不会再迁移，该键永久降级为 localStorage（5MB 上限）—— 大文件树会静默写失败。
+  let allOk = true
   for (const key of KEYS_TO_MIGRATE) {
     const value = localStorage.getItem(key)
     if (value) {
       try {
         await backend.setText(key, value)
       } catch (e) {
+        allOk = false
         console.error(`[migrate] 迁移 ${key} 失败:`, e)
       }
     }
   }
 
-  localStorage.setItem(MIGRATION_KEY, 'done')
+  if (allOk) localStorage.setItem(MIGRATION_KEY, 'done')
 }
 
 /** 优先从磁盘存储读取，降级到 localStorage（首次访问尚未迁移时） */

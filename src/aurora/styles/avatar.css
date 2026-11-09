@@ -1,0 +1,487 @@
+/* ============================================================
+ * 头像体系：统一渲染器 UserAvatar + 选择器 AvatarPicker
+ *
+ * 形态（照片 / 表情 / 首字母）与背景色由 Store 的派生工具决定，
+ * 这里只负责「圆形容器 + 居中 + 裁切」，不再在 4 处各写一份。
+ * 尺寸、背景、字色由组件内联样式给出（随资料实时变化），
+ * 既有 .aurora-sidebar__user-avatar / .aurora-settings__user-avatar-lg
+ * 仅保留 flex/收缩等布局语义。
+ * ========================================================== */
+
+.aurora-user-avatar {
+  position: relative;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-weight: 600;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.aurora-user-avatar__img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+}
+
+.aurora-user-avatar__glyph {
+  line-height: 1;
+  white-space: nowrap;
+  /* 系统 emoji / 拉丁字母的视觉重心略高于几何中心，微下移补偿 */
+  transform: translateY(-0.01em);
+}
+
+.aurora-user-avatar[data-avatar-kind='emoji'] .aurora-user-avatar__glyph {
+  font-weight: 400;
+}
+
+/* ============================================================
+ * AvatarPicker —— macOS「用户与群组」点头像弹出的锚定气泡浮层
+ *
+ * 不是模态框：经 portal 挂 body、position: fixed，由 useDropdownPosition
+ * 给出坐标（居中于锚点、下方放不下翻上方、夹进视口）。不锁 body 滚动。
+ * 入场动画只用 opacity + translateY —— 不用 scale，否则 useLayoutEffect
+ * 里测到的面板 rect 会被缩放，导致居中偏几像素。
+ * ========================================================== */
+
+.aurora-avatar-popover {
+  position: fixed;
+  z-index: 3200;
+  box-sizing: border-box;
+  width: 320px;
+  padding: 12px;
+  background: var(--mc-bg-elevated);
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-lg);
+  box-shadow: var(--mc-shadow-popover);
+  animation: aurora-avatar-popover-in var(--mc-dur-fast) var(--mc-ease-out) both;
+}
+
+/* 小箭头：x 由组件按「锚点中心 − 浮层 left」注入，翻转/夹取后仍指向头像 */
+.aurora-avatar-popover::before {
+  content: '';
+  position: absolute;
+  left: var(--mc-arrow-x, 50%);
+  width: 11px;
+  height: 11px;
+  margin-left: -6px;
+  background: var(--mc-bg-elevated);
+  border-left: 1px solid var(--mc-border-medium);
+  border-top: 1px solid var(--mc-border-medium);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.aurora-avatar-popover[data-placement='bottom']::before {
+  top: -7px;
+}
+
+.aurora-avatar-popover[data-placement='top']::before {
+  bottom: -7px;
+  transform: rotate(225deg);
+}
+
+@keyframes aurora-avatar-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* —— 顶部：当前头像 + 昵称 —— */
+.aurora-avatar-picker__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--mc-border-subtle);
+}
+
+.aurora-avatar-picker__head .aurora-user-avatar {
+  box-shadow: 0 0 0 1px var(--mc-border-medium);
+}
+
+.aurora-avatar-picker__head-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.aurora-avatar-picker__head-name {
+  font-size: var(--mc-font-md);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aurora-avatar-picker__head-hint {
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-secondary);
+}
+
+/* 轻量文字按钮：恢复首字母 / 移除照片 */
+.aurora-avatar-picker__reset {
+  padding: 2px 6px;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  background: transparent;
+  color: var(--mc-accent-text, var(--mc-accent));
+  font-family: inherit;
+  font-size: var(--mc-font-sm);
+  cursor: pointer;
+  transition: background-color var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-avatar-picker__reset:hover {
+  background: var(--mc-bg-hover);
+}
+
+.aurora-avatar-picker__reset:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--mc-bg-content), 0 0 0 3px var(--mc-accent);
+}
+
+/* —— 形态分段控件 —— */
+.aurora-avatar-picker__tabs {
+  display: flex;
+  gap: 2px;
+  margin: 10px 0;
+  padding: 3px;
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-md);
+  background: var(--mc-bg-window);
+}
+
+.aurora-avatar-picker__tab {
+  flex: 1;
+  height: 28px;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  background: transparent;
+  color: var(--mc-text-secondary);
+  font-family: inherit;
+  font-size: var(--mc-font-base);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background-color var(--mc-dur-fast) var(--mc-ease-out),
+    color var(--mc-dur-fast) var(--mc-ease-out),
+    box-shadow var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-avatar-picker__tab:hover {
+  color: var(--mc-text-primary);
+}
+
+.aurora-avatar-picker__tab.is-active {
+  background: var(--mc-bg-elevated);
+  color: var(--mc-text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.aurora-avatar-picker__tab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--mc-bg-content), 0 0 0 3px var(--mc-accent);
+}
+
+/* —— 面板 ——
+ * 两个 tab 固定同一高度：浮层总高不随切换变化，useDropdownPosition 首次
+ * 实测的坐标在切 tab 后依然成立（否则翻到上方时面板会越界）。 */
+.aurora-avatar-picker__panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 212px;
+}
+
+.aurora-avatar-picker__search {
+  box-sizing: border-box;
+  width: 100%;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-sm);
+  background: var(--mc-bg-window);
+  color: var(--mc-text-primary);
+  font-family: inherit;
+  font-size: var(--mc-font-base);
+  outline: none;
+  transition: border-color var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-avatar-picker__search::placeholder {
+  color: var(--mc-text-secondary);
+}
+
+.aurora-avatar-picker__search:focus {
+  border-color: var(--mc-accent);
+}
+
+/* 分组快捷筛选：横向一行，窄屏也不换行出双行 */
+.aurora-avatar-picker__groups {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.aurora-avatar-picker__groups::-webkit-scrollbar {
+  display: none;
+}
+
+.aurora-avatar-picker__group {
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: var(--mc-radius-pill);
+  background: var(--mc-bg-elevated);
+  color: var(--mc-text-secondary);
+  font-family: inherit;
+  font-size: var(--mc-font-sm);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color var(--mc-dur-fast) var(--mc-ease-out),
+    border-color var(--mc-dur-fast) var(--mc-ease-out),
+    color var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-avatar-picker__group:hover {
+  background: var(--mc-bg-hover);
+  color: var(--mc-text-primary);
+}
+
+.aurora-avatar-picker__group.is-active {
+  border-color: var(--mc-accent);
+  background: var(--mc-accent-bg);
+  color: var(--mc-text-primary);
+}
+
+.aurora-avatar-picker__group:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--mc-bg-content), 0 0 0 3px var(--mc-accent);
+}
+
+/* 表情网格：固定视窗内滚动，避免撑高整个浮层 */
+.aurora-avatar-picker__grid-wrap {
+  height: 148px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-md);
+  background: var(--mc-bg-window);
+  padding: 6px;
+}
+
+.aurora-avatar-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+}
+
+.aurora-avatar-picker__emoji {
+  box-sizing: border-box;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--mc-radius-sm);
+  background: transparent;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+  font-size: var(--mc-font-xl);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color var(--mc-dur-micro) var(--mc-ease-out),
+    transform var(--mc-dur-micro) var(--mc-ease-out),
+    border-color var(--mc-dur-micro) var(--mc-ease-out);
+}
+
+.aurora-avatar-picker__emoji:hover {
+  background: var(--mc-bg-hover);
+  transform: scale(1.12);
+}
+
+.aurora-avatar-picker__emoji.is-active {
+  border-color: var(--mc-accent);
+  background: var(--mc-accent-bg);
+}
+
+.aurora-avatar-picker__emoji:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--mc-bg-content), 0 0 0 3px var(--mc-accent);
+}
+
+.aurora-avatar-picker__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-sm);
+}
+
+/* —— 照片面板 —— */
+.aurora-avatar-picker__panel--photo {
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-sizing: border-box;
+  height: 220px;
+  padding: 10px 12px;
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-md);
+  background: var(--mc-bg-window);
+}
+
+.aurora-avatar-picker__photo-preview {
+  margin-bottom: 2px;
+}
+
+.aurora-avatar-picker__photo-title {
+  font-size: var(--mc-font-md);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+}
+
+.aurora-avatar-picker__photo-hint {
+  max-width: 300px;
+  text-align: center;
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-sm);
+  line-height: 1.5;
+}
+
+/* —— 背景搭配 —— */
+.aurora-avatar-picker__bg {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--mc-border-subtle);
+}
+
+.aurora-avatar-picker__bg-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.aurora-avatar-picker__bg-label {
+  font-size: var(--mc-font-base);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+}
+
+.aurora-avatar-picker__bg-hint {
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-sm);
+}
+
+.aurora-avatar-picker__swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.aurora-avatar-picker__swatch {
+  position: relative;
+  box-sizing: border-box;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 2px solid var(--mc-bg-content);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px var(--mc-border-medium);
+  cursor: pointer;
+  transition:
+    transform var(--mc-dur-fast) var(--mc-ease-spring),
+    box-shadow var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-avatar-picker__swatch:hover {
+  transform: scale(1.12);
+}
+
+.aurora-avatar-picker__swatch.is-active {
+  box-shadow: 0 0 0 2px var(--mc-bg-content), 0 0 0 4px var(--mc-accent);
+}
+
+.aurora-avatar-picker__swatch:focus-visible,
+.aurora-avatar-picker__swatch--custom:focus-within {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--mc-bg-content), 0 0 0 4px var(--mc-accent);
+}
+
+/* 取色器：input 透明铺满整个圆形，点哪儿都能唤起系统取色面板 */
+.aurora-avatar-picker__swatch--custom {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.aurora-avatar-picker__swatch--custom input[type='color'] {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: none;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.aurora-avatar-picker__swatch-plus {
+  position: relative;
+  pointer-events: none;
+  color: var(--mc-text-inverse);
+  font-size: var(--mc-font-md);
+  font-weight: 600;
+  line-height: 1;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.aurora-avatar-picker__bg-note {
+  display: block;
+  margin-top: 10px;
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-sm);
+  line-height: 1.5;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-avatar-popover {
+    animation: none;
+  }
+
+  .aurora-avatar-picker__emoji,
+  .aurora-avatar-picker__swatch,
+  .aurora-avatar-picker__tab,
+  .aurora-avatar-picker__group {
+    transition: none;
+  }
+
+  .aurora-avatar-picker__emoji:hover,
+  .aurora-avatar-picker__swatch:hover {
+    transform: none;
+  }
+}

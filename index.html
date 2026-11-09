@@ -6,7 +6,7 @@
     <link rel="icon" type="image/svg+xml" href="./icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <!-- E2 PWA：主题色与 iOS 独立窗口支持（manifest / SW 注册由 vite-plugin-pwa 自动注入） -->
-    <meta name="theme-color" content="#2563eb" />
+    <meta name="theme-color" content="#0A0B0F" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -14,11 +14,30 @@
     <link rel="apple-touch-icon" href="./icon.svg" />
     <title>MarkCraft</title>
     <script>
-      // 在CSS渲染前同步设置主题，避免闪烁
+      // 在CSS渲染前同步设置主题，避免闪烁。
+      // 读取真实设置键 markcraft_settings（应用实际写入处）；'system' 按系统配色解析，
+      // 否则首屏会先以默认深色渲染、再被 React 切到浅色，造成一次可见闪动。
       (function() {
         try {
-          var t = localStorage.getItem('app-theme-preference');
-          if (t) document.documentElement.setAttribute('data-theme', t);
+          var theme = 'system';
+          try {
+            var raw = localStorage.getItem('markcraft_settings');
+            if (raw) {
+              var parsed = JSON.parse(raw);
+              if (parsed && typeof parsed.theme === 'string') theme = parsed.theme;
+            }
+          } catch (e) {}
+          var resolved = 'dark';
+          if (theme === 'light') resolved = 'light';
+          else if (theme === 'system') {
+            var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            resolved = dark ? 'dark' : 'light';
+          }
+          document.documentElement.setAttribute('data-theme', resolved);
+          // theme-color 随解析主题切换（浅色用 #ffffff，与 base.css 浅色 --app-bg 对齐），
+          // 避免硬编码深色导致浅色主题下浏览器工具栏/地址栏仍渲染成深色。
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute('content', resolved === 'light' ? '#ffffff' : '#0A0B0F');
         } catch(e) {}
       })();
     </script>
@@ -101,10 +120,11 @@
         86%  { opacity: 1; transform: translateX(0.08em) scale(1.08) rotate(0deg); }
         100% { opacity: 1; transform: translateX(0) scale(1) rotate(0deg); }
       }
-      /* 离场：字随底色一起「溶解」并微微放大 —— 比单纯淡出更有收束感。
+      /* 离场：字随底色一起「溶解」（仅淡出 + 极轻模糊），**不做缩放**——
+         原 scale(1.045) 会在尾端让 MarkCraft 突然变大一点，产生「闪一下」的观感，故移除。
          ⚠️ 必须带上 translateX(0.61em)：否则离场瞬间字会跳回居中（与 --shifted 冲突）。 */
       #mc-splash.mc-splash--leaving .mc-splash__word {
-        transform: translateX(0.61em) scale(1.045);
+        transform: translateX(0.61em);
         filter: blur(0.05em);
         opacity: 0;
       }
@@ -224,12 +244,36 @@
         // 不额外发请求，避免闪一下空位。动画由 CSS 驱动：从左侧飞入 → 撞到 M → 停驻左侧。
         var icon = document.createElement('span');
         icon.className = 'mc-splash__icon';
+        // 与 build/icon.svg / BrandLogo.tsx 同源（B·折角便签，品牌色 #7C8CFF）。
+        // 独立渐变 ID（mcSplash*）避免与 React 挂载的 BrandLogo 渐变 ID 冲突。
         icon.innerHTML =
           '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">' +
-          '<rect width="512" height="512" rx="96" fill="#2563eb"/>' +
-          '<rect x="120" y="88" width="272" height="336" rx="24" fill="#ffffff"/>' +
-          '<path d="M176 336 L176 192 L216 192 L256 264 L296 192 L336 192 L336 336 L304 336 L304 248 L256 326 L208 248 L208 336 Z" fill="#2563eb"/>' +
-          '<rect x="168" y="372" width="176" height="16" rx="8" fill="#2563eb" opacity="0.25"/>' +
+          '<defs>' +
+          '<linearGradient id="mcSplashBg" x1="0" y1="0" x2="0" y2="1">' +
+          '<stop offset="0" stop-color="#9AA7FF"/><stop offset="0.5" stop-color="#7C8CFF"/><stop offset="1" stop-color="#5E6BD6"/>' +
+          '</linearGradient>' +
+          '<linearGradient id="mcSplashSheen" x1="0" y1="0" x2="0" y2="1">' +
+          '<stop offset="0" stop-color="#ffffff" stop-opacity="0.45"/><stop offset="0.5" stop-color="#ffffff" stop-opacity="0.06"/><stop offset="1" stop-color="#ffffff" stop-opacity="0"/>' +
+          '</linearGradient>' +
+          '<linearGradient id="mcSplashPaper" x1="0" y1="0" x2="0" y2="1">' +
+          '<stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#EEF1FB"/>' +
+          '</linearGradient>' +
+          '<filter id="mcSplashNoteShadow" x="-30%" y="-30%" width="160%" height="160%">' +
+          '<feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#1a1f4a" flood-opacity="0.35"/>' +
+          '</filter>' +
+          '</defs>' +
+          '<rect x="8" y="8" width="496" height="496" rx="124" fill="url(#mcSplashBg)"/>' +
+          '<rect x="8" y="8" width="496" height="496" rx="124" fill="url(#mcSplashSheen)"/>' +
+          '<g transform="rotate(-5 256 256)" filter="url(#mcSplashNoteShadow)">' +
+          '<path d="M96 96 L372 96 L416 140 L416 416 L96 416 Z" fill="url(#mcSplashPaper)"/>' +
+          '<path d="M372 96 L416 140 L416 96 Z" fill="#E2E6F5"/>' +
+          '<path d="M372 96 L416 140" fill="none" stroke="#C7CCE8" stroke-width="3" stroke-linecap="round"/>' +
+          '<path d="M176 336 L176 192 L216 192 L256 264 L296 192 L336 192 L336 336 L304 336 L304 248 L256 326 L208 248 L208 336 Z" fill="#7C8CFF"/>' +
+          '<g stroke="#7C8CFF" stroke-width="9" stroke-linecap="round" opacity="0.2">' +
+          '<line x1="150" y1="362" x2="362" y2="362"/><line x1="150" y1="388" x2="362" y2="388"/><line x1="150" y1="412" x2="318" y2="412"/>' +
+          '</g>' +
+          '</g>' +
+          '<rect x="8" y="8" width="496" height="496" rx="124" fill="none" stroke="#ffffff" stroke-opacity="0.25" stroke-width="3"/>' +
           '</svg>';
         w.appendChild(icon);
         el.appendChild(w);

@@ -27,7 +27,7 @@
     },
     {
       "path": "src/aurora/**/*.{ts,tsx}",
-      "rule": "UI 设计基线（强制，详见 docs/MarkCraft-Desktop-Native-Baseline.md §18）：色值一律走 --mc-* token，禁止新增硬编码 hex，禁止紫粉渐变；圆角仅 --mc-radius-sm/md/lg/pill，禁止裸 px 圆角；字号仅 --mc-font-*，禁止裸 font-size；动效仅 transform/opacity、< 300ms、ease-out，且须在 prefers-reduced-motion 下仍可理解；危险操作（删除等）右置 + 分隔，不平铺；可点元素接真实行为，不可点去指针；弹层统一走 Modal，遮罩无 blur；图标须有 label，保证键盘可达与合理焦点序。",
+      "rule": "UI 设计基线（强制，详见 docs/MarkCraft-Desktop-Native-Baseline.md §18）：色值一律走 --mc-* token，禁止新增硬编码 hex，禁止紫粉渐变；圆角仅 --mc-radius-sm/md/lg/pill，禁止裸 px 圆角；字号仅 --mc-font-*，禁止裸 font-size；动效仅 transform/opacity、< 300ms、ease-out，且须在 prefers-reduced-motion 下仍可理解；危险操作（删除等）右置 + 分隔，不平铺；可点元素接真实行为，不可点去指针；弹层统一走 Modal，遮罩无 blur；图标须有 label，保证键盘可达与合理焦点序。【显式豁免（2026-11-08 经产品决策拍板）】以下为需求驱动的规范偏离 + 显式豁免登记，非缺陷修复，亦不放宽整体纪律：① 锚定气泡浮层——当前唯一实例 src/aurora/components/AvatarPicker.tsx，形如 macOS「用户与群组」点头像从下方展开、点选即时生效——属非模态浮层，允许 createPortal + position:fixed + 复用 useDropdownPosition，不要求走 Modal、不要求锁定 body 滚动；但必须满足边界：有指向锚点的箭头，点外部 / Esc / 滚动 / resize 收起，焦点移入浮层且关闭后归还触发元素，ARIA tabs 语义（role / aria-controls / tabpanel / 方向键）完整，prefers-reduced-motion 下动效降级。② 用户头像个性化配色——src/aurora/components/avatarBgPresets.ts 的 9 组渐变背景与 AvatarPicker 取色器默认值，是运行时写入 profile.avatarBg、由用户自由搭配的个性化数据，性质上不属于 UI chrome 色值，不受「禁止硬编码 hex / 禁紫粉」约束；但 UI chrome 其余部分仍严格走 --mc-* token。③ 模态对话框依旧一律走 Modal，本豁免不改变该纪律。",
       "merge_system_rule": false
     },
     {

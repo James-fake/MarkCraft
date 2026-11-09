@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { render, fireEvent, cleanup, within } from '@testing-library/react'
 import { RealProviders } from '../../providers/RealProviders'
+import { resetUserProfile, updateUserProfile } from '@stores/UserProfileStore'
 import { resolveAuroraNav } from '../aurora-nav'
 import { WelcomePanel } from './WelcomePanel'
 
@@ -22,6 +23,9 @@ function renderWelcome(nav = vi.fn()) {
 }
 
 beforeEach(() => {
+  // ⚠️ UserProfileStore 是模块单例，内存态不会随 localStorage.clear() 复位 ——
+  //    必须显式 reset，否则前一个用例填的昵称会漏进下一个用例。
+  resetUserProfile()
   localStorage.clear()
 })
 
@@ -101,5 +105,28 @@ describe('Aurora WelcomePanel · L1 Launchpad v2', () => {
     const { panel } = renderWelcome()
     const scope = within(panel)
     expect(() => fireEvent.click(scope.getByText('搜索'))).not.toThrow()
+  })
+})
+
+describe('Aurora WelcomePanel · 首启引导', () => {
+  it('首启问候不谈「第 1 天」，改用示例笔记提示（新用户看到数字是负反馈）', () => {
+    const { panel } = renderWelcome()
+    const usage = panel.querySelector('.aurora-welcome__usage')
+    expect(usage?.textContent).toContain('示例笔记')
+    expect(usage?.textContent).not.toContain('第 1 天')
+  })
+})
+
+describe('Aurora WelcomePanel · 生日问候', () => {
+  it('生日当天：问候换成「生日快乐」并附一句提示（档案卡承诺的兑现点）', () => {
+    const d = new Date()
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const dd = String(d.getDate()).padStart(2, '0')
+    updateUserProfile({ nickname: '小明', birthday: `1990-${mm}-${dd}` })
+
+    const { panel } = renderWelcome()
+    expect(panel.querySelector('.aurora-welcome__hello')?.textContent).toContain('生日快乐')
+    expect(panel.querySelector('.aurora-welcome__hello')?.textContent).toContain('小明')
+    expect(panel.textContent).toContain('今天这一篇')
   })
 })

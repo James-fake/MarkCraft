@@ -27,6 +27,63 @@ export interface SearchFilters {
   /** 时间过滤：结束时间戳（0 = 不限） */
   endTime?: number
 }
+/**
+ * 由 SearchFilters 构建「可搜索文件 id 集合」（路径子树 + 标签）。
+ *
+ * ⚠️ 抽成共用函数的原因（2026-11-03 审查 P1）：search() 与 replaceAll() 各自实现过滤时，
+ * replaceAll 漏掉了这两个集合 —— 用户按文件夹过滤后执行「全部替换」，会把已过滤掉的
+ * 文件也改掉（越界写用户数据）。
+ */
+function buildFilterSets(
+  rootFolder: FileNode,
+  filters: SearchFilters | undefined,
+): { pathFilteredIds: Set<string> | null; tagFilteredIds: Set<string> | null } {
+  // P1.2: 路径过滤 —— 收集所选文件夹子树下所有文件/文件夹 ID
+  let pathFilteredIds: Set<string> | null = null
+  if (filters?.folderIds && filters.folderIds.length > 0) {
+    pathFilteredIds = new Set<string>(filters.folderIds)
+    const collectSubtree = (node: FileNode) => {
+      pathFilteredIds!.add(node.id)
+      if (node.children) for (const c of node.children) collectSubtree(c)
+    }
+    const walkCollect = (node: FileNode) => {
+      if (filters!.folderIds!.includes(node.id)) {
+        collectSubtree(node)
+      }
+      if (node.children) for (const c of node.children) walkCollect(c)
+    }
+    walkCollect(rootFolder)
+  }
+
+  let tagFilteredIds: Set<string> | null = null
+  if (filters?.tags && filters.tags.length > 0) {
+    // 提取所有文件的标签，收集命中任一过滤标签的文件 ID
+    tagFilteredIds = new Set<string>()
+    const walk = (node: FileNode) => {
+      if (node.type === 'file' && node.content) {
+        const content = node.content
+        const fileTags = new Set<string>()
+        // 简单提取 #tag 语法（与 tagExtractor 保持一致，首字符需为字母或中文）
+        const tagRegex = /(?:^|\s)#([a-zA-Z\u4e00-\u9fa5][a-zA-Z0-9_\u4e00-\u9fa5/-]*)/g
+        let m: RegExpExecArray | null
+        while ((m = tagRegex.exec(content)) !== null) {
+          fileTags.add(m[1])
+        }
+        for (const ft of fileTags) {
+          if (filters.tags!.some(t => ft === t || ft.startsWith(t + '/'))) {
+            tagFilteredIds!.add(node.id)
+            break
+          }
+        }
+      }
+      if (node.children) for (const c of node.children) walk(c)
+    }
+    walk(rootFolder)
+  }
+
+  return { pathFilteredIds, tagFilteredIds }
+}
+
 
 const MAX_RESULTS_PER_FILE = 20
 const MAX_TOTAL_RESULTS = 200
@@ -186,48 +243,7 @@ export function useGlobalSearch() {
     // P1.2: 构建标签 -> fileId Set 的过滤集（若启用了标签过滤）
     const filters = options.filters
 
-    // P1.2: 路径过滤 —— 收集所选文件夹子树下所有文件/文件夹 ID
-    let pathFilteredIds: Set<string> | null = null
-    if (filters?.folderIds && filters.folderIds.length > 0) {
-      pathFilteredIds = new Set<string>(filters.folderIds)
-      const collectSubtree = (node: FileNode) => {
-        pathFilteredIds!.add(node.id)
-        if (node.children) for (const c of node.children) collectSubtree(c)
-      }
-      const walkCollect = (node: FileNode) => {
-        if (filters!.folderIds!.includes(node.id)) {
-          collectSubtree(node)
-        }
-        if (node.children) for (const c of node.children) walkCollect(c)
-      }
-      walkCollect(rootFolder)
-    }
-
-    let tagFilteredIds: Set<string> | null = null
-    if (filters?.tags && filters.tags.length > 0) {
-      // 提取所有文件的标签，收集命中任一过滤标签的文件 ID
-      tagFilteredIds = new Set<string>()
-      const walk = (node: FileNode) => {
-        if (node.type === 'file' && node.content) {
-          const content = node.content
-          const fileTags = new Set<string>()
-          // 简单提取 #tag 语法（与 tagExtractor 保持一致，首字符需为字母或中文）
-          const tagRegex = /(?:^|\s)#([a-zA-Z\u4e00-\u9fa5][a-zA-Z0-9_\u4e00-\u9fa5/-]*)/g
-          let m: RegExpExecArray | null
-          while ((m = tagRegex.exec(content)) !== null) {
-            fileTags.add(m[1])
-          }
-          for (const ft of fileTags) {
-            if (filters.tags!.some(t => ft === t || ft.startsWith(t + '/'))) {
-              tagFilteredIds!.add(node.id)
-              break
-            }
-          }
-        }
-        if (node.children) for (const c of node.children) walk(c)
-      }
-      walk(rootFolder)
-    }
+    const { pathFilteredIds, tagFilteredIds } = buildFilterSets(rootFolder, filters)
 
     const results: GlobalSearchResult[] = []
 
@@ -408,12 +424,21 @@ export function useGlobalSearch() {
     }
 
     const filters = options.filters
+    // 过滤必须与 search() 完全一致（2026-11-03 审查 P1）：原实现只处理时间过滤，
+    // 用户按文件夹/标签过滤后点「全部替换」会把过滤掉的文件一起改掉 —— 越界写用户数据。
+    const { pathFilteredIds, tagFilteredIds } = buildFilterSets(rootFolder, filters)
     const modified: { fileId: string; newContent: string; matchCount: number }[] = []
     // 复用同一份正则（match/replace 会自动归零 lastIndex），避免每个文件各编译两次（审查 M5）
     const replaceRegex = new RegExp(searchRegex.source, searchRegex.flags)
+    // 替换串里的 `$&`/`$1` 会被 String.replace 解释成模式引用（2026-11-03 审查 P1）：
+    // 字面模式（非 regex）下用户输入「价格 $& 元」会被替换成匹配文本 —— 必须转义。
+    // regex 模式保留 `$1` 语义（用户显式用正则时的合理预期）。
+    const literalReplacement = options.regex ? replacement : replacement.replace(/\$/g, '$$$$')
 
     function walk(node: FileNode) {
       if (node.type === 'file' && node.content) {
+        if (pathFilteredIds && !pathFilteredIds.has(node.id)) return
+        if (tagFilteredIds && !tagFilteredIds.has(node.id)) return
         if (node.content.length > MAX_FILE_SIZE_FOR_SEARCH) return
         if (filters?.startTime && node.updatedAt < filters.startTime) return
         if (filters?.endTime && node.updatedAt > filters.endTime) return
@@ -422,7 +447,7 @@ export function useGlobalSearch() {
         const matches = content.match(replaceRegex)
         if (matches && matches.length > 0) {
           replaceRegex.lastIndex = 0
-          const newContent = content.replace(replaceRegex, replacement)
+          const newContent = content.replace(replaceRegex, literalReplacement)
           if (newContent !== content) {
             modified.push({ fileId: node.id, newContent, matchCount: matches.length })
           }

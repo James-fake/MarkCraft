@@ -1,0 +1,409 @@
+/* ============================================================
+ * Aurora · Onboarding（首启独立引导界面）
+ * Apple Setup Assistant 范式：内容直接排在窗口背景上，不套卡片框；
+ * 两团极淡的强调色径向光把舞台从「表单页」拉回「开场仪式」。
+ * 8pt 网格 / 三层文字色 / 发丝分隔 / 唯一 accent 收口（§18 基线）。
+ * ========================================================== */
+
+.aurora-onboarding {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background:
+    radial-gradient(560px 340px at 50% -80px, color-mix(in srgb, var(--mc-accent) 10%, transparent), transparent 72%),
+    radial-gradient(760px 480px at 50% calc(100% + 120px), color-mix(in srgb, var(--mc-accent) 7%, transparent), transparent 70%),
+    var(--mc-bg-app);
+}
+
+.aurora-onboarding *,
+.aurora-onboarding *::before,
+.aurora-onboarding *::after {
+  box-sizing: border-box;
+}
+
+/* —— 舞台：垂直水平居中 —— */
+.aurora-onboarding__stage {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 40px 48px;
+  overflow-y: auto;
+}
+
+/* 步进入场：上浮 + 淡入（Reduce Motion 时关闭，HIG Rule 11.3） */
+@keyframes aurora-onboarding-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.aurora-onboarding__inner {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: aurora-onboarding-rise var(--mc-dur-base) var(--mc-ease-spring);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora-onboarding__inner {
+    animation: none;
+  }
+}
+
+/* —— 进度：四枚圆点（欢迎 / 档案 / 隐私 / 体验改善计划）—— */
+.aurora-onboarding__dots {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 44px;
+}
+
+.aurora-onboarding__dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mc-border-strong);
+  transition:
+    background var(--mc-dur-base) var(--mc-ease-out),
+    transform var(--mc-dur-base) var(--mc-ease-out);
+}
+
+.aurora-onboarding__dots span.is-active {
+  background: var(--mc-accent);
+  transform: scale(1.15);
+}
+
+/* —— 品牌图标：统一引用 BrandLogo（与 EXE 图标同源），此处仅占位尺寸 —— */
+.aurora-onboarding__brand {
+  width: 76px;
+  height: 76px;
+  margin-bottom: 30px;
+}
+
+/* —— 文字层级：primary / secondary / tertiary 三层 —— */
+.aurora-onboarding__title {
+  margin: 0;
+  font-size: var(--mc-font-hero);
+  font-weight: 650;
+  letter-spacing: -0.022em;
+  line-height: 1.15;
+  text-align: center;
+  color: var(--mc-text-primary);
+}
+
+.aurora-onboarding__title--sm {
+  font-size: var(--mc-font-2xl);
+}
+
+.aurora-onboarding__subtitle {
+  margin: 14px 0 0;
+  max-width: 470px;
+  font-size: var(--mc-font-md);
+  line-height: 1.7;
+  text-align: center;
+  color: var(--mc-text-secondary);
+}
+
+/* —— 三个要点：图标小方块 + 文字，整组居中 —— */
+.aurora-onboarding__points {
+  margin: 34px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.aurora-onboarding__points li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: var(--mc-font-base);
+  color: var(--mc-text-secondary);
+}
+
+.aurora-onboarding__point-icon {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: var(--mc-radius-md);
+  background: var(--mc-accent-soft);
+  color: var(--mc-accent-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* —— 表单：380px 居中，label 13 / 输入框 42 —— */
+.aurora-onboarding__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  width: 100%;
+  max-width: 380px;
+  margin-top: 34px;
+}
+
+.aurora-onboarding__field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+}
+
+.aurora-onboarding__label {
+  font-size: var(--mc-font-base);
+  font-weight: 500;
+  color: var(--mc-text-secondary);
+}
+
+.aurora-onboarding__optional {
+  margin-left: 6px;
+  font-weight: 400;
+  font-size: var(--mc-font-xs);
+  color: var(--mc-text-tertiary);
+}
+
+.aurora-onboarding__input,
+.aurora-onboarding__date {
+  width: 100%;
+  height: 42px;
+  padding: 0 13px;
+  border: 1px solid var(--mc-border-medium);
+  border-radius: var(--mc-radius-md);
+  background: var(--mc-bg-content);
+  color: var(--mc-text-primary);
+  font-size: var(--mc-font-md);
+  font-family: inherit;
+  outline: none;
+  transition:
+    border-color var(--mc-dur-fast) var(--mc-ease-out),
+    box-shadow var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-onboarding__input::placeholder {
+  color: var(--mc-text-tertiary);
+}
+
+.aurora-onboarding__input:focus {
+  border-color: var(--mc-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--mc-accent) 22%, transparent);
+}
+
+.aurora-onboarding__birthday {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.aurora-onboarding__zodiac {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: var(--mc-radius-pill);
+  background: var(--mc-accent-soft);
+  color: var(--mc-accent-text);
+  font-size: var(--mc-font-xs);
+  white-space: nowrap;
+}
+
+.aurora-onboarding__hint {
+  font-size: var(--mc-font-xs);
+  line-height: 1.5;
+  color: var(--mc-text-tertiary);
+}
+
+/* 头像行：圆圈在左、说明在右 —— 与上方字段的纵向节奏区分开 */
+.aurora-onboarding__field--avatar {
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+}
+
+.aurora-onboarding__avatar {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+  padding: 0;
+  border: 1px dashed var(--mc-border-strong);
+  border-radius: 50%;
+  background: var(--mc-bg-content);
+  color: var(--mc-text-secondary);
+  font-size: var(--mc-font-md);
+  cursor: pointer;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    border-color var(--mc-dur-fast) var(--mc-ease-out),
+    color var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-onboarding__avatar:hover,
+.aurora-onboarding__avatar[data-picker-open] {
+  border-color: var(--mc-accent);
+  color: var(--mc-accent-text);
+}
+
+.aurora-onboarding__avatar[data-picker-open] {
+  box-shadow: 0 0 0 3px var(--mc-accent-bg);
+}
+
+.aurora-onboarding__avatar-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+/* —— 动作区 —— */
+.aurora-onboarding__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: 380px;
+  margin-top: 34px;
+}
+
+.aurora-onboarding__primary {
+  height: 38px;
+  padding: 0 22px;
+  border: 1px solid var(--mc-accent);
+  border-radius: var(--mc-radius-md);
+  background: var(--mc-accent);
+  color: var(--mc-text-inverse);
+  font-size: var(--mc-font-base);
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-onboarding__primary:hover {
+  background: var(--mc-accent-hover);
+  border-color: var(--mc-accent-hover);
+}
+
+.aurora-onboarding__primary:active {
+  background: var(--mc-accent-pressed);
+  border-color: var(--mc-accent-pressed);
+}
+
+.aurora-onboarding__primary--center {
+  align-self: center;
+  margin-top: 38px;
+}
+
+.aurora-onboarding__ghost {
+  height: 38px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--mc-radius-sm);
+  background: transparent;
+  color: var(--mc-text-tertiary);
+  font-size: var(--mc-font-sm);
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    color var(--mc-dur-fast) var(--mc-ease-out),
+    background var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-onboarding__ghost:hover {
+  background: var(--mc-bg-hover);
+  color: var(--mc-text-primary);
+}
+
+/* 语言切换：发丝边框的低调文本按钮 */
+.aurora-onboarding__lang {
+  position: absolute;
+  top: 16px;
+  right: 22px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-sm);
+  background: transparent;
+  color: var(--mc-text-tertiary);
+  font-size: var(--mc-font-xs);
+  font-family: inherit;
+  cursor: pointer;
+  transition:
+    color var(--mc-dur-fast) var(--mc-ease-out),
+    border-color var(--mc-dur-fast) var(--mc-ease-out);
+}
+
+.aurora-onboarding__lang:hover {
+  color: var(--mc-text-primary);
+  border-color: var(--mc-border-strong);
+}
+
+/* 键盘可达：所有可点元素给出焦点环（HIG Rule 11.2） */
+.aurora-onboarding__primary:focus-visible,
+.aurora-onboarding__ghost:focus-visible,
+.aurora-onboarding__lang:focus-visible,
+.aurora-onboarding__avatar:focus-visible {
+  outline: 2px solid var(--mc-accent);
+  outline-offset: 2px;
+}
+
+/* —— 隐私政策独立页：可滚动面板，发丝边框收口（§18 基线） —— */
+.aurora-onboarding__privacy {
+  width: 100%;
+  max-width: 560px;
+  max-height: 42vh;
+  margin-top: 26px;
+  padding: 18px 22px;
+  border: 1px solid var(--mc-border-subtle);
+  border-radius: var(--mc-radius-lg);
+  background: var(--mc-bg-content);
+  overflow-y: auto;
+}
+
+/* 勾选确认：与动作区同宽，左对齐 */
+.aurora-onboarding__ack {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  max-width: 560px;
+  margin-top: 18px;
+  font-size: var(--mc-font-sm);
+  color: var(--mc-text-secondary);
+  cursor: pointer;
+  user-select: none;
+}
+
+.aurora-onboarding__ack input {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: var(--mc-accent);
+  cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  .aurora-onboarding__stage {
+    padding: 24px;
+  }
+
+  .aurora-onboarding__title {
+    font-size: var(--mc-font-2xl);
+  }
+
+  .aurora-onboarding__title--sm {
+    font-size: var(--mc-font-xl);
+  }
+}

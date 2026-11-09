@@ -50,6 +50,7 @@
 2. **导航走侧栏**：主导航在左侧栏 `--mc-sidebar-w`(200) / 收起 `--mc-sidebar-collapsed-w`(60)，可折叠、状态持久化。禁止汉堡菜单、禁止底部 iOS 式 tab bar。
 3. **动作进工具栏 / subbar**：主创建动作固定在页面头部操作区或详情页 subbar 右侧（对齐 KbPanel 详情页语法）。**禁止把主动作埋进需滚动才见的卡片末尾**（A1 已落实）。
 4. **弹层走统一 Modal**：所有对话框走 `src/aurora/components/ui/Modal.tsx`，禁止各面板手搓 `createPortal` 模态（P1.5 已落实）。
+   - **§3.4 例外 · 锚定气泡浮层（2026-11-08 经产品决策拍板）**：此为**需求驱动的规范偏离 + 显式豁免**，非缺陷修复，也不放宽整体纪律。macOS「用户与群组」式的**非模态锚定气泡浮层**（点头像从下方展开、点选即时生效、点外部 / Esc 收起；当前唯一实例 `src/aurora/components/AvatarPicker.tsx`，`createPortal` + `position:fixed` + 复用 `useDropdownPosition`）**不适用本条 Modal 条款**：允许不锁 body 滚动、不走 Modal。适用边界（必须全满足）：① 有指向锚点的箭头；② 点外部 / Esc / 滚动 / resize 收起；③ 打开时焦点移入浮层、关闭后归还触发元素（`anchorRef`）；④ ARIA tabs 语义完整（`role` / `aria-controls` / `tabpanel` / 方向键导航）；⑤ `prefers-reduced-motion` 下动效降级。**模态对话框仍一律走 Modal**，本例外不改动该纪律；本次属 §14「改基线走评审」所要求的**显式拍板豁免**，非普通 UI PR 顺手改。
 5. **弹层遮罩零玻璃**：Modal 遮罩用 `rgba(0,0,0,.5)` scrim + 淡入，**禁止 backdrop-filter blur**（① 已落实）。侧栏/弹层/popover 的材质 blur 是桌面原生，保留（`.material-sidebar/.material-popover/.material-hud`）。
 6. **多窗口 / 可缩放**：桌面端预期可多窗口、自由缩放、记住窗口状态（路线图战略：项目向桌面端软件转型）。
 
@@ -61,6 +62,7 @@
 - 所有色值**必须**引用 `tokens.css` 的 `--mc-*`，**禁止硬编码 hex**（含 rgba 必须用 `--mc-*-soft` 等语义变量）。
 - **禁止引用未定义的 token**（fallback 永远生效 = 等于硬编码，P0.3 根因）。
 - 色板层级：背景 7 级 `--mc-bg-*` / 文本 5 级 `--mc-text-*` / 图标 4 级 `--mc-icon-*` / 边框 4 级 `--mc-border-*` / 语义色 success/warning/danger/info 各含 `-soft`/`-text`。
+- **显式豁免（2026-11-08 经产品决策拍板）**：用户头像个性化配色（`src/aurora/components/avatarBgPresets.ts` 的 9 组渐变背景、`AvatarPicker` 取色器默认值）是运行时写入 `profile.avatarBg`、由用户自由搭配的**个性化数据**，性质上不属于 UI chrome 色值，登记豁免，不受本条「禁止硬编码 hex」及 §4.3「禁紫粉」约束；UI chrome 其余部分仍严格走 `--mc-*` token。此为需求驱动的规范偏离 + 显式豁免，非缺陷修复。
 
 ### 4.2 品牌 accent —— **保留，不禁用**
 - `--mc-accent: #7C8CFF` 是刻意保留的品牌主色，用于选择/强调/激活/链接/聚焦光晕。
@@ -189,7 +191,7 @@
 | ❌ 占位/假按钮（toast 摆设、假 affordance KPI） | A3/A6 已清 |
 | ❌ `transition: all` / `scale(0)` 入场 / `ease-in` on UI / 时长 >300ms | emil 动效纪律；§7 |
 | ❌ 动画键盘高频动作（100+/天） | §7.1 |
-| ❌ 各面板手搓 `createPortal` 模态 | 走统一 Modal；P1.5 已落实 |
+| ❌ 各面板手搓 `createPortal` 模态 | 走统一 Modal；P1.5 已落实。**例外仅限非模态锚定气泡浮层**（见 §3.4 例外，2026-11-08 经产品决策拍板）；模态对话框仍一律禁止手搓 |
 | ❌ 大留白 / 卡片化 Web 堆砌风 | 高密度桌面原生；反对 |
 
 ---
@@ -210,7 +212,7 @@
 | 8 | 无假 affordance | 可点元素接真实行为；不可点去指针 |
 | 9 | 单主入口 | 同语义动作无多入口分散 |
 | 10 | 无 FAB/占位 | 主动作在工具栏/subbar；无 toast 摆设按钮 |
-| 11 | 弹层统一 | 对话框走 `Modal`；遮罩无 blur |
+| 11 | 弹层统一 | 对话框走 `Modal`、遮罩无 blur；非模态锚定气泡浮层见 §3.4 例外（2026-11-08 经产品决策拍板），不走 Modal |
 | 12 | 交互桌面化 | 键盘可达 + 右键菜单 + hover + 拖拽（按需） |
 | 13 | 可达性 | 图标有 label；对比度达标；焦点序合理 |
 | 14 | 反模式扫描 | 过 §11 硬禁令清单，零命中 |
@@ -227,6 +229,7 @@
 | D4 | 分类色单来源 | §4.3 |
 | A（按钮位置编排） | 主创建进头部、危险分隔、去假 affordance、单入口、浮动面板停靠、去占位 | §3.3 §8.2 §8.3 §8.4 §8.5 §8.6 |
 | B + markdown 去紫 | canvas/daily/图谱/markdown 分类色去紫味 | §4.2 §4.3 §11 |
+| 2026-11-08 豁免拍板 | 头像选择器锚定气泡浮层 + 用户头像个性化配色：需求驱动规范偏离的显式豁免 | §3.4 例外 §4.1 §11 §12 |
 
 ---
 

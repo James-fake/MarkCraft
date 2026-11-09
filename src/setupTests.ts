@@ -2,6 +2,20 @@ import '@testing-library/jest-dom/vitest'
 import { beforeEach } from 'vitest'
 import { resetStorageBackendForTests } from '@core/storage/backend'
 
+// 测试环境锁定系统语言为 zh-CN：
+// 旧版 LanguageStore 默认硬编码 'zh'；改为「首次运行跟随系统语言」后，jsdom 默认
+// navigator.language 为 'en-US'，会让大量断言中文文案的用例在测试环境里渲染成英文而失败。
+// 这里把测试环境的「系统语言」固定为 zh-CN，等价于「中文系统」，既还原旧默认行为、
+// 又覆盖「跟随系统→中文」这条路径；显式 setItem('markcraft-language','en') 的用例不受影响。
+try {
+  Object.defineProperty(navigator, 'language', { value: 'zh-CN', configurable: true })
+} catch (err) {
+  // 某些 jsdom 版本 language 不可覆写：不阻断测试，但必须留痕——否则将来 i18n 断言回归时无线索。
+  console.warn('[setupTests] 无法覆写 navigator.language，部分中文文案断言可能受影响', err)
+}
+
+
+
 /**
  * 存储层隔离（每个用例一份干净内存后端）。
  *

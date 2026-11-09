@@ -1,5 +1,5 @@
 import React from 'react'
-import { Icon } from '../../icons'
+import { BrandLogo } from '../BrandLogo'
 import { WindowControls, WindowControlsProps } from './WindowControls'
 import { useLanguage } from '@stores/LanguageStore'
 
@@ -47,7 +47,7 @@ export function TitleBar({
       <div className="aurora-titlebar__left">
         {/* 应用图标 */}
         <div className="aurora-titlebar__icon" aria-hidden="true">
-          <Icon.logo size={18} />
+          <BrandLogo size={18} />
         </div>
 
         {/* 应用名 */}

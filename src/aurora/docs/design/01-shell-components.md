@@ -39,7 +39,7 @@
 
 ## 5. TitleBar / WindowControls
 
-- **TitleBar**：左侧应用图标（⚠️ 当前硬编码字符 `M`，未用 `Icon.logo`）+ 应用名 + 面包屑；中部 `app-region: drag` 拖拽区；右侧 `WindowControls`。无居中标题槽位（`shell.css` 中旧 `--has-center/__center/__right-extra` 已废弃）。
+- **TitleBar**：左侧应用图标（统一引用 `BrandLogo`，与 EXE 窗口图标同源的几何 M）+ 应用名 + 面包屑；中部 `app-region: drag` 拖拽区；右侧 `WindowControls`。无居中标题槽位（`shell.css` 中旧 `--has-center/__center/__right-extra` 已废弃）。
 - **WindowControls**：最小化 / 最大化(可还原) / 关闭；关闭 hover 红 `#E81123`。行为经 `commandRegistry` 命令单源（见 §1 批次⑤注）；交通灯保持中性灰（Web 壳不强制 macOS 原生红黄绿）。
 - **MenuBar**（2026-09-10 使用优化①）：七组菜单（文件/编辑/视图/前往/工具/窗口/帮助）。原首组 App 菜单「MarkCraft」（关于/设置/隐藏×3/退出）已整体移除——关于与退出仍经命令面板/交通灯可达（`app.about`/`app.quit` 保留），设置经头像进入；隐藏类命令为 Web no-op 已随菜单删除。
 

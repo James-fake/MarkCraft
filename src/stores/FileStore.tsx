@@ -13,17 +13,20 @@ import {
   markSetupVaultApplied,
   checkVaultWritable,
   flattenNotes,
+  flushSync,
 } from '../services/vaultService';
 import { useLanguage } from './LanguageStore';
 import { useUndoRedo } from './UndoRedoStore';
 import { getRecentFiles, removeRecentFile } from '@core/files/recentFiles';
 import { resolveUsageDocsScope } from '@core/files/usageDocs';
+import { loadSessionSnapshot, saveSessionSnapshot } from '../services/sessionSnapshot';
+import { bindRuntimeFiles } from '../services/backupService';
 import { knowledgeLinkGuideContent as knowledgeLinkGuideContentZh } from '@core/data/defaultDocs/zh';
 import { knowledgeLinkGuideContent as knowledgeLinkGuideContentEn } from '@core/data/defaultDocs/en';
 import { logger } from '@utils/logger';
 // —— P5-2 拆分：类型/落盘净化下沉 fileStoreShared，Tab 方法组与文件树方法组各成 hook ——
 // 本文件保留 Provider 编排（两阶段初始化 / 自动保存 / 一次性迁移）与读取型 getter。
-import { stripTransientTabs, stripLegacyUsageDocTabs } from './fileStoreShared';
+import { stripTransientTabs, stripLegacyUsageDocTabs, pathOfNode, nodeByPath, mergeUnsavedEdits } from './fileStoreShared';
 import type { FileManagerContextType } from './fileStoreShared';
 import { useTabActions } from './useTabActions';
 import { useFileTreeActions } from './useFileTreeActions';
@@ -84,6 +87,30 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   const [vaultError, setVaultError] = useState<{ path: string } | null>(null);
   const stateRef = useRef(state)
   stateRef.current = state
+
+  // 备份子系统绑定运行时树（2026-11-03 审查 P1）：桌面 Vault 模式不写 IndexedDB，
+  // 而备份只从 IDB 读 → 自动备份永不产生、恢复写回后加载不到。这里把「当前树」
+  // 与「恢复落点」都接到运行时 state 上，浏览器形态不受影响（provider 有值，
+  // applier 会把恢复结果写回内存树 → save effect 再按平台落 IDB/磁盘）。
+  useEffect(() => {
+    bindRuntimeFiles(
+      () => stateRef.current,
+      async (next) => {
+        setState((prev) => ({ ...prev, rootFolder: next.rootFolder }))
+        // ⚠️ 恢复/导入必须等到**真正落盘**（2026-11-08 审查 M-C-2）：save effect 的
+        //    syncTree 是 300ms 防抖 + 串行补跑，applier 若只把树塞回内存就返回，恢复流程
+        //    会在文件落盘前宣告成功 —— 用户此刻退出应用，刚恢复的文件全部丢失。
+        //    这里直接冲刷一次并 await，给 backupService 一个「已落盘」的确定信号。
+        if (platform.kind !== 'electron' || !vaultRoot) return
+        syncTree(next.rootFolder, vaultRoot, (err) => {
+          logger.error('[FileStore] 恢复数据写盘失败：', err)
+          setVaultError((prev) => prev ?? { path: vaultRoot })
+        })
+        await flushSync()
+      },
+    )
+    return () => bindRuntimeFiles(null, null)
+  }, [vaultRoot])
 
   // —— Tab 方法组（P5-2：openFile/closeTab/…/isAnyTabDirty 见 useTabActions）——
   const tabActions = useTabActions(setState, stateRef);
@@ -148,11 +175,52 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         hydrateFromIdb()
         return
       }
+      // S0 红线：Vault 载入前先向主进程登记根目录（fs IPC 白名单的动态部分）。
+      // ⚠️ 必须 **await**（2026-11-08 审查 M-C-3）：registerRoot 与 loadVault 的 readDir
+      //    是两次独立 invoke，主进程可并发处理 —— 不 await 时 readDir 完全可能先到，
+      //    命中白名单缺位被整体拒绝。失败仅记日志（沿用原策略）：白名单缺位时后续 fs
+      //    会继续拒绝，错误会在 loadVault 处可见，这里不额外阻断启动。
+      try {
+        await platform.vault?.registerRoot(root)
+      } catch (err) {
+        logger.error('[FileStore] Vault 根登记失败：', err)
+      }
       const tree = await loadVault(root)
       if (cancelled) return
       setVaultRoot(root)
       // 磁盘来源无需 stripLegacyUsageDocTabs（说明书不落盘）；rootFolder 直接替换
-      setState((prev) => ({ ...prev, rootFolder: tree }))
+      // 会话恢复（2026-11-03 审查 P1）：按相对路径把上次的标签页映射到新树的 id。
+      // 路径找不到（文件被外部删除/改名）的标签直接跳过，不留悬空 tab。
+      const session = await loadSessionSnapshot()
+      if (cancelled) return
+      if (session && session.tabs.length > 0) {
+        const restoredTabs = session.tabs
+          .map((t) => {
+            const node = nodeByPath(tree, t.path)
+            if (!node || node.type !== 'file') return null
+            return {
+              id: generateId(),
+              fileId: node.id,
+              name: node.name,
+              isActive: false,
+              isDirty: false, // 磁盘是真相源，重启后不应带脏标记
+            }
+          })
+          .filter((t): t is { id: string; fileId: string; name: string; isActive: boolean; isDirty: boolean } => t !== null)
+        const activeNode = session.activeTabPath ? nodeByPath(tree, session.activeTabPath) : null
+        const activeTab = activeNode ? restoredTabs.find((t) => t.fileId === activeNode.id) : null
+        setState((prev) => ({
+          ...prev,
+          rootFolder: tree,
+          tabs: restoredTabs.map((t) => ({ ...t, isActive: t === activeTab })),
+          activeTabId: activeTab ? activeTab.id : null,
+          searchQuery: session.searchQuery,
+          sidebarVisible: session.sidebarVisible,
+        }))
+        logger.info('[FileStore] 会话恢复：', restoredTabs.length, '个标签')
+      } else {
+        setState((prev) => ({ ...prev, rootFolder: tree }))
+      }
       setHydrated(true)
       logger.info('[FileStore] hydrated=true；来源 = 磁盘 Vault', root)
     }
@@ -259,6 +327,23 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
         logger.error('[FileStore] 写盘失败：', err)
         setVaultError((prev) => prev ?? { path: vaultRoot })
       })
+      // 会话态（标签页/活动标签/侧栏）独立落盘（2026-11-03 审查 P1）：树以磁盘为真相源
+      // 不冲突，但此前这里直接 return 导致**重启后标签全丢**。
+      const sessionTabs = toPersist.tabs
+        .map((t) => {
+          const rel = pathOfNode(toPersist.rootFolder, t.fileId)
+          return rel ? { path: rel, name: t.name } : null
+        })
+        .filter((t): t is { path: string; name: string } => t !== null)
+      const activeRel = toPersist.activeTabId
+        ? pathOfNode(toPersist.rootFolder, toPersist.tabs.find((t) => t.id === toPersist.activeTabId)?.fileId ?? '')
+        : null
+      void saveSessionSnapshot({
+        tabs: sessionTabs,
+        activeTabPath: activeRel,
+        searchQuery: toPersist.searchQuery,
+        sidebarVisible: toPersist.sidebarVisible,
+      })
       return
     }
     saveState(toPersist);
@@ -268,8 +353,10 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   // 桌面端选中 Vault 后挂上 fs.watch；外部（资源管理器 / git / IDE）改了 .md 或
   // 增删目录 → 防抖 500ms → loadVault 重建内存树 + resetSync（清基线，避免接下来
   // save effect 把刚 reload 的全树再写一遍）→ setState。文件树立刻跟随。
-  // 已知限制：当前活动文件的**编辑器本地草稿**不会自动同步外部版本（P4-C+ 引入
-  // 「外部改动 vs 未保存编辑」的冲突解决再补）；保存会覆盖外部改动，接受为 MVP 权衡。
+  // 冲突策略（2026-11-08 H-7）：只有 `isDirty`（确有未落盘编辑）的标签才由
+  // mergeUnsavedEdits 保留内存版本并写回；纯外部改动（标签非 dirty）一律采用磁盘新内容，
+  // 不会再被内存旧内容覆盖写回，外部修改不再丢失。双方同时改动同一文件时仍以本地编辑
+  // 优先（MVP 权衡，完整冲突解决留待 P4-C+），但至少不会静默吞掉纯外部改动。
   useEffect(() => {
     if (platform.kind !== 'electron' || !vaultRoot) return
     let cancelled = false
@@ -285,13 +372,31 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
             //    后续所有编辑都会因「按 id 找不到节点」被静默丢弃（真实事故：内容只剩前半截）。
             //    这里按**相对路径**把旧 id 重映射到新 id，保证打开中的标签页继续有效。
             const remap = buildIdRemap(prev.rootFolder, tree)
-            if (remap.size === 0) return { ...prev, rootFolder: tree }
+
+            // —— 未落盘编辑保护（2026-11-03 审查 P1；2026-11-08 H-7 收口）——
+            // 触发场景：用户输入 → state 更新 → syncTree 的 300ms 防抖未到盘 → 外部事件
+            // 触发 reload → loadVault 从磁盘读到旧内容 → setState 整树替换 → 这批编辑
+            // 从 state 和磁盘**双双消失**。mergeUnsavedEdits 仅对 `isDirty` 标签保留内存
+            // 版本并回传其新 id 以维持 isDirty（下次 save effect 写回磁盘）；非 dirty 标签
+            // 一律采用磁盘内容，避免用旧内容覆盖外部改动（H-7）。
+            const { root: nextRoot, dirtyNewIds } = mergeUnsavedEdits(prev.rootFolder, tree, prev.tabs)
+            const dirtyByNewId = dirtyNewIds
+
+            if (remap.size === 0) {
+              return { ...prev, rootFolder: nextRoot }
+            }
             return {
               ...prev,
-              rootFolder: tree,
-              tabs: prev.tabs.map((t) =>
-                remap.has(t.fileId) ? { ...t, fileId: remap.get(t.fileId)! } : t,
-              ),
+              rootFolder: nextRoot,
+              tabs: prev.tabs.map((t) => {
+                if (!remap.has(t.fileId)) return t
+                const newId = remap.get(t.fileId)!
+                return {
+                  ...t,
+                  fileId: newId,
+                  isDirty: dirtyByNewId.has(newId) ? true : t.isDirty,
+                }
+              }),
             }
           })
           logger.info('[FileStore] 外部改动触发 Vault reload：', vaultRoot)
@@ -336,6 +441,13 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
   useEffect(() => {
     const MIGRATION_KEY = 'markcraft-link-guide-added';
     if (localStorage.getItem(MIGRATION_KEY)) return;
+    // ⚠️ 磁盘 Vault 模式跳过（2026-11-03 审查 P2）：Vault 是用户自己的目录，
+    //    应用不应未经确认往里塞 .md 文件。该迁移只服务「从 IndexedDB 继承旧树」的
+    //    浏览器/内部存储形态；Vault 用户要指南可以自己从知识库打开。
+    if (platform.kind === 'electron' && vaultRoot) {
+      localStorage.setItem(MIGRATION_KEY, '1');
+      return;
+    }
 
     const isEn = language === 'en';
     const guideName = isEn ? 'Knowledge Linking Guide.md' : '知识链接体系指南.md';
@@ -385,7 +497,7 @@ export const FileManagerProvider: React.FC<{ children: React.ReactNode }> = ({ c
     localStorage.setItem(MIGRATION_KEY, '1');
     // 只运行一次：MIGRATION_KEY 幂等守卫使重复运行零写入，补 deps 顺带修复
     // 「语言在首帧后才就绪时建错语言指南」与「两阶段初始化覆盖 rootFolder 后的过期读取」
-  }, [language, state.rootFolder]);
+  }, [language, state.rootFolder, vaultRoot]);
 
   const getActiveFileContent = useCallback((): string | null => {
     if (!state.activeTabId) return null;

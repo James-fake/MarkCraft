@@ -1,58 +1,47 @@
 import { NodeViewWrapper, NodeViewContent } from '@tiptap/react'
 import type { NodeViewProps } from '@tiptap/react'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { AuroraSelect } from '@components/ui/AuroraSelect'
-
-const LANGUAGES = [
-  { value: '', label: 'Plain Text' },
-  { value: 'javascript', label: 'JavaScript' },
-  { value: 'typescript', label: 'TypeScript' },
-  { value: 'python', label: 'Python' },
-  { value: 'java', label: 'Java' },
-  { value: 'c', label: 'C' },
-  { value: 'cpp', label: 'C++' },
-  { value: 'csharp', label: 'C#' },
-  { value: 'go', label: 'Go' },
-  { value: 'rust', label: 'Rust' },
-  { value: 'ruby', label: 'Ruby' },
-  { value: 'php', label: 'PHP' },
-  { value: 'swift', label: 'Swift' },
-  { value: 'kotlin', label: 'Kotlin' },
-  { value: 'sql', label: 'SQL' },
-  { value: 'html', label: 'HTML' },
-  { value: 'css', label: 'CSS' },
-  { value: 'scss', label: 'SCSS' },
-  { value: 'json', label: 'JSON' },
-  { value: 'yaml', label: 'YAML' },
-  { value: 'xml', label: 'XML' },
-  { value: 'markdown', label: 'Markdown' },
-  { value: 'bash', label: 'Bash / Shell' },
-  { value: 'powershell', label: 'PowerShell' },
-  { value: 'dockerfile', label: 'Dockerfile' },
-  { value: 'makefile', label: 'Makefile' },
-  { value: 'latex', label: 'LaTeX' },
-  { value: 'r', label: 'R' },
-  { value: 'matlab', label: 'MATLAB' },
-  { value: 'scala', label: 'Scala' },
-  { value: 'lua', label: 'Lua' },
-  { value: 'perl', label: 'Perl' },
-  { value: 'vue', label: 'Vue' },
-  { value: 'jsx', label: 'React (JSX)' },
-  { value: '__custom__', label: 'Custom...' },
-]
+import { LANGUAGES, normalizeCodeLanguage } from './codeBlockLanguage'
 
 export default function CodeBlockView({ node, updateAttributes, selected }: NodeViewProps) {
   const language = (node.attrs.language as string) || ''
+  // 显示层归一化（js → javascript 等）：高亮一直是好的，坏的只是下拉查不到 value。
+  // ⚠️ 不写回 node.attrs —— 保存回 markdown 仍是用户写的 ```js。
+  const displayLanguage = normalizeCodeLanguage(language)
+  const knownLanguage = LANGUAGES.some(l => l.value === displayLanguage)
   const [collapsed, setCollapsed] = useState(false)
   const [customMode, setCustomMode] = useState(false)
+  /** 「已复制」2s 复位定时器：节点视图销毁时必须清理，否则 setState 打到已卸载组件 */
+  const copyTimerRef = useRef<number | null>(null)
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current !== null) {
+        window.clearTimeout(copyTimerRef.current)
+        copyTimerRef.current = null
+      }
+    }
+  }, [])
   const [customValue, setCustomValue] = useState('')
   const [copied, setCopied] = useState(false)
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(node.textContent).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
+    // ⚠️ 必须 catch（2026-11-03 审查 P2）：权限被拒（非安全上下文/用户拒绝）时
+    //    writeText 返回 rejected promise，不处理就是 unhandled rejection。
+    navigator.clipboard
+      .writeText(node.textContent)
+      .then(() => {
+        setCopied(true)
+        // 定时器存 ref，节点视图销毁后不再 setState（见下方 cleanup）
+        if (copyTimerRef.current !== null) window.clearTimeout(copyTimerRef.current)
+        copyTimerRef.current = window.setTimeout(() => {
+          setCopied(false)
+          copyTimerRef.current = null
+        }, 2000)
+      })
+      .catch(() => {
+        /* 复制失败：保持按钮原状即可（无需打扰用户，也没有可写回的状态） */
+      })
   }, [node.textContent])
 
   const handleLanguageChange = useCallback((val: string) => {
@@ -81,7 +70,7 @@ export default function CodeBlockView({ node, updateAttributes, selected }: Node
   }, [customValue, updateAttributes])
 
   // Get display label for the language
-  const languageLabel = LANGUAGES.find(l => l.value === language)?.label || language || 'Plain Text'
+  const languageLabel = LANGUAGES.find(l => l.value === displayLanguage)?.label || language || 'Plain Text'
 
   return (
     <NodeViewWrapper as="div">
@@ -141,7 +130,7 @@ export default function CodeBlockView({ node, updateAttributes, selected }: Node
               />
             ) : (
               <AuroraSelect
-                value={LANGUAGES.some(l => l.value === language) ? language : '__custom__'}
+                value={knownLanguage ? displayLanguage : '__custom__'}
                 onChange={handleLanguageChange}
                 options={LANGUAGES}
               />

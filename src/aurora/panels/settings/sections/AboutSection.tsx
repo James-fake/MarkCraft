@@ -1,8 +1,12 @@
 ﻿import { useCallback, useState } from 'react'
 import { Button } from '@components/ui/Button'
+import { BrandLogo } from '../../../components/BrandLogo'
 import { useFileManager } from '@stores/FileStore'
 import { useLanguage } from '@stores/LanguageStore'
 import { ensureUsageDocsKb } from '@stores/kbSeed'
+import { APP_VERSION } from '@features/telemetry/config'
+import { PrivacyPolicyModal } from '@features/telemetry/PrivacyPolicyModal'
+import { TermsOfServiceModal } from '@features/telemetry/TermsOfServiceModal'
 import { useSettingsQuery } from '../settingsSearch'
 
 /**
@@ -17,13 +21,11 @@ import { useSettingsQuery } from '../settingsSearch'
 // 真实地址（2026-10-09 收尾审查填写）：仓库在 Gitee（= git remote origin）。
 // 暂无独立官网 → official 指向仓库主页（真实可点，胜过假域名）。
 // ⚠️ 仓库当前**尚无 LICENSE 文件** → license 留空渲染为「即将推出」，不制造 404 死链。
+// 隐私政策 / 服务条款为应用内文档（docs/*.md），由下方 docModal 打开，不在此列为外链。
 const ABOUT_LINKS: Record<string, string> = {
   official: 'https://gitee.com/James-fake/markcraft',
   feedback: 'https://gitee.com/James-fake/markcraft/issues',
   license: '',
-  // 暂无真实页面：留空 → 渲染为「即将推出」（不制造假链接）
-  privacy: '',
-  terms: '',
 }
 
 function openExternal(url: string) {
@@ -48,6 +50,8 @@ export function AboutSection({
   const { t, language } = useLanguage()
   const A = t.settingsAbout
   const [opening, setOpening] = useState(false)
+  // 应用内文档弹层：'privacy' = 隐私政策，'terms' = 服务条款；null = 关闭
+  const [docModal, setDocModal] = useState<'privacy' | 'terms' | null>(null)
 
   /** 打开内置使用文档：确保知识库已播种 → 直达该知识库详情页 */
   const openUsageDocs = useCallback(async () => {
@@ -74,9 +78,9 @@ export function AboutSection({
 
   return (
     <div className="aurora-settings__about">
-      <div className="aurora-settings__about-logo">M</div>
+      <BrandLogo size={72} className="aurora-settings__about-logo" />
       <div className="aurora-settings__about-name">MarkCraft</div>
-      <div className="aurora-settings__about-version">{A.versionText}</div>
+      <div className="aurora-settings__about-version">v{APP_VERSION}</div>
 
       <div className="aurora-settings__about-actions">
         <Button size="sm" variant="secondary" disabled title={A.noUpdateBackend}>
@@ -87,37 +91,6 @@ export function AboutSection({
           {A.changelogBtn}
           <span className="aurora-settings__soon">{A.soon}</span>
         </Button>
-      </div>
-
-      <div className="aurora-settings__about-section">
-        <div className="aurora-settings__about-section-title">{A.recentUpdates}</div>
-        <div className="aurora-settings__changelog">
-          <div><strong>{A.chg200Title}</strong></div>
-          <div>{A.chg200_1}</div>
-          <div>{A.chg200_2}</div>
-          <div>{A.chg200_3}</div>
-          <div>{A.chg200_4}</div>
-          <div>{A.chg200_5}</div>
-          <div>{A.chg200_6}</div>
-          <div style={{ marginTop: 12 }}><strong>{A.chg200FixTitle}</strong></div>
-          <div>{A.chg200_7}</div>
-          <div>{A.chg200_8}</div>
-          <div>{A.chg200_9}</div>
-          <div>{A.chg200_10}</div>
-          <div>{A.chg200_11}</div>
-          <div>{A.chg200_12}</div>
-          <div>{A.chg200_13}</div>
-          <div>{A.chg200_14}</div>
-          <div>{A.chg200_15}</div>
-          <div>{A.chg200_16}</div>
-          <div>{A.chg200_17}</div>
-          <div>{A.chg200_18}</div>
-          <div>{A.chg200_19}</div>
-          <div style={{ marginTop: 12 }}><strong>{A.chg180Title}</strong></div>
-          <div>{A.chg180_1}</div>
-          <div>{A.chg180_2}</div>
-          <div>{A.chg180_3}</div>
-        </div>
       </div>
 
       <div className="aurora-settings__about-section">
@@ -132,14 +105,16 @@ export function AboutSection({
       <div className="aurora-settings__about-section">
         <div className="aurora-settings__about-section-title">{A.links}</div>
         <div className="aurora-settings__about-links">
-          <span
+          {/* 全部用原生 button：隐私政策 / 服务条款等合规入口必须 Tab 可达、Enter/Space 可激活 */}
+          <button
+            type="button"
             className="aurora-settings__about-link"
             title={A.openKbTitle}
             data-testid="about-usage-docs"
             onClick={() => { void openUsageDocs() }}
           >
             {A.usageDocs}
-          </span>
+          </button>
           {([
             { key: 'official', label: A.official },
             { key: 'feedback', label: A.feedback },
@@ -147,11 +122,29 @@ export function AboutSection({
             { key: 'terms', label: A.terms },
             { key: 'license', label: A.license },
           ] as const).map(({ key, label }) => {
+            // 隐私政策 / 服务条款：应用内文档弹层（复用产品 Markdown 渲染管线）
+            if (key === 'privacy' || key === 'terms') {
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  className="aurora-settings__about-link"
+                  title={A.openInApp}
+                  data-testid={`about-${key}`}
+                  onClick={() => setDocModal(key)}
+                >
+                  {label}
+                </button>
+              )
+            }
             const url = ABOUT_LINKS[key]
             const enabled = Boolean(url)
             return (
-              <span
+              <button
                 key={key}
+                type="button"
+                disabled={!enabled}
+                aria-disabled={!enabled}
                 className={[
                   'aurora-settings__about-link',
                   enabled ? '' : 'aurora-settings__about-link--disabled',
@@ -161,11 +154,23 @@ export function AboutSection({
               >
                 {label}
                 {!enabled && <span className="aurora-settings__soon">{A.soon}</span>}
-              </span>
+              </button>
             )
           })}
         </div>
       </div>
+
+      {/* 应用内文档：隐私政策 / 服务条款（单一事实来源 docs/*.md） */}
+      <PrivacyPolicyModal
+        isOpen={docModal === 'privacy'}
+        onClose={() => setDocModal(null)}
+        title={A.privacy}
+      />
+      <TermsOfServiceModal
+        isOpen={docModal === 'terms'}
+        onClose={() => setDocModal(null)}
+        title={A.terms}
+      />
     </div>
   )
 }

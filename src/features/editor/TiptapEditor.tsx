@@ -26,6 +26,8 @@ import { useTiptapLinkWiring } from './hooks/useTiptapLinkWiring'
 import { useTiptapScrollCommands } from './hooks/useTiptapScrollCommands'
 import { useTiptapUndoRedo } from './hooks/useTiptapUndoRedo'
 import { useTiptapContentSync } from './hooks/useTiptapContentSync'
+import { recordKeyStroke } from './perfProbe'
+import { createSerializeScheduler, type SerializeScheduler } from './serializeScheduler'
 import SearchReplaceBar from './components/SearchReplaceBar'
 import { lintMarkdown } from '../lint/markdownLinter'
 import type { LintIssue } from '@utils/lintTypes'
@@ -57,6 +59,8 @@ interface TiptapEditorProps {
   showToolbar?: boolean
   /** 是否渲染内置状态栏（字数 / lint 指示），Aurora 子面板可关闭，改用自身底部条 */
   showStatusBar?: boolean
+  /** 空编辑区占位符；不传沿用全局默认，传空串 '' 关闭（如日记区） */
+  placeholder?: string
 }
 
 export interface TiptapEditorHandle {
@@ -80,7 +84,7 @@ export interface TiptapEditorHandle {
   focusMarkdownOffset: (mdOffset: number, fullMd: string) => void
 }
 
-const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value, onChange, onPushUndo, onUndoRedoStateChange, onActiveHeadingChange, fileId, theme, focusMode, typewriterMode, livePreview, onToggleFocusMode, onToggleTypewriterMode, onToggleLivePreview, onOpenFile, onSaveAs, onBrokenLinkClick, onUseTemplate, showToolbar = true, showStatusBar = true }, ref) => {
+const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value, onChange, onPushUndo, onUndoRedoStateChange, onActiveHeadingChange, fileId, theme, focusMode, typewriterMode, livePreview, onToggleFocusMode, onToggleTypewriterMode, onToggleLivePreview, onOpenFile, onSaveAs, onBrokenLinkClick, onUseTemplate, showToolbar = true, showStatusBar = true, placeholder }, ref) => {
   const { t } = useLanguage()
   const undoRedo = useUndoRedo()
   const { settings: appSettings } = useSettings()
@@ -102,7 +106,16 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
 
   // Extracted hooks for search, lint, and file operations
   const { searchMode, searchTerm, replaceTerm, openSearch, closeSearch, setSearchTerm, setReplaceTerm } = useTiptapSearch()
-  const { lintIssues, showLintPopover, lintAnchorRef, lintCloseTimerRef, setShowLintPopover, scheduleLintCheck, cleanupLintTimer } = useTiptapLint({ lintMarkdown, t })
+  // 阶段 1：一次 lint 计算，两处应用（React state 由 hook 内部更新，这里补 ProseMirror 装饰）。
+  // 此前 onUpdate 里还同步跑过一遍 lintMarkdown + setLintIssues —— 重复计算且绕过防抖。
+  const { lintIssues, showLintPopover, lintAnchorRef, lintCloseTimerRef, setShowLintPopover, scheduleLintCheck, cleanupLintTimer } = useTiptapLint({
+    lintMarkdown,
+    t,
+    onIssues: (issues) => {
+      const ed = editorRef.current
+      if (ed && !ed.isDestroyed) ed.commands.setLintIssues(issues)
+    },
+  })
   const { showSaveAsModal, fileInputRef, handleOpenFile, handleSaveAs, handleFileChange, setShowSaveAsModal } = useTiptapFileOps({ onOpenFile, onSaveAs, fileId, undoRedo, onChange })
   // WYSIWYG 端原先缺失 front-matter / 优化图片两个模态的可见性状态（源码模式这些状态在
   // useSourceFileOps / useCM6State），导致面板永远打不开。面板渲染与内容读写由 EditorSlots
@@ -134,8 +147,81 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
   const onChangeRef = useRef(onChange)
   onChangeRef.current = onChange
 
-  // Debounce timer for onChange
+  // Debounce timer for 序列化（阶段 2 之前是 onChange 的 300ms 防抖）
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  /** 连续输入的序列化防抖窗口。比原先 onChange 的 300ms 更小 —— 丢字窗口反而收窄一半。 */
+  const SERIALIZE_DEBOUNCE_MS = 150
+  /** 有未序列化到 markdown 的编辑（onUpdate 即时置位，不等防抖） */
+  const dirtyRef = useRef(false)
+  /** 最近一次光标位置（flush 时给 pushHistory 用，O(1) 读取） */
+  const selectionRef = useRef<{ from: number; to: number }>({ from: 0, to: 0 })
+  const undoRedoRef = useRef(undoRedo)
+  undoRedoRef.current = undoRedo
+  const perfProbeRef = useRef(import.meta.env.DEV)
+  perfProbeRef.current = import.meta.env.DEV
+
+  /**
+   * 把当前编辑器内容序列化为 markdown 并一次性完成所有副作用。
+   * 阶段 2 前这些副作用散在「每键击」的 onUpdate 里；现在统一由防抖或 flush 点驱动。
+   * 全部依赖通过 ref 读取 → 函数身份稳定，不随 Provider 重渲染而重建。
+   */
+  const serializeNow = useCallback((reason: string = 'debounce') => {
+    const ed = editorRef.current
+    if (!ed || ed.isDestroyed) return
+    const perf = perfProbeRef.current
+    const t0 = perf ? performance.now() : 0
+    const html = ed.getHTML()
+    const t1 = perf ? performance.now() : 0
+    const md = htmlToMarkdown(html)
+    const t2 = perf ? performance.now() : 0
+    dirtyRef.current = false
+    lastEmittedMd.current = md
+    recentEmitsRef.current.add(md)
+    if (recentEmitsRef.current.size > 30) {
+      const first = recentEmitsRef.current.values().next().value
+      if (first !== undefined) recentEmitsRef.current.delete(first)
+    }
+    htmlSnapshotRef.current.set(djb2Hash(md), { md, html })
+    if (htmlSnapshotRef.current.size > 50) {
+      const firstKey = htmlSnapshotRef.current.keys().next().value
+      if (firstKey !== undefined) htmlSnapshotRef.current.delete(firstKey)
+    }
+    const currentFileId = fileIdRef.current
+    if (currentFileId) {
+      const { from, to } = selectionRef.current
+      undoRedoRef.current.pushHistory(currentFileId, md, from, to, 'wysiwyg-typing')
+    }
+    const t3 = perf ? performance.now() : 0
+    const currentOnPushUndo = onPushUndoRef.current
+    if (currentOnPushUndo) currentOnPushUndo(md, 'wysiwyg-typing')
+    onChangeRef.current(md)
+    scheduleLintCheckRef.current(md)
+    if (perf) {
+      recordKeyStroke({
+        getHtmlMs: t1 - t0,
+        toMdMs: t2 - t1,
+        lintMs: 0,
+        pushMs: t3 - t2,
+        serialized: true,
+      })
+    }
+    // flush 原因保留在参数上（perfProbe 已提供观测，避免每次 blur 都打日志）
+    void reason
+  }, [])
+  const scheduleLintCheckRef = useRef(scheduleLintCheck)
+  scheduleLintCheckRef.current = scheduleLintCheck
+  // 调度策略抽到 serializeScheduler（纯模块、可单测），这里只负责接线
+  const schedulerRef = useRef<SerializeScheduler | null>(null)
+  if (!schedulerRef.current) {
+    schedulerRef.current = createSerializeScheduler({
+      delayMs: SERIALIZE_DEBOUNCE_MS,
+      isDirty: () => dirtyRef.current,
+      serialize: serializeNow,
+      timerRef: debounceTimerRef,
+    })
+  }
+  const flushRef = useRef<(reason: string) => void>(() => {})
+  flushRef.current = (reason: string) => schedulerRef.current?.flush(reason)
 
   // Extracted hook for undo/redo
   const { undoFn, redoFn, isUndoRedoRef } = useTiptapUndoRedo({
@@ -145,15 +231,24 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
   // Stable refs for undo/redo so the extension always calls the latest version
   const undoFnRef = useRef<() => void>(() => {})
   const redoFnRef = useRef<() => void>(() => {})
-  undoFnRef.current = undoFn
-  redoFnRef.current = redoFn
+  // flush 点 #5：撤销/重做前必须把挂起编辑入栈，否则历史里没有最新内容 ——
+  // 用户刚敲完就 Ctrl+Z 会直接回退到上一个 150ms 窗口（丢字）。
+  // 包在这里可覆盖全部调用路径（扩展快捷键 + handle.undo/redo）。
+  undoFnRef.current = () => {
+    flushRef.current('before-undo')
+    undoFn()
+  }
+  redoFnRef.current = () => {
+    flushRef.current('before-redo')
+    redoFn()
+  }
   // 稳定 ref：供命令桥 find 触达编辑器内查找（SearchReplace 内部 openSearch）
   const openSearchRef = useRef<(mode: 'search' | 'replace') => void>(() => {})
   openSearchRef.current = openSearch
 
   // Extracted hook for extensions configuration
   const extensions = useTiptapExtensions({
-    t, livePreview, undoFnRef, redoFnRef,
+    t, livePreview, undoFnRef, redoFnRef, placeholder,
   })
 
   // Extracted hook for drag/paste orchestration（文件拖入建 WikiLink / Shift 纯文本 / 智能粘贴 → 图片回落）
@@ -202,35 +297,18 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
     },
     onUpdate: ({ editor: ed }) => {
       if (isInternalUpdate.current || isUndoRedoRef.current) return
-      const html = ed.getHTML()
-      const md = htmlToMarkdown(html)
-      lastEmittedMd.current = md
-      // 记录「自己发出过的值」（有界）：父级 value 若命中这里，说明只是回声/滞后，不是外部改动
-      recentEmitsRef.current.add(md)
-      if (recentEmitsRef.current.size > 30) {
-        const first = recentEmitsRef.current.values().next().value
-        if (first !== undefined) recentEmitsRef.current.delete(first)
-      }
-      htmlSnapshotRef.current.set(djb2Hash(md), { md, html })
-      if (htmlSnapshotRef.current.size > 50) {
-        const firstKey = htmlSnapshotRef.current.keys().next().value
-        if (firstKey !== undefined) htmlSnapshotRef.current.delete(firstKey)
-      }
-      const currentFileId = fileIdRef.current
-      if (currentFileId) {
-        undoRedo.pushHistory(currentFileId, md, 0, 0, 'wysiwyg-typing')
-      }
-      const currentOnPushUndo = onPushUndoRef.current
-      if (currentOnPushUndo) currentOnPushUndo(md, 'wysiwyg-typing')
-      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
-      debounceTimerRef.current = setTimeout(() => {
-        onChangeRef.current(md)
-      }, 300)
-      scheduleLintCheck(md)
-      if (ed && !ed.isDestroyed) {
-        const issues = lintMarkdown(md, t)
-        ed.commands.setLintIssues(issues)
-      }
+      // —— 阶段 2：每键击只做 O(1) 标记与调度，不再全量序列化 ——
+      // 原先这里每键击都 getHTML + htmlToMarkdown（阶段 0 实测占输入延迟 87-95%），
+      // 而连续输入时前 N-1 次的结果只有最后一次会被父级消费。
+      dirtyRef.current = true
+      const { from, to } = ed.state.selection
+      selectionRef.current = { from, to }
+      schedulerRef.current?.schedule()
+    },
+    onBlur: () => {
+      // flush 点 #3：失焦（点文件树 / 切面板 / 切窗口）先把挂起的编辑写回。
+      // 用户点文件树必然先 blur → 这一个点也顺带覆盖了「切文件丢最后一段」的场景。
+      flushRef.current('blur')
     },
   })
 
@@ -286,18 +364,9 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
 
   useImperativeHandle(ref, () => ({
     getEditor: () => editor,
-    flushContent: () => {
-      const ed = editorRef.current
-      if (!ed || ed.isDestroyed) return
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current)
-        debounceTimerRef.current = null
-      }
-      const html = ed.getHTML()
-      const md = htmlToMarkdown(html)
-      lastEmittedMd.current = md
-      onChangeRef.current(md)
-    },
+    // flush 点 #6/#7：切编辑模式、切预览/导出前，父级已通过这里把内容同步出去。
+    // 阶段 2 后统一走 serializeNow（清防抖 + 一次序列化 + 所有副作用），不再重复实现。
+    flushContent: () => flushRef.current('external'),
     canUndo: () => {
       if (!fileId) return false
       return undoRedo.getState(fileId).canUndo
@@ -309,7 +378,8 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
     undo: () => undoFnRef.current(),
     redo: () => redoFnRef.current(),
     find: () => openSearchRef.current('search'),
-    openSaveAs: () => setShowSaveAsModal(true),
+    // flush 点 #4：另存为/导出读的是父级 value，先把挂起输入写回，否则导出旧内容
+    openSaveAs: () => { flushRef.current('save-as'); setShowSaveAsModal(true) },
     focusMarkdownOffset: (mdOffset: number, fullMd: string) => {
       const ed = editorRef.current
       if (!ed || ed.isDestroyed) return
@@ -354,17 +424,25 @@ const TiptapEditor = forwardRef<TiptapEditorHandle, TiptapEditorProps>(({ value,
   // WikiLink / 块引用点击导航接线 + mark 属性同步（P5-1：4 个 effect 迁至 useTiptapLinkWiring）
   useTiptapLinkWiring(editor, linkIndex, openFile, onBrokenLinkClick)
 
-  // Flush pending debounced content on unmount
+  // flush 点 #2（卸载）与 #8（关窗口）：把挂起的编辑真正序列化写回，
+  // 而不是像旧实现那样 `onChange(lastEmittedMd.current)` —— 阶段 2 后那是**上一次**flush 的值，
+  // 直接写回会丢掉最后一段输入。
   useEffect(() => {
+    const flushPending = () => {
+      flushRef.current('beforeunload')
+    }
+    window.addEventListener('beforeunload', flushPending)
     return () => {
+      window.removeEventListener('beforeunload', flushPending)
+      flushRef.current('unmount')
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
-        const currentMd = lastEmittedMd.current
-        if (currentMd) onChangeRef.current(currentMd)
+        debounceTimerRef.current = null
       }
+      schedulerRef.current?.dispose()
       cleanupLintTimer()
     }
-  }, [cleanupLintTimer])
+  }, [cleanupLintTimer, serializeNow])
 
   // Build sub-context values for Slot components
   const coreValue = useMemo(() => ({

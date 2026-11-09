@@ -22,7 +22,7 @@ type IconDef = {
   sw?: number
 }
 
-const ICONS: Record<string, IconDef> = {
+const ICONS = {
   // ---------- 基础操作 ----------
   plus: { paths: ['M12 5v14', 'M5 12h14'] },
   minus: { paths: ['M5 12h14'] },
@@ -632,14 +632,18 @@ const ICONS: Record<string, IconDef> = {
   logo: { node: <><path d="M5 4h9l5 5v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1Z" fill="rgba(255,255,255,.25)" stroke="#fff" strokeWidth="1.4" strokeLinejoin="round"/>
       <path d="M13 4v5h5" stroke="#fff" strokeWidth="1.4" strokeLinejoin="round" fill="none"/>
       <path d="M8 13h7M8 16.5h5" stroke="#fff" strokeWidth="1.4" strokeLinecap="round"/></>, sw: 1.5 },
-}
+} satisfies Record<string, IconDef>
 
-const ICON_KEYS = Object.keys(ICONS)
+const ICON_KEYS = Object.keys(ICONS) as Array<keyof typeof ICONS>
 
 // eslint-disable-next-line react-refresh/only-export-components -- 图标注册表常量与 Icon 组件同文件聚合，非跨组件共享
-export const iconNames: readonly string[] = ICON_KEYS
+export const iconNames: readonly (keyof typeof ICONS)[] = ICON_KEYS
 
-export type IconName = string
+/**
+ * 图标名字面量联合（2026-11-03 审查 P2）：此前退化为 `string`，拼错图标名编译期不报，
+ * 运行时 `Icon[name]` 返回 undefined → 渲染 `<undefined />` 直接崩面板。
+ */
+export type IconName = keyof typeof ICONS
 
 // eslint-disable-next-line react-refresh/only-export-components -- 类型守卫与 Icon 组件同文件聚合，非跨组件共享
 export function isIconName(v: string): v is IconName {
@@ -680,7 +684,9 @@ export const Icon = React.forwardRef<SVGSVGElement, IconProps>(function Icon(
     return <span className={className} style={{ width: px, height: px, display: 'inline-block' }} />
   }
 
-  const def = ICONS[name]
+  // name 是 string（允许 emoji 与运行时兜底），上面已有 hasOwnProperty 守卫 → 此处断言安全
+  // 断言到 IconDef：satisfies 保留了各图标条目的字面量结构，联合类型直接取可选字段会报错
+  const def = ICONS[name as keyof typeof ICONS] as IconDef
   const isFilled = def.filled || filled
   const sw = strokeWidth ?? def.sw ?? 1.75
 

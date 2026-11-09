@@ -12,6 +12,14 @@ import { fetchWithTimeout } from './fetchWithTimeout'
 
 const GITHUB_API = 'https://api.github.com'
 
+/**
+ * URL **path segment** 编码：owner/repo/branch 来自用户配置，含 `?`/`#`/`../` 时直接插值
+ * 会造成查询注入或路径穿越。只逐段编码，**不要**编码整个 URL（保留 API 路径结构）。
+ */
+function enc(value: string): string {
+  return encodeURIComponent(value)
+}
+
 /** Pages 已启用时 GitHub 返回 409 —— 这是唯一幂等可忽略的情况 */
 const PAGES_ALREADY_ENABLED = 409
 
@@ -63,7 +71,7 @@ async function resolveBranchCommitSha(
 
   push(branch)
   try {
-    const info = await ghFetch<{ default_branch?: string }>(`/repos/${owner}/${repo}`, token)
+    const info = await ghFetch<{ default_branch?: string }>(`/repos/${enc(owner)}/${enc(repo)}`, token)
     push(info?.default_branch)
   } catch {
     /* 读不到仓库信息时继续用兜底名 */
@@ -73,7 +81,7 @@ async function resolveBranchCommitSha(
 
   for (const b of candidates) {
     try {
-      const ref = await ghFetch<GitRefObject>(`/repos/${owner}/${repo}/git/ref/heads/${b}`, token)
+      const ref = await ghFetch<GitRefObject>(`/repos/${enc(owner)}/${enc(repo)}/git/ref/heads/${enc(b)}`, token)
       if (ref?.object?.sha) return ref.object.sha
     } catch {
       /* 该分支不存在，试下一个 */
@@ -84,7 +92,7 @@ async function resolveBranchCommitSha(
 
 /** 由 commit SHA 解引用出它指向的 **tree** SHA（`base_tree` 需要的是 tree，不是 commit） */
 async function resolveTreeSha(owner: string, repo: string, commitSha: string, token: string): Promise<string> {
-  const commit = await ghFetch<GitCommitObject>(`/repos/${owner}/${repo}/git/commits/${commitSha}`, token)
+  const commit = await ghFetch<GitCommitObject>(`/repos/${enc(owner)}/${enc(repo)}/git/commits/${commitSha}`, token)
   const treeSha = commit?.tree?.sha
   if (!treeSha) {
     throw new DeployApiError(`无法从 commit ${commitSha} 解析出 tree SHA`, 500)
@@ -118,7 +126,7 @@ export const githubAdapter: PlatformAdapter = {
 
   async ensureRepo(owner: string, repo: string, token: string) {
     try {
-      await ghFetch(`/repos/${owner}/${repo}`, token)
+      await ghFetch(`/repos/${enc(owner)}/${enc(repo)}`, token)
     } catch {
       await ghFetch('/user/repos', token, {
         method: 'POST',
@@ -135,7 +143,7 @@ export const githubAdapter: PlatformAdapter = {
   },
 
   async createBlob(owner: string, repo: string, content: string, token: string) {
-    const blob = await ghFetch<GitSha>(`/repos/${owner}/${repo}/git/blobs`, token, {
+    const blob = await ghFetch<GitSha>(`/repos/${enc(owner)}/${enc(repo)}/git/blobs`, token, {
       method: 'POST',
       body: JSON.stringify({ content: btoa(unescape(encodeURIComponent(content))), encoding: 'base64' }),
     })
@@ -146,7 +154,7 @@ export const githubAdapter: PlatformAdapter = {
     // base_tree 必须是 tree 的 SHA；空仓库（baseTreeSha=null）时不带该字段，从零建树
     const body: Record<string, unknown> = { tree }
     if (baseTreeSha) body.base_tree = baseTreeSha
-    const result = await ghFetch<GitSha>(`/repos/${owner}/${repo}/git/trees`, token, {
+    const result = await ghFetch<GitSha>(`/repos/${enc(owner)}/${enc(repo)}/git/trees`, token, {
       method: 'POST',
       body: JSON.stringify(body),
     })
@@ -163,7 +171,7 @@ export const githubAdapter: PlatformAdapter = {
   ) {
     const body: Record<string, unknown> = { message, tree: treeSha }
     if (parentSha) body.parents = [parentSha]
-    const commit = await ghFetch<GitSha>(`/repos/${owner}/${repo}/git/commits`, token, {
+    const commit = await ghFetch<GitSha>(`/repos/${enc(owner)}/${enc(repo)}/git/commits`, token, {
       method: 'POST',
       body: JSON.stringify(body),
     })
@@ -171,13 +179,23 @@ export const githubAdapter: PlatformAdapter = {
   },
 
   async updateBranchRef(owner: string, repo: string, branch: string, commitSha: string, token: string) {
+    // ⚠️ 不再无条件 force（2026-11-03 审查 P1）：adapter 是公共契约（branch 可配），
+    //    指向 main 时 force 就是对主分支的盲覆盖，另一设备/CI 的并发推送会被静默丢弃。
+    //    改为普通更新（GitHub 自带 fast-forward 校验）：正常部署（parent === 当前 head）
+    //    照常成功；被他人推进时返回 422，让用户看到明确原因而不是丢提交。
     try {
-      await ghFetch(`/repos/${owner}/${repo}/git/refs/heads/${branch}`, token, {
+      await ghFetch(`/repos/${enc(owner)}/${enc(repo)}/git/refs/heads/${enc(branch)}`, token, {
         method: 'PATCH',
-        body: JSON.stringify({ sha: commitSha, force: true }),
+        body: JSON.stringify({ sha: commitSha }),
       })
-    } catch {
-      await ghFetch(`/repos/${owner}/${repo}/git/refs`, token, {
+    } catch (err) {
+      if (err instanceof DeployApiError && err.status === 422) {
+        throw new Error(
+          `部署被拒绝：远端分支「${branch}」已被其他提交推进（非快进）。请刷新后重试；若该分支仅用于部署，可改用独立的 gh-pages 分支。`,
+        )
+      }
+      // ref 不存在（首次部署）→ 创建
+      await ghFetch(`/repos/${enc(owner)}/${enc(repo)}/git/refs`, token, {
         method: 'POST',
         body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: commitSha }),
       })
@@ -186,7 +204,7 @@ export const githubAdapter: PlatformAdapter = {
 
   async configurePages(owner: string, repo: string, branch: string, token: string) {
     try {
-      await ghFetch(`/repos/${owner}/${repo}/pages`, token, {
+      await ghFetch(`/repos/${enc(owner)}/${enc(repo)}/pages`, token, {
         method: 'POST',
         body: JSON.stringify({ source: { branch, path: '/' } }),
       })
@@ -196,7 +214,7 @@ export const githubAdapter: PlatformAdapter = {
         // （实测 2026-11-02：gh-pages 内容完好，线上却是 main 的 Jekyll README 页）。
         // 故 409 后必须 PATCH 校正源分支；PATCH 失败则上抛 → 上层转为「需手动处理」警告，
         // 而不是静默「成功」后站点仍显示旧内容。
-        await ghFetch(`/repos/${owner}/${repo}/pages`, token, {
+        await ghFetch(`/repos/${enc(owner)}/${enc(repo)}/pages`, token, {
           method: 'PATCH',
           body: JSON.stringify({ source: { branch, path: '/' } }),
         })

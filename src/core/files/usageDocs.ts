@@ -104,17 +104,20 @@ export function resolveUsageDocsScope(root: FileNode | null | undefined): UsageD
   /** 文件夹内是否还有**非说明书**的东西（用户的文件或子目录） */
   let hasUserContent = false
 
-  const walk = (node: FileNode) => {
+  const walk = (node: FileNode, depth: number) => {
     if (node.type === 'file') {
-      if (BUILTIN_USAGE_DOC_FILE_NAMES.has(node.name)) builtinFileIds.add(node.id)
+      // ⚠️ 只认**说明书文件夹直属**的同名文件（2026-11-03 审查 P2）：此前不限层级，
+      //    用户在任意子目录自建的《快速入门.md》等同名文件会被判为内置 → 隐藏 + 只读。
+      //    播种只会平铺文件、不建子目录，故 depth > 1 一定是用户自己的结构。
+      if (depth === 1 && BUILTIN_USAGE_DOC_FILE_NAMES.has(node.name)) builtinFileIds.add(node.id)
       else hasUserContent = true
       return
     }
     // 子文件夹一律视为用户自己的结构（播种只会平铺文件，不会建子目录）
     if (node.id !== folder.id) hasUserContent = true
-    for (const child of node.children ?? []) walk(child)
+    for (const child of node.children ?? []) walk(child, depth + 1)
   }
-  walk(folder)
+  walk(folder, 0)
 
   const hiddenIds = new Set(builtinFileIds)
   // 文件夹行只在「里面全是内置说明」时一起隐藏 —— 否则会连用户的文件一起藏掉（上一版的漏洞）。

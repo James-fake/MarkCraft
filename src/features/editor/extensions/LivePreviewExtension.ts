@@ -150,14 +150,19 @@ const LivePreviewExtension = Extension.create({
             // 性能优化：使用 resolve 直接定位活跃节点的父节点，仅遍历兄弟节点
             if (activeNodePos !== null) {
               try {
-                const $pos = state.doc.resolve(activeNodePos)
+                // ⚠️ 必须 resolve 到**块内部**（2026-11-03 审查 P1）：activeNodePos 是
+                //    「块之前的位置」，直接 resolve 它得到的是父容器层（顶层块时 depth 恒为 0），
+                //    `depth > 0` 守卫随之把顶层标题/列表/表格/代码块的 live preview 全部跳过。
+                const inner = Math.min(activeNodePos + 1, state.doc.content.size)
+                const $pos = state.doc.resolve(inner)
                 const depth = $pos.depth
                 if (depth > 0) {
                   const parentNode = $pos.node(depth)
-                  const parentPos = $pos.before(depth)
+                  // 顶层块（depth === 1，父节点是 doc）时 before(1) 不合法，内容起点是 0
+                  const parentStart = depth === 1 ? 0 : $pos.before(depth) + 1
 
                   parentNode.forEach((node: ProseMirrorNode, offset: number) => {
-                    const pos = parentPos + offset + 1
+                    const pos = parentStart + offset
                     processNode(node, pos, activeNodePos, decorations, state)
                   })
                 }

@@ -1,10 +1,42 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <!-- MarkCraft 应用图标（electron-builder 的 buildResources 源图）。
-       M 用 path 而非 <text>，避免栅格化时依赖系统字体（librsvg/Chromium 缺字体时字形会丢）。 -->
-  <rect width="512" height="512" rx="96" fill="#2563eb"/>
-  <rect x="120" y="88" width="272" height="336" rx="24" fill="#ffffff"/>
-  <!-- 粗体几何 M -->
-  <path d="M176 336 L176 192 L216 192 L256 264 L296 192 L336 192 L336 336 L304 336 L304 248 L256 326 L208 248 L208 336 Z" fill="#2563eb"/>
-  <!-- 底部强调条 -->
-  <rect x="168" y="372" width="176" height="16" rx="8" fill="#2563eb" opacity="0.25"/>
+  <!-- MarkCraft 应用图标（electron-builder 的 buildResources 源图，经 scripts/gen-icon.cjs
+       离屏渲染为 build/icon.png，再生成各平台 .ico/.icns）。
+       macOS 质感「折角便签」：品牌色 #7C8CFF 连续圆角舞台 + 白纸折角 + 压印 M + 顶部高光 +
+       边缘 rim light + 纸张柔和投影。M 用 path 而非 <text>，避免栅格化时依赖系统字体。 -->
+  <defs>
+    <linearGradient id="mcBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#9AA7FF"/>
+      <stop offset="0.5" stop-color="#7C8CFF"/>
+      <stop offset="1" stop-color="#5E6BD6"/>
+    </linearGradient>
+    <linearGradient id="mcSheen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.45"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="mcPaper" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#EEF1FB"/>
+    </linearGradient>
+    <filter id="mcNoteShadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#1a1f4a" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <rect x="8" y="8" width="496" height="496" rx="124" fill="url(#mcBg)"/>
+  <rect x="8" y="8" width="496" height="496" rx="124" fill="url(#mcSheen)"/>
+
+  <g transform="rotate(-5 256 256)" filter="url(#mcNoteShadow)">
+    <path d="M96 96 L372 96 L416 140 L416 416 L96 416 Z" fill="url(#mcPaper)"/>
+    <path d="M372 96 L416 140 L416 96 Z" fill="#E2E6F5"/>
+    <path d="M372 96 L416 140" fill="none" stroke="#C7CCE8" stroke-width="3" stroke-linecap="round"/>
+    <path d="M176 336 L176 192 L216 192 L256 264 L296 192 L336 192 L336 336 L304 336 L304 248 L256 326 L208 248 L208 336 Z" fill="#7C8CFF"/>
+    <g stroke="#7C8CFF" stroke-width="9" stroke-linecap="round" opacity="0.2">
+      <line x1="150" y1="362" x2="362" y2="362"/>
+      <line x1="150" y1="388" x2="362" y2="388"/>
+      <line x1="150" y1="412" x2="318" y2="412"/>
+    </g>
+  </g>
+
+  <rect x="8" y="8" width="496" height="496" rx="124" fill="none" stroke="#ffffff" stroke-opacity="0.25" stroke-width="3"/>
 </svg>

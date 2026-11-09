@@ -12,6 +12,14 @@ import { fetchWithTimeout } from './fetchWithTimeout'
 
 const GITEE_API = 'https://gitee.com/api/v5'
 
+/**
+ * URL **path segment** 编码：owner/repo/branch 来自用户配置，含 `?`/`#`/`../` 时直接插值
+ * 会造成查询注入或路径穿越。只逐段编码，**不要**编码整个 URL（保留 API 路径结构）。
+ */
+function enc(value: string): string {
+  return encodeURIComponent(value)
+}
+
 /** Pages 已启用 / 构建已存在时 Gitee 返回 400/409 —— 幂等可忽略 */
 const PAGES_IDEMPOTENT_STATUSES = new Set([400, 409])
 
@@ -60,7 +68,7 @@ async function resolveBranchCommitSha(
 
   push(branch)
   try {
-    const info = await giteeFetch<{ default_branch?: string }>(`/repos/${owner}/${repo}`, token)
+    const info = await giteeFetch<{ default_branch?: string }>(`/repos/${enc(owner)}/${enc(repo)}`, token)
     push(info?.default_branch)
   } catch {
     /* 读不到仓库信息时继续用兜底名 */
@@ -70,7 +78,7 @@ async function resolveBranchCommitSha(
 
   for (const b of candidates) {
     try {
-      const branchInfo = await giteeFetch<GitBranchRef>(`/repos/${owner}/${repo}/branches/${b}`, token)
+      const branchInfo = await giteeFetch<GitBranchRef>(`/repos/${enc(owner)}/${enc(repo)}/branches/${enc(b)}`, token)
       if (branchInfo?.commit?.sha) return branchInfo.commit.sha
     } catch {
       /* 该分支不存在，试下一个 */
@@ -81,7 +89,7 @@ async function resolveBranchCommitSha(
 
 /** 由 commit SHA 解引用出它指向的 **tree** SHA（`base_tree` 需要 tree，不是 commit） */
 async function resolveTreeSha(owner: string, repo: string, commitSha: string, token: string): Promise<string> {
-  const commit = await giteeFetch<GitCommitObject>(`/repos/${owner}/${repo}/git/commits/${commitSha}`, token)
+  const commit = await giteeFetch<GitCommitObject>(`/repos/${enc(owner)}/${enc(repo)}/git/commits/${commitSha}`, token)
   const treeSha = commit?.tree?.sha
   if (!treeSha) {
     throw new DeployApiError(`无法从 commit ${commitSha} 解析出 tree SHA`, 500)
@@ -115,7 +123,7 @@ export const giteeAdapter: PlatformAdapter = {
 
   async ensureRepo(owner: string, repo: string, token: string) {
     try {
-      await giteeFetch(`/repos/${owner}/${repo}`, token)
+      await giteeFetch(`/repos/${enc(owner)}/${enc(repo)}`, token)
     } catch {
       await giteeFetch('/user/repos', token, {
         method: 'POST',
@@ -132,7 +140,7 @@ export const giteeAdapter: PlatformAdapter = {
   },
 
   async createBlob(owner: string, repo: string, content: string, token: string) {
-    const blob = await giteeFetch<GitSha>(`/repos/${owner}/${repo}/git/blobs`, token, {
+    const blob = await giteeFetch<GitSha>(`/repos/${enc(owner)}/${enc(repo)}/git/blobs`, token, {
       method: 'POST',
       body: JSON.stringify({ content: btoa(unescape(encodeURIComponent(content))), encoding: 'base64' }),
     })
@@ -143,7 +151,7 @@ export const giteeAdapter: PlatformAdapter = {
     // base_tree 必须是 tree 的 SHA；空仓库（baseTreeSha=null）时不带该字段
     const body: Record<string, unknown> = { tree }
     if (baseTreeSha) body.base_tree = baseTreeSha
-    const result = await giteeFetch<GitSha>(`/repos/${owner}/${repo}/git/trees`, token, {
+    const result = await giteeFetch<GitSha>(`/repos/${enc(owner)}/${enc(repo)}/git/trees`, token, {
       method: 'POST',
       body: JSON.stringify(body),
     })
@@ -160,7 +168,7 @@ export const giteeAdapter: PlatformAdapter = {
   ) {
     const body: Record<string, unknown> = { message, tree: treeSha }
     if (parentSha) body.parents = [parentSha]
-    const commit = await giteeFetch<GitSha>(`/repos/${owner}/${repo}/git/commits`, token, {
+    const commit = await giteeFetch<GitSha>(`/repos/${enc(owner)}/${enc(repo)}/git/commits`, token, {
       method: 'POST',
       body: JSON.stringify(body),
     })
@@ -168,13 +176,19 @@ export const giteeAdapter: PlatformAdapter = {
   },
 
   async updateBranchRef(owner: string, repo: string, branch: string, commitSha: string, token: string) {
+    // 同 githubAdapter（2026-11-03 审查 P1）：去掉无条件 force，交给服务端 fast-forward 校验。
     try {
-      await giteeFetch(`/repos/${owner}/${repo}/git/refs/heads/${branch}`, token, {
+      await giteeFetch(`/repos/${enc(owner)}/${enc(repo)}/git/refs/heads/${enc(branch)}`, token, {
         method: 'PATCH',
-        body: JSON.stringify({ sha: commitSha, force: true }),
+        body: JSON.stringify({ sha: commitSha }),
       })
-    } catch {
-      await giteeFetch(`/repos/${owner}/${repo}/git/refs`, token, {
+    } catch (err) {
+      if (err instanceof DeployApiError && (err.status === 422 || err.status === 400)) {
+        throw new Error(
+          `部署被拒绝：远端分支「${branch}」已被其他提交推进（非快进）。请刷新后重试；若该分支仅用于部署，可改用独立分支。`,
+        )
+      }
+      await giteeFetch(`/repos/${enc(owner)}/${enc(repo)}/git/refs`, token, {
         method: 'POST',
         body: JSON.stringify({ ref: `refs/heads/${branch}`, sha: commitSha }),
       })
@@ -183,7 +197,7 @@ export const giteeAdapter: PlatformAdapter = {
 
   async configurePages(owner: string, repo: string, branch: string, token: string) {
     try {
-      await giteeFetch(`/repos/${owner}/${repo}/pages/builds`, token, {
+      await giteeFetch(`/repos/${enc(owner)}/${enc(repo)}/pages/builds`, token, {
         method: 'POST',
         body: JSON.stringify({ branch }),
       })

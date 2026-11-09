@@ -2,7 +2,7 @@ import { toolbar, toolbarAria } from './toolbar'
 import { editor, editorExtra, searchReplace, listMenu, mathSymbols, inlineMathPreview, mathPopover } from './editor'
 import { sidebar, sidebarExtra, fileTreeNode, createFile, createFileExtra, quickOpen, globalSearch, tabBar, defaultDocs } from './fileManager'
 import { blogStudio, blogCss, platformPublish, blogModal } from './blog'
-import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, auroraTabs, blog, editorPanel, diaryFormat, importDialog, importExternal, cssCompat, autocomplete, embedView, bootstrap, editorWidgets, graphExport, mindMap, linkRedirectDialog, autoLayout, auroraEditor, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, settingsAbout, settingsData, settingsExport, uiLabels, writingAid, exportKit, legacyMigration, vaultNotWritable, mathBlock, brokenLinkMenu } from './common'
+import { app, nav, shell, cmdPalette, welcome, preview, previewExtra, table, tableEditorExtra, inputModal, scrollButtons, codeLanguages, menu, ctxMenu, canvasDock, canvasCtxMenu, canvasTopbar, canvasSidebar, canvasInspector, canvasTab, canvasCard, canvasList, propsTab, settingsAppearance, settingsEditor, settingsImage, graph, canvasPanel, versionHistory, settingsPanel, settingsGeneral, templates, editorToolbar, auroraTabs, blog, editorPanel, diaryFormat, importDialog, importExternal, cssCompat, autocomplete, embedView, bootstrap, editorWidgets, graphExport, mindMap, linkRedirectDialog, autoLayout, auroraEditor, diary, kbSearch, kbOverview, kbCreate, kbFilter, kbPanel, kbDependency, kbCrossSearch, kbExportMenu, kbChat, kbModal, kbCanvas, kbGraph, settingsUser, zodiac, onboarding, settingsAbout, settingsData, settingsExport, uiLabels, writingAid, exportKit, legacyMigration, vaultNotWritable, mathBlock, brokenLinkMenu, avatarPicker } from './common'
 import { frontMatter, settings } from './settings'
 import { lint } from './lint'
 import { outline, footnote } from './outline'
@@ -186,6 +186,9 @@ export interface Translations {
     browseSampleDesc: string
     firstRun: string
     firstRunHint: string
+    firstRunHeroSub: string
+    firstRunHeroMeta: string
+    firstRunOpenDoc: string
     migrateTitle: string
     migrateDesc: string
     migrateObsidian: string
@@ -206,6 +209,8 @@ export interface Translations {
     greetingNoon: string
     greetingAfternoon: string
     greetingEvening: string
+    birthdayGreeting: string
+    birthdayLine: string
     usageDaysLine: string
     streakDaysLine: string
     lastStayed: string
@@ -226,6 +231,35 @@ export interface Translations {
     agoMinutes: string
     agoHours: string
     agoDays: string
+  }
+  onboarding: {
+    welcomeTitle: string
+    welcomeSubtitle: string
+    pointLocal: string
+    pointExport: string
+    pointPublish: string
+    next: string
+    enter: string
+    title: string
+    subtitle: string
+    nameLabel: string
+    namePlaceholder: string
+    nameHint: string
+    birthdayLabel: string
+    optional: string
+    birthdayHint: string
+    zodiacHint: string
+    avatarLabel: string
+    avatarHint: string
+    avatarChange: string
+    skip: string
+    done: string
+    remembered: string
+    rememberedLater: string
+    privacyTitle: string
+    privacyDesc: string
+    privacyAcknowledge: string
+    privacyBack: string
   }
   searchReplace: {
     searchPlaceholder: string
@@ -1215,6 +1249,7 @@ export interface Translations {
     deviceMobile: string
     gripTitle: string
     previewTitle: string
+    previewLoading: string
     searchTheme: string
     catLabel: string
     styleLabel: string
@@ -1626,6 +1661,32 @@ export interface Translations {
     uploadAvatar: string
     removeAvatar: string
   }
+  avatarPicker: {
+    title: string
+    tabsAria: string
+    tabEmoji: string
+    tabPhoto: string
+    searchPlaceholder: string
+    searchAria: string
+    groupAria: string
+    groupAll: string
+    emojiGridAria: string
+    noResults: string
+    uploadTitle: string
+    uploadBtn: string
+    processing: string
+    uploadHint: string
+    removePhoto: string
+    clearAvatar: string
+    background: string
+    backgroundHint: string
+    bgAria: string
+    customColor: string
+    bgPhotoNote: string
+    pickImage: string
+    imageTooLarge: string
+    avatarFailed: string
+  }
   zodiac: {
     capricorn: string
     aquarius: string
@@ -1873,6 +1934,7 @@ export interface Translations {
     catData: string
     catShortcuts: string
     catAbout: string
+    catPrivacy: string
     userTitle: string
     userDesc: string
     generalTitle: string
@@ -1891,6 +1953,19 @@ export interface Translations {
     shortcutsDesc: string
     aboutTitle: string
     aboutDesc: string
+    privacyTitle: string
+    privacyDesc: string
+    enabledLabel: string
+    enabledDesc: string
+    viewPolicy: string
+    statusOn: string
+    statusOff: string
+    consentTitle: string
+    consentDesc: string
+    consentCheckbox: string
+    consentPrivacyLink: string
+    consentDecline: string
+    consentJoin: string
     breadcrumb: string
     aria: string
   }
@@ -3011,6 +3086,7 @@ const zh: Translations = {
   preview,
   sidebar,
   welcome,
+  onboarding,
   searchReplace,
   table,
   outline,
@@ -3034,6 +3110,7 @@ const zh: Translations = {
   versionHistory,
   settingsGeneral,
   settingsUser,
+  avatarPicker,
   editorToolbar,
   auroraTabs,
   blog,

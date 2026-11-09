@@ -15,6 +15,7 @@ import { DataSection } from './sections/DataSection'
 import { ShortcutsSection } from './sections/ShortcutsSection'
 import { AboutSection } from './sections/AboutSection'
 import { UserSection } from './sections/UserSection'
+import { PrivacySection } from './sections/PrivacySection'
 import { SettingsBrowser } from './SettingsBrowser'
 
 /**
@@ -29,7 +30,7 @@ interface SettingsCategory {
   icon: IconName
 }
 
-const CATEGORY_IDS: { id: string; icon: IconName; labelKey: 'catUser' | 'catGeneral' | 'catAppearance' | 'catEditor' | 'catImage' | 'catExport' | 'catData' | 'catShortcuts' | 'catAbout' }[] = [
+const CATEGORY_IDS: { id: string; icon: IconName; labelKey: 'catUser' | 'catGeneral' | 'catAppearance' | 'catEditor' | 'catImage' | 'catExport' | 'catData' | 'catShortcuts' | 'catAbout' | 'catPrivacy' }[] = [
   { id: 'user', labelKey: 'catUser', icon: 'user' as IconName },
   { id: 'general', labelKey: 'catGeneral', icon: 'settings' as IconName },
   { id: 'appearance', labelKey: 'catAppearance', icon: 'sun' as IconName },
@@ -39,6 +40,7 @@ const CATEGORY_IDS: { id: string; icon: IconName; labelKey: 'catUser' | 'catGene
   { id: 'data', labelKey: 'catData', icon: 'save' as IconName },
   { id: 'shortcuts', labelKey: 'catShortcuts', icon: 'command' as IconName },
   { id: 'about', labelKey: 'catAbout', icon: 'info' as IconName },
+  { id: 'privacy', labelKey: 'catPrivacy', icon: 'shield' as IconName },
 ]
 
 const CATEGORY_TITLE_KEYS = {
@@ -51,6 +53,7 @@ const CATEGORY_TITLE_KEYS = {
   data: ['dataTitle', 'dataDesc'],
   shortcuts: ['shortcutsTitle', 'shortcutsDesc'],
   about: ['aboutTitle', 'aboutDesc'],
+  privacy: ['privacyTitle', 'privacyDesc'],
 } as const
 
 /**
@@ -125,6 +128,8 @@ export function SettingsPanel({ nav, toast, initialCategory }: SettingsPanelProp
         return <ShortcutsSection toast={toast} />
       case 'about':
         return <AboutSection toast={toast} nav={nav} onOpenBrowser={setBrowserUrl} />
+      case 'privacy':
+        return <PrivacySection />
       default:
         return <GeneralSection toast={toast} />
     }

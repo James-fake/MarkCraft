@@ -13,10 +13,10 @@
 | `husky` pre-commit → `lint-staged` | 仅对暂存文件跑 `.eslintrc.guard.cjs` | 只查**分层守卫**（`local/no-aurora-ui-import`），不审逻辑/安全/质量 |
 | `.eslintrc.cjs` 主配置 | eslint:recommended + TS + react-hooks | 规则多为 `warn`，**不阻断**合并 |
 | PR 模板 `ui.md`（§18 闸门） | UI 改动 14 项自查 | 纯人工勾选，无自动校验 |
-| 三处 `tsc` 类型检查 | src / electron / e2e | 无 CI 在合并前自动跑 |
-| **CI 工作流** | —— | **不存在**（`.github/` 仅 PR 模板） |
+| 三处 `tsc` 类型检查 | src / electron / e2e | 本地必跑；CI 自动化待迁移（见下行） |
+| **CI 工作流** | `.github/workflows/code-review.yml`（**GitHub Actions**）：tsc×3 + vitest + lint 硬门禁 + OCR 辅助 | **仓库托管在 Gitee，GitHub Actions 不会触发 → 当前 CI 实际未生效**；需迁移 Gitee Go（`.workflow/*.yml`）或镜像到 GitHub |
 
-**核心缺口**：缺少「逐行自动审查」与「合并前门禁」。本文件 + `.opencodereview/rule.json` + 建议的 CI 一并补齐。
+**核心缺口**：门禁**内容**已就绪（tsc×3 / vitest / lint，本地等价实跑全绿），但**承载平台不匹配**——工作流是 GitHub Actions，仓库在 Gitee，故当前 CI **不自动运行**；需迁移 Gitee Go 或镜像 GitHub。逐行 AI 审查（OCR）为**辅助定位**：`ocr review` 不按发现严重级别返回非零，High 项由 reviewer 人工把关，不自动阻断。
 
 ---
 
@@ -51,10 +51,11 @@ npm run lint                     # eslint（含分层守卫，max-warnings 0）
 - 用 `.github/PULL_REQUEST_TEMPLATE/ui.md`：UI 改动逐条勾 §18 闸门；非 UI 注明「不涉及 UI」。
 - PR 描述写清：背景、改动范围、风险级别（S0–S3）、自测结果、是否需重新打包。
 
-### 步骤 3 — 自动审查门禁（CI，建议启用）
-- **lint + 三处 tsc + vitest** 作为 PR 必过检查（见 §7 CI 模板）。
-- **OpenCodeReview 自动评论**：CI 中跑 `ocr review --from main --to <branch>`，按 `.opencodereview/rule.json` 出 High/Medium/Low 评论；**High 项阻塞合并**。
-- 仅依赖既有 husky 不足以守住合并，CI 是合并前最后一道自动闸。
+### 步骤 3 — 自动审查门禁（CI，已配置但当前不生效）
+> ⚠️ **平台不匹配**：工作流是 GitHub Actions（`.github/workflows/code-review.yml`），但仓库托管在 **Gitee**（`gitee.com/James-fake/markcraft`），GitHub Actions **不会触发** → 当前 CI 不自动运行。要在 Gitee 上真正自动跑，需接 **Gitee Go**（`.workflow/*.yml`）或把仓库镜像到 GitHub。在此之前，合并前须**本地实跑**下列等价命令。
+- **硬门禁（阻断合并）**：`lint + 三处 tsc + vitest`，任一失败即打回（本地实跑等价；CI 自动化待迁移）。
+- **OpenCodeReview（辅助，不自动阻断）**：CI 中跑 `ocr review`，按 `.opencodereview/rule.json` 出 High/Medium/Low 评论。**注意**：`ocr review` 不按发现严重级别返回非零退出码，无法在 CI 层按 High 自动阻断；High 项由 reviewer 在 PR 中人工把关（见步骤 5 / §6）。若将来要机器阻断，须在 CI 中解析 `--format json` 的 severity 并显式 `exit 1`（见 §7.3 备注）。
+- 仅依赖既有 husky 不足以守住合并，CI 的硬门禁是合并前最后一道自动闸。
 
 ### 步骤 4 — 人工评审（reviewer）
 reviewer 按 §5 通用清单 + §6 专项清单逐条核对，重点不是「找风格问题」，而是：
@@ -64,7 +65,8 @@ reviewer 按 §5 通用清单 + §6 专项清单逐条核对，重点不是「�
 
 ### 步骤 5 — 合并标准
 满足**全部**方可合并：
-- CI 全绿（lint / tsc×3 / vitest / OCR High=0）
+- CI 硬门禁全绿（lint / tsc×3 / vitest）
+- OCR 报告的 **High 项已由 reviewer 确认修复或明确接受**（OCR 不自动阻断，须人工把关）
 - 至少 1 名 reviewer Approval（S0 需 2 名）
 - 所有 reviewer 提出的 Medium 已修复或记录为 follow-up
 - 关联 issue / 模板勾选完整
@@ -92,7 +94,7 @@ reviewer 按 §5 通用清单 + §6 专项清单逐条核对，重点不是「�
 - [ ] **Electron 边界**：业务代码经 `@platform`，无直接 `require('electron')` / 读 `window.markcraft`；`mc:*` IPC 通道三处同步（preload / `types/electron.d.ts` / `src/platform/electron.ts`）。
 - [ ] **pre-commit 守卫陷阱**：新增的 `eslint-disable` 指令引用的规则名，其插件必须在 `.eslintrc.guard.cjs` 的 `plugins` 中加载，否则 ESLint 报「Definition for rule ... was not found」假错误卡提交。
 - [ ] **打包陷阱**：改打包配置（`build` 字段 / `electron-builder`）时，知悉 EBUSY（Defender 锁 asar）/ EPERM（rename）/ safe-delete 限制；优先换全新输出目录重试。
-- [ ] **UI 设计基线**：改 `src/aurora` 须过 §18 闸门（token 色值、圆角、字号、动效 < 300ms、危险操作右置、弹层走 Modal、可达性）。
+- [ ] **UI 设计基线**：改 `src/aurora` 须过 §18 闸门（token 色值、圆角、字号、动效 < 300ms、危险操作右置、弹层走 Modal、可达性）。（**豁免提示**：非模态锚定气泡浮层 `AvatarPicker.tsx` 见 §18 §3.4 例外、用户头像个性化配色见 §18 §4.1 豁免，均为 2026-11-08 经产品决策拍板的需求驱动规范偏离 + 显式豁免，勿按「弹层走 Modal / 禁硬编码 hex」旧表述打回。）
 - [ ] **测试噪音识别**：jsdom 下 Dexie `MissingAPIError` 是环境噪音，不代表失败；多文件并行 `vitest` 的 `Temp\web` EPERM 中断同理。
 
 ---
@@ -116,37 +118,23 @@ npm install -g @alibaba-group/open-code-review   # 安装 ocr CLI（本机已有
 ocr config provider                              # 配置 LLM（交互式）
 ocr llm test                                      # 连通验证
 ocr review --audience agent --background "业务背景" # 审工作副本
-ocr review --from main --to <branch>               # 审分支
+ocr review --from master --to <branch>             # 审分支
 ```
 - 项目规则：仓库根 `.opencodereview/rule.json`（覆盖分层守卫 / i18n / Electron 边界 / 设计基线 / 行尾 / 测试噪音 + 系统通用规则）。
-- 评论分级：bug 与安全问题 = High（阻塞）；吹毛求疵与误报被静默丢弃。
+- 评论分级：bug 与安全问题 = High（**由 reviewer 人工阻塞合并**；`ocr review` 本身不按级别退出）；吹毛求疵与误报被静默丢弃。
 
 ### 7.2 本地 pre-push 接入（可选）
-在 `.husky/` 加 `pre-push` 钩子跑 `ocr review --from main --to HEAD`，把 OCR 推到合并前最后一关（需本机已配 LLM）。
+在 `.husky/` 加 `pre-push` 钩子跑 `ocr review --from master --to HEAD`，把 OCR 推到合并前最后一关（需本机已配 LLM）。
 
-### 7.3 CI 工作流（建议，需配置 `secrets.OCR_LLM_TOKEN`）
-```yaml
-# .github/workflows/code-review.yml
-name: code-review
-on: [pull_request]
-jobs:
-  review:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
-      - run: npm ci
-      - run: npx tsc --noEmit && npm run typecheck:electron && npm run typecheck:e2e
-      - run: npx vitest run
-      - run: npm i -g @alibaba-group/open-code-review
-      - run: ocr config set llm.auth_token ${{ secrets.OCR_LLM_TOKEN }}
-      - run: ocr config set llm.model <your-model>
-      - run: ocr review --from main --to ${{ github.head_ref }} --audience agent
-        continue-on-error: true   # High 项由后续步骤转 blocking
-```
-> 落地前需：① 提交本 `code-review.yml`；② 在仓库 Secrets 配置 `OCR_LLM_TOKEN` 与模型；③ 将 OCR High 评论转为 PR 的 required review。
+### 7.3 CI 工作流（配置已提交，但当前不生效：Gitee × GitHub Actions）
+> ⚠️ **托管平台不匹配**：本仓库远端是 **Gitee**（`gitee.com/James-fake/markcraft`），而本工作流是 **GitHub Actions**（`.github/workflows/code-review.yml`）。GitHub Actions 只会在 GitHub 仓库的 PR 上运行，**在 Gitee 上不会触发**。因此当前 CI 实际**不生效**。两条落地路径：① 迁移 **Gitee Go**（在 `.workflow/` 下写 `MasterPipeline.yml` / `PRPipeline.yml`，步骤同下，用 Gitee Go 的 npm/script 插件）；② 把仓库镜像到 GitHub 并启用 Actions。在此之前，合并前须本地实跑等价门禁（已实跑通过：tsc×3=0 / lint=0 / vitest 全 passed）。
+- 触发：`pull_request` → `master`（仅在 GitHub 托管时生效）。
+- **硬门禁（阻断合并）**：`npx tsc --noEmit && npm run typecheck:electron && npm run typecheck:e2e`、`npx vitest run`、`npm run lint`——任一失败 PR 变红。
+- **OpenCodeReview（辅助，`continue-on-error: true`）**：需 Secrets `OCR_LLM_TOKEN` + `OCR_LLM_MODEL`；`ocr review --from master --to "$GITHUB_HEAD_REF" --audience agent`。**不自动阻断**，原因见下。
+
+> **为什么 OCR 不阻断**：`ocr review` 的退出码只在「所有被选文件都审查失败」时非零，**不会因发现 High 而失败**（`--help` 无 severity 阈值开关）。因此无法靠去掉 `continue-on-error` 让 High 阻塞；强行阻断需在 CI 里用 `--format json` 解析 severity 并 `exit 1`，且强依赖 LLM 可用——把外部 LLM 当硬合并门禁，会因 token 缺失或服务抖动误伤全部 PR，故本项目定位为「辅助 + reviewer 人工把关」。
+>
+> **若确需机器阻断 High**（可选，谨慎）：在 OCR 步骤后追加一步——`ocr review --format json -o report.json`，再用 `jq`/node 检测是否存在 `severity=="high"`，有则 `exit 1`。仅在该 Secret 必配、且接受 LLM 抖动风险时启用。
 
 ---
 

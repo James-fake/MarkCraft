@@ -14,6 +14,8 @@ import { startAutoBackupScheduler } from '@services/backupService'
  */
 vi.mock('@services/backupService', () => ({
   startAutoBackupScheduler: vi.fn(() => 4242 as unknown as ReturnType<typeof setInterval>),
+  // FileStore 现在会在挂载时绑定运行时文件树（备份数据源），mock 需提供该导出
+  bindRuntimeFiles: vi.fn(),
 }))
 
 /** 模拟 AuroraShell：自身常驻（挂载应用级 hook），按视图条件渲染「编辑器面板」 */

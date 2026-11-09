@@ -42,6 +42,8 @@ test.beforeAll(async () => {
   win = await app.firstWindow()
   await win.addInitScript((root: string) => {
     localStorage.setItem('markcraft.lastVault', root)
+    // 首启独立引导是整屏的，会挡住主界面断言 → 预置「已问过」标记
+    localStorage.setItem('markcraft.onboardingProfile.v1', '1')
   }, vaultDir)
   await win.reload()
   await win.waitForFunction(

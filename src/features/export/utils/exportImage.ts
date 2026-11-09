@@ -90,6 +90,10 @@ export async function exportToImage(
 async function convertToJpeg(pngBlob: Blob, quality: number): Promise<Blob> {
   return new Promise((resolve, reject) => {
     const img = new Image()
+    // ⚠️ 必须 revoke（2026-11-03 审查 P2）：每次 JPEG 导出曾泄漏一个 Blob URL，
+    //    大图连续导出会把整张图常驻内存。
+    const objectUrl = URL.createObjectURL(pngBlob)
+    const cleanup = () => URL.revokeObjectURL(objectUrl)
     img.onload = () => {
       const canvas = document.createElement('canvas')
       canvas.width = img.naturalWidth
@@ -99,13 +103,20 @@ async function convertToJpeg(pngBlob: Blob, quality: number): Promise<Blob> {
       ctx.fillRect(0, 0, canvas.width, canvas.height)
       ctx.drawImage(img, 0, 0)
       canvas.toBlob(
-        (blob) => blob ? resolve(blob) : reject(new Error('Failed to convert to JPEG')),
+        (blob) => {
+          cleanup()
+          if (blob) resolve(blob)
+          else reject(new Error('Failed to convert to JPEG'))
+        },
         'image/jpeg',
-        quality
+        quality,
       )
     }
-    img.onerror = reject
-    img.src = URL.createObjectURL(pngBlob)
+    img.onerror = (err) => {
+      cleanup()
+      reject(err)
+    }
+    img.src = objectUrl
   })
 }
 

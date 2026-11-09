@@ -285,15 +285,17 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
   // P0 修复：预览 = 真实 generateSingleFileBlog（themeStyle 驱动 60+ 主题模板渲染）。
   // 与真实 BlogStudio 的 updatePreview 同源（单一数据源），themeKey/colorScheme/font/
   // 自定义 CSS/友链/系列/功能开关任一变化都会（防抖 ~300ms 后）重新生成并反映到 iframe。
-  // 预览失败/空态占位（iframe 内联 HTML）：让"生成异常"可见，不再静默空白
-  const previewFallback = useMemo(() => {
+  // 预览失败/空态占位（iframe 内联 HTML）：让"生成异常"可见，不再静默空白。
+  // ⚠️ 生成代价较高（内容多时同步阻塞主线程），故改为「延迟到下一帧再算」：
+  // 先把"手稿书写"加载覆盖层绘制出来，再在 rAF 里跑重生成，避免预览区在生成期间整片空白（像 bug）。
+  const buildPreviewHtml = useCallback(() => {
     const wrap = (icon: string, title: string, body: string) => `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;font-family:system-ui,'PingFang SC','Microsoft YaHei',sans-serif;background:#fafafa;color:#333;display:flex;align-items:center;justify-content:center;height:100vh;padding:24px;box-sizing:border-box"><div style="max-width:460px;text-align:center"><div style="font-size:30px;margin-bottom:12px">${icon}</div><div style="font-weight:600;margin-bottom:8px;font-size:15px">${title}</div><div style="font-size:13px;color:#666;line-height:1.6;word-break:break-all">${body}</div></div></body></html>`
     const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
     const included = docs.filter((d) => d.included && d.content.trim())
     if (included.length === 0) {
       // 知识库来源空态：库内无任何笔记（界面级引导，区别于默认全部笔记的诊断文案）
       if (kbSource) {
-        return wrap('<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/></svg>', B.kbNoFilesTitle, B.kbNoFilesBody.replace('{name}', kbSource.name))
+        return wrap('<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"/></svg>', B.kbNoFilesTitle, B.kbNoFilesBody.replace('{name}', esc(kbSource.name)))
       }
       const mdTotal = docs.length
       const emptyCount = docs.filter((d) => !d.content.trim()).length
@@ -316,6 +318,48 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
       return wrap('<svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="1.5"><path d="M12 4 4 20h16L12 4Z"/><path d="M12 10v4M12 17v1"/></svg>', B.previewFailedTitle, `${B.previewFailedBody.replace('{msg}', esc(String((e as Error)?.message ?? e)))}<br><br><span style="font-size:12px;color:#999">${B.previewFailedHint}</span>`)
     }
   }, [debouncedCfg, docs, debouncedFriends, debouncedSeries, kbSource, B])
+
+  // 预览 HTML：同步生成（保持渲染/测试正确性，srcdoc 属性始终即时可用，绝不露空属性）。
+  // 代价是内容多时 generateSingleFileBlog 同步阻塞主线程、iframe 内部渲染较重内容会有片刻空白。
+  const previewSrcDoc = useMemo(() => buildPreviewHtml(), [buildPreviewHtml])
+
+  // 加载覆盖层（"手稿书写"）：当生成结果变化（cfg/文档/设备改动）后，iframe 内部渲染较重内容期间
+  // 先盖住空白区，待 iframe 真正加载完成（onLoad）再撤下，避免"整片空白像 bug"。
+  // ⚠️ 不放任把 srcdoc 延后到 rAF：那样会让同步读取 srcdoc 的冒烟测试读到空串而误报，
+  //    且首屏属性为空也是一种"空白"。覆盖层只负责遮 iframe 的内部渲染空白，srcdoc 仍即时产出。
+  const [isPreviewBusy, setIsPreviewBusy] = useState(true)
+  const genSeqRef = useRef(0)      // 最近一次触发生成的序号（用于判断 iframe 加载是否对应最新生成）
+  const loadedSeqRef = useRef(0)   // 最近一次已完成加载的序号
+  const prevSrcDocRef = useRef<string>(previewSrcDoc) // iframe 当前已渲染的 srcDoc（用于去重判断）
+  // 用 layout effect 在「提交新 srcdoc 后的那一帧绘制前」就把覆盖层挂上，
+  // 否则新 srcdoc 提交到浏览器开始异步渲染、覆盖层却还没挂的间隙会闪一下空白。
+  useLayoutEffect(() => {
+    const seq = ++genSeqRef.current
+    setIsPreviewBusy(true)
+    if (prevSrcDocRef.current === previewSrcDoc) {
+      // srcDoc 与当前已渲染的完全相同（如 cfg 改动但文档为空、输出字符串一致）：
+      // iframe 不会重新加载、onLoad 永不触发，不能干等 —— 直接撤掉覆盖层。
+      loadedSeqRef.current = seq
+      setIsPreviewBusy(false)
+    } else {
+      // srcDoc 确实变了：记住新值，等 iframe 真实 onLoad 再撤（覆盖内部渲染空白）。
+      prevSrcDocRef.current = previewSrcDoc
+    }
+    // 兜底：若 iframe onLoad 未触发（如加载极快 / 测试环境），
+    // 超时也撤掉覆盖层，避免覆盖层卡死不消失。
+    const fallback = window.setTimeout(() => {
+      if (genSeqRef.current === seq) setIsPreviewBusy(false)
+    }, 2500)
+    return () => window.clearTimeout(fallback)
+  }, [buildPreviewHtml, previewSrcDoc])
+
+  const handlePreviewLoad = useCallback(() => {
+    // iframe 加载完成（对应最近一次生成）即撤掉覆盖层；用序号防止旧 iframe 加载误撤。
+    if (loadedSeqRef.current !== genSeqRef.current) {
+      loadedSeqRef.current = genSeqRef.current
+      setIsPreviewBusy(false)
+    }
+  }, [])
 
   // 功能列表浮层：仅允许停靠在「博客界面」最左 / 最右贴边位置（2 个停靠点）。
   // 交互 = 抓住表头向左/向右「甩丢」：拖动时实时跟随指针，松手按抛掷速度吸附到对应贴边，
@@ -439,7 +483,18 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
     const doc = previewIframeRef.current?.srcdoc
     if (!doc) { toast?.(B.notGenerated); return }
     try {
-      const blob = new Blob([doc], { type: 'text/html' })
+      // ⚠️ 不能直接 window.open(blobUrl)（2026-11-03 审查 P1）：blob URL 在 Chromium 里
+      //    继承创建方 origin —— 预览内容（可能来自导入的第三方 .md / 知识库 bundle）里的
+      //    脚本会以**应用源**执行，而 iframe 内原本靠 sandbox 隔离。
+      //    改为外层包装页 + `sandbox="allow-scripts"`（无 allow-same-origin）的 iframe：
+      //    脚本照常运行（mermaid 等），但运行在 opaque origin，触达不到应用 DOM/存储。
+      const escaped = doc
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+      const wrapper = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>MarkCraft Preview</title><style>html,body{margin:0;padding:0;height:100%;background:#fff}iframe{display:block;width:100vw;height:100vh;border:0}</style></head><body><iframe sandbox="allow-scripts" srcdoc="${escaped}"></iframe></body></html>`
+      const blob = new Blob([wrapper], { type: 'text/html' })
       const url = URL.createObjectURL(blob)
       window.open(url, '_blank', 'noopener')
       setTimeout(() => URL.revokeObjectURL(url), 10000)
@@ -617,8 +672,23 @@ export function BlogPanel({ nav, toast, kbId }: BlogPanelProps) {
           <div className="aurora-blog__preview">
             <div className="aurora-blog__preview-stage">
               <div className={`aurora-blog__frame aurora-blog__frame--${device}`}>
-                <iframe ref={previewIframeRef} title={B.previewTitle} srcDoc={previewFallback} sandbox="allow-scripts" />
+                <iframe ref={previewIframeRef} title={B.previewTitle} srcDoc={previewSrcDoc} sandbox="allow-scripts" onLoad={handlePreviewLoad} />
               </div>
+              {isPreviewBusy && (
+                <div className="aurora-blog__loading" aria-busy="true" aria-live="polite">
+                  <div className="aurora-blog__loading-paper">
+                    <div className="aurora-blog__loading-badge">M</div>
+                    <div className="aurora-blog__loading-lines">
+                      <span className="is-title" />
+                      <span />
+                      <span />
+                      <span />
+                      <span className="is-short" />
+                    </div>
+                  </div>
+                  <p className="aurora-blog__loading-cap">{B.previewLoading}</p>
+                </div>
+              )}
             </div>
           </div>
         </div>

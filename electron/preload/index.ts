@@ -84,6 +84,13 @@ const api = {
       ipcRenderer.invoke('mc:dialog:saveFile', options),
   },
 
+  // —— S0 红线：Vault 根登记（fs IPC 白名单的动态部分）——
+  // Vault 载入前登记根目录，主进程据此放行该根内的 fs 操作；切换/卸载时注销。
+  vault: {
+    registerRoot: (root: string): Promise<void> => ipcRenderer.invoke('mc:vault:registerRoot', root),
+    unregisterRoot: (root: string): Promise<void> => ipcRenderer.invoke('mc:vault:unregisterRoot', root),
+  },
+
   // —— P3：系统 shell ——
   shell: {
     showItemInFolder: (path: string): Promise<boolean> => ipcRenderer.invoke('mc:fs:reveal', path),

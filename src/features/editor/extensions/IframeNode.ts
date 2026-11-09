@@ -37,7 +37,10 @@ const IframeNode = Node.create({
   },
 
   renderHTML({ HTMLAttributes }) {
-    return ['iframe', mergeAttributes(HTMLAttributes, { sandbox: 'allow-scripts allow-same-origin' })]
+    // ⚠️ 不得带 allow-same-origin（2026-11-03 审查 P1）：scripts + same-origin 组合下
+    //    同源 iframe 可移除自身 sandbox 并触达应用 DOM/存储 —— Electron 里是标准沙箱逃逸向量。
+    //    与 mdToHtml 的 markdown→HTML 路径保持一致（那里早已去掉它）。
+    return ['iframe', mergeAttributes(HTMLAttributes, { sandbox: 'allow-scripts' })]
   },
 
   addProseMirrorPlugins() {

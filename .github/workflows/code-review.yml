@@ -38,6 +38,9 @@ jobs:
       # —— 补充审查：OpenCodeReview 逐行 AI 审查 ——
       # 前置：仓库 Secrets 需配置 OCR_LLM_TOKEN（与 OCR_LLM_MODEL）。
       # 该步骤为「补充」定位，不阻断合并；High 项由 reviewer 在 PR 中处理。
+      # 注意：ocr review 不按发现严重级别返回非零（只在全部被选文件审查失败时非零），
+      # 故去掉 continue-on-error 也无法让 High 阻断；若要机器阻断，需解析 --format json
+      # 的 severity 后显式 exit 1（详见 docs/CODE_REVIEW.md §7.3）。
       - name: OpenCodeReview
         continue-on-error: true
         env:

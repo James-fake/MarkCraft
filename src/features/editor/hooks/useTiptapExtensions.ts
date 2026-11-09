@@ -63,9 +63,11 @@ export interface UseTiptapExtensionsParams {
   livePreview?: boolean
   undoFnRef: React.MutableRefObject<() => void>
   redoFnRef: React.MutableRefObject<() => void>
+  /** 空编辑区占位符；不传 = 用 t.editor.placeholder；传空串 '' = 关闭占位符（如日记区） */
+  placeholder?: string
 }
 
-export function useTiptapExtensions({ t, livePreview, undoFnRef, redoFnRef }: UseTiptapExtensionsParams): Extensions {
+export function useTiptapExtensions({ t, livePreview, undoFnRef, redoFnRef, placeholder }: UseTiptapExtensionsParams): Extensions {
   const undoRedoExtension = useRef(createUndoRedoExtension(
     () => undoFnRef.current(),
     () => redoFnRef.current(),
@@ -73,6 +75,11 @@ export function useTiptapExtensions({ t, livePreview, undoFnRef, redoFnRef }: Us
   const { settings: appSettings } = useSettings()
 
   return useMemo(() => {
+    // 占位符：默认沿用 t.editor.placeholder；显式传空串则关闭（日记编辑区不需要这段提示）
+    const placeholderText = placeholder !== undefined ? placeholder : t.editor.placeholder
+    const placeholderExtension = placeholderText
+      ? [Placeholder.configure({ placeholder: placeholderText })]
+      : []
     return [
       StarterKit.configure({
         heading: false,
@@ -86,9 +93,7 @@ export function useTiptapExtensions({ t, livePreview, undoFnRef, redoFnRef }: Us
         HTMLAttributes: { class: 'tiptap-link' },
       }),
       ImageNode,
-      Placeholder.configure({
-        placeholder: t.editor.placeholder,
-      }),
+      ...placeholderExtension,
       TaskList,
       TaskItem.configure({
         nested: true,
@@ -156,5 +161,5 @@ export function useTiptapExtensions({ t, livePreview, undoFnRef, redoFnRef }: Us
       FocusModeExtension,
       TransitionExtension,
     ]
-  }, [t, appSettings.codeBlockDefaultLang, appSettings.tabSize, livePreview])
+  }, [t, appSettings.codeBlockDefaultLang, appSettings.tabSize, livePreview, placeholder])
 }

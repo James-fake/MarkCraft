@@ -12,6 +12,7 @@ import {
   type NoteVersionRecord,
 } from '@core/storage/recordStore'
 import { collectAllFiles } from '@core/files/fileTree'
+import { flushSync } from './vaultService'
 import { safeJsonParse, safeJsonParseOrNull } from '@utils/safeJson'
 import { logger } from '@utils/logger'
 import { isFileManagerState, isRecord } from '@utils/schemaGuards'
@@ -122,8 +123,79 @@ function addFileToRoot(root: FileNode, file: FileNode): FileNode {
   }
 }
 
-/** 从 IndexedDB 读取当前 FileManagerState */
+/**
+ * 运行时文件树注入点（2026-11-03 审查 P1，备份子系统在 Vault 模式下整体失效）。
+ *
+ * 背景：备份原先只从 IndexedDB 读当前树（`loadLargeData(FILE_MANAGER_KEY)`），而桌面
+ * Vault 模式的 save effect 只把树同步到磁盘、**从不写 IDB** → `getCurrentFiles()` 恒为
+ * null，导致：① 自动备份调度器永远不产生备份；② 导入前的安全备份静默跳过；
+ * ③ 「恢复备份」写回 IDB 后永远加载不到（桌面端从磁盘加载）。
+ * 运行时树（FileStore 的 state）才是桌面形态的真相源，故由 FileStore 注入。
+ */
+type RuntimeFilesProvider = () => FileManagerState | null
+/**
+ * 恢复结果的落点。**必须返回 Promise 时调用方会等它**（2026-11-08 审查 M-C-2）：
+ * 桌面 Vault 模式下真正的写盘发生在 applier 内部（syncTree 300ms 防抖 + 串行写），
+ * 若 applier 只是「把树塞回内存」就返回，恢复流程会在文件落盘前就宣告成功 ——
+ * 用户此时关掉应用，刚恢复的文件全部丢失。
+ */
+type RuntimeFilesApplier = (state: FileManagerState) => void | Promise<void>
+
+let runtimeFilesProvider: RuntimeFilesProvider | null = null
+let runtimeFilesApplier: RuntimeFilesApplier | null = null
+/** 正在进行的落盘（供 flushVault 在退出前等待） */
+let pendingPersist: Promise<void> | null = null
+
+export function bindRuntimeFiles(
+  provider: RuntimeFilesProvider | null,
+  applier: RuntimeFilesApplier | null,
+): void {
+  runtimeFilesProvider = provider
+  runtimeFilesApplier = applier
+}
+
+/** 恢复/导入的落盘：桌面端交回 FileStore（→ syncTree 写磁盘），浏览器端仍写 IDB */
+async function persistFiles(next: FileManagerState): Promise<void> {
+  if (runtimeFilesApplier) {
+    const write = Promise.resolve(runtimeFilesApplier(next))
+    pendingPersist = write
+    try {
+      await write
+    } finally {
+      if (pendingPersist === write) pendingPersist = null
+    }
+    return
+  }
+  await saveLargeData(FILE_MANAGER_KEY, JSON.stringify(next))
+}
+
+/**
+ * 等待挂起的 Vault 写入真正落盘（退出前调用）。
+ *
+ * 两层都要冲：① `persistFiles` 里尚未完成的 applier；② `vaultService` 的 300ms
+ * 防抖 + 串行补跑链（恢复后用户可能立刻退出，防抖窗口内的写入会丢）。
+ * 失败不抛 —— 退出流程不该被写盘错误卡住（错误已由 syncTree 的 onError 上报）。
+ */
+export async function flushVault(): Promise<void> {
+  const pending = pendingPersist
+  if (pending) {
+    try {
+      await pending
+    } catch {
+      /* 错误已由 applier / onError 上报 */
+    }
+  }
+  try {
+    await flushSync()
+  } catch {
+    /* 同上：退出前尽力而为 */
+  }
+}
+
+/** 读取当前文件树：优先运行时树（桌面 Vault），回退 IndexedDB（浏览器形态） */
 async function getCurrentFiles(): Promise<FileManagerState | null> {
+  const runtime = runtimeFilesProvider?.()
+  if (runtime) return runtime
   const data = await loadLargeData(FILE_MANAGER_KEY)
   if (!data) return null
   const parsed = safeJsonParse<FileManagerState | null>(data, null)
@@ -241,7 +313,7 @@ export async function importVaultWithStrategy(
     if (backup.data.files) {
       if (strategy === 'overwrite') {
         // 直接覆盖：用备份的 FileManagerState 替换当前
-        await saveLargeData(FILE_MANAGER_KEY, JSON.stringify(backup.data.files))
+        await persistFiles(backup.data.files)
         importedCount = collectAllFiles(backup.data.files.rootFolder).length
       } else {
         // skip / rename：合并文件到当前树
@@ -298,7 +370,7 @@ export async function importVaultWithStrategy(
           searchQuery: '',
           sidebarVisible: currentFiles?.sidebarVisible ?? true,
         }
-        await saveLargeData(FILE_MANAGER_KEY, JSON.stringify(mergedState))
+        await persistFiles(mergedState)
       }
     }
 

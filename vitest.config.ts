@@ -23,6 +23,14 @@ const alias = {
   '@src': SRC,
 }
 
+// 沙箱专用开关：仅当宿主注入了 CodeBuddy fs 钩子环境变量时，才把这两个开关传给 vitest worker
+// （worker 不继承 shell env，故必须走 test.env）。普通 CI / 本机没有该钩子 → 不注入，
+// 仓库保持干净，也不会把「关闭 safe-delete 保护」固化到所有人的测试运行里。
+const sandboxEnv =
+  process.env.CODEBUDDY_BROKERED_FS_HOOK_ENABLED || process.env.CODEBUDDY_SAFE_DELETE_ENABLED
+    ? { CODEBUDDY_BROKERED_FS_HOOK_ENABLED: '0', CODEBUDDY_SAFE_DELETE_ENABLED: '0' }
+    : undefined
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -31,6 +39,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    env: sandboxEnv,
     setupFiles: ['./src/setupTests.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
     coverage: {

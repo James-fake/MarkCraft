@@ -114,7 +114,30 @@ export function SettingsBrowser({ url, onClose }: SettingsBrowserProps) {
           <a href={url} target="_blank" rel="noreferrer">{url}</a>
         </div>
       )}
-      {isElectron && loading && <div className="aurora-settings__browser-loading">{B.browserLoading}</div>}
+      {isElectron && loading && (
+        <div className="aurora-settings__browser-loading" role="status" aria-label={B.browserLoading}>
+          <div className="aurora-settings__browser-loading-inner">
+            <svg
+              className="aurora-settings__browser-spin"
+              viewBox="0 0 64 64"
+              width="60"
+              height="60"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <g>
+                <rect x="8" y="8" width="48" height="48" rx="11" fill="var(--mc-accent)" opacity="0.12" />
+                <rect x="8" y="8" width="48" height="48" rx="11" fill="none" stroke="var(--mc-accent)" strokeWidth="3" />
+                <path d="M18 44 L18 22 L32 36 L46 22 L46 44" fill="none" stroke="var(--mc-accent)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+              </g>
+              <g className="aurora-settings__browser-spin-arc">
+                <circle cx="32" cy="32" r="28" fill="none" stroke="var(--mc-accent)" strokeWidth="4" strokeLinecap="round" strokeDasharray="44 132" />
+              </g>
+            </svg>
+            <span className="aurora-settings__browser-loading-text">{B.browserLoading}</span>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -16,8 +16,12 @@ import { isRecord } from '@utils/schemaGuards'
 export interface UserProfile {
   /** 昵称（空 → 回退「用户」） */
   nickname: string
-  /** 头像 data URL（空 → 显示首字母） */
+  /** 头像 data URL（空 → 显示表情或首字母） */
   avatarUrl: string
+  /** 表情头像字符（如 '😀'）；仅当 avatarUrl 为空时参与渲染 */
+  avatarEmoji: string
+  /** 头像背景（CSS 背景值，如渐变/纯色）；空 → 回退默认品牌渐变 */
+  avatarBg: string
   /** 生日，ISO 短格式 'YYYY-MM-DD'（空 → 未设置） */
   birthday: string
 }
@@ -27,6 +31,8 @@ const STORAGE_KEY = 'markcraft.userprofile'
 const DEFAULT_PROFILE: UserProfile = {
   nickname: '',
   avatarUrl: '',
+  avatarEmoji: '',
+  avatarBg: '',
   birthday: '',
 }
 
@@ -40,6 +46,8 @@ function loadProfile(): UserProfile {
   return {
     nickname: typeof safeParsed.nickname === 'string' ? safeParsed.nickname : '',
     avatarUrl: typeof safeParsed.avatarUrl === 'string' ? safeParsed.avatarUrl : '',
+    avatarEmoji: typeof safeParsed.avatarEmoji === 'string' ? safeParsed.avatarEmoji : '',
+    avatarBg: typeof safeParsed.avatarBg === 'string' ? safeParsed.avatarBg : '',
     birthday: typeof safeParsed.birthday === 'string' ? safeParsed.birthday : '',
   }
 }
@@ -87,6 +95,68 @@ export function userDisplayName(p: UserProfile): string {
 /** 头像首字母：取展示名首字（昵称空 → 随「用户」回退显示「用」），与侧栏用户名保持一致（批次⑪ P3-D）。 */
 export function userInitial(p: UserProfile): string {
   return Array.from(userDisplayName(p))[0].toUpperCase()
+}
+
+/**
+ * 默认头像背景 —— 品牌渐变。历史版本里所有「首字母头像」都用它，
+ * 现在作为「未自定义背景」的回退值，保证老用户升级后外观不变。
+ * CSS 里 4 处头像容器曾硬编码同一条渐变，此处收为单一来源。
+ */
+export const DEFAULT_AVATAR_BG = 'linear-gradient(135deg, var(--mc-accent) 0%, var(--mc-success) 100%)'
+
+/** 头像类型：照片优先，其次表情，最后回退昵称首字母。 */
+export type AvatarKind = 'photo' | 'emoji' | 'initial'
+
+export function avatarKind(p: UserProfile): AvatarKind {
+  if (p.avatarUrl) return 'photo'
+  if (p.avatarEmoji) return 'emoji'
+  return 'initial'
+}
+
+/** 解析头像背景：自定义背景优先，否则回退品牌渐变。 */
+export function resolveAvatarBackground(p: UserProfile): string {
+  return p.avatarBg || DEFAULT_AVATAR_BG
+}
+
+/**
+ * 解析头像前景色（表情 / 首字母文字色）。
+ *
+ * 预设渐变均为中深色，白字始终清晰；只有「自定义纯色」（原生取色器产出 #rrggbb）
+ * 需要按亮度切换深/浅字，否则浅黄、浅粉底上的白字会看不见。
+ * 无法解析的复杂背景（渐变等）一律回退白字，与历史外观一致。
+ */
+export function resolveAvatarForeground(p: UserProfile): string {
+  const bg = p.avatarBg.trim()
+  const m = /^#([0-9a-f]{6})$/i.exec(bg)
+  if (!m) return 'var(--mc-text-inverse)'
+  const r = parseInt(m[1].slice(0, 2), 16)
+  const g = parseInt(m[1].slice(2, 4), 16)
+  const b = parseInt(m[1].slice(4, 6), 16)
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
+  return luminance > 0.62 ? '#1B2030' : 'var(--mc-text-inverse)'
+}
+
+/**
+ * 清空所有头像自定义（照片 / 表情 / 背景），回到「首字母 + 品牌渐变」的默认态。
+ * 作为 updateUserProfile 的 patch 使用，避免各调用点重复写三个字段。
+ */
+export const CLEAR_AVATAR_PATCH: Pick<UserProfile, 'avatarUrl' | 'avatarEmoji' | 'avatarBg'> = {
+  avatarUrl: '',
+  avatarEmoji: '',
+  avatarBg: '',
+}
+
+/**
+ * 今天是不是用户的生日（只比月日，年份不参与）。
+ *
+ * 这是生日字段的**唯一消费方** —— 首启档案卡上写着「只用来在你生日那天说句话」，
+ * 没有这个函数那句话就是空承诺（本项目明令禁止假 affordance）。
+ */
+export function isBirthdayToday(birthday: string): boolean {
+  const m = /^\d{4}-(\d{2})-(\d{2})$/.exec(birthday)
+  if (!m) return false
+  const now = new Date()
+  return Number(m[1]) === now.getMonth() + 1 && Number(m[2]) === now.getDate()
 }
 
 /** 由生日推导年龄（周岁）；无效返回 null。 */

@@ -26,6 +26,8 @@ import '../styles/fonts.css'
 import './styles/shell.css'
 // 通用组件样式
 import './styles/components.css'
+// 头像统一渲染器 + 头像选择器（侧栏 / 设置 / 首启引导共用）
+import './styles/avatar.css'
 // 命令面板样式
 import './styles/command-palette.css'
 // Toast / Confirm 表面样式（Phase 1 外壳骨架）

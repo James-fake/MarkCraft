@@ -25,9 +25,14 @@ import GlobalSearch from '../../features/search/GlobalSearch'
 import { CrossKbSearch } from '../../features/knowledgeBase/components/CrossKbSearch'
 import { navigationTracker } from '../../features/editor/NavigationTracker'
 import { useAppGlobalEffects } from '../../features/appRuntime/useAppGlobalEffects'
+import { useFirstRunSeed } from '../../features/onboarding/useFirstRunSeed'
+import { shouldShowProfileOnboarding } from '../../features/onboarding/profileOnboarding'
+import { OnboardingScreen } from '../onboarding/OnboardingScreen'
+import { useUserProfile } from '@stores/UserProfileStore'
 import type { FileNode } from '../../types/fileManager'
 import { useKeyboardShortcuts } from '../../hooks/useKeyboardShortcuts'
 import { getBackup, clearBackup } from '../../services/crashRecovery'
+import { flushVault } from '../../services/backupService'
 import type { CrashBackup } from '../../services/crashRecovery'
 import type { AuroraModalControls, AuroraModalId, EditorCommandBridge } from '../panels/editor/EditorPanel'
 import { WelcomePanel } from '../panels/welcome/WelcomePanel'
@@ -44,6 +49,18 @@ import { BlogPanel } from '../panels/blog/BlogPanel'
 import { DiaryPanel } from '../panels/diary/DiaryPanel'
 import { UserAccountNavContext } from '../components/shell/UserAccountNav'
 import { buildAuroraActions } from './auroraActions'
+import {
+  configureTelemetry,
+  trackAppLaunch,
+  trackAppClose,
+  trackFeatureDwell,
+  startHeartbeat,
+  installErrorHandlers,
+  TELEMETRY_ENDPOINT,
+  APP_VERSION,
+  detectPlatform,
+} from '@features/telemetry'
+import { TelemetryConsentDialog } from '@features/telemetry/TelemetryConsentDialog'
 
 /**
  * AuroraShell —— 迁移 Phase 1 的顶层外壳骨架。
@@ -106,6 +123,8 @@ function ShellInner() {
 
   // 命令：从共享 COMMAND_CATALOG 注册真实命令（D4 单一数据源），Aurora 接真实 action
   const { rootFolder, hydrated, createFile, createFolder, openFile, updateFileContent, getActiveFileId, tabs, closeTab, moveNode, closeTransientTabs } = useFileManager()
+  // 首启播种：给第一次打开的用户写一篇真实的欢迎笔记（只跑一次，老用户跳过）
+  useFirstRunSeed({ hydrated, rootFolder, createFile })
   // 供导入流程在「文件选中」回调里读最新 root（避免过期快照，审查 L1-2026-10-07）
   const rootFolderRef = useRef(rootFolder)
   rootFolderRef.current = rootFolder
@@ -142,12 +161,61 @@ function ShellInner() {
   useEffect(() => {
     applyTheme(settings.theme)
   }, [settings.theme])
+
+  // —— 匿名使用统计（opt-in，默认关闭）——
+  // 配置注入：getConsent 读取最新授权状态；endpoint 为空或授权前一律无网络、无数据外发。
+  const settingsRef = useRef(settings)
+  settingsRef.current = settings
+  const languageRef = useRef<string>('zh')
+  useEffect(() => {
+    configureTelemetry({
+      getConsent: () => settingsRef.current.telemetryConsent === 'granted',
+      endpoint: TELEMETRY_ENDPOINT,
+      appVersion: APP_VERSION,
+      platform: detectPlatform(),
+      // 传 getter 而非快照：用户切换语言后无需重建 telemetry 配置即可上报最新 locale
+      locale: () => languageRef.current,
+    })
+    trackAppLaunch()
+    const stopHeartbeat = startHeartbeat()
+    const stopErrors = installErrorHandlers()
+    const onPageHide = () => trackAppClose()
+    window.addEventListener('pagehide', onPageHide)
+    return () => {
+      stopHeartbeat()
+      stopErrors()
+      // 大小写必须与注册一致（原 'pageHide' 导致监听永不移除）；关闭上报只由 pagehide 触发一次，
+      // cleanup 内不再重复 trackAppClose（否则一次关闭会上报两次）。
+      window.removeEventListener('pagehide', onPageHide)
+    }
+    // 仅挂载时配置一次；getConsent / endpoint 通过闭包 ref 读取最新值
+  }, [])
+  // 活跃功能面板停留时长：面板切换 / 卸载时上报（仅授权后）
+  const telemetryFeature =
+    auxView === 'settings' ? 'settings' : auxView === 'welcome' ? 'welcome' : view
+  useEffect(() => {
+    // 停留时长：本 effect 覆盖「当前功能」这一段，cleanup 上报的就是这一段。
+    // 原实现用 ref 存「上一段」并在 cleanup 里上报，导致切换时重复上报前一段、最后一段丢失。
+    const startedAt = Date.now()
+    return () => {
+      trackFeatureDwell(telemetryFeature, Date.now() - startedAt)
+    }
+  }, [telemetryFeature])
   // —— 高对比度备选（批次⑫ P3-E）：settings.contrast 单一数据源广播到 <html data-contrast>，
   // tokens.css `html[data-contrast='high']` 消费；'normal' 显式回写保证开关回退即时生效。
   useEffect(() => {
     document.documentElement.setAttribute('data-contrast', settings.contrast)
   }, [settings.contrast])
   const { toggleLanguage, language, t } = useLanguage()
+  languageRef.current = language
+
+  // —— 首启独立引导（整屏，走完才进主界面）——
+  // ⚠️ 只在挂载时判定一次：引导里的字段是「输入即保存」的，若持续读实时昵称，
+  //    用户刚敲下第一个字引导界面就会自己消失。
+  const userProfile = useUserProfile()
+  const [onboardingOpen, setOnboardingOpen] = useState(() => shouldShowProfileOnboarding(userProfile))
+  // 「是否已问过」的标记由 OnboardingScreen 自己落（知识留在引导模块内），外壳只负责切界面
+  const finishOnboarding = useCallback(() => setOnboardingOpen(false), [])
 
   // —— 内置「使用文档」知识库：播种 + 自愈（幂等）——
   // 用户需求（2026-09-21）：首次进入 MarkCraft，知识库界面默认已有「MarkCraft 使用文档」。
@@ -377,18 +445,35 @@ function ShellInner() {
 
   // 批次② P0-B：确认退出 MarkCraft（自定义 QuitModal 主按钮）
   // Web 外壳下多数浏览器静默拒绝脚本关窗 —— 诚实处理：退出全屏并提示手动关闭。
+  // ⚠️ 关窗前先冲刷挂起的 Vault 落盘（2026-11-08 审查 M-C-2）：恢复备份/导入后的写盘
+  //    走 300ms 防抖 + 串行链，用户在窗口内退出会丢掉最后一批文件。失败不阻断退出。
   const handleQuitConfirm = useCallback(() => {
     modalClose('quit')
-    try { window.close() } catch { /* 浏览器禁止脚本关窗时忽略 */ }
-    if (!window.closed) {
-      if (document.fullscreenElement) void document.exitFullscreen().catch(() => {})
-      toast.show('当前为 Web 外壳，请在浏览器中手动关闭此标签页')
-    }
+    void flushVault().finally(() => {
+      try { window.close() } catch { /* 浏览器禁止脚本关窗时忽略 */ }
+      if (!window.closed) {
+        if (document.fullscreenElement) void document.exitFullscreen().catch(() => {})
+        toast.show('当前为 Web 外壳，请在浏览器中手动关闭此标签页')
+      }
+    })
   }, [modalClose, toast])
 
+  // ⚠️ Context value 必须 memo（2026-11-03 审查 P1）：AuroraShell 订阅 FileStore/SettingsStore，
+  //    编辑器打字时高频重渲染；内联字面量每次都换身份 → 所有 useCommandPalette() 消费者连坐重渲染。
+  //    （ToastProvider 早已修过同类问题，壳层这两处曾漏改。）
+  //    必须放在下面「首启引导」提前 return **之前** —— Hook 不得条件调用。
+  const commandPaletteValue = useMemo(() => ({ openCommandPalette: () => setCommandOpen(true) }), [setCommandOpen])
+  const userAccountNavValue = useMemo(() => ({ open: openUserSettings }), [openUserSettings])
+
+  // 首启独立引导：整屏接管，走完（或跳过）才渲染主界面。
+  // 放在所有 hooks 之后、主 return 之前 —— 提前 return 不得跳过任何 hook。
+  if (onboardingOpen) {
+    return <OnboardingScreen onDone={finishOnboarding} />
+  }
+
   return (
-    <CommandPaletteContext.Provider value={{ openCommandPalette: () => setCommandOpen(true) }}>
-    <UserAccountNavContext.Provider value={{ open: openUserSettings }}>
+    <CommandPaletteContext.Provider value={commandPaletteValue}>
+    <UserAccountNavContext.Provider value={userAccountNavValue}>
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
       {/* 真实 Provider/Store 树已在 AuroraShell 顶层包住 ShellInner 本体，
           此处直接渲染面板（面板子树自然处于 RealProviders 上下文内）。 */}
@@ -396,6 +481,11 @@ function ShellInner() {
           （PageFrame 含 MenuBar/Sidebar，整屏从 opacity:0 浮现）→ 用户感知「整体闪一下」。
           桌面应用外壳不应随视图重绘，切换回瞬时（与 VS Code 等一致）。 */}
       {renderPanel()}
+
+      {/* 首次运行（授权状态为 unset）时的匿名统计授权弹窗；onboarding 结束后才进入主界面，故不会出现于引导期间 */}
+      {settings.telemetryConsent === 'unset' && (
+        <TelemetryConsentDialog onResolve={(c) => updateSetting('telemetryConsent', c)} />
+      )}
 
       {/* —— Phase 3d：全局型真实弹层（方案 B：AuroraShell 持有渲染，portal 到 body）——
           编辑器相关弹层（import/linkRedirect/blockBacklinks/templateInsert/templateDiscovery/quickCapture）

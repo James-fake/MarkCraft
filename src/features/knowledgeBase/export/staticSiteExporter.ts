@@ -258,10 +258,25 @@ export async function exportStaticSite(
     const sorted = [...files].sort((a, b) => a.name.localeCompare(b.name))
 
     // 收集每个文件的标签与 slug
+    // ⚠️ slug 必须唯一（2026-11-03 审查 P2）：`a b.md` 与 `a-b.md` 都会 slugify 成 `a-b`，
+    //    zip.file 同名会**静默覆盖**（后者吃掉前者）；空名还会产出 `.html`。
+    //    这里按出现顺序加 `-2`/`-3` 后缀，并给空 slug 兜底。
+    const usedSlugs = new Set<string>()
+    const uniqueSlug = (base: string): string => {
+      const safeBase = base || 'untitled'
+      let candidate = safeBase
+      let i = 2
+      while (usedSlugs.has(candidate)) {
+        candidate = `${safeBase}-${i}`
+        i++
+      }
+      usedSlugs.add(candidate)
+      return candidate
+    }
     const fileMeta = sorted.map(f => ({
       file: f,
       tags: extractFileTags(f.content ?? ''),
-      slug: slugify(f.name),
+      slug: uniqueSlug(slugify(f.name)),
       title: f.name.replace(/\.md$/i, ''),
     }))
 

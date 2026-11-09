@@ -489,14 +489,6 @@
   outline-offset: -2px;
 }
 
-.aurora-sidebar__user-avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 50%;
-  display: block;
-}
-
 .aurora-sidebar__user:hover {
   background-color: var(--mc-bg-hover);
 }

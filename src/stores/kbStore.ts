@@ -239,36 +239,67 @@ export async function createKbInFolder(
 }
 
 /**
+ * 知识库文档的读-改-写串行化（2026-11-03 审查 P2；2026-11-08 H-8 收口）。
+ *
+ * **所有**读-改-写导出函数（`updateTasks` / `updateRule` / `addExportRecord` / …）统一经
+ * `withKbLock(kbId, …)`，锁 key 恒为 kbId、共享同一 `kbWriteQueues`：任意两个针对同一 kbId
+ * 的操作（含早期只锁了 6 个的函数与本次补齐的函数）都互斥，不会在 await 之间交错、
+ * 后写者用旧快照覆盖前者的字段。
+ *
+ * ⚠️ 锁**不下沉**到 `loadKb` / `saveKb`：① 这两个是底层原语，会在 `withKbLock` 回调内被
+ * 调用，若自身再加同 key 锁会与外层锁形成**自死锁**；② 单给读 / 写加锁也覆盖不了中间
+ * 「改字段」那一段，保证不了读-改-写的原子性。它们保持为无锁原语，仅供锁内调用。
+ * `createKb` / `createKbInFolder` / `createKbWithTemplate` 只新建（id 全新、不读旧快照），无需加锁。
+ *
+ * 用 per-kbId 的 promise 链串行化；队列吞错但调用方仍拿到 reject。队列空闲后清理 Map 条目
+ * （仅当仍是当前尾节点时删，避免误删新排入的队列），避免只增不删。
+ */
+const kbWriteQueues = new Map<string, Promise<unknown>>()
+
+function withKbLock<T>(kbId: string, fn: () => Promise<T>): Promise<T> {
+  const prev = kbWriteQueues.get(kbId) ?? Promise.resolve()
+  const run = prev.then(fn, fn)
+  const tail = run.catch(() => undefined)
+  kbWriteQueues.set(kbId, tail)
+  void tail.then(() => {
+    if (kbWriteQueues.get(kbId) === tail) kbWriteQueues.delete(kbId)
+  })
+  return run
+}
+
+/**
  * 修正知识库关联的文件夹（保持 kb.id / 其它配置不变）
  *
  * 用于播种自愈：历史竞态可能让 `folderId` 指向一个已被丢弃的节点（悬空），
  * 此时知识库文档本身完好（规则/任务/导出记录都在），只是找不到自己的笔记文件夹。
  * 重新挂载而不是删库重建，才能保住用户在该库上积累的一切。
  */
-export async function rebindKbFolder(kbId: string, folderId: string): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (kb) {
-    kb.folderId = folderId
-    await saveKb(kb)
-    return
-  }
-  // ⚠️ 文档缺失（旧版本 / 半截写入）时**不能静默 return** —— 否则「自愈」只重建了文件夹、
-  //    却没把 folderId 落盘，知识库照旧指向幽灵 → 依旧 0 篇（自愈看着成功、用户却看不到笔记）。
-  //    此处按列表项重建一份最小文档，把 folderId 真正写进去。
-  const item = (await getKbList()).find((i) => i.id === kbId)
-  if (!item) return
-  const rebuilt: KnowledgeBase = {
-    id: kbId,
-    name: item.name,
-    description: item.description ?? '',
-    folderId,
-    createdAt: item.createdAt,
-    updatedAt: Date.now(),
-    canvasIds: [],
-    fileIds: [],
-    rules: [],
-  }
-  await saveKb(rebuilt)
+export function rebindKbFolder(kbId: string, folderId: string): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (kb) {
+      kb.folderId = folderId
+      await saveKb(kb)
+      return
+    }
+    // ⚠️ 文档缺失（旧版本 / 半截写入）时**不能静默 return** —— 否则「自愈」只重建了文件夹、
+    //    却没把 folderId 落盘，知识库照旧指向幽灵 → 依旧 0 篇（自愈看着成功、用户却看不到笔记）。
+    //    此处按列表项重建一份最小文档，把 folderId 真正写进去。
+    const item = (await getKbList()).find((i) => i.id === kbId)
+    if (!item) return
+    const rebuilt: KnowledgeBase = {
+      id: kbId,
+      name: item.name,
+      description: item.description ?? '',
+      folderId,
+      createdAt: item.createdAt,
+      updatedAt: Date.now(),
+      canvasIds: [],
+      fileIds: [],
+      rules: [],
+    }
+    await saveKb(rebuilt)
+  })
 }
 
 /**
@@ -281,14 +312,16 @@ export async function deleteKb(
   deleteFolder: boolean,
   deleteNode?: (id: string) => void,
 ): Promise<void> {
-  if (deleteFolder) {
-    const kb = await loadKb(id)
-    if (kb && deleteNode) {
-      deleteNode(kb.folderId)
+  await withKbLock(id, async () => {
+    if (deleteFolder) {
+      const kb = await loadKb(id)
+      if (kb && deleteNode) {
+        deleteNode(kb.folderId)
+      }
     }
-  }
-  await kvDelete(`${KB_DOC_PREFIX}${id}`)
-  await removeListItem(id)
+    await kvDelete(`${KB_DOC_PREFIX}${id}`)
+    await removeListItem(id)
+  })
 }
 
 /** 重命名知识库（同步文件夹名） */
@@ -297,92 +330,112 @@ export async function renameKb(
   newName: string,
   renameNode?: (id: string, name: string) => void,
 ): Promise<void> {
-  const kb = await loadKb(id)
-  if (!kb) return
-  kb.name = newName
-  await saveKb(kb)
-  if (renameNode) {
-    renameNode(kb.folderId, newName)
-  }
+  await withKbLock(id, async () => {
+    const kb = await loadKb(id)
+    if (!kb) return
+    kb.name = newName
+    await saveKb(kb)
+    if (renameNode) {
+      renameNode(kb.folderId, newName)
+    }
+  })
 }
 
 /** 手动添加文件到知识库 */
-export async function addFileToKb(kbId: string, fileId: string): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  if (!kb.fileIds.includes(fileId)) {
-    kb.fileIds.push(fileId)
-    await saveKb(kb)
-  }
+export function addFileToKb(kbId: string, fileId: string): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    if (!kb.fileIds.includes(fileId)) {
+      kb.fileIds.push(fileId)
+      await saveKb(kb)
+    }
+  })
 }
 
 /** 从知识库移除文件 */
-export async function removeFileFromKb(kbId: string, fileId: string): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  kb.fileIds = kb.fileIds.filter(id => id !== fileId)
-  await saveKb(kb)
+export function removeFileFromKb(kbId: string, fileId: string): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    kb.fileIds = kb.fileIds.filter(id => id !== fileId)
+    await saveKb(kb)
+  })
 }
 
 /** 关联画布到知识库 */
-export async function addCanvasToKb(kbId: string, canvasId: string): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  if (!kb.canvasIds.includes(canvasId)) {
-    kb.canvasIds.push(canvasId)
-    await saveKb(kb)
-  }
+export function addCanvasToKb(kbId: string, canvasId: string): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    if (!kb.canvasIds.includes(canvasId)) {
+      kb.canvasIds.push(canvasId)
+      await saveKb(kb)
+    }
+  })
 }
 
 /** 取消关联画布 */
-export async function removeCanvasFromKb(kbId: string, canvasId: string): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  kb.canvasIds = kb.canvasIds.filter(id => id !== canvasId)
-  await saveKb(kb)
+export function removeCanvasFromKb(kbId: string, canvasId: string): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    kb.canvasIds = kb.canvasIds.filter(id => id !== canvasId)
+    await saveKb(kb)
+  })
 }
 
 /** 添加规则 */
-export async function addRule(kbId: string, type: KnowledgeBaseRule['type'], value: string): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  kb.rules.push({ id: genRuleId(), type, value, enabled: true })
-  await saveKb(kb)
+export function addRule(kbId: string, type: KnowledgeBaseRule['type'], value: string): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    kb.rules.push({ id: genRuleId(), type, value, enabled: true })
+    await saveKb(kb)
+  })
 }
 
 /** 移除规则 */
-export async function removeRule(kbId: string, ruleId: string): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  kb.rules = kb.rules.filter(r => r.id !== ruleId)
-  await saveKb(kb)
+export function removeRule(kbId: string, ruleId: string): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    kb.rules = kb.rules.filter(r => r.id !== ruleId)
+    await saveKb(kb)
+  })
 }
 
 /** 更新规则 */
-export async function updateRule(kbId: string, ruleId: string, patch: Partial<KnowledgeBaseRule>): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  const idx = kb.rules.findIndex(r => r.id === ruleId)
-  if (idx >= 0) {
-    kb.rules[idx] = { ...kb.rules[idx], ...patch }
-    await saveKb(kb)
-  }
+export function updateRule(kbId: string, ruleId: string, patch: Partial<KnowledgeBaseRule>): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    const idx = kb.rules.findIndex(r => r.id === ruleId)
+    if (idx >= 0) {
+      kb.rules[idx] = { ...kb.rules[idx], ...patch }
+      await saveKb(kb)
+    }
+  })
 }
 
 /** 更新博客配置 */
-export async function updateBlogConfig(kbId: string, config: Partial<KnowledgeBaseBlogConfig>): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  kb.blogConfig = { ...kb.blogConfig, ...config } as KnowledgeBaseBlogConfig
-  await saveKb(kb)
+export function updateBlogConfig(kbId: string, config: Partial<KnowledgeBaseBlogConfig>): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    kb.blogConfig = { ...kb.blogConfig, ...config } as KnowledgeBaseBlogConfig
+    await saveKb(kb)
+  })
 }
 
 /** 更新描述 */
-export async function updateDescription(kbId: string, description: string): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  kb.description = description
-  await saveKb(kb)
+export function updateDescription(kbId: string, description: string): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    kb.description = description
+    await saveKb(kb)
+  })
 }
 
 /**
@@ -457,94 +510,116 @@ import type {
 } from './kbTypes'
 
 /** 更新学习路径 */
-export async function updateLearningPath(kbId: string, path: LearningPathItem[]): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  kb.learningPath = path
-  await saveKb(kb)
+export function updateLearningPath(kbId: string, path: LearningPathItem[]): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    kb.learningPath = path
+    await saveKb(kb)
+  })
 }
 
 /** 更新任务列表 */
-export async function updateTasks(kbId: string, tasks: KbTask[]): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  kb.tasks = tasks
-  await saveKb(kb)
+export function updateTasks(kbId: string, tasks: KbTask[]): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    kb.tasks = tasks
+    await saveKb(kb)
+  })
 }
 
 /** 更新写作目标 */
-export async function updateWritingGoals(kbId: string, goals: WritingGoal[]): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  kb.writingGoals = goals
-  await saveKb(kb)
+export function updateWritingGoals(kbId: string, goals: WritingGoal[]): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    kb.writingGoals = goals
+    await saveKb(kb)
+  })
 }
 
 /** 更新回顾配置 */
-export async function updateReviewSchedule(kbId: string, schedule: ReviewSchedule): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  kb.reviewSchedule = schedule
-  await saveKb(kb)
+export function updateReviewSchedule(kbId: string, schedule: ReviewSchedule): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    kb.reviewSchedule = schedule
+    await saveKb(kb)
+  })
 }
 
 /** 更新保存的查询 */
-export async function updateSavedQueries(kbId: string, queries: SavedQuery[]): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  kb.savedQueries = queries
-  await saveKb(kb)
+export function updateSavedQueries(kbId: string, queries: SavedQuery[]): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    kb.savedQueries = queries
+    await saveKb(kb)
+  })
 }
 
 /** 更新盲区报告缓存 */
-export async function updateBlindSpotCache(kbId: string, report: BlindSpotReport): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  kb.blindSpotCache = report
-  await saveKb(kb)
+export function updateBlindSpotCache(kbId: string, report: BlindSpotReport): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    kb.blindSpotCache = report
+    await saveKb(kb)
+  })
 }
 
 /** 更新 AI 摘要 */
-export async function updateAiSummary(kbId: string, summary: string): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  kb.aiSummary = summary
-  await saveKb(kb)
+export function updateAiSummary(kbId: string, summary: string): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    kb.aiSummary = summary
+    await saveKb(kb)
+  })
 }
 
 /** 更新健康度评分 */
-export async function updateHealthScore(kbId: string, score: number): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  kb.healthScore = score
-  kb.healthCheckedAt = Date.now()
-  await saveKb(kb)
+export function updateHealthScore(kbId: string, score: number): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    kb.healthScore = score
+    kb.healthCheckedAt = Date.now()
+    await saveKb(kb)
+  })
 }
 
 /** 更新 MOC 文件 ID */
-export async function updateMocFileId(kbId: string, fileId: string): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  kb.mocFileId = fileId
-  await saveKb(kb)
+export function updateMocFileId(kbId: string, fileId: string): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    kb.mocFileId = fileId
+    await saveKb(kb)
+  })
 }
 
 /** 添加导出记录 */
-export async function addExportRecord(kbId: string, record: ExportRecord): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  if (!kb.exportHistory) kb.exportHistory = []
-  kb.exportHistory.unshift(record)
-  if (kb.exportHistory.length > 20) kb.exportHistory = kb.exportHistory.slice(0, 20)
-  await saveKb(kb)
+export function addExportRecord(kbId: string, record: ExportRecord): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    if (!kb.exportHistory) kb.exportHistory = []
+    kb.exportHistory.unshift(record)
+    if (kb.exportHistory.length > 20) kb.exportHistory = kb.exportHistory.slice(0, 20)
+    await saveKb(kb)
+  })
 }
 
 /** 更新模板 ID */
-export async function updateTemplateId(kbId: string, templateId: string): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  kb.templateId = templateId
-  await saveKb(kb)
+export function updateTemplateId(kbId: string, templateId: string): Promise<void> {
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    kb.templateId = templateId
+    await saveKb(kb)
+  })
 }
 
 /** 创建带模板的知识库 */
@@ -573,25 +648,27 @@ export async function createKbWithTemplate(
 }
 
 /** 从模板创建预设文件夹结构和规则 */
-export async function applyKbTemplate(
+export function applyKbTemplate(
   kbId: string,
   template: import('./kbTypes').KbTemplate,
   createFolder: (parentId: string, name: string) => string,
 ): Promise<void> {
-  const kb = await loadKb(kbId)
-  if (!kb) return
-  // 创建预设文件夹
-  for (const folder of template.folderStructure) {
-    createFolder(kb.folderId, folder.name)
-  }
-  // 添加预设规则
-  for (const rule of template.presetRules) {
-    kb.rules.push({
-      id: genRuleId(),
-      type: rule.type,
-      value: rule.value,
-      enabled: true,
-    })
-  }
-  await saveKb(kb)
+  return withKbLock(kbId, async () => {
+    const kb = await loadKb(kbId)
+    if (!kb) return
+    // 创建预设文件夹
+    for (const folder of template.folderStructure) {
+      createFolder(kb.folderId, folder.name)
+    }
+    // 添加预设规则
+    for (const rule of template.presetRules) {
+      kb.rules.push({
+        id: genRuleId(),
+        type: rule.type,
+        value: rule.value,
+        enabled: true,
+      })
+    }
+    await saveKb(kb)
+  })
 }

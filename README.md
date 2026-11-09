@@ -12,6 +12,8 @@
 
 ![Vite](https://img.shields.io/badge/Vite-5.2-646CFF?logo=vite\&logoColor=white)
 
+![Electron](https://img.shields.io/badge/Electron-44-47848F?logo=electron\&logoColor=white)
+
 ![CodeMirror](https://img.shields.io/badge/CodeMirror-6-D307075?logo=codemirror\&logoColor=white)
 
 
@@ -611,6 +613,8 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 
 | 类别            | 技术                                    | 版本                | 说明                               |
 | ------------- | ------------------------------------- | ----------------- | -------------------------------- |
+| **桌面运行时**    | **Electron**                          | **44**            | **主进程 ESM `.mjs` + preload CJS `.cjs`；`contextIsolation` + `nodeIntegration:false`** |
+| **IPC / 文件**   | **`mc:<area>:<action>` 通道 + 原子写**     | **—**             | **路径白名单 + `.tmp`→rename；Vault 根动态登记** |
 | 前端框架          | React                                 | ^18.2.0           | 函数式组件 + Hooks                    |
 | 编程语言          | TypeScript                            | ^5.2.2            | strict 模式                        |
 | 构建工具          | Vite                                  | ^5.2.0            | HMR + 生产优化                       |
@@ -637,7 +641,10 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 | Word 导出       | docx                                  | ^9.7.1            | 客户端 DOCX 生成                      |
 | gzip 压缩       | pako                                  | ^2.1.0            | 备份 / 分享包解压                        |
 | 截图导出          | dom-to-image-more                     | ^3.10.0           | PNG / JPEG 截图                    |
-| 测试框架          | Vitest + Testing Library              | ^1.0.0 / ^14.0.0  | 单元测试 + 组件测试                      |
+| 测试框架          | Vitest + Testing Library              | ^1.0.0 / ^14.0.0  | 单元测试 + 组件测试（jsdom + 内存存储后端）      |
+| E2E 框架         | Playwright                            | —                 | 真实 Electron 窗口全链路（`e2e/09..18-electron-*`） |
+| 桌面端打包         | electron-builder                      | —                 | NSIS 安装版 + Portable 便携版（Windows x64）  |
+| EPUB 转换        | Pandoc sidecar                        | —                 | `resources/pandoc/<platform>/`，缺失时回退内置生成器 |
 
 ---
 
@@ -645,13 +652,15 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 
 
 ```bash
-npm install && npm run dev
+npm install && npm run electron:dev
 ```
 
 **3 步开启你的知识工坊** ⬇️
 
 
-> 🎯 **最简启动**：`npm install && npm run dev`，打开 <http://localhost:5173> 即可使用
+> 🎯 **最简启动（开发态）**：`npm install && npm run electron:dev` —— 自动编译主进程/preload、拉起 Vite dev server，再打开 Electron 窗口。
+>
+> ⚠️ **MarkCraft 只做桌面端**：单独 `npm run dev` 只会得到浏览器页面，业务代码依赖的 `@platform` 桌面能力（真实磁盘 Vault、`mc:fs:*` IPC、Pandoc sidecar）都不可用，**不能作为完整产品使用**。生产形态请用 `npm run electron:dist:win` 打安装包。
 
 
 |    🥇 步骤 1    |    🥈 步骤 2    |            🥉 步骤 3            |
@@ -744,28 +753,19 @@ npm install
 > npm install
 > ```
 
-#### 4. 启动开发服务器
+#### 4. 启动桌面端（开发态）
 
 ```powershell
-npm run dev
+npm run electron:dev
 ```
 
-终端输出类似：
+编译主进程/preload → 拉起 Vite dev server → 打开 Electron 窗口。单跑 `npm run dev` 只会得到功能残缺的浏览器页面（见「快速开始」）。
 
-```
-  VITE v5.x.x  ready in xxx ms
-
-  ➜  Local:   http://localhost:5173/
-  ➜  Network: http://192.168.x.x:5173/
-```
-
-运行 `npm run electron:dev` 启动**桌面端**（开发态会加载本机 dev server）。
-
-#### 5. 生产构建
+#### 5. 生产形态
 
 ```powershell
-npm run build
-npm run preview
+npm run electron:start    # 用 dist/ 启动桌面端
+npm run electron:dist:win # 打安装包（NSIS 安装版 + Portable 便携版）
 ```
 
 ### 🍎 macOS 安装与运行
@@ -836,19 +836,19 @@ npm install
 > npm install
 > ```
 
-#### 4. 启动开发服务器
+#### 4. 启动桌面端（开发态）
 
 ```bash
-npm run dev
+npm run electron:dev
 ```
 
-运行 `npm run electron:dev` 启动**桌面端**（开发态会加载本机 dev server）。
+编译主进程/preload → 拉起 Vite dev server → 打开 Electron 窗口。单跑 `npm run dev` 只会得到功能残缺的浏览器页面（见「快速开始」）。
 
-#### 5. 生产构建
+#### 5. 生产形态
 
 ```bash
-npm run build
-npm run preview
+npm run electron:start    # 用 dist/ 启动桌面端
+npm run electron:dist     # 打安装包（按当前平台）
 ```
 
 ### 🐧 Linux 安装与运行
@@ -933,19 +933,19 @@ npm install
 > npm install
 > ```
 
-#### 4. 启动开发服务器
+#### 4. 启动桌面端（开发态）
 
 ```bash
-npm run dev
+npm run electron:dev
 ```
 
-运行 `npm run electron:dev` 启动**桌面端**（开发态会加载本机 dev server）。
+编译主进程/preload → 拉起 Vite dev server → 打开 Electron 窗口。单跑 `npm run dev` 只会得到功能残缺的浏览器页面（见「快速开始」）。
 
-#### 5. 生产构建
+#### 5. 生产形态
 
 ```bash
-npm run build
-npm run preview
+npm run electron:start    # 用 dist/ 启动桌面端
+npm run electron:dist     # 打安装包（按当前平台）
 ```
 
 ### ❓ 常见问题
@@ -961,20 +961,27 @@ npm run preview
 
 ### 📜 可用脚本
 
-| 命令                      | 说明                          |
-| ----------------------- | --------------------------- |
-| `npm run dev`           | 启动 Vite 开发服务器（热更新）          |
-| `npm run build`         | TypeScript 类型检查 + Vite 生产构建 |
-| `npm run preview`       | 预览生产构建结果                    |
-| `npm run lint`          | ESLint 代码检查                 |
-| `npm run test`          | 运行 Vitest 测试（watch 模式）      |
-| `npm run test:coverage` | 运行测试并生成覆盖率报告                |
+| 命令                          | 说明                                                        |
+| --------------------------- | --------------------------------------------------------- |
+| `npm run dev`               | 启动 Vite 开发服务器（仅调试渲染层；完整产品请用 `electron:dev`） |
+| `npm run electron:dev`      | 编译主进程/preload + 拉起 dev server + 打开 Electron 窗口（开发主入口） |
+| `npm run electron:start`    | 生产构建后用 `dist/` 启动桌面端（`--dist` 模式）                  |
+| `npm run build`             | TypeScript 类型检查 + Vite 生产构建                             |
+| `npm run electron:compile`  | esbuild 编译 `out/main/index.mjs` + `out/preload/index.cjs`    |
+| `npm run electron:pack`     | 构建并产出免安装的 `win-unpacked` 目录                           |
+| `npm run electron:dist:win` | 构建 Windows x64 安装包（NSIS 安装版 + Portable 便携版）            |
+| `npm run preview`           | 预览 Vite 生产构建结果                                         |
+| `npm run lint`              | ESLint（`--max-warnings 0`，pre-commit 守卫）                   |
+| `npx tsc --noEmit`          | 渲染层类型检查                                                 |
+| `npm run typecheck:electron`| 主进程类型检查（`tsconfig.electron.json`）                       |
+| `npm run typecheck:e2e`     | E2E 类型检查（`tsconfig.e2e.json`）                            |
+| `npm run test`              | Vitest 测试（watch 模式）                                      |
+| `npm run test:run`          | 单次全量运行（CI 用）                                           |
+| `npm run test:coverage`     | 运行测试并生成覆盖率报告                                          |
+| `npm run e2e`               | Playwright 真机 E2E（真实 Electron 窗口）                         |
+| `npm run fetch:pandoc`      | 下载 Pandoc sidecar 到 `resources/pandoc/<platform>/`（真 EPUB 用） |
 
-
-
-
-
----
+> CI 硬门禁（`.github/workflows/code-review.yml`）：`tsc --noEmit` + `typecheck:electron` + `typecheck:e2e` + `vitest run` + `lint`。---
 
 ## 🔧 配置说明
 
@@ -986,14 +993,15 @@ npm run preview
 | 🔄 滚动同步 | 🔒 同步锁定 | 📊 索引重建 | 💾 自动保存 | ⏰ 定时保存 |
 
 
-本项目为纯前端应用，无需环境变量配置。以下为内置的运行时参数：
+本项目为**Electron 桌面应用**，无需后端服务；常规使用不需要配置环境变量。以下为内置的运行时参数：
 
 | 参数                  | 默认值                             | 说明                                   |
 | ------------------- | ------------------------------- | ------------------------------------ |
 | 自动保存延迟              | 500ms                           | 编辑后防抖写入**磁盘存储**（崩溃备份副本在 localStorage） |
 | 文件树落盘防抖             | 300ms                           | `saveState()` 把文件树写入磁盘存储              |
+| WYSIWYG 序列化防抖        | 150ms                           | 连续输入合并为一次 `htmlToMarkdown`，失焦/切文件/保存/撤销/关窗口立即 flush（见「质量与性能」） |
 | 自动保存间隔              | 30s                             | 定时保存（可在设置中调整 5-300s）                 |
-| 撤销栈最大步数             | 100                             | 自定义撤销/重做历史记录上限                       |
+| 撤销栈最大步数             | 200                             | 自定义撤销/重做历史记录上限，800ms 内的连续输入合并为一条 |
 | 滚动同步节流              | 8ms                             | 编辑器与预览区滚动同步的节流间隔                     |
 | 同步锁定时长              | 50ms                            | 双向滚动同步时防止回弹的锁定时间                     |
 | 代码块折叠阈值             | 10 行                            | 超过此行数的代码块默认折叠                        |
@@ -1001,8 +1009,10 @@ npm run preview
 | 博客预览防抖              | 500ms                           | Blog Studio 中设计变更到预览更新的延迟            |
 | 索引重建防抖              | 300ms                           | 文件变更后链接/标签索引重建的防抖延迟                  |
 | 图谱缩放范围              | 0.08x - 6x                      | 鼠标滚轮缩放的上下限                           |
-| localStorage 版本     | v5                              | 版本不匹配时重置为默认数据                        |
+| localStorage 版本     | v5                              | 版本不匹配时**先把旧树原文备份到 `-backup-v<旧版本>` 键**再重建，不再静默丢弃 |
 | **磁盘存储根**          | `%APPDATA%\MarkCraft\storage\` | 知识库 / 白板 / 向量索引 / 版本 / 备份持久化        |
+| **文件树 key**        | `markcraft-file-manager`         | 磁盘 KV，文件树 + 标签页（Vault 模式下树以真实 `.md` 文件为准） |
+| **会话快照 key**       | `markcraft-session-v1`           | 磁盘 KV，Vault 模式的标签页/活动标签/侧栏状态（按相对路径持久化） |
 | **KB 列表 key**       | `kb-list`                       | 磁盘 KV，存储所有知识库元数据列表               |
 | **KB 文档 key**       | `kb-doc-{id}`                   | 磁盘 KV，单个知识库完整文档                  |
 | **Canvas 列表 key**   | `canvas-list`                   | 磁盘 KV，白板列表                       |
@@ -1505,17 +1515,28 @@ MarkCraft/
 ```typescript
 // 磁盘存储键（%APPDATA%\MarkCraft\storage\kv\ 下的一个 JSON）；
 // localStorage 仅存版本标记与崩溃备份副本
-const STORAGE_KEY = 'markcraft-file-manager'
+const STORAGE_KEY = 'markcraft-file-manager'   // 文件树 + 标签页（非 Vault 形态）
+const SESSION_KEY = 'markcraft-session-v1'     // Vault 形态的会话态（标签页按相对路径存，重启可恢复）
 interface StorageData {
   version: string          // 存储版本号（当前 'v5'）
-  rootFolder: FileNode     // 文件树根节点
+  rootFolder: FileNode     // 文件树根节点（Vault 模式下真实 .md 文件才是真相源）
   openTabs: Tab[]          // 打开的标签页
   activeTabId: string | null
+}
+interface SessionSnapshot {
+  tabs: Array<{ path: string; name: string; isDirty: boolean }>
+  activeTabPath: string | null
+  searchQuery: string
+  sidebarVisible: boolean
 }
 
 // localStorage key: 主题偏好
 const THEME_KEY = 'app-theme-preference'  // 'dark' | 'light' | 'system'
+// 版本不匹配时旧树原文备份到 `${STORAGE_KEY}-backup-v<旧版本>`，不再静默清除
 ```
+
+> 备份/导入的「当前文件树」由 `bindRuntimeFiles()` 从运行时 state 读取 —— 桌面 Vault 模式不写 IndexedDB，
+> 备份子系统也必须走运行时树，否则自动备份恒为空、恢复写回后加载不到。
 
 ### 🗃️ Store API
 
@@ -1604,12 +1625,16 @@ npm run e2e:report
 
 ### 📊 测试规模
 
-当前仓库共 **179 个测试文件、1700+ 条用例**，全量通过。
+当前仓库共 **194 个测试文件、2258 条用例**（另有 2 条跳过），全量通过；CI 另有 `typecheck` ×3 + `lint` 硬门禁。
 
 | 层次     | 位置                                                    | 覆盖内容                                     |
 | ------ | ----------------------------------------------------- | ---------------------------------------- |
 | 单元 / 组件 | 与源码同级的 `__tests__/` 或 `*.test.ts(x)`                   | 编辑器、图谱、白板、知识库、博客、日记等各领域模块                |
 | 契约测试   | `src/aliasSync.test.ts`、`aurora/panels/__tests__/auroraNav.contract.test.ts` | 路径别名四处同步、导航 id ↔ 路由 id 契约                 |
+| 数字口径守卫 | `src/features/blog/hooks/themeCatalog.test.ts` 等          | 主题/命令/快捷键/导出数量与文档同步，改代码不改文档即变红         |
+| 安全回归锁 | `src/testing/netGuard.test.ts`、`src/stores/fileStoreShared.session.test.ts` | SSRF 与导航防线、Vault 会话恢复、reload 未落盘编辑合并     |
+| 调度回归锁 | `src/features/editor/serializeScheduler.test.ts`         | 序列化防抖合并、8 个 flush 时机、幂等、dispose             |
+| 性能基准   | `src/testing/stressAndPerf.test.ts`                      | 大文档数量级守门 + WYSIWYG 每键击成本剖面                 |
 | 冒烟测试   | `aurora/panels/**/*.smoke.test.tsx` 与 `aurora/components/**/*.smoke.test.tsx` | 各主要面板 / 外壳组件的挂载与关键交互 |
 | 样式守卫   | `aurora/styles/*.test.ts`                             | 死 CSS 清理、指针门控、按压反馈等视觉约定                  |
 | 真机 E2E  | `e2e/*.spec.ts`                                       | 真实 Electron 桌面端下的启动、文件系统、Vault、导入导出、网络代理、Pandoc 等全链路 |
@@ -1633,55 +1658,55 @@ npm run e2e:report   # 打开 HTML 报告
 
 ---
 
-## 🚢 部署说明
+## 🚢 打包与发布
 
-### ▲ Vercel
+> ⚠️ **MarkCraft 不是网页应用**：自 2026-10-09 起 `electronPlatform` 是唯一产品形态，
+> 不再提供 Vercel / GitHub Pages / Docker 之类的网页部署方式 —— 业务代码通过 `@platform`
+> 直接依赖桌面能力（真实磁盘 Vault、`mc:fs:*` IPC、原生对话框、Pandoc sidecar），
+> 把 `dist/` 丢到静态托管上只能得到一个功能残缺的空壳。
+> 需要把**博客发布到线上**时，请用应用内的「博客工坊 → 发布」适配器（GitHub / Gitee /
+> Vercel / Cloudflare / Netlify / 微信 / Substack / MDX / Hugo / Astro），那导出的是**静态站点产物**，不是本应用。
 
-```bash
-npm i -g vercel
-vercel
-```
-
-或通过 Vercel Dashboard 导入 Git 仓库，框架选择 **Vite**，自动部署。
-
-### 🐙 GitHub Pages
-
-1. 修改 `vite.config.ts`：
-
-```typescript
-export default defineConfig({
-  base: '/markcraft/',
-  plugins: [react()]
-})
-```
-
-1. 构建并部署：
+### 本地打包
 
 ```bash
-npm run build
-npx gh-pages -d dist
+npm run fetch:pandoc              # 首次：下载 Pandoc sidecar（真 EPUB 需要，不入库）
+npm run electron:dist:win        # 构建 Windows x64 安装包
 ```
 
-### 🐳 Docker
+产物（默认输出目录，可用 `--config.directories.output=<dir>` 改）：
 
-```dockerfile
-FROM node:18-alpine AS build
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
+| 文件 | 说明 |
+| --- | --- |
+| `MarkCraft-Setup-<version>-x64.exe` | NSIS 安装版，可选安装目录、桌面/开始菜单快捷方式 |
+| `MarkCraft-Portable-<version>-x64.exe` | 便携版，免安装直接运行 |
+| `win-unpacked/` | 免安装目录形态，可直接启动 `MarkCraft.exe` 做冒烟验证 |
 
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
-```
+### 关于 `asar`
 
-```bash
-docker build -t markdown-editor .
-docker run -p 8080:80 markdown-editor
-```
+构建默认会生成 `resources/app.asar`。在 Windows 上，Defender 实时扫描刚写出的大体积 asar 可能让
+electron-builder 的 `unlink` 报 `EBUSY`（换新输出目录也复现）。此时可用
+`--config.asar=false` 产出 `resources/app/` 目录形态 —— **功能完全等价**（Electron 原生支持），
+只是安装后文件数更多、首次启动与扫描略慢。当前交付的 v1.0.0 安装包即为此形态。
+
+### 发布渠道
+
+安装包（Windows 版）托管在**独立的安装包仓库**，不放在本源码仓库中，以保持 `clone` 轻量。
+Gitee 免费版对单文件限制 100MB，故以**分卷（volume）**形式存放，`git clone` 后用脚本合并还原：
+
+🔗 [James-fake/markcraftxiazaicangdianhua](https://gitee.com/James-fake/markcraftxiazaicangdianhua)
+
+### 运行时环境变量（可选）
+
+| 变量 | 用途 |
+| --- | --- |
+| `MARKCRAFT_ALLOW_PRIVATE_NET=1` | 允许主进程网络代理访问本机/内网地址（默认拒绝，防 SSRF；自建 Ollama 端点时用） |
+| `MARKCRAFT_OPEN_DEVTOOLS=1` | 启动时打开 DevTools |
+| `MARKCRAFT_TEST_OPEN_DIR=<path>` | E2E 注入固定 Vault 路径 |
+| `ELECTRON_RUN_AS_NODE` | **不要设置**：会让 Electron 以纯 Node 模式启动（无窗口）；开发脚本里若被宿主注入，启动前需 `env -u ELECTRON_RUN_AS_NODE` |
+| `VITE_TELEMETRY_ENDPOINT` | **构建期**注入的匿名使用统计上报端点（指向隐私友好的自定义事件接口，如 Umami / Plausible / PostHog）。**留空则即使已授权也绝不发送任何数据**；遥测默认关闭，须用户在「设置 → 隐私」中显式勾选加入。详见 `docs/PRIVACY_POLICY_zh.md` |
+
+> 隐私模型：**默认关闭（opt-in）** + **留空端点即零上报** + **绝不采集笔记内容 / 文件名 / 路径**。已实现的只是「槽位骨架」，未配置 `VITE_TELEMETRY_ENDPOINT` 的发布包等同完全离线，可放心分发。
 
 ---
 
@@ -1698,7 +1723,23 @@ docker run -p 8080:80 markdown-editor
 - 🔎 知识库的「问答 / 相似检索」是**本地统计检索**（关键词重合度 + 词频摘句），**不是 AI**；`aiService.ts` 里的远程大模型 `RemoteEngine` 未接线、无配置 UI，**当前不可用**
 - ⚠️ Tiptap 与 CodeMirror 切换时部分扩展可能产生 Duplicate extension 警告（不影响功能）
 
+> 已缓解（2026-11-04）：WYSIWYG 大文档**连续输入的卡顿**。原每键击都做整篇 `getHTML → htmlToMarkdown`（实测占输入延迟 87-95%），现改为 150ms 防抖 + 8 个 flush 点，并线性化了公式块提取；详见「质量与性能」章节。
+
 </details>
+
+### 🛡️ 质量与性能
+
+**2026-11-04 更新** — 本轮完成了一次覆盖全仓的审查与修复闭环，**全量 197 个测试文件 / 2284 条用例（2282 通过 + 2 跳过）通过**，`tsc` ×3 与 `lint --max-warnings 0` 全绿。测试框架已升级至 vitest 2.1.x（兼容 Node 22+ 与 Vite 5）。
+
+| 方面 | 内容 |
+| --- | --- |
+| **桌面端安全** | fs IPC 路径白名单 + 原子写（`.tmp`→rename）；Vault 根动态登记；主进程网络代理加了协议白名单、内网/回环拒绝、DNS 解析后复查（防 rebinding）、重定向逐跳复查（防 SSRF）；`will-navigate` / `setWindowOpenHandler` / `will-attach-webview` 三重导航防线；iframe 沙箱去掉 `allow-same-origin`；导出内容协议白名单与属性转义；mermaid 统一 `securityLevel: 'strict'` |
+| **数据正确性** | Vault 模式标签页/会话态独立落盘（按相对路径，重启可恢复）；备份子系统接入运行时文件树（此前在桌面端恒空）；外部改动 reload 保留未落盘编辑；迁移/版本升级不再静默弃数据；`replaceAllVersions` 改先写后删；`addBackup` 与 `doSync` 串行化；导入保留目录结构并去重；全局替换遵守文件夹/标签过滤 |
+| **输入性能** | WYSIWYG 序列化 150ms 防抖（连续输入 N 次只做 1 次）、lint 一次计算两处应用、`extractDivBlock` 线性化；`perfProbe` 开发态每 100 次键击输出 `serializeRate` |
+| **回归锁** | `netGuard.test.ts`（SSRF/重定向）、`fileStoreShared.session.test.ts`（会话与 reload 合并）、`serializeScheduler.test.ts`（防抖与 flush 不丢字）、`htmlToMd.extractDiv.test.ts`（公式块）、`stressAndPerf.test.ts`（成本剖面） |
+| **部署适配器** | GitHub / Gitee 的分支更新去掉无条件 `force`，交由服务端 fast-forward 校验，并发推送被拒时给明确错误而非静默覆盖 |
+
+> 设计细节见 [`docs/TiptapEditor-Perf-Plan.md`](./docs/TiptapEditor-Perf-Plan.md)（含阶段 0 实测数据与实施偏差记录）。
 
 ### 🎯 路线图
 
@@ -1715,6 +1756,7 @@ docker run -p 8080:80 markdown-editor
 | ✅ Canvas v2 白板 | `██████████` 100% |
 |     ✅ 知识库系统    | `██████████` 100% |
 |  ✅ 知识库检索（本地）  | `██████████` 100% |
+|  ✅ 安全与数据一致性 | `██████████` 100%  |
 |  🚧 AI / 大模型     | `░░░░░░░░░░` 0%   |
 |    🚧 移动端适配    | `██░░░░░░░░` 20%  |
 |     🚧 协作编辑    | `░░░░░░░░░░` 0%   |
@@ -1749,6 +1791,10 @@ docker run -p 8080:80 markdown-editor
 - [x] 📋 模板系统
 - [x] 📥 **导入保真** — docx / html 导入启用 GFM 表格转换，统一产出高质量 Markdown
 - [x] 🔍 **代码审查闭环** — Critical / High / Medium / Low 全层级修复，测试全量通过
+- [x] 🛡️ **桌面端安全加固（2026-11）** — fs 路径白名单与原子写、SSRF/DNS-rebinding/重定向逐跳防护、导航与 webview 防线、iframe 沙箱收紧、导出链接协议白名单、mermaid strict；GitHub / Gitee 部署去掉无条件 force
+- [x] 💾 **数据一致性修复（2026-11）** — Vault 标签页与备份恢复、reload 保留未落盘编辑、迁移/版本升级不弃数据、备份写入顺序与并发串行化、导入保留目录结构、全局替换遵守过滤器
+- [x] ⚡ **WYSIWYG 输入性能（2026-11）** — 序列化 150ms 防抖 + 8 个 flush 点、lint 一次计算两处应用、公式块提取 O(k²·n)→O(n)；实测序列化占输入延迟 87-95%，连续输入 N 次现只做 1 次（方案见 `docs/TiptapEditor-Perf-Plan.md`）
+- [x] 🧪 **回归锁与质量门禁** — 194 个测试文件 / 2258 条用例；`tsc` ×3 + `vitest run` + `lint --max-warnings 0` 为 CI 硬门禁
 
 ---
 

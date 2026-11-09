@@ -91,8 +91,29 @@ export const Modal: React.FC<ModalProps> = ({
 
   useEffect(() => {
     if (phase !== 'exiting') return
-    const t = window.setTimeout(() => setPhase('closed'), MODAL_EXIT_MS)
-    return () => window.clearTimeout(t)
+    const overlay = overlayRef.current
+    let finished = false
+    const finish = () => {
+      if (finished) return
+      finished = true
+      setPhase('closed')
+    }
+    // 退场动画播完（animationend）才卸载，避免固定定时器与 CSS 动画结束存在帧级漂移，
+    // 导致节点在接近不透明时被提前移除、出现「卡一下闪一下」的尾端毛刺。
+    // 退场期间只跑退出动画（遮罩 aurora-fade-out / 面板 aurora-modal-out）。
+    // ⚠️ animationend 会冒泡：子面板 aurora-modal-out 收束时也会冒泡到 overlay 监听器，
+    // 若不加 target 判断会提前 finish() 卸载遮罩，导致遮罩淡出被截断、出现尾端毛刺。
+    // 仅当事件 target 即遮罩自身（其 aurora-fade-out 收束）时才收束。
+    const onAnimEnd = (e: AnimationEvent) => {
+      if (e.target === overlay) finish()
+    }
+    overlay?.addEventListener('animationend', onAnimEnd)
+    // 兜底：以防极少数环境 animationend 未触发（如被中断/降级），超时后强制卸载。
+    const t = window.setTimeout(finish, MODAL_EXIT_MS + 140)
+    return () => {
+      overlay?.removeEventListener('animationend', onAnimEnd)
+      window.clearTimeout(t)
+    }
   }, [phase])
 
   const getFocusable = useCallback((): HTMLElement[] => {

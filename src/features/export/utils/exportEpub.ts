@@ -263,5 +263,8 @@ export async function generateEpubBlob(content: string): Promise<Blob> {
   }
 
   // Fallback: generate simple EPUB without Pandoc
+  // ⚠️ 不再静默（2026-11-03 审查 P2）：Pandoc 不可用/失败时用户拿到的是降级 EPUB
+  //    （无目录、样式与脚注简化），至少让排查有据可依，而不是「看起来成功」。
+  console.warn('[epub] Pandoc 不可用或转换失败，已降级为内置生成器：', result.error ?? 'pandoc unavailable')
   return generateSimpleEpub(content)
 }

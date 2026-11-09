@@ -7,12 +7,23 @@ import type { KnowledgeBase } from '@stores/kbTypes'
 import type { FileNode } from '@src/types/fileManager'
 import { KbExportMessages, DEFAULT_KB_EXPORT_MESSAGES } from './sharePackager'
 
-/** 转义 HTML 特殊字符 */
+/** 转义 HTML 特殊字符（含引号 —— 属性值里必须转义，否则含 `"` 的 URL 可闭合属性注入） */
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+/** 链接协议白名单（2026-11-03 审查 P1）：`[x](javascript:...)` 曾原样进入导出物，
+ *  在浏览器打开导出 HTML 时执行。与 staticSiteExporter 的 safeHref 同口径。 */
+const SAFE_HREF_RE = /^(https?:|mailto:|tel:|#|\/|\.\/|\.\.\/)/i
+function safeHref(raw: string): string | null {
+  const href = raw.trim()
+  if (!href) return null
+  return SAFE_HREF_RE.test(href) ? href : null
 }
 
 /** 转义 XML 特殊字符（用于 EPUB 的 opf/ncx） */
@@ -25,13 +36,32 @@ function escapeXml(text: string): string {
     .replace(/'/g, '&apos;')
 }
 
+/** 行内 markdown 的粗体/斜体/行内代码（输入必须是**已转义**文本） */
+function applyInlineEmphasis(escaped: string): string {
+  return escaped
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code>$1</code>')
+}
+
 /** 处理行内 markdown */
 function inlineMd(text: string): string {
-  let result = escapeHtml(text)
-  result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>')
-  result = result.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-  result = result.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>')
-  result = result.replace(/`([^`]+)`/g, '<code>$1</code>')
+  // 链接：href 必须从**未转义原文**提取，再各做一次转义。
+  // 旧实现先 escapeHtml 再对 href 二次转义 → `&` 变成 `&amp;amp;`，查询串/锚点被写坏。
+  const anchors: string[] = []
+  const withLinks = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, label: string, href: string) => {
+    // 目标先过协议白名单，不合法则退化为纯文本（不留可执行 href）
+    const safe = safeHref(href)
+    if (!safe) return label
+    const idx = anchors.length
+    anchors.push(`<a href="${escapeHtml(safe)}">${applyInlineEmphasis(escapeHtml(label))}</a>`)
+    return `\uE000L${idx}\uE001`
+  })
+  let result = escapeHtml(withLinks)
+  // 先跑粗体/斜体/行内代码，再放回锚点：避免规则误伤 href（URL 里可能出现 `*`/反引号）。
+  result = applyInlineEmphasis(result)
+  // 占位符是私有区字符，escapeHtml 不会改动它；此处一次性放回已转义好的 <a>。
+  result = result.replace(/\uE000L(\d+)\uE001/g, (_m, i: string) => anchors[Number(i)] ?? '')
   return result
 }
 

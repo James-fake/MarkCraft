@@ -234,18 +234,90 @@ export async function loadVault(root: string): Promise<FileNode> {
   return rootNode
 }
 
-/** 防抖地把内存树增量写回磁盘（300ms，与历史 saveState 防抖同档） */
+/**
+ * 防抖地把内存树增量写回磁盘（300ms，与历史 saveState 防抖同档）。
+ *
+ * ⚠️ 互斥（2026-11-03 审查 P1）：防抖只合并「300ms 内的多次调用」，一次 doSync 在
+ * 大 Vault 上完全可能超过 300ms —— 期间新的编辑会再起一个 timer，第二个 doSync 与
+ * 第一个**并发**跑，两者共享可变模块级 `synced` Map，交错读写会导致重复写入、
+ * rename 失败回退 writeFile 等不可预测行为。这里串行化：正在跑时只记下最新一次请求，
+ * 本轮结束后补跑（覆盖式，中间态无需逐次落盘）。
+ */
+let syncRunning = false
+let syncPending: { root: FileNode; vaultRoot: string; onError?: (err: unknown) => void } | null = null
+/** 最近一次被防抖合并的请求（flushSync 用它立刻补跑，不必等满 300ms） */
+let syncRequest: { root: FileNode; vaultRoot: string; onError?: (err: unknown) => void } | null = null
+/** 串行链彻底空闲时要唤醒的等待者（flushSync 用，避免轮询） */
+let syncIdleWaiters: Array<() => void> = []
+
+function notifySyncIdle(): void {
+  if (syncRunning || syncPending) return
+  const waiters = syncIdleWaiters
+  syncIdleWaiters = []
+  for (const wake of waiters) wake()
+}
+
+function waitSyncIdle(): Promise<void> {
+  if (!syncRunning && !syncPending) return Promise.resolve()
+  return new Promise((resolve) => syncIdleWaiters.push(resolve))
+}
+
 export function syncTree(
   rootFolder: FileNode,
   vaultRoot: string,
   onError?: (err: unknown) => void,
 ): void {
   if (syncTimer) clearTimeout(syncTimer)
+  syncRequest = { root: rootFolder, vaultRoot, onError }
   syncTimer = setTimeout(() => {
+    syncRequest = null
+    void runSyncSerialized(rootFolder, vaultRoot, onError)
+  }, 300)
+}
+
+/**
+ * 立刻把挂起的写盘冲刷干净（退出应用 / 恢复备份后需要「落盘完成」的确定信号时用）。
+ *
+ * 为什么需要：`syncTree` 是 300ms 防抖 + 串行补跑，调用方拿不到任何完成信号 ——
+ * 「恢复备份 → 用户马上关应用」会丢掉最后一批写入（2026-11-08 审查 M-C-2）。
+ * 这里取消防抖 timer、立刻跑掉被合并的请求，并等到串行链彻底空闲。
+ */
+export async function flushSync(): Promise<void> {
+  if (syncTimer) {
+    clearTimeout(syncTimer)
+    syncTimer = null
+  }
+  const req = syncRequest
+  syncRequest = null
+  if (req) await runSyncSerialized(req.root, req.vaultRoot, req.onError)
+  // 已在跑时 runSyncSerialized 只是把请求排进 syncPending 并立即返回，
+  // 必须继续等串行链（含补跑）跑完。
+  await waitSyncIdle()
+}
+
+async function runSyncSerialized(
+  rootFolder: FileNode,
+  vaultRoot: string,
+  onError?: (err: unknown) => void,
+): Promise<void> {
+  if (syncRunning) {
+    syncPending = { root: rootFolder, vaultRoot, onError }
+    return
+  }
+  syncRunning = true
+  try {
     // ⚠️ 不再静默吞错：写盘失败（最常见 = 目录只读 EPERM）必须能冒到 UI，
     //    否则界面一切正常、文件却一个不落 —— 用户完全无从察觉（真实事故）。
-    void doSync(rootFolder, vaultRoot, onError).catch((err) => onError?.(err))
-  }, 300)
+    await doSync(rootFolder, vaultRoot, onError)
+  } catch (err) {
+    onError?.(err)
+  } finally {
+    syncRunning = false
+    const next = syncPending
+    syncPending = null
+    if (next) void runSyncSerialized(next.root, next.vaultRoot, next.onError)
+    else notifySyncIdle()
+  }
 }
 
 /**
@@ -328,8 +400,19 @@ async function doSync(
       try {
         await fs.rename(prev.path, cur.path)
       } catch {
-        // 旧文件不在盘上（外部已删/移动）→ 直接在新路径写出内容，避免改名丢文件
-        await write(() => fs.writeFile(cur.path, cur.content))
+        // 旧文件不在盘上（外部已删/移动）→ 直接在新路径写出内容，避免改名丢文件。
+        // ⚠️ S0 红线深度防御（2026-11-03 审查 P0-2）：目标**已存在**时绝不覆盖 ——
+        //    writeFile 回退原本无差别覆盖，同名碰撞（store 层守卫被绕过的场景）会
+        //    静默摧毁磁盘数据。此时跳过写入并上报，让树与磁盘的分歧走用户可见的错误。
+        const targetExists = await platform.fs.exists(cur.path).catch(() => false)
+        if (targetExists) {
+          const err = new Error(`改名目标已存在，拒绝覆盖：${cur.path}`)
+          firstError = firstError ?? err
+          synced.set(id, cur)
+        } else {
+          await write(() => fs.writeFile(cur.path, cur.content))
+          synced.set(id, cur)
+        }
       }
       synced.set(id, cur)
     } else if (prev.content !== cur.content) {

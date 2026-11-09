@@ -1,5 +1,5 @@
 import React from 'react'
-import { Icon as UiIcon, iconNames } from '../components/ui/Icon'
+import { Icon as UiIcon, iconNames, type IconName as BaseIconName } from '../components/ui/Icon'
 
 type P = { size?: number; className?: string }
 
@@ -15,4 +15,6 @@ export const Icon: Record<string, (p: P) => React.ReactElement> = Object.fromEnt
   (iconNames as readonly string[]).map((name) => [name, make(name)]),
 ) as Record<string, (p: P) => React.ReactElement>
 
-export type IconName = keyof typeof Icon
+/** 直接复用注册表的字面量联合 —— 此前 `keyof typeof Icon`（Record<string,…>）退化成 string，
+ *  拼错图标名编译期不报，运行时 `Icon[cat.icon]` 为 undefined → 渲染 `<undefined />` 崩面板。 */
+export type IconName = BaseIconName

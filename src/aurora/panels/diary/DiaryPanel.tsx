@@ -337,6 +337,7 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
                 livePreview={false}
                 showToolbar={false}
                 showStatusBar={false}
+                placeholder=""
               />
               <div className="dv2-editor-foot">
                 <span className="dv2-wordcount">{D.wordsUnit.replace('{n}', String(liveWords))}</span>
@@ -357,6 +358,7 @@ export function DiaryPanel({ nav }: DiaryPanelProps) {
                 livePreview={false}
                 showToolbar={false}
                 showStatusBar={false}
+                placeholder=""
               />
               <div className="dv2-editor-foot">
                 <span className="dv2-wordcount">{D.wordsUnit.replace('{n}', String(liveWords))}</span>

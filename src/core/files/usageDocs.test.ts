@@ -80,12 +80,17 @@ describe('resolveUsageDocsScope —— 内置使用文档的单源判定', () =>
     const scope = resolveUsageDocsScope(deep)
     expect(scope.folderId).toBe('f-docs')
 
-    // 文件夹在深层也命中 → 其内的**说明书文件本身**计入只读范围（与所在层级无关）
+    // 文件夹在深层也命中 → 其**直属**说明书文件计入只读范围（与文件夹所在层级无关）
     expect(scope.builtinFileIds.has('d1')).toBe(true)
-    expect(scope.builtinFileIds.has('d2')).toBe(true)
     expect(scope.hiddenIds.has('d1')).toBe(true)
 
-    // ⚠️ 关键：子文件夹 = 用户自己的结构 → 该文件夹有「用户内容」→ 文件夹行保留（可见）
+    // ⚠️ 2026-11-03 审查 P2 语义变更：子目录里的同名文件**不再**算内置说明书。
+    //    播种只会平铺文件、不建子目录，故子目录一定是用户自己建的 —— 里面的
+    //    《01 界面布局.md》是用户的文件，不该被隐藏或降级为只读（上一版会误伤）。
+    expect(scope.builtinFileIds.has('d2')).toBe(false)
+    expect(scope.hiddenIds.has('d2')).toBe(false)
+
+    // 子文件夹 = 用户自己的结构 → 该文件夹有「用户内容」→ 文件夹行保留（可见）
     //    （上一版会把文件夹行也藏掉，导致用户点不到自己的文件）
     expect(scope.hiddenIds.has('f-sub')).toBe(false)
     expect(scope.hiddenIds.has('f-docs')).toBe(false)

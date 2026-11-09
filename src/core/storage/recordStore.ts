@@ -42,12 +42,20 @@ export async function listVersions(): Promise<NoteVersionRecord[]> {
   return out
 }
 
-/** 全量替换版本记录（导入备份时用）：先清空再写入 */
+/**
+ * 全量替换版本记录（导入备份时用）。
+ *
+ * ⚠️ 顺序必须是「先写后删」（2026-11-03 审查 P1）：原实现先删光所有 `version:` 键
+ * 再逐条写，中途失败（磁盘满 / 权限）时旧版本已删、新版本未落 —— 「恢复备份」这个
+ * 操作本身成了数据丢失点。现在先 upsert（同名键覆盖），成功后再清理不在新集合里的
+ * 旧键；失败时旧数据仍完整，可重试。
+ */
 export async function replaceAllVersions(recs: NoteVersionRecord[]): Promise<void> {
-  for (const key of (await kvKeys()).filter((k) => k.startsWith(VERSION_PREFIX))) {
+  await upsertVersions(recs)
+  const keep = new Set(recs.map((r) => VERSION_PREFIX + r.versionId))
+  for (const key of (await kvKeys()).filter((k) => k.startsWith(VERSION_PREFIX) && !keep.has(k))) {
     await kvDelete(key)
   }
-  await upsertVersions(recs)
 }
 
 /** 逐条 upsert（不清空已有）—— 对应原 Dexie 的 bulkPut 语义 */
@@ -95,13 +103,25 @@ export async function updateVersion(
   await kvSet(VERSION_PREFIX + versionId, JSON.stringify({ ...cur, ...patch }))
 }
 
-/** 新增备份，返回自增 id（原先由 Dexie 的 ++id 提供） */
-export async function addBackup(rec: BackupRecord): Promise<number> {
-  const seqRaw = await kvGet(BACKUP_SEQ_KEY)
-  const next = (seqRaw ? Number(seqRaw) : 0) + 1
-  await kvSet(BACKUP_SEQ_KEY, String(next))
-  await kvSet(BACKUP_PREFIX + next, JSON.stringify({ ...rec, id: next }))
-  return next
+/**
+ * 新增备份，返回自增 id（原先由 Dexie 的 ++id 提供）。
+ *
+ * ⚠️ 序列读-改-写必须串行（2026-11-03 审查 P1）：两个并发 addBackup（如自动备份与
+ * 手动备份撞车）会读到同一个 seq，后写者覆盖先写者的记录。单线程 JS 在 await 之间
+ * 就会交错，故用模块级 promise 链排队。
+ */
+let backupSeqQueue: Promise<unknown> = Promise.resolve()
+export function addBackup(rec: BackupRecord): Promise<number> {
+  const run = backupSeqQueue.then(async () => {
+    const seqRaw = await kvGet(BACKUP_SEQ_KEY)
+    const next = (seqRaw ? Number(seqRaw) : 0) + 1
+    await kvSet(BACKUP_SEQ_KEY, String(next))
+    await kvSet(BACKUP_PREFIX + next, JSON.stringify({ ...rec, id: next }))
+    return next
+  })
+  // 队列本身吞掉错误（否则一次失败会让后续所有 addBackup 连锁 reject）
+  backupSeqQueue = run.catch(() => undefined)
+  return run
 }
 
 /** 列举全部备份（按 createdAt 升序，与 Dexie 表顺序一致） */

@@ -45,13 +45,9 @@
   width: 42px;
   height: 42px;
   border-radius: var(--mc-radius-md);
-  background: var(--mc-accent);
-  color: var(--mc-text-inverse);
-  font-size: var(--mc-font-xl);
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: block;
 }
 
 .aurora-welcome__brand-title {
@@ -252,5 +248,9 @@
 
   .aurora-welcome__tiles {
     grid-template-rows: repeat(3, 88px);
+  }
+
+  .aurora-welcome__onboarding-body {
+    grid-template-columns: 1fr;
   }
 }

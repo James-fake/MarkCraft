@@ -112,6 +112,18 @@ export interface MarkCraftShellAPI {
   openPath(path: string): Promise<boolean>
 }
 
+/**
+ * Vault 根登记（S0 红线：fs IPC 路径白名单的动态部分）。
+ * 主进程的 mc:fs:* 只放行「userData + 已登记 Vault 根 + 对话框授权路径」内的路径；
+ * Vault 载入前必须先 registerRoot，切换/卸载 Vault 时 unregisterRoot。
+ */
+export interface MarkCraftVaultAPI {
+  /** 登记一个 Vault 根（载入前调用；invoke 顺序保证先于其后的 fs 调用生效） */
+  registerRoot(root: string): Promise<void>
+  /** 注销一个 Vault 根（切换/卸载时调用） */
+  unregisterRoot(root: string): Promise<void>
+}
+
 /** 主进程网络请求参数（P6：渲染端 → 主进程代理，绕过 CORS） */
 export interface MarkCraftNetRequest {
   url: string
@@ -158,6 +170,7 @@ export interface MarkCraftDesktopAPI {
   fs: MarkCraftFsAPI
   dialog: MarkCraftDialogAPI
   shell: MarkCraftShellAPI
+  vault: MarkCraftVaultAPI
   net: MarkCraftNetAPI
   setup: MarkCraftSetupAPI
   app: MarkCraftAppAPI

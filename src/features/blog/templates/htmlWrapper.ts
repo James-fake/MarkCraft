@@ -186,10 +186,26 @@ ${body}
     <p>&copy; ${new Date().getFullYear()} ${escapeHtml(config.author)} &middot; Powered by MarkCraft</p>
   </footer>
   ${hasMermaid ? `<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 <script>
 (function(){
-  mermaid.initialize({ startOnLoad: false, theme: '${config.theme === 'dark' ? 'dark' : 'default'}', securityLevel: 'loose', flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' }, sequence: { useMaxWidth: true }, mindmap: { padding: 16, useMaxWidth: true } });
-  function renderDiagrams(){var ds=document.querySelectorAll('.mermaid-diagram:not([data-rendered])');if(!ds.length)return;var i=0;function next(){if(i>=ds.length)return;var d=ds[i];i++;var c=d.dataset.code;if(!c){next();return;}var code;try{code=decodeURIComponent(escape(atob(c)));}catch(e){code=d.textContent||'';}code=code.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'");var id='mermaid-svg-'+Date.now().toString(36)+Math.random().toString(36).substr(2,6);mermaid.render(id,code).then(function(r){d.innerHTML=r.svg;d.setAttribute('data-rendered','true');next();}).catch(function(){d.innerHTML='<div style="padding:1rem;color:#e74c3c;background:rgba(231,76,60,0.1);border-radius:0.5rem;font-size:0.875rem;"><strong>Diagram render error</strong></div>';d.setAttribute('data-rendered','true');try{var el=document.getElementById('d'+id);if(el)el.remove();}catch(e){}next();});}next();}
+  // ⚠️ securityLevel:'strict' 会在 mermaid 内部**强制禁用 HTML 标签**（htmlLabels 失效），
+  //    旧配置同时写 strict + htmlLabels:true 是自相矛盾的。这里显式写 false：
+  //    节点文字改走 SVG <text>，样式由 .mermaid-diagram svg text 覆盖，行为可预期。
+  mermaid.initialize({ startOnLoad: false, theme: '${config.theme === 'dark' ? 'dark' : 'default'}', securityLevel: 'strict', flowchart: { useMaxWidth: true, htmlLabels: false, curve: 'basis' }, sequence: { useMaxWidth: true }, mindmap: { padding: 16, useMaxWidth: true } });
+  // SVG 二次净化（与编辑器 sanitizeMermaidSvg 同策略）：DOMPurify 的 svg profile 会把
+  // <foreignObject> **连内容一起**剥掉（mermaid 的 HTML 节点文字所在），故先整块占位保护、
+  // 消毒后原样放回；strict 模式下 mermaid 自身已消毒文字，这里再兜一层脚本/事件面。
+  function sanitizeSvg(svg){
+    if (typeof DOMPurify === 'undefined') return svg;
+    try {
+      var fo=[];
+      var protectedSvg=svg.replace(/<foreignObject[\\s\\S]*?<\\/foreignObject>/gi,function(m){var i=fo.length;fo.push(m);return '\\uE000FO'+i+'\\uE001';});
+      var clean=DOMPurify.sanitize(protectedSvg,{USE_PROFILES:{svg:true,svgFilters:true}});
+      return clean.replace(/\\uE000FO(\\d+)\\uE001/g,function(_m,i){return fo[Number(i)]||'';});
+    } catch(e){ return svg; }
+  }
+  function renderDiagrams(){var ds=document.querySelectorAll('.mermaid-diagram:not([data-rendered])');if(!ds.length)return;var i=0;function next(){if(i>=ds.length)return;var d=ds[i];i++;var c=d.dataset.code;if(!c){next();return;}var code;try{code=decodeURIComponent(escape(atob(c)));}catch(e){code=d.textContent||'';}code=code.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&quot;/g,'"').replace(/&#39;/g,"'");var id='mermaid-svg-'+Date.now().toString(36)+Math.random().toString(36).substr(2,6);mermaid.render(id,code).then(function(r){d.innerHTML=sanitizeSvg(r.svg);d.setAttribute('data-rendered','true');next();}).catch(function(){d.innerHTML='<div style="padding:1rem;color:#e74c3c;background:rgba(231,76,60,0.1);border-radius:0.5rem;font-size:0.875rem;"><strong>Diagram render error</strong></div>';d.setAttribute('data-rendered','true');try{var el=document.getElementById('d'+id);if(el)el.remove();}catch(e){}next();});}next();}
   if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',renderDiagrams);}else{renderDiagrams();}
 })();
 </script>` : ''}

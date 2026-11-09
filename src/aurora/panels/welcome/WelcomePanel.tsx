@@ -2,16 +2,18 @@ import { useCallback, useState, useEffect, useMemo, type CSSProperties } from 'r
 import { PageFrame } from '../../components/shell/PageFrame'
 import { useCommandPalette } from '../../components/command-palette/CommandPaletteContext'
 import { Icon } from '../../icons'
+import { BrandLogo } from '../../components/BrandLogo'
 import { resolveAuroraNav, buildAuroraSidebarGroups } from '../aurora-nav'
 import { useFileManager } from '@stores/FileStore'
 import { useLanguage } from '@stores/LanguageStore'
-import { useUserProfile, userDisplayName } from '@stores/UserProfileStore'
+import { useUserProfile, userDisplayName, isBirthdayToday } from '@stores/UserProfileStore'
 import { findNode } from '@core/files/fileTree'
 import {
   getRecentFiles,
   subscribeRecentFiles,
   type RecentFileEntry,
 } from '@core/files/recentFiles'
+import { readSeedRecord } from '@features/onboarding/firstRun'
 import '../../styles/panels/welcome.css'
 
 /**
@@ -110,8 +112,25 @@ export function WelcomePanel({ nav }: WelcomePanelProps) {
   const latest = valid[0]
   const streak = useMemo(() => computeStreak(valid), [valid])
 
+  // 首启播种的欢迎笔记：仅在「还没打开过任何文档」时接管左大卡。
+  // 它是真实文件（不是演示浮层），用户在编辑器里改一个字就真的改到了自己的笔记。
+  const seedNode = useMemo(() => {
+    const rec = readSeedRecord()
+    if (!rec?.docId) return null
+    const node = findNode(rootFolder, rec.docId)
+    return node && node.type === 'file' ? node : null
+  }, [rootFolder])
+  const heroIsSeed = !latest && Boolean(seedNode)
+  const heroFileId = latest?.fileId ?? seedNode?.id ?? null
+
+  // 人情味：欢迎问候使用用户设置的昵称（空则回退「用户」）
+  const profile = useUserProfile()
+  const displayName = userDisplayName(profile)
+
   const now = new Date()
-  const hello = t.welcome[greetingKeyByHour(now.getHours())]
+  // 生日当天换一句问候 —— 这是生日字段唯一的消费方，档案卡上的承诺由此兑现
+  const isBirthday = isBirthdayToday(profile.birthday)
+  const hello = isBirthday ? t.welcome.birthdayGreeting : t.welcome[greetingKeyByHour(now.getHours())]
   // 日期/星期随界面语言本地化（Intl 单源，无需键位）
   const localeTag = language === 'en' ? 'en-US' : 'zh-CN'
   const weekday = now.toLocaleDateString(localeTag, { weekday: 'long' })
@@ -130,10 +149,6 @@ export function WelcomePanel({ nav }: WelcomePanelProps) {
     return new Date(ts).toLocaleDateString(localeTag, { month: 'long', day: 'numeric' })
   }, [t, localeTag])
 
-  // 人情味：欢迎问候使用用户设置的昵称（空则回退「用户」）
-  const profile = useUserProfile()
-  const displayName = userDisplayName(profile)
-
   const handleNav = useCallback(
     (id: string) => {
       nav?.(resolveAuroraNav(id))
@@ -147,13 +162,13 @@ export function WelcomePanel({ nav }: WelcomePanelProps) {
   }, [createFile, rootFolder.id, handleNav, t])
 
   const handleOpenLatest = useCallback(() => {
-    if (!latest) {
+    if (!heroFileId) {
       handleNewNote()
       return
     }
-    openFile(latest.fileId)
+    openFile(heroFileId)
     nav?.(resolveAuroraNav('编辑器'))
-  }, [latest, openFile, nav, handleNewNote])
+  }, [heroFileId, openFile, nav, handleNewNote])
 
   const handleTile = useCallback(
     (tileNav?: string) => {
@@ -176,7 +191,7 @@ export function WelcomePanel({ nav }: WelcomePanelProps) {
         <div className="aurora-welcome__container">
           {/* 品牌头部：紧凑实色，去玻璃 / 去极光 / 去渐变 logo */}
           <div className="aurora-welcome__brand-bar">
-            <div className="aurora-welcome__brand-icon">M</div>
+            <BrandLogo size={42} className="aurora-welcome__brand-icon" />
             <div className="aurora-welcome__brand-title">MarkCraft</div>
           </div>
 
@@ -186,11 +201,16 @@ export function WelcomePanel({ nav }: WelcomePanelProps) {
               {hello}，{displayName}
             </div>
             <div className="aurora-welcome__usage">
-              {t.welcome.usageDaysLine.replace('{n}', String(usageDays))}
+              {usageDays > 1
+                ? t.welcome.usageDaysLine.replace('{n}', String(usageDays))
+                : t.welcome.firstRunHint}
               {' · '}{weekday} · {dateStr}
             </div>
             {streak > 0 && (
               <div className="aurora-welcome__streak">{t.welcome.streakDaysLine.replace('{n}', String(streak))}</div>
+            )}
+            {isBirthday && (
+              <div className="aurora-welcome__streak">{t.welcome.birthdayLine}</div>
             )}
           </div>
 
@@ -202,23 +222,29 @@ export function WelcomePanel({ nav }: WelcomePanelProps) {
               tabIndex={0}
               onClick={handleOpenLatest}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleOpenLatest()
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleOpenLatest() }
               }}
             >
               <div>
                 <div className="aurora-welcome__hero-meta">
                   <Icon.edit size={18} />
-                  <span>{t.welcome.lastStayed}</span>
+                  <span>{heroIsSeed ? t.welcome.firstRunHeroMeta : t.welcome.lastStayed}</span>
                 </div>
                 <div className="aurora-welcome__hero-title">{t.welcome.heroEditor}</div>
                 <div className="aurora-welcome__hero-sub">
                   {latest
                     ? t.welcome.continueDoc.replace('{name}', latest.fileName.replace(/\.md$/i, '')) + ' · ' + formatRelativeTime(latest.lastOpened)
-                    : t.welcome.startFirstNote}
+                    : heroIsSeed
+                      ? t.welcome.firstRunHeroSub
+                      : t.welcome.startFirstNote}
                 </div>
               </div>
               <div className="aurora-welcome__hero-cta">
-                {latest ? t.welcome.continueEdit : t.welcome.newNoteCta} →
+                {latest
+                  ? t.welcome.continueEdit
+                  : heroIsSeed
+                    ? t.welcome.firstRunOpenDoc
+                    : t.welcome.newNoteCta} →
               </div>
             </div>
 
@@ -234,7 +260,7 @@ export function WelcomePanel({ nav }: WelcomePanelProps) {
                     tabIndex={0}
                     onClick={() => handleTile(tile.nav)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleTile(tile.nav)
+                      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTile(tile.nav) }
                     }}
                   >
                     <TileIcon size={22} />
@@ -249,7 +275,7 @@ export function WelcomePanel({ nav }: WelcomePanelProps) {
                 tabIndex={0}
                 onClick={() => handleTile(undefined)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleTile(undefined)
+                  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTile(undefined) }
                 }}
               >
                 <Icon.search size={22} />

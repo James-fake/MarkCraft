@@ -10,6 +10,7 @@
 // - 完成后置 localStorage 标记，之后每次启动只读一个标记。
 import type { StorageBackend } from './backend'
 import { bytesToBase64, blobToBytes } from './base64'
+import { logger } from '@utils/logger'
 
 const LEGACY_DB = 'markcraft'
 const DONE_KEY = 'markcraft-idb-to-disk-migrated'
@@ -61,23 +62,38 @@ async function legacyDbExists(): Promise<boolean> {
   }
 }
 
-function openLegacyDb(): Promise<IDBDatabase | null> {
+/** 旧库里出现过的对象仓库；一个都没有 = 不是「有数据的老库」 */
+const LEGACY_STORES = ['kv', 'versions', 'backups', 'blobs'] as const
+
+interface OpenedLegacyDb {
+  db: IDBDatabase
+  /** 本次 open 触发了 onupgradeneeded → 库原本不存在，是被 open **新建**的空库 */
+  created: boolean
+}
+
+function openLegacyDb(): Promise<OpenedLegacyDb | null> {
   return new Promise((resolve) => {
     let req: IDBOpenDBRequest
+    // ⚠️ 不带 version 的 open 在库不存在时会**新建**一个空库并触发 onupgradeneeded。
+    //    必须记住这个信号：它不是「有旧库但为空」，而是「根本没有旧库」。
+    let created = false
     try {
       req = indexedDB.open(LEGACY_DB)
     } catch {
       resolve(null)
       return
     }
-    req.onsuccess = () => resolve(req.result)
+    req.onupgradeneeded = () => {
+      created = true
+    }
+    req.onsuccess = () => resolve({ db: req.result, created })
     req.onerror = () => resolve(null)
     req.onblocked = () => resolve(null)
   })
 }
 
 function readAll<T>(db: IDBDatabase, store: string): Promise<T[]> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     if (!db.objectStoreNames.contains(store)) {
       resolve([])
       return
@@ -86,9 +102,11 @@ function readAll<T>(db: IDBDatabase, store: string): Promise<T[]> {
       const tx = db.transaction(store, 'readonly')
       const req = tx.objectStore(store).getAll()
       req.onsuccess = () => resolve((req.result ?? []) as T[])
-      req.onerror = () => resolve([])
-    } catch {
-      resolve([])
+      // ⚠️ 读取失败必须 reject（2026-11-03 审查 P1）：此前 resolve([]) 把「读不出来」
+      //    当成「没有数据」，迁移照样 markDone —— 老用户的版本历史/备份被永久放弃。
+      req.onerror = () => reject(new Error(`[migrate] 读取旧库 ${store} 失败`))
+    } catch (err) {
+      reject(err instanceof Error ? err : new Error(String(err)))
     }
   })
 }
@@ -110,25 +128,46 @@ export async function migrateLegacyIndexedDb(backend: StorageBackend): Promise<b
     return false
   }
 
-  const db = await openLegacyDb()
-  if (!db) {
-    markDone()
+  const opened = await openLegacyDb()
+  if (!opened) {
+    // ⚠️ 打开失败**不得** markDone（2026-11-03 审查 P1）：onblocked（另一窗口占用旧库）
+    //    与 onerror（库损坏/配额）都是可能自愈的瞬时失败。此前直接置 done 会让老用户的
+    //    知识库/版本历史/PDF 永久留在死库里、再也不会重试（升级即静默丢数据）。
+    //    保留标记 → 下次启动重试；只有「确认没有旧库」或「搬迁全部成功」才置 done。
+    return false
+  }
+
+  // ⚠️ 空库守卫（2026-11-08 审查 M-C-1，数据完整性）：`indexedDB.open(name)` 不带
+  //    version 时，库不存在会**新建**一个空库（onupgradeneeded 触发）。此前该分支继续
+  //    往下读 → 所有 readAll 都拿到空数组 → 照样 markDone()，等于把「没有旧数据」
+  //    永久钉死。若用户之后回滚/降级、或旧库来自另一个 profile 被复制回来，
+  //    数据将再也无法迁移（标记已置，启动即跳过）。
+  //    同理：库存在但一个预期对象仓库都没有（被其它模块/版本建过）也不是可迁移的旧库。
+  //    两者都视为「本次无旧数据」—— 安全退出、**不置标记**，保持可重试（幂等、零写入）。
+  const hasLegacyStore = LEGACY_STORES.some((s) => opened.db.objectStoreNames.contains(s))
+  if (opened.created || !hasLegacyStore) {
+    try {
+      opened.db.close()
+    } catch {
+      /* 忽略 */
+    }
+    logger.info('[migrate] 未发现可迁移的旧 IndexedDB（空库/无预期仓库），保留重试机会')
     return false
   }
 
   try {
     // ① kv：键名原样搬（文件树快照、知识库、白板…）
-    for (const row of await readAll<LegacyKv>(db, 'kv')) {
+    for (const row of await readAll<LegacyKv>(opened.db, 'kv')) {
       if (row?.key) await backend.setText(row.key, row.value)
     }
 
     // ② versions：一条一个键（与 recordStore 的前缀一致）
-    for (const r of await readAll<LegacyVersion>(db, 'versions')) {
+    for (const r of await readAll<LegacyVersion>(opened.db, 'versions')) {
       if (r?.versionId) await backend.setText('version:' + r.versionId, JSON.stringify(r))
     }
 
     // ③ backups：一条一个键，并修正自增序列（否则新备份会覆盖旧 id）
-    const backups = await readAll<LegacyBackup>(db, 'backups')
+    const backups = await readAll<LegacyBackup>(opened.db, 'backups')
     let maxId = 0
     for (const b of backups) {
       if (b?.id == null) continue
@@ -138,7 +177,7 @@ export async function migrateLegacyIndexedDb(backend: StorageBackend): Promise<b
     if (maxId > 0) await backend.setText('backup-seq', String(maxId))
 
     // ④ blobs：Blob → base64（与 blobStore 的落盘形态一致）
-    for (const b of await readAll<LegacyBlob>(db, 'blobs')) {
+    for (const b of await readAll<LegacyBlob>(opened.db, 'blobs')) {
       if (!b?.pdfId || !b.blob) continue
       const bytes = await blobToBytes(b.blob)
       await backend.setText(
@@ -153,9 +192,14 @@ export async function migrateLegacyIndexedDb(backend: StorageBackend): Promise<b
         }),
       )
     }
+  } catch (err) {
+    // 搬迁中途失败（读失败 / 写盘失败 / Blob 解码失败）→ 不 markDone，下次启动重试。
+    // 已写入的部分是幂等覆盖（同键同值），重试安全。
+    logger.error('[migrate] 旧 IndexedDB 搬迁未完成，保留重试机会：', err)
+    return false
   } finally {
     try {
-      db.close()
+      opened.db.close()
     } catch {
       /* 忽略 */
     }

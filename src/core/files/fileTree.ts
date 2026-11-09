@@ -96,6 +96,20 @@ export function loadState(lang: 'zh' | 'en' = 'zh'): FileManagerState {
   try {
      const savedVersion = localStorage.getItem(STORAGE_KEY + '-version');
      if (savedVersion !== STORAGE_VERSION) {
+       // ⚠️ 版本不匹配不得静默清除用户树（2026-11-03 审查 P1）：
+       //    此前直接 removeItem，旧数据无备份、无合并、无确认，一键回到种子树；
+       //    若版本键被部分清理/丢失，同样触发整树清除。
+       //    现在先把原文备份到独立键（保留原始 JSON，可人工恢复），再重建。
+       const raw = localStorage.getItem(STORAGE_KEY);
+       if (raw) {
+         try {
+           localStorage.setItem(`${STORAGE_KEY}-backup-v${savedVersion ?? 'unknown'}`, raw);
+           logger.warn('[fileTree] 存储版本不匹配，旧树已备份至 ' + `${STORAGE_KEY}-backup-v${savedVersion ?? 'unknown'}`);
+         } catch {
+           // 备份失败（配额）→ 宁可保留旧键不清空，也不要在无备份的情况下丢数据
+           return defaultState;
+         }
+       }
        localStorage.removeItem(STORAGE_KEY);
        localStorage.setItem(STORAGE_KEY + '-version', STORAGE_VERSION);
        localStorage.setItem(MIGRATED_LINK_GUIDE_KEY, '1');

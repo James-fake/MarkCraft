@@ -106,7 +106,15 @@ const USER_TEMPLATES_KEY = 'markcraft-user-templates'
 export function getUserTemplates(): Template[] {
   try {
     const stored = localStorage.getItem(USER_TEMPLATES_KEY);
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) return [];
+    const parsed: unknown = JSON.parse(stored);
+    // ⚠️ 形状校验（2026-11-03 审查 P2）：localStorage 被污染成非数组时，
+    //    `[...getUserTemplates()]` 会抛 TypeError，整个模板弹窗崩溃。
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (t): t is Template =>
+        !!t && typeof t === 'object' && typeof (t as Template).id === 'string' && typeof (t as Template).name === 'string',
+    );
   } catch { return []; }
 }
 

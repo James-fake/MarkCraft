@@ -31,6 +31,7 @@ import { generateCustomColorOverrideCss } from '../singleFile/colorSchemes'
 import { getMermaidCss, getMermaidScript } from '../singleFile/mermaidHelpers'
 import { THEME_NAV_LABELS } from '../singleFile/newThemeTemplate'
 import { sanitizeCssFast } from '../cssSanitizer'
+import { safeJsonLd } from '../jsonLd'
 
 /** 与 blogMultiFileGenerator.BlogFile 同构（本地定义避免模块循环导入） */
 export interface BlogFile {
@@ -627,7 +628,10 @@ export function generateThemedSiteFiles(input: ThemedSiteInput): BlogFile[] {
     const rootPrefix = isPage ? '../' : '../../'
     const links = makeLinks(rootPrefix)
     const section = postSection(post, posts, links, config, themeStyle, lang)
-    const jsonLd = `<script type="application/ld+json">${JSON.stringify({
+    // ⚠️ 必须走 safeJsonLd（2026-11-03 审查 P0-5）：裸 JSON.stringify 不转义 `<`/`>`，
+    //    标题/描述含 `</script>` 会提前闭合脚本块，其后内容成为真实标签 → 访客浏览器执行。
+    //    经典路径（seoUtils/htmlTemplate）早已用 safeJsonLd，此处是遗漏。
+    const jsonLd = `<script type="application/ld+json">${safeJsonLd({
       '@context': 'https://schema.org',
       '@type': 'BlogPosting',
       headline: post.title,

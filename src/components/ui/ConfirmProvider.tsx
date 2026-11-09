@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useRef, useState } from 'react'
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
 import { Modal } from './Modal'
 import { Button } from './Button'
 import { useUiLabels } from './UiLabels'
@@ -66,8 +66,11 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
     showFront()
   }, [showFront])
 
+  // memo：避免对话框开/关时全部 useConfirm() 消费者连坐重渲染（审查 M4 同类模式）
+  const contextValue = useMemo(() => ({ confirm }), [confirm])
+
   return (
-    <ConfirmContext.Provider value={{ confirm }}>
+    <ConfirmContext.Provider value={contextValue}>
       {children}
       <Modal
         isOpen={state.open}

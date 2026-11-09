@@ -331,16 +331,18 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
     }
   }, [menu])
 
-  // 删除确认：Enter 确认 / Esc 取消
+  // 删除确认：Esc 取消；Enter **不**做全局确认（2026-11-03 审查 P1）。
+  // 原实现全局监听 Enter → confirmDelete：弹层无 autofocus，用户刚在编辑器打完字
+  // 习惯性回车就会直接触发不可撤销的删除（文件夹是递归删除）。危险操作不能靠
+  // 「随手一回车」触发 —— 现在默认焦点落在「取消」，要删除必须显式点击/聚焦删除按钮。
   useEffect(() => {
     if (!confirming) return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') { e.preventDefault(); cancelDelete() }
-      else if (e.key === 'Enter') { e.preventDefault(); confirmDelete() }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [confirming, cancelDelete, confirmDelete])
+  }, [confirming, cancelDelete])
 
   const handleNewFile = () => {
     // openAfterCreate=false：命名期间不自动打开/收起侧栏，避免打断输入
@@ -672,7 +674,8 @@ export function FileTree({ onCollapse, hideTopbar }: FileTreeProps) {
                 {confirming.type === 'folder' && EP.folderDeleteHint}
               </div>
               <div className="aurora-filetree__confirm-actions">
-                <button type="button" className="aurora-filetree__confirm-btn" onClick={cancelDelete}>
+                {/* 默认焦点在「取消」：Enter 的安全落点是取消，删除必须显式选择 */}
+                <button type="button" className="aurora-filetree__confirm-btn" onClick={cancelDelete} autoFocus>
                   取消
                 </button>
                 <button

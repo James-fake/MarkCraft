@@ -3,6 +3,7 @@ import { Modal, Button } from '../../components/ui'
 import { useToast } from '../../components/ui/ToastProvider'
 import { useFileManager } from '../../stores/FileStore'
 import { useLanguage } from '../../stores/LanguageStore'
+import type { FileNode } from '../../types/fileManager'
 import { importObsidianVault, importNotionExport } from '@services/import/externalImporter'
 
 type Source = 'obsidian' | 'notion' | null
@@ -73,7 +74,7 @@ function SourceCard({
 const MigrateWizard: React.FC<MigrateWizardProps> = ({ isOpen, onClose }) => {
   const { t } = useLanguage()
   const toast = useToast()
-  const { createFile, createFolder } = useFileManager()
+  const { createFile, createFolder, rootFolder } = useFileManager()
   const w = t.welcome
   const [source, setSource] = useState<Source>(null)
   const [importing, setImporting] = useState(false)
@@ -117,10 +118,81 @@ const MigrateWizard: React.FC<MigrateWizardProps> = ({ isOpen, onClose }) => {
         }
         let count = 0
         const failed: string[] = []
+        // —— 目录结构保留 + 同名去重（2026-11-03 审查 P1）——
+        // 原实现只取 basename 平铺进一个文件夹：Obsidian vault 常见的「每个子目录一个
+        // index.md」会变成 N 个同名兄弟节点（[[index]] 双链解析歧义），原目录层级全部丢失。
+        // 这里按 f.path 的相对目录逐级建文件夹（同目录只建一次），并对同父下的同名文件
+        // 追加 ` (2)` 后缀 —— 与 FileTree 手工重命名的策略一致。
+        const dirCache = new Map<string, string>() // 相对目录 → folderId（'' 表示根）
+        const usedNames = new Map<string, Set<string>>() // folderId → 已用小写文件名
+        // folderId → 该文件夹在**树根下**的相对路径（用于找到「同名历史文件夹」的已有节点）
+        const dirTreePath = new Map<string, string>()
+        dirTreePath.set(folderId, folderName)
+
+        const sanitizeSegment = (seg: string): string =>
+          seg.replace(/[\\/:*?"<>|]/g, '-').trim() || '未命名'
+
+        /** 按名称逐级查找树中已存在的文件夹（快照里不会有本次刚建的节点） */
+        const findFolderByPath = (relPath: string): FileNode | null => {
+          let cur: FileNode = rootFolder
+          for (const seg of relPath.split('/').filter(Boolean)) {
+            const next = (cur.children ?? []).find((c) => c.type === 'folder' && c.name === seg)
+            if (!next) return null
+            cur = next
+          }
+          return cur
+        }
+
+        const ensureDir = (relDir: string): string => {
+          if (!relDir) return folderId
+          const cached = dirCache.get(relDir)
+          if (cached) return cached
+          const slash = relDir.lastIndexOf('/')
+          const parentRel = slash >= 0 ? relDir.slice(0, slash) : ''
+          const parentId = ensureDir(parentRel)
+          const dirName = sanitizeSegment(relDir.slice(slash + 1))
+          const newId = createFolder(parentId, dirName)
+          dirCache.set(relDir, newId)
+          dirTreePath.set(newId, `${folderName}/${relDir}`)
+          return newId
+        }
+
+        const uniqueName = (targetFolderId: string, name: string): string => {
+          let used = usedNames.get(targetFolderId)
+          if (!used) {
+            used = new Set<string>()
+            // ⚠️ 预占目标文件夹**在树中已有节点**的名字（2026-11-08 审查 M-C-4）：
+            //    只比对本次批次时，导入到非空文件夹（最常见 = 上次导入留下的同名文件夹，
+            //    本次会再建一个同名节点、映射到同一条磁盘路径）会产生同名兄弟节点。
+            //    Vault 模式下两个节点共享一条磁盘路径 → 写盘时后者静默覆盖前者，
+            //    用户磁盘上的原文件内容永久丢失。
+            const treePath = dirTreePath.get(targetFolderId)
+            const existing = treePath ? findFolderByPath(treePath) : null
+            for (const c of existing?.children ?? []) used.add(c.name.toLowerCase())
+            usedNames.set(targetFolderId, used)
+          }
+          const lower = name.toLowerCase()
+          if (!used.has(lower)) {
+            used.add(lower)
+            return name
+          }
+          const base = name.replace(/\.md$/i, '')
+          let i = 2
+          while (used.has(`${base} (${i}).md`.toLowerCase())) i++
+          const next = `${base} (${i}).md`
+          used.add(next.toLowerCase())
+          return next
+        }
+
         for (const f of result.files) {
           try {
-            const fileName = f.name.endsWith('.md') ? f.name : `${f.name}.md`
-            createFile(folderId, fileName, f.content)
+            const relDir = f.path.includes('/') || f.path.includes('\\')
+              ? f.path.replace(/[\\/][^\\/]*$/, '')
+              : ''
+            const targetFolderId = ensureDir(relDir.split(/[\\/]/).filter(Boolean).join('/'))
+            const rawName = f.name.endsWith('.md') ? f.name : `${f.name}.md`
+            const fileName = uniqueName(targetFolderId, sanitizeSegment(rawName))
+            createFile(targetFolderId, fileName, f.content)
             count++
           } catch {
             // 单文件失败不中断整体，但必须计数并上报，否则用户以为全部导入成功
@@ -146,7 +218,7 @@ const MigrateWizard: React.FC<MigrateWizardProps> = ({ isOpen, onClose }) => {
         setImporting(false)
       }
     },
-    [source, createFile, createFolder, toast, w, t],
+    [source, createFile, createFolder, rootFolder, toast, w, t],
   )
 
   return (

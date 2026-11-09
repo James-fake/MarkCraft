@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { SidebarItem, SidebarItemProps } from './SidebarItem'
 import type { IconName } from '../../types'
-import { useUserProfile, userDisplayName, userInitial } from '@stores/UserProfileStore'
+import { useUserProfile, userDisplayName } from '@stores/UserProfileStore'
 import { useUserAccountNav } from './UserAccountNav'
 import { useLanguage } from '@stores/LanguageStore'
+import { UserAvatar } from '../UserAvatar'
 
 /**
  * 侧栏导航分组
@@ -57,7 +58,6 @@ export function Sidebar({
   const profile = useUserProfile()
   const userNav = useUserAccountNav()
   const displayName = userDisplayName(profile)
-  const avatarInitial = userInitial(profile)
   const { t } = useLanguage()
 
   // 折叠组开合状态（按分组 id 记忆；未显式切换的组跟随 defaultCollapsed）
@@ -172,13 +172,12 @@ export function Sidebar({
           onClick={() => userNav.open()}
           aria-label={t.nav.manageAccount}
         >
-          <div className="aurora-sidebar__user-avatar">
-            {profile.avatarUrl ? (
-              <img src={profile.avatarUrl} alt={displayName} className="aurora-sidebar__user-avatar-img" />
-            ) : (
-              avatarInitial
-            )}
-          </div>
+          <UserAvatar
+            profile={profile}
+            size={30}
+            className="aurora-sidebar__user-avatar"
+            label={displayName}
+          />
           <span className="aurora-sidebar__user-name">{displayName}</span>
         </button>
 

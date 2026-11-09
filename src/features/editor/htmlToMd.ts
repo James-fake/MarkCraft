@@ -38,57 +38,60 @@ export function htmlToMarkdown(html: string): string {
   // Preprocess: extract math/mermaid blocks before Turndown (Turndown may skip empty divs)
   const mathPlaceholders: string[] = []
 
-  // 辅助函数：从 HTML 中提取带有 data-type 属性的 div 块（处理嵌套 div）
-  // 返回替换后的 HTML
+  // 辅助函数：从 HTML 中提取带有 data-type 属性的 div 块（处理嵌套 div）。
+  //
+  // ⚠️ 阶段 3 线性化：原实现每找到一个目标块就重建整个字符串、把正则 lastIndex 归零重扫，
+  //    并从头 indexOf 找配对 `</div>` —— k 个公式块最坏 O(k²·n)（500 块时实测明显卡顿）。
+  //    现在用一次标签扫描 + 栈配对，再按不重叠区间一次流式构建结果，整体 O(n)。
   function extractDivBlock(
     html: string,
     dataType: string,
     attrName: string,
     formatFn: (value: string) => string
   ): string {
-    let result = html
-    const openTagRe = new RegExp(`<div[^>]*data-type="${dataType}"[^>]*>`, 'gi')
-    let match: RegExpExecArray | null
+    interface Span { start: number; end: number; value: string }
+    const spans: Span[] = []
+    const tagRe = /<div\b[^>]*>|<\/div>/gi
+    const targetRe = new RegExp(`data-type="${dataType}"`, 'i')
+    const attrRe = new RegExp(`${attrName}="([^"]*)"`, 'i')
+    const stack: Array<{ isTarget: boolean; value: string; start: number }> = []
+    let m: RegExpExecArray | null
 
-    while ((match = openTagRe.exec(result)) !== null) {
-      const openTag = match[0]
-      const startPos = match.index
-
-      // 从属性中提取值
-      const attrRe = new RegExp(`${attrName}="([^"]*)"`)
-      const attrMatch = openTag.match(attrRe)
-      const value = attrMatch ? decodeHtmlAttr(attrMatch[1]) : ''
-
-      // 找到匹配的闭合 </div>（需要计数嵌套层级）
-      let depth = 1
-      let pos = startPos + openTag.length
-      while (depth > 0 && pos < result.length) {
-        const nextOpen = result.indexOf('<div', pos)
-        const nextClose = result.indexOf('</div>', pos)
-
-        if (nextClose === -1) break
-
-        if (nextOpen !== -1 && nextOpen < nextClose) {
-          depth++
-          pos = nextOpen + 4
-        } else {
-          depth--
-          if (depth === 0) {
-            // 找到匹配的闭合标签
-            const endPos = nextClose + '</div>'.length
-            const idx = mathPlaceholders.length
-            mathPlaceholders.push(formatFn(value))
-            const placeholder = `%%MATHPLACEHOLDER${idx}%%`
-            result = result.substring(0, startPos) + placeholder + result.substring(endPos)
-            // 重置正则位置，因为字符串已改变
-            openTagRe.lastIndex = 0
-            break
-          }
-          pos = nextClose + 6
-        }
+    while ((m = tagRe.exec(html)) !== null) {
+      const tag = m[0]
+      if (tag.startsWith('</')) {
+        const top = stack.pop()
+        // 孤立闭合标签 / 未找到目标的闭合：忽略（与原实现的「找不到就 break」等价）
+        if (!top) continue
+        if (top.isTarget) spans.push({ start: top.start, end: m.index + tag.length, value: top.value })
+      } else {
+        const isTarget = targetRe.test(tag)
+        const am = isTarget ? tag.match(attrRe) : null
+        stack.push({ isTarget, value: am ? decodeHtmlAttr(am[1]) : '', start: m.index })
       }
     }
 
+    if (spans.length === 0) return html
+
+    // 按起点排序，丢弃被外层目标块包含的内层 span（原实现遇到外层即整块替换，不处理内层）
+    spans.sort((a, b) => a.start - b.start || b.end - a.end)
+    const merged: Span[] = []
+    for (const s of spans) {
+      const last = merged[merged.length - 1]
+      if (last && s.start < last.end) continue
+      merged.push(s)
+    }
+
+    // 一次流式构建：索引基于原串，不产生位移问题
+    let result = ''
+    let cursor = 0
+    for (const s of merged) {
+      const idx = mathPlaceholders.length
+      mathPlaceholders.push(formatFn(s.value))
+      result += html.slice(cursor, s.start) + `%%MATHPLACEHOLDER${idx}%%`
+      cursor = s.end
+    }
+    result += html.slice(cursor)
     return result
   }
 
@@ -214,7 +217,7 @@ export function htmlToMarkdown(html: string): string {
     replacement: (content: string) => `: ${content}\n`,
   })
 
-  // WikiLink: convert <a data-wiki-link> back to [[target]] or [[target|label]]
+  // WikiLink: convert <a data-wiki-link> back to [[target]] / [[target|label]] / [[target|关系:x]]
   td.addRule('wikiLink', {
     filter: (node: HTMLElement) => {
       return node.nodeName === 'A' && node.hasAttribute('data-wiki-link')
@@ -222,9 +225,14 @@ export function htmlToMarkdown(html: string): string {
     replacement: (_content: string, node: HTMLElement) => {
       const target = node.getAttribute('data-wiki-target') || node.textContent || ''
       const label = node.getAttribute('data-wiki-label')
-      if (label) {
-        return `[[${target}|${label}]]`
-      }
+      const relation = node.getAttribute('data-wiki-relation')
+      const note = node.getAttribute('data-wiki-note')
+      // 关系/备注优先（WikiLink.ts 输入规则把 `[[t|关系:x]]` 解析成 relation 属性，label 为空）——
+      // 不回写它们会让语义永久丢失，并退化成 [[x|x]] 垃圾语法。
+      if (relation) return `[[${target}|关系:${relation}]]`
+      if (note) return `[[${target}|备注:${note}]]`
+      // label 与 target 相同 → 省略管道段（[[x|x]] 是冗余语法，非用户所写）
+      if (label && label !== target) return `[[${target}|${label}]]`
       return `[[${target}]]`
     },
   })
@@ -395,7 +403,10 @@ export function htmlToMarkdown(html: string): string {
         // 逐单元格子转换：保留单元格内的内联格式（粗体/斜体/链接/行内代码）；
         // textContent 会把它们全部抹平为纯文本（WYSIWYG 往返丢格式）。
         const cellMd = td.turndown((child as HTMLElement).innerHTML).replace(/\n+/g, ' ').trim()
-        cells.push(`| ${cellMd} `)
+        // ⚠️ 单元格内的 `|` 必须转义（2026-11-03 审查）：行内代码 `a|b`、转义文本里的
+        //    竖线不转义会截断列，保存后再打开就是永久错位（每次往返都坏一次）。
+        const escapedCell = cellMd.replace(/(?<!\\)\|/g, '\\|')
+        cells.push(`| ${escapedCell} `)
       }
 
       let result = cells.join('') + '|\n'

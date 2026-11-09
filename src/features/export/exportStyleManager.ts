@@ -130,7 +130,10 @@ export function importCssFile(
     id: `custom_${Date.now()}`,
     name,
     description: messages.importedDesc,
-    css: cssText,
+    // ⚠️ 中和 `</style>`（2026-11-03 审查 P2）：导入的第三方 .css 若含
+    //    `</style><img onerror=...>`，导出 HTML/PDF 时会把样式标签提前闭合 → 注入。
+    //    转成 `<\/style` 后 HTML 解析器不再识别为闭合标签，CSS 侧仍是无效 token 被忽略。
+    css: cssText.replace(/<\/style/gi, '<\\/style'),
     isBuiltIn: false,
   }
 }

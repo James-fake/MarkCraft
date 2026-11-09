@@ -1113,6 +1113,181 @@
 }
 
 /* ------------------------------------------------------------
+ * Prose · Markdown 渲染正文（隐私政策 / 服务条款等静态文档）
+ * 对齐 Aurora 设计体系：系统字体、克制层级、发丝边框。
+ * 此前 .aurora-prose 无任何定义 → 隐私文档回退浏览器默认字体
+ * （与 MarkCraft 系统字体不匹配，正是本次要修的排版问题）。
+ * ---------------------------------------------------------- */
+.aurora-prose {
+  font-family: var(--mc-font-sans);
+  font-size: var(--mc-font-base);
+  line-height: 1.7;
+  color: var(--mc-text-secondary);
+  word-break: break-word;
+}
+.aurora-prose > :first-child { margin-top: 0; }
+.aurora-prose > :last-child { margin-bottom: 0; }
+.aurora-prose h1 {
+  font-size: var(--mc-font-xl);
+  font-weight: 700;
+  color: var(--mc-text-primary);
+  line-height: 1.3;
+  margin: 0 0 14px;
+}
+.aurora-prose h2 {
+  font-size: var(--mc-font-lg);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  line-height: 1.35;
+  margin: 22px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--mc-border-subtle);
+}
+.aurora-prose h3 {
+  font-size: var(--mc-font-md);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  line-height: 1.4;
+  margin: 16px 0 8px;
+}
+.aurora-prose p { margin: 0 0 12px; }
+.aurora-prose ul,
+.aurora-prose ol { margin: 0 0 12px; padding-left: 22px; }
+.aurora-prose li { margin: 4px 0; }
+.aurora-prose a { color: var(--mc-accent); text-decoration: none; }
+.aurora-prose a:hover { text-decoration: underline; }
+.aurora-prose strong { color: var(--mc-text-primary); font-weight: 600; }
+.aurora-prose blockquote {
+  margin: 0 0 12px;
+  padding: 8px 14px;
+  border-left: 3px solid var(--mc-accent);
+  background: var(--mc-accent-soft);
+  border-radius: var(--mc-radius-sm);
+  color: var(--mc-text-secondary);
+}
+.aurora-prose code {
+  font-family: var(--mc-font-mono);
+  font-size: var(--mc-font-sm);
+  background: var(--mc-bg-elevated);
+  padding: 1px 5px;
+  border-radius: var(--mc-radius-sm);
+}
+.aurora-prose pre {
+  background: var(--mc-bg-elevated);
+  padding: 12px 14px;
+  border-radius: var(--mc-radius-md);
+  overflow-x: auto;
+  margin: 0 0 12px;
+}
+.aurora-prose pre code { background: none; padding: 0; }
+.aurora-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 12px;
+  font-size: var(--mc-font-sm);
+}
+.aurora-prose th,
+.aurora-prose td {
+  border: 1px solid var(--mc-border-subtle);
+  padding: 6px 10px;
+  text-align: left;
+}
+.aurora-prose th {
+  background: var(--mc-bg-elevated);
+  color: var(--mc-text-primary);
+  font-weight: 600;
+}
+.aurora-prose hr {
+  border: none;
+  border-top: 1px solid var(--mc-border-subtle);
+  margin: 16px 0;
+}
+
+/* 隐私/条款文档容器：引导页内由 .aurora-onboarding__privacy 收口；
+   在 Modal 内由 .aurora-modal__body 提供滚动与内边距，此处仅作轻量收束 */
+.aurora-privacy-policy { max-width: 720px; }
+
+/* ------------------------------------------------------------
+ * QuitModal · 退出确认弹窗（重设计，对齐 Aurora 设计体系）
+ * 居中英雄式布局：告警徽标 + 标题 + 说明，底部 取消/退出。
+ * ---------------------------------------------------------- */
+.aurora-quit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 8px 4px 4px;
+}
+
+.aurora-quit__badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  margin-bottom: 16px;
+  background: var(--mc-accent-soft);
+  color: var(--mc-accent);
+}
+
+.aurora-quit__title {
+  margin: 0 0 8px;
+  font-size: var(--mc-font-lg);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  line-height: 1.4;
+}
+
+.aurora-quit__desc {
+  margin: 0;
+  max-width: 280px;
+  font-size: var(--mc-font-base);
+  line-height: 1.6;
+  color: var(--mc-text-secondary);
+}
+
+/* ------------------------------------------------------------
+ * VaultNotWritablePrompt · 无法落盘告警（重设计，对齐 Aurora 设计体系）
+ * 与 .aurora-quit 同源的居中英雄式布局：告警徽标 + 标题 + 说明。
+ * ---------------------------------------------------------- */
+.aurora-vault-warn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 8px 4px 4px;
+}
+
+.aurora-vault-warn__badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  margin-bottom: 16px;
+  background: var(--mc-warning-soft);
+  color: var(--mc-warning);
+}
+
+.aurora-vault-warn__title {
+  margin: 0 0 8px;
+  font-size: var(--mc-font-lg);
+  font-weight: 600;
+  color: var(--mc-text-primary);
+  line-height: 1.4;
+}
+
+.aurora-vault-warn__desc {
+  margin: 0;
+  max-width: 300px;
+  font-size: var(--mc-font-base);
+  line-height: 1.6;
+  color: var(--mc-text-secondary);
+}
+
+/* ------------------------------------------------------------
  * Image Lightbox · 图片灯箱（ImagePreviewModal / ImageView 点击放大）
  * 与 .aurora-modal-overlay 同族，故层级随其走「锚定模态带 3000」
  * （原实现写死 z-index 9999 = 越带魔数，见 tokens.css §14 层级带表）。

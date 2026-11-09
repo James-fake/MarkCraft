@@ -22,7 +22,10 @@ const LanguageContext = createContext<LanguageContextType>({
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(() => {
     const saved = localStorage.getItem('markcraft-language')
-    return (saved === 'en' || saved === 'zh') ? saved : 'zh'
+    if (saved === 'en' || saved === 'zh') return saved
+    // 首次运行：跟随系统语言（中文系统→中文，其他→英文），用户可在设置/引导中改
+    const nav = (typeof navigator !== 'undefined' && navigator.language) ? navigator.language.toLowerCase() : ''
+    return nav.startsWith('zh') ? 'zh' : 'en'
   })
 
   const setLanguage = useCallback((lang: Language) => {

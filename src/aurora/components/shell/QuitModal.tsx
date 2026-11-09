@@ -1,5 +1,6 @@
 import { Modal } from '../../../components/ui/Modal'
 import { Button } from '../../../components/ui/Button'
+import { Icon } from '../../icons'
 import { useLanguage } from '@stores/LanguageStore'
 
 export interface QuitModalProps {
@@ -11,8 +12,8 @@ export interface QuitModalProps {
 }
 
 /**
- * 「退出 MarkCraft」确认弹窗 —— 自定义桌面风退出确认（批次② P0-B，用户拍板决策）。
- * 共享 Modal 单源（size=sm，z-index 走 modal 带 9980，Esc/遮罩关闭）。
+ * 「退出 MarkCraft」确认弹窗 —— 按 Aurora 设计体系重做的桌面风退出确认。
+ * 居中英雄式布局（告警徽标 + 标题 + 说明），与 Modal 底层视觉同源、Esc/遮罩关闭。
  * 真正退出逻辑（window.close + Web 限制兜底）由 onConfirm 注入，本组件保持纯呈现。
  */
 export function QuitModal({ isOpen, onConfirm, onCancel }: QuitModalProps) {
@@ -23,8 +24,6 @@ export function QuitModal({ isOpen, onConfirm, onCancel }: QuitModalProps) {
       isOpen={isOpen}
       onClose={onCancel}
       size="sm"
-      title={sh.quitTitle}
-      description={sh.quitDescription}
       footer={
         <>
           <Button variant="ghost" onClick={onCancel}>
@@ -35,6 +34,14 @@ export function QuitModal({ isOpen, onConfirm, onCancel }: QuitModalProps) {
           </Button>
         </>
       }
-    />
+    >
+      <div className="aurora-quit">
+        <div className="aurora-quit__badge" aria-hidden="true">
+          <Icon.alert size={24} />
+        </div>
+        <h2 className="aurora-quit__title">{sh.quitTitle}</h2>
+        <p className="aurora-quit__desc">{sh.quitDescription}</p>
+      </div>
+    </Modal>
   )
 }

@@ -9,11 +9,14 @@
  * ⚠️ 渲染进程地址：`--dist` 或打包态走 `dist/index.html`，否则走 Vite dev server。
  */
 import { app, BrowserWindow, ipcMain, shell, dialog, type IpcMainInvokeEvent } from 'electron'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { existsSync, readFileSync, watch, statSync } from 'node:fs'
+import { join, dirname, basename, resolve as resolvePath, relative as relativePath, isAbsolute } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import { existsSync, readFileSync, writeFileSync, realpathSync, watch, statSync } from 'node:fs'
 import { promises as fsp } from 'node:fs'
 import { spawn } from 'node:child_process'
+import { randomUUID } from 'node:crypto'
+import { safeFetch } from './netGuard'
+import { evaluateVaultRoot, parseAuthorizedRoots } from './vaultRootPolicy'
 
 /**
  * ⚠️ 主进程必须走 ESM：Electron 新版（本项目为 v44）在 CJS 模式下
@@ -129,16 +132,165 @@ function isSelfWrite(p: string): boolean {
   return t !== undefined && Date.now() - t < SELF_WRITE_TTL_MS
 }
 
+// —— S0 红线：fs IPC 路径约束（2026-11-03 全项目审查 P0-1）——
+// 修复前：mc:fs:* 的路径参数来自渲染进程且零校验，渲染进程一旦被注入（外部导入内容、
+// 网页剪藏、预览层漏洞）即升级为对整机的任意文件读/写/rm -rf。
+//
+// 允许的根（白名单）：
+//   - app.getPath('userData')  —— 应用级磁盘 KV / 版本历史 / 备份 / PDF blob 的根
+//   - 登记的 Vault 根          —— mc:vault:registerRoot（FileStore 载入 Vault 时登记）
+//   - 用户经系统对话框明确选择的路径 —— mc:dialog:saveFile / openFile / openDirectory
+//     返回前自动登记（用户在原生对话框里的选择即授权，渲染端无需改动）
+//   - MARKCRAFT_TEST_OPEN_DIR  —— e2e 注入的固定 Vault
+/**
+ * H-3：把路径解析为「真实路径」——已存在部分跑 realpath（解析 symlink / Windows
+ * junction），尚不存在的尾部（新建文件）逐段回退到最近存在的祖先再拼回。
+ * 修复前只做词法 `resolve`，Vault 内一个指向外部的 junction 即可绕过整条白名单。
+ */
+function canonicalizePath(p: string): string {
+  const absolute = resolvePath(p)
+  let cur = absolute
+  const tail: string[] = []
+  for (;;) {
+    try {
+      const real = realpathSync.native(cur)
+      return tail.length ? resolvePath(real, ...tail.reverse()) : real
+    } catch {
+      const parent = dirname(cur)
+      if (parent === cur) return absolute
+      tail.push(basename(cur))
+      cur = parent
+    }
+  }
+}
+
+/**
+ * 带 code 的路径策略错误：用 `instanceof` 判别，替代「错误消息字符串 includes」——
+ * 后者在 fsp 抛 EACCES/EIO/EPERM 时会被误吞（例如 rename 里把 stat 失败当成「目标不存在」而误覆盖）。
+ */
+class PathPolicyError extends Error {
+  constructor(
+    readonly code: 'OUT_OF_BOUNDS' | 'COLLISION',
+    message: string,
+  ) {
+    super(message)
+    this.name = 'PathPolicyError'
+  }
+}
+
+function assertAllowedPath(p: string): string {
+  const resolved = canonicalizePath(p)
+  for (const root of allowedRoots) {
+    const rel = relativePath(root, resolved)
+    // rel === '' 本身即根目录（允许 mkdir/stat 等对根操作）；越界则 rel 以 .. 开头或为绝对路径
+    if (rel === '' || (!rel.startsWith('..') && !isAbsolute(rel))) return resolved
+  }
+  throw new PathPolicyError('OUT_OF_BOUNDS', `[MarkCraft] 拒绝访问允许范围之外的路径: ${p}`)
+}
+
+function addAllowedRoot(root: string): void {
+  allowedRoots.add(canonicalizePath(root))
+}
+
+const allowedRoots = new Set<string>()
+
+// —— C-1：Vault 根授权集合 ——
+// 修复前 mc:vault:registerRoot 直接把渲染端的任意字符串加入 fs 白名单，被注入的渲染端
+// 一句 registerRoot('C:\\') 即可读写删整机文件。现在登记只接受「用户经原生对话框显式
+// 授权过」或「已持久化」的根，并拒绝过宽根（详见 vaultRootPolicy.ts）。
+const VAULT_ROOTS_FILE = (): string => join(app.getPath('userData'), 'authorized-vault-roots.json')
+const authorizedVaultRoots = new Set<string>()
+let vaultRootMigrationPending = false
+
+function loadAuthorizedVaultRoots(): void {
+  let raw: string | null = null
+  let fileExists = false
+  try {
+    raw = readFileSync(VAULT_ROOTS_FILE(), 'utf-8')
+    fileExists = true
+  } catch {
+    fileExists = false
+  }
+  for (const p of parseAuthorizedRoots(raw)) authorizedVaultRoots.add(canonicalizePath(p))
+  // 老版本把 Vault 路径只存在渲染端 localStorage：升级后首次启动放行第一个合法根并落盘
+  vaultRootMigrationPending = !fileExists && authorizedVaultRoots.size === 0
+  for (const p of authorizedVaultRoots) addAllowedRoot(p)
+}
+
+/** 用户显式授权（原生对话框 / e2e 注入）后登记并持久化。 */
+function authorizeVaultRoot(root: string): void {
+  const canonical = canonicalizePath(root)
+  authorizedVaultRoots.add(canonical)
+  vaultRootMigrationPending = false
+  addAllowedRoot(canonical)
+  try {
+    writeFileSync(VAULT_ROOTS_FILE(), JSON.stringify([...authorizedVaultRoots], null, 2), 'utf-8')
+  } catch {
+    // 配置写失败不阻断本次会话：内存态授权仍有效
+  }
+}
+
+function protectedRootPaths(): string[] {
+  const paths: string[] = []
+  for (const name of ['home', 'userData', 'appData', 'temp'] as const) {
+    try { paths.push(app.getPath(name)) } catch { /* 某些平台无该目录 */ }
+  }
+  try { paths.push(app.getAppPath()) } catch { /* asar 打包态可能不可用 */ }
+  paths.push(process.cwd())
+  return paths
+}
+
+function assertRegisterableVaultRoot(root: unknown): string {
+  const decision = evaluateVaultRoot({
+    candidate: root,
+    protectedPaths: protectedRootPaths(),
+    existingRoots: [...allowedRoots],
+    authorizedRoots: [...authorizedVaultRoots],
+    migrationPending: vaultRootMigrationPending,
+  })
+  if (!decision.ok) throw new Error(`[MarkCraft] ${decision.reason}`)
+  if (decision.authorize) authorizeVaultRoot(decision.root)
+  return decision.root
+}
+
+function bindVaultRootIpc(): void {
+  // Vault 载入/切换时由渲染端登记；此处只接受已授权根，不再让渲染端自行扩权。
+  ipcMain.handle('mc:vault:registerRoot', (_e, root: string) => {
+    assertRegisterableVaultRoot(root)
+  })
+  ipcMain.handle('mc:vault:unregisterRoot', (_e, root: string) => {
+    allowedRoots.delete(canonicalizePath(root))
+  })
+}
+
 function bindFsIpc(): void {
+  // 统一入口校验：所有 fs IPC 的路径参数（含递归 readDir 的根、rename 的两端）
+  // 必须落在允许根内，越界一律拒绝。
+  const guard = (p: string): string => assertAllowedPath(p)
+  // 符号链接解析（失败时退回原路径，不影响正常读取）
+  const realpathSafe = async (p: string): Promise<string> => {
+    try {
+      return await fsp.realpath(p)
+    } catch {
+      return p
+    }
+  }
   ipcMain.handle('mc:fs:readDir', async (_e, root: string, options?: { recursive?: boolean; includeHidden?: boolean }) => {
-    const entries = await fsp.readdir(root, { withFileTypes: true })
-    const top = await Promise.all(entries.map((d) => toDirEntry(join(root, d.name))))
+    const safeRoot = guard(root)
+    const entries = await fsp.readdir(safeRoot, { withFileTypes: true })
+    const top = await Promise.all(entries.map((d) => toDirEntry(join(safeRoot, d.name))))
     if (!options?.recursive) return top
     // 递归：跳过隐藏目录（除非显式要求），避免 .git/.markcraft 误扫拖垮大 Vault
     const out: Awaited<ReturnType<typeof toDirEntry>>[] = [...top]
     const stack = top.filter((d) => d.isDirectory && (options.includeHidden || !d.name.startsWith('.')))
+    // ⚠️ 符号链接/junction 防护（2026-11-03 审查 P2）：Vault 内出现指向祖先目录的
+    //    junction（Windows 常见）会让递归死循环直到事件循环被 IO 占满。按真实路径去重。
+    const visited = new Set<string>([await realpathSafe(safeRoot)])
     while (stack.length > 0) {
       const dir = stack.pop()!
+      const real = await realpathSafe(dir.path)
+      if (visited.has(real)) continue
+      visited.add(real)
       const children = await fsp.readdir(dir.path, { withFileTypes: true })
       for (const c of children) {
         const child = await toDirEntry(join(dir.path, c.name))
@@ -150,57 +302,89 @@ function bindFsIpc(): void {
   })
 
   ipcMain.handle('mc:fs:readFile', async (_e, p: string) => {
-    return await fsp.readFile(p, 'utf-8')
+    return await fsp.readFile(guard(p), 'utf-8')
   })
 
   ipcMain.handle('mc:fs:writeFile', async (_e, p: string, content: string | Uint8Array) => {
+    const safePath = guard(p)
     // 原子写：先写临时文件再 rename，避免崩溃留下半截文件（计划 §2.3.3）
-    await fsp.mkdir(dirname(p), { recursive: true })
-    const tmp = `${p}.${process.pid}.${Date.now()}.tmp`
+    await fsp.mkdir(dirname(safePath), { recursive: true })
+    // H-4：同进程同一毫秒对同一目标并发写入时 pid+Date.now() 会撞名，两路共用 tmp
+    // 会导致内容覆盖或 ENOENT。加随机后缀保证每次写入独占自己的临时文件。
+    const tmp = `${safePath}.${process.pid}.${Date.now()}.${randomUUID()}.tmp`
     // ⚠️ 临时文件路径**也必须**标记为自身写入：否则 watcher 会收到 tmp 的 create/rename 事件，
     //    而 200ms 防抖后 tmp 已被 rename 走 → 被判成 delete 推给渲染端 → 触发整树重载
     //    → 节点 id 全换 → 打开中的标签页 id 失效 → 之后的编辑被静默丢弃（真实事故）。
     markSelfWrite(tmp)
-    // 字节（导出 PDF/EPUB/图片）按原样写，不经 utf-8 编码，避免二进制被破坏
-    if (typeof content === 'string') await fsp.writeFile(tmp, content, 'utf-8')
-    else await fsp.writeFile(tmp, content)
-    await fsp.rename(tmp, p)
-    markSelfWrite(p) // P4-C：抑制自身写入回显
+    try {
+      // 字节（导出 PDF/EPUB/图片）按原样写，不经 utf-8 编码，避免二进制被破坏
+      if (typeof content === 'string') await fsp.writeFile(tmp, content, 'utf-8')
+      else await fsp.writeFile(tmp, content)
+      await fsp.rename(tmp, safePath)
+    } catch (err) {
+      // 失败路径清理孤儿 tmp（2026-11-03 审查 P2）：磁盘满/EPERM 时此前会持续在用户
+      // Vault 里累积 `.tmp` 垃圾（每个失败文件一个）。
+      await fsp.unlink(tmp).catch(() => {})
+      throw err
+    }
+    markSelfWrite(safePath) // P4-C：抑制自身写入回显
   })
 
   ipcMain.handle('mc:fs:exists', async (_e, p: string) => {
     try {
-      await fsp.access(p)
+      await fsp.access(guard(p))
       return true
-    } catch {
+    } catch (err) {
+      // 允许范围之外的路径必须抛错（区别于「不存在」）—— 否则渲染端会把越界探测当 false
+      if (err instanceof PathPolicyError) throw err
       return false
     }
   })
 
-  ipcMain.handle('mc:fs:stat', async (_e, p: string) => toDirEntry(p))
+  ipcMain.handle('mc:fs:stat', async (_e, p: string) => toDirEntry(guard(p)))
 
   ipcMain.handle('mc:fs:mkdir', async (_e, p: string) => {
-    await fsp.mkdir(p, { recursive: true })
-    markSelfWrite(p)
+    const target = guard(p)
+    await fsp.mkdir(target, { recursive: true })
+    markSelfWrite(target)
   })
 
   ipcMain.handle('mc:fs:rename', async (_e, p: string, newPath: string) => {
-    await fsp.rename(p, newPath)
+    const from = guard(p)
+    const to = guard(newPath)
+    // 深度防御（P0-2）：目标已存在时，仅当源与目标是**同一文件**（如 Windows 大小写改名
+    // A.md → a.md，inode 相同）才放行；目标是另一个同名文件 → 拒绝，绝不静默覆盖。
+    // 用 err.code 判别：只有「目标不存在」(ENOENT) 才继续；EACCES/EIO/EPERM 等 stat 失败必须抛出，
+    // 否则会被当成「目标不存在」而误覆盖已存在的文件。
+    const stFrom = await fsp.stat(from) // 源不存在 → 直接失败（rename 也必然失败）
+    try {
+      const stTo = await fsp.stat(to)
+      if (stFrom.ino !== stTo.ino || stFrom.dev !== stTo.dev) {
+        throw new PathPolicyError('COLLISION', `[MarkCraft] 拒绝覆盖已存在的文件: ${newPath}`)
+      }
+    } catch (err) {
+      if (err instanceof PathPolicyError) throw err
+      if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') throw err
+      // 目标不存在（ENOENT）→ 正常改名
+    }
+    await fsp.rename(from, to)
     // 旧路径（消失）与新路径（出现）都抑制，避免 watcher 把这次改名当外部改动
-    markSelfWrite(p)
-    markSelfWrite(newPath)
+    markSelfWrite(from)
+    markSelfWrite(to)
   })
 
   ipcMain.handle('mc:fs:remove', async (_e, p: string) => {
-    await fsp.rm(p, { recursive: true, force: true })
-    markSelfWrite(p)
+    const target = guard(p)
+    await fsp.rm(target, { recursive: true, force: true })
+    markSelfWrite(target)
   })
 
   // 「打开原文件所在位置」（D3）：showItemInFolder 在路径不存在时不应崩
   ipcMain.handle('mc:fs:reveal', async (_e, p: string) => {
-    if (!existsSync(p)) return false
+    const safePath = guard(p)
+    if (!existsSync(safePath)) return false
     try {
-      shell.showItemInFolder(p)
+      shell.showItemInFolder(safePath)
       return true
     } catch {
       return false
@@ -209,9 +393,10 @@ function bindFsIpc(): void {
 
   // 「打开文件夹」：用系统默认应用打开该目录（用于「当前存储位置」一键打开）
   ipcMain.handle('mc:shell:openPath', async (_e, p: string) => {
-    if (!existsSync(p)) return false
+    const safePath = guard(p)
+    if (!existsSync(safePath)) return false
     try {
-      const err = await shell.openPath(p)
+      const err = await shell.openPath(safePath)
       return err === ''
     } catch {
       return false
@@ -262,6 +447,7 @@ function classifyAndSend(rec: FsWatchRecord, fullPath: string): void {
 function bindFsWatchIpc(): void {
   ipcMain.handle('mc:fs:watch', (e, root: string) => {
     if (typeof root !== 'string' || !root) throw new Error('watch root required')
+    const safeRoot = assertAllowedPath(root) // 监听同样受白名单约束；后续 watch/join 必须用规范化后的根
     const id = `w_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
     const wc = e.sender
     const send = (payload: FsWatchEvent) => {
@@ -270,9 +456,9 @@ function bindFsWatchIpc(): void {
     }
     const debounce = new Map<string, NodeJS.Timeout>()
     // recursive: true 跨平台差异见函数头注释
-    const watcher = watch(root, { recursive: true }, (_evt, filename) => {
+    const watcher = watch(safeRoot, { recursive: true }, (_evt, filename) => {
       if (!filename) return
-      const fullPath = join(root, filename)
+      const fullPath = join(safeRoot, filename)
       const prev = debounce.get(fullPath)
       if (prev) clearTimeout(prev)
       const t = setTimeout(() => {
@@ -311,12 +497,17 @@ function bindDialogIpc(): void {
   ipcMain.handle('mc:dialog:openDirectory', async () => {
     // E2E 测试钩子：原生目录对话框无法在无头环境驱动（会挂住），测试经此 env 注入固定目录。
     // 仅在显式设置该环境变量时生效，生产不受影响。
-    if (process.env.MARKCRAFT_TEST_OPEN_DIR) return process.env.MARKCRAFT_TEST_OPEN_DIR
+    if (process.env.MARKCRAFT_TEST_OPEN_DIR) {
+      authorizeVaultRoot(process.env.MARKCRAFT_TEST_OPEN_DIR)
+      return process.env.MARKCRAFT_TEST_OPEN_DIR
+    }
     const win = firstWin()
     const res = win
       ? await dialog.showOpenDialog(win, { properties: ['openDirectory', 'createDirectory'] })
       : await dialog.showOpenDialog({ properties: ['openDirectory', 'createDirectory'] })
     if (res.canceled || res.filePaths.length === 0) return null
+    // 用户在原生对话框里的选择即授权：登记为允许根并持久化，重启后主进程自行恢复
+    authorizeVaultRoot(res.filePaths[0])
     return res.filePaths[0]
   })
 
@@ -328,6 +519,10 @@ function bindDialogIpc(): void {
     }
     const res = win ? await dialog.showOpenDialog(win, opts) : await dialog.showOpenDialog(opts)
     if (res.canceled || res.filePaths.length === 0) return null
+    // 用户显式选择的文件 → 登记其**父目录**（而非文件本身）：把文件本身作为「根」时，
+    // 只有 rel==='' 的精确路径能通过，父目录下的相关操作（导入时的同名检测、列目录等）会被拒。
+    // 用户经原生对话框在该目录选文件，即视为授权该目录（用户主动、非注入）。
+    res.filePaths.forEach((f) => addAllowedRoot(dirname(f)))
     return res.filePaths
   })
 
@@ -339,9 +534,12 @@ function bindDialogIpc(): void {
     }
     const res = win ? await dialog.showSaveDialog(win, opts) : await dialog.showSaveDialog(opts)
     if (res.canceled || !res.filePath) return null
+    // 「另存为」的写入目标：用户在保存对话框里选的位置即授权（登记父目录，理由同 openFile）
+    addAllowedRoot(dirname(res.filePath))
     return res.filePath
   })
 }
+
 
 // —— P6：主进程网络代理 ——
 // 渲染进程是 Chromium（跨域受 CORS 约束），主进程是 Node（不受）。跨域 API
@@ -365,11 +563,10 @@ function bindNetIpc(): void {
 
       let res: Response
       try {
-        res = await fetch(url, {
+        res = await safeFetch(url, {
           method,
           headers,
           body: bodyBytes ?? bodyText,
-          redirect: 'follow',
           signal: timeoutMs > 0 ? AbortSignal.timeout(timeoutMs) : undefined,
         })
       } catch (err) {
@@ -555,6 +752,48 @@ function createWindow(): void {
   win.on('maximize', pushState)
   win.on('unmaximize', pushState)
 
+  // —— S0 红线：导航防线（2026-11-03 审查 P1）——
+  // 修复前无任何导航拦截：一次意外导航（预览层没拦住的链接、拖文件进窗口）就能让窗口
+  // 加载任意外部页面，而 preload 对新页面继续注入 window.markcraft —— 与 fs IPC 叠加成
+  // 完整攻击链。三条防线：① 只允许自家 origin 的导航；② 新窗口一律 deny + 外链走系统
+  // 浏览器；③ webview 挂载强制关掉 nodeIntegration 并校验 src 协议。
+  const navAllowed = (target: string): boolean => {
+    try {
+      if (target.startsWith('file://')) {
+        // 生产态：仅允许应用自身 dist 目录内的文件（防 file:// 任意本地页面）。
+        // 基准必须与 DIST_INDEX 同源（原 `HERE/../dist` 指向 out/dist，与真实 <root>/dist 不符）；
+        // 且前缀须带尾分隔符，否则 `.../dist-evil/x` 也能通过 startsWith 绕过。
+        const distUrl = pathToFileURL(dirname(DIST_INDEX)).href
+        const distPrefix = distUrl.endsWith('/') ? distUrl : distUrl + '/'
+        return target === distUrl || target.startsWith(distPrefix)
+      }
+      // 非 file：仅开发态允许 dev server origin；打包态一律拒绝（否则生产环境仍可被导航到任意 http 页）
+      const isProd = app.isPackaged || process.argv.includes('--dist')
+      if (isProd) return false
+      return new URL(target).origin === new URL(DEV_SERVER_URL).origin
+    } catch {
+      return false
+    }
+  }
+  win.webContents.on('will-navigate', (event, target) => {
+    if (navAllowed(target)) return
+    event.preventDefault()
+    // 用户点的外部链接 → 交给系统浏览器，不在应用内导航
+    if (/^https?:/i.test(target)) void shell.openExternal(target)
+  })
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:/i.test(url)) void shell.openExternal(url)
+    return { action: 'deny' }
+  })
+  // webviewTag 为「关于」页的应用内浏览器视图保留，但挂载时强制收窄能力
+  win.webContents.on('will-attach-webview', (event, webPreferences, params) => {
+    delete (webPreferences as { preload?: string }).preload
+    webPreferences.nodeIntegration = false
+    webPreferences.contextIsolation = true
+    const src = params.src || ''
+    if (!/^https?:\/\//i.test(src)) event.preventDefault()
+  })
+
   win.once('ready-to-show', () => win.show())
 
   const target = resolveRendererTarget()
@@ -575,7 +814,16 @@ function createWindow(): void {
 }
 
 void app.whenReady().then(() => {
+  // S0 红线：fs IPC 路径白名单 —— 应用级存储（磁盘 KV/版本/备份/PDF blob）的 userData
+  // 是常驻允许根；Vault 根由渲染端经 mc:vault:registerRoot 动态登记。
+  addAllowedRoot(app.getPath('userData'))
+  // C-1：已授权的 Vault 根由主进程自己从 userData 恢复，不依赖渲染端 registerRoot
+  loadAuthorizedVaultRoots()
+  // e2e 注入的固定 Vault 也需授权（mc:dialog:openDirectory 的钩子分支已覆盖对话框路径）
+  if (process.env.MARKCRAFT_TEST_OPEN_DIR) authorizeVaultRoot(process.env.MARKCRAFT_TEST_OPEN_DIR)
+
   bindWindowIpc()
+  bindVaultRootIpc()
   bindFsIpc()
   bindFsWatchIpc()
   bindDialogIpc()

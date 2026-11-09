@@ -72,6 +72,97 @@ export function stripLegacyUsageDocTabs(state: FileManagerState): FileManagerSta
   return { ...state, tabs, activeTabId };
 }
 
+/** 节点 id → 相对路径（会话快照与重载合并都用路径做稳定标识；根节点本身返回 null） */
+export function pathOfNode(root: FileNode, id: string): string | null {
+  let found: string | null = null;
+  const walk = (node: FileNode, prefix: string): void => {
+    if (found) return;
+    const rel = prefix ? `${prefix}/${node.name}` : node.name;
+    if (node.id === id) {
+      found = rel;
+      return;
+    }
+    for (const c of node.children || []) walk(c, rel);
+  };
+  // ⚠️ 从 children 起遍历：把 root 自身算进去会得到 `root/工作/a.md`，
+  //    与 nodeByPath（从 root 的 children 起匹配）不对称，导致会话恢复/合并全部落空。
+  for (const c of root.children || []) walk(c, '');
+  return found;
+}
+
+/** 相对路径 → 节点（恢复标签页时用） */
+export function nodeByPath(root: FileNode, rel: string): FileNode | null {
+  const parts = rel.split('/');
+  let cur: FileNode = root;
+  for (const part of parts) {
+    const next = (cur.children || []).find((c) => c.name === part);
+    if (!next) return null;
+    cur = next;
+  }
+  return cur;
+}
+
+/**
+ * 外部改动触发整树 reload 时，把**确有未落盘编辑**的标签合并回新树（2026-11-03 审查 P1；
+ * 2026-11-08 H-7 修正：仅 dirty 标签保留内存版本，避免覆盖外部改动导致数据丢失）。
+ *
+ * 竞态现场：用户输入 → state 更新 → syncTree 的 300ms 防抖未到盘 → 外部事件触发
+ * reload → loadVault 读到磁盘旧内容 → setState 整树替换 → 这批编辑从 state 和磁盘
+ * **双双消失**。故对**确有未落盘编辑**（`tab.isDirty`）的标签保留内存版本，
+ * 并返回其新 id（调用方据此维持 isDirty，下次 save effect 写回磁盘）。
+ *
+ * ⚠️ 判据必须是 `isDirty`，而不是「内存内容 !== 磁盘内容」：后者无法区分
+ * ① 用户主动编辑（内存比磁盘新，要保住）与 ② 纯外部改动（磁盘比内存新，要采用）。
+ * 若仅凭内容差异就用内存旧内容覆盖磁盘新内容并标脏，用户在外部编辑器 / 同步盘改过的
+ * .md 会被随后 save effect 用旧内容写回，外部修改永久丢失（H-7）。非 dirty 标签一律采用
+ * 磁盘版本：不加入 dirtyNewIds、不标脏、不回写。
+ *
+ * 纯函数，不修改入参。`tabs` 只需 fileId 与可选 isDirty（便于单测）。
+ */
+export function mergeUnsavedEdits(
+  prevRoot: FileNode,
+  nextRoot: FileNode,
+  tabs: Array<{ fileId: string; isDirty?: boolean }>,
+): { root: FileNode; dirtyNewIds: Set<string> } {
+  const dirtyNewIds = new Set<string>();
+  let root = nextRoot;
+  for (const tab of tabs) {
+    // 只有确有未落盘编辑的标签才保留内存版本；其余（含纯外部改动）一律采用磁盘内容。
+    if (!tab.isDirty) continue;
+    const oldNode = findNodeById(prevRoot, tab.fileId);
+    if (!oldNode || oldNode.type !== 'file') continue;
+    const rel = pathOfNode(prevRoot, tab.fileId);
+    if (!rel) continue;
+    const newNode = nodeByPath(nextRoot, rel);
+    if (!newNode || newNode.type !== 'file') continue;
+    if ((oldNode.content ?? '') === (newNode.content ?? '')) continue;
+    dirtyNewIds.add(newNode.id);
+    root = replaceNodeContent(root, newNode.id, oldNode.content ?? '');
+  }
+  return { root, dirtyNewIds };
+}
+
+function findNodeById(root: FileNode, id: string): FileNode | null {
+  if (root.id === id) return root;
+  for (const c of root.children || []) {
+    const hit = findNodeById(c, id);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+function replaceNodeContent(root: FileNode, id: string, content: string): FileNode {
+  if (root.id === id) return { ...root, content };
+  if (!root.children) return root;
+  let changed = false;
+  const children = root.children.map((c) => {
+    const next = replaceNodeContent(c, id, content);
+    if (next !== c) changed = true;
+    return next;
+  });
+  return changed ? { ...root, children } : root;
+}
+
 export interface FileManagerContextType {
   rootFolder: FileNode;
   /**
