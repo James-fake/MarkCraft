@@ -24,6 +24,26 @@
 - **Input performance (2026-11)** — WYSIWYG serialization is debounced (150ms) with 8 explicit flush points, lint runs once per pause instead of twice per keystroke, and math-block extraction is O(n) instead of O(k²·n)
 - **i18n** — full Chinese and English UI
 
+## 📥 Download
+
+> Windows x64 installers are published as **GitHub Release assets in this repository** — no split volumes, no separate download repo.
+
+| Edition | File | Size | Notes |
+| --- | --- | --- | --- |
+| **Installer (recommended)** | [`MarkCraft-Setup-x64.exe`](https://github.com/James-fake/MarkCraft/releases/latest/download/MarkCraft-Setup-x64.exe) | 201.2 MB | NSIS installer, choose install directory, Start Menu / desktop shortcuts |
+| **Portable** | [`MarkCraft-Portable-x64.exe`](https://github.com/James-fake/MarkCraft/releases/latest/download/MarkCraft-Portable-x64.exe) | 200.9 MB | No installation, double-click to run, USB-friendly |
+
+Both editions are functionally identical. **Asset names are fixed and contain no version number** — the website and scripts use `releases/latest/download/` permalinks; new releases only replace the asset contents, never rename them.
+
+> 🔗 [All releases & changelog](https://github.com/James-fake/MarkCraft/releases) · [`SHA256SUMS.txt`](https://github.com/James-fake/MarkCraft/releases/latest/download/SHA256SUMS.txt)
+>
+> ⚠️ Installers are **not code-signed**. Windows SmartScreen may warn about an "unknown publisher" on first run. Verify the SHA-256 hash, then choose **More info → Run anyway**.
+
+| File | SHA-256 (v1.0.0) |
+| --- | --- |
+| `MarkCraft-Setup-x64.exe` | `8080b7c1d04291fa66d09b6bd8b24477133e8d8383abae35fd17afd514046449` |
+| `MarkCraft-Portable-x64.exe` | `e1d13c825a42b61f6d989208102907cc661a4741cf01fd402660ef08389ab357` |
+
 ## 🛠 Tech Stack
 
 | Layer | Technology |
@@ -37,11 +57,15 @@
 | Markdown | marked 14 + DOMPurify + morphdom |
 | Math / Charts | KaTeX + Mermaid |
 | Retrieval | Local hash-bag vector engine (384-dim, no IDF). **No AI / no LLM**: the OpenAI-compatible `RemoteEngine` exists in code but is never instantiated (no settings, no UI) |
-| Testing | Vitest + Testing Library |
+| Testing | Vitest 2.1.9 + Testing Library (jsdom, Node 22) |
 
 ## 🚀 Quick Start
 
+Requires **Node.js 22 LTS** (CI uses Node 22), npm ≥ 9, Git ≥ 2.
+
 ```bash
+git clone https://github.com/James-fake/MarkCraft.git
+cd MarkCraft
 npm install
 npm run electron:dev    # compiles main/preload, starts Vite, opens the Electron window
 ```
@@ -78,7 +102,7 @@ src/
 
 ## 🧪 Testing
 
-194 test files / 2258 cases (2 skipped), all passing. CI hard gates: `tsc --noEmit` + `typecheck:electron` + `typecheck:e2e` + `vitest run` + `lint --max-warnings 0`.
+**212 test files** (`src/**/*.test.ts(x)`), all passing; roughly 2400 cases and growing — run `npm run test:run` for the exact count (kept out of the docs deliberately to avoid number drift). CI hard gates: `tsc --noEmit` + `typecheck:electron` + `typecheck:e2e` + `vitest run` + `lint --max-warnings 0`.
 
 ```bash
 npm run test:run
@@ -91,7 +115,8 @@ Regression locks worth knowing: `netGuard.test.ts` (SSRF & redirects), `serializ
 - **There is no AI / LLM feature.** KB "Q&A" and "similar search" are **local statistical retrieval** — keyword-overlap paragraph selection plus frequency-based sentence excerpting (`TfidfEngine`). They reflect keyword distribution, not semantics. The OpenAI-compatible `RemoteEngine` is **dead code**: `getAiService()` never passes settings and `setAiService()` is never called, and there is no configuration UI.
 - The knowledge graph is **SVG 2D with 4 layouts**; earlier design docs mentioning a 3D sphere, PageRank/betweenness centrality or community clustering were **never implemented**.
 - PDF export relies on `html2pdf.js`; complex layouts may paginate imperfectly.
-- Windows installer builds may use `asar=false` (an `app/` directory instead of `app.asar`) because Defender real-time scanning can make electron-builder's `unlink` fail with `EBUSY`. Functionally equivalent; slightly more files on disk.
+- Builds produce `resources/app.asar` by default (**the published v1.0.0 installer uses this form**). Defender real-time scanning may lock the freshly written asar and make electron-builder's cleanup fail with `EBUSY`; the workaround is to build into a **fresh empty output directory** each time. `asar=false` (an `app/` directory) is only a last resort.
+- Only **Windows x64** installers are published; macOS / Linux must be built from source.
 - Large graphs (>500 nodes) can be slow on low-end hardware; no LOD / viewport culling / spatial index yet.
 
 ## 📖 Documentation

@@ -40,14 +40,34 @@
 
 ## 📥 下载
 
-> 📦 安装包（Windows 版）托管在**独立的安装包仓库**，不放在本源码仓库中，以保持源码仓库轻量、`clone` 迅速。  
-> 由于 Gitee 免费版对单个文件限制 100MB（含 Releases 附件），安装包以**分卷（volume）**&#x5F62;式存入安装包仓库，`git clone` 后一条命令合并即可还原。
+> 🪟 **当前对外发布的是 Windows x64 安装包**，托管在本源码仓库的 [GitHub Releases](https://github.com/James-fake/MarkCraft/releases)。安装包与源码同仓，直接下载即可，**无需分卷、无需合并**。
 
-| 渠道    | 安装包                                                            | 说明                                                                                                        |
-| :---- | :------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------- |
-| 最新稳定版 | `MarkCraft-Setup-*.exe`（安装版）· `MarkCraft-Portable-*.exe`（免安装版） | 见安装包仓库的 [`README`](https://gitee.com/James-fake/markcraftxiazaicangdianhua#下载与合并) —— `git clone` 后用脚本合并分卷 |
+| 版本 | 文件 | 大小 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **安装版（推荐）** | [`MarkCraft-Setup-x64.exe`](https://github.com/James-fake/MarkCraft/releases/latest/download/MarkCraft-Setup-x64.exe) | 201.2 MB | NSIS 安装程序，可自选安装目录，创建开始菜单 / 桌面快捷方式 |
+| **便携版** | [`MarkCraft-Portable-x64.exe`](https://github.com/James-fake/MarkCraft/releases/latest/download/MarkCraft-Portable-x64.exe) | 200.9 MB | 免安装，双击即用，适合放在 U 盘 |
 
-> 🔗 安装包仓库：[James-fake/markcraftxiazaicangdianhua](https://gitee.com/James-fake/markcraftxiazaicangdianhua)（仅托管安装包；本项目源码见本仓库）
+两个版本功能完全相同，任选其一。**附件名固定、不含版本号**，官网与脚本使用 `releases/latest/download/` 直链；以后发新版只替换附件内容，链接保持不变。
+
+> 🔗 全部版本与更新日志：[Releases 页面](https://github.com/James-fake/MarkCraft/releases) · 校验清单：[`SHA256SUMS.txt`](https://github.com/James-fake/MarkCraft/releases/latest/download/SHA256SUMS.txt)
+>
+> ⚠️ 安装包**未做代码签名**，首次运行 Windows SmartScreen 可能提示「未知发布者」。核对 SHA-256 无误后，点「更多信息 → 仍要运行」即可。
+
+<details>
+<summary><b>🔐 校验下载完整性</b>（点击展开）</summary>
+
+PowerShell：
+
+```powershell
+Get-FileHash .\MarkCraft-Setup-x64.exe -Algorithm SHA256
+```
+
+| 文件 | SHA-256（v1.0.0） |
+| --- | --- |
+| `MarkCraft-Setup-x64.exe` | `8080b7c1d04291fa66d09b6bd8b24477133e8d8383abae35fd17afd514046449` |
+| `MarkCraft-Portable-x64.exe` | `e1d13c825a42b61f6d989208102907cc661a4741cf01fd402660ef08389ab357` |
+
+</details>
 
 ### 🎯 功能一览
 
@@ -641,7 +661,7 @@ MarkCraft 的知识库系统是「第二大脑」：在文件树之上构建多�
 | Word 导出       | docx                                  | ^9.7.1            | 客户端 DOCX 生成                      |
 | gzip 压缩       | pako                                  | ^2.1.0            | 备份 / 分享包解压                        |
 | 截图导出          | dom-to-image-more                     | ^3.10.0           | PNG / JPEG 截图                    |
-| 测试框架          | Vitest + Testing Library              | ^1.0.0 / ^14.0.0  | 单元测试 + 组件测试（jsdom + 内存存储后端）      |
+| 测试框架          | Vitest + Testing Library              | ^2.1.9 / ^14.0.0  | 单元测试 + 组件测试（jsdom + 内存存储后端；兼容 Node 22） |
 | E2E 框架         | Playwright                            | —                 | 真实 Electron 窗口全链路（`e2e/09..18-electron-*`） |
 | 桌面端打包         | electron-builder                      | —                 | NSIS 安装版 + Portable 便携版（Windows x64）  |
 | EPUB 转换        | Pandoc sidecar                        | —                 | `resources/pandoc/<platform>/`，缺失时回退内置生成器 |
@@ -673,280 +693,59 @@ npm install && npm run electron:dev
 
 | 依赖      | 最低版本    | 推荐版本        | 说明                 |
 | ------- | ------- | ----------- | ------------------ |
-| Node.js | >= 16.0 | >= 18.0 LTS | JavaScript 运行时     |
-| npm     | >= 7.0  | >= 9.0      | 包管理器（随 Node.js 安装） |
+| Node.js | >= 18.0 | **22 LTS**  | JavaScript 运行时（CI 固定 Node 22） |
+| npm     | >= 9.0  | 随 Node 22  | 包管理器（随 Node.js 安装） |
 | Git     | >= 2.0  | 最新版         | 版本控制（可选，用于克隆仓库）    |
 
-> **提示**：推荐使用 Node.js 18.x 或 20.x LTS 版本以确保兼容性。可使用 [nvm](https://github.com/nvm-sh/nvm)（macOS/Linux）或 [nvm-windows](https://github.com/coreybutler/nvm-windows)（Windows）管理多个 Node.js 版本。
+> **提示**：CI 与本地开发均使用 **Node.js 22**（Vitest 2.1.9 要求 Node 18+，推荐 22）。可用 [nvm](https://github.com/nvm-sh/nvm)（macOS/Linux）或 [nvm-windows](https://github.com/coreybutler/nvm-windows)（Windows）管理多版本。
 
-### 🪟 Windows 安装与运行
+### 🧰 从源码运行与打包
 
-#### 1. 安装 Node.js
+> 只需要使用软件，请直接看上方「[📥 下载](#-下载)」；本节面向开发者。
 
-**方式一：官方安装包（推荐新手）**
-
-1. 访问 [Node.js 官网](https://nodejs.org/)
-2. 下载 **LTS** 版本的 Windows Installer（`.msi` 文件）
-3. 双击运行安装程序，勾选 **Add to PATH**，一路 Next 完成安装
-4. 打开 **命令提示符** 或 **PowerShell**，验证安装：
-
-```powershell
-node --version
-npm --version
-```
-
-**方式二：nvm-windows（推荐开发者）**
-
-1. 访问 [nvm-windows Releases](https://github.com/coreybutler/nvm-windows/releases)
-2. 下载最新版 `nvm-setup.exe` 并安装
-3. 在命令提示符或 PowerShell 中执行：
-
-```powershell
-nvm install 20
-nvm use 20
-```
-
-**方式三：winget（Windows 10/11 内置）**
-
-```powershell
-winget install OpenJS.NodeJS.LTS
-```
-
-安装完成后**重新打开终端**，验证：
-
-```powershell
-node --version
-npm --version
-```
-
-> **注意**：如果安装后 `node` 命令无法识别，请检查系统环境变量 `PATH` 中是否包含 Node.js 的安装路径，或重新打开终端窗口。
-
-#### 2. 获取项目代码
-
-**方式一：Git 克隆**
-
-```powershell
-git clone https://gitee.com/James-fake/markcraft.git
-cd markcraft
-```
-
-**方式二：下载 ZIP**
-
-1. 访问项目 GitHub 页面，点击绿色 **Code** 按钮
-2. 选择 **Download ZIP**
-3. 解压到目标目录，在终端中进入：
-
-```powershell
-cd D:\path\to\markcraft
-```
-
-#### 3. 安装依赖
-
-```powershell
-npm install
-```
-
-> 如果下载速度慢，可使用国内镜像：
->
-> ```powershell
-> npm config set registry https://registry.npmmirror.com
-> npm install
-> ```
-
-#### 4. 启动桌面端（开发态）
-
-```powershell
-npm run electron:dev
-```
-
-编译主进程/preload → 拉起 Vite dev server → 打开 Electron 窗口。单跑 `npm run dev` 只会得到功能残缺的浏览器页面（见「快速开始」）。
-
-#### 5. 生产形态
-
-```powershell
-npm run electron:start    # 用 dist/ 启动桌面端
-npm run electron:dist:win # 打安装包（NSIS 安装版 + Portable 便携版）
-```
-
-### 🍎 macOS 安装与运行
-
-#### 1. 安装 Node.js
-
-**方式一：官方安装包**
-
-1. 访问 [Node.js 官网](https://nodejs.org/)
-2. 下载 **LTS** 版本的 macOS Installer（`.pkg` 文件）
-3. 双击运行安装程序，按提示完成安装
-4. 打开 **终端**（Terminal），验证安装：
+**1. 准备环境**：Node.js **22 LTS**（CI 与本地一致）、npm ≥ 9、Git ≥ 2。
 
 ```bash
-node --version
+node --version   # 建议 v22.x
 npm --version
 ```
 
-**方式二：Homebrew（推荐开发者）**
+> 各平台安装 Node 22：Windows 用 [官网 LTS 安装包](https://nodejs.org/) / `winget install OpenJS.NodeJS.LTS` / [nvm-windows](https://github.com/coreybutler/nvm-windows)；macOS 用 `brew install node` / [nvm](https://github.com/nvm-sh/nvm)；Linux 用发行版包管理器 / NodeSource / nvm。装完**重开终端**，确保 `node` 在 PATH 中。
+
+**2. 获取源码**
 
 ```bash
-# 安装 Homebrew（如未安装）
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# 安装 Node.js
-brew install node
-
-# 验证
-node --version
-npm --version
+git clone https://github.com/James-fake/MarkCraft.git
+cd MarkCraft
 ```
 
-**方式三：nvm（推荐多版本管理）**
+也可在 [仓库页面](https://github.com/James-fake/MarkCraft) 点 **Code → Download ZIP** 解压（Git 可选）。
 
-```bash
-# 安装 nvm
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-
-# 重新打开终端，或执行
-source ~/.zshrc
-
-# 安装并使用 Node.js LTS
-nvm install --lts
-nvm use --lts
-
-# 验证
-node --version
-npm --version
-```
-
-#### 2. 获取项目代码
-
-```bash
-git clone https://gitee.com/James-fake/markcraft.git
-cd markcraft
-```
-
-#### 3. 安装依赖
+**3. 安装依赖**
 
 ```bash
 npm install
 ```
 
-> 如果下载速度慢，可使用国内镜像：
->
-> ```bash
-> npm config set registry https://registry.npmmirror.com
-> npm install
-> ```
+> 国内网络慢可切镜像：`npm config set registry https://registry.npmmirror.com`。
 
-#### 4. 启动桌面端（开发态）
+**4. 启动桌面端（开发态）**
 
 ```bash
 npm run electron:dev
 ```
 
-编译主进程/preload → 拉起 Vite dev server → 打开 Electron 窗口。单跑 `npm run dev` 只会得到功能残缺的浏览器页面（见「快速开始」）。
+编译主进程 / preload → 拉起 Vite dev server → 打开 Electron 窗口。单跑 `npm run dev` 只会得到功能残缺的浏览器页面（见「快速开始」）。
 
-#### 5. 生产形态
-
-```bash
-npm run electron:start    # 用 dist/ 启动桌面端
-npm run electron:dist     # 打安装包（按当前平台）
-```
-
-### 🐧 Linux 安装与运行
-
-#### 1. 安装 Node.js
-
-**Ubuntu / Debian**
-
-```bash
-# 使用 NodeSource 仓库安装 Node.js 20.x
-curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-sudo apt-get install -y nodejs
-
-# 验证
-node --version
-npm --version
-```
-
-**Fedora / RHEL / CentOS**
-
-```bash
-# 使用 NodeSource 仓库安装 Node.js 20.x
-curl -fsSL https://rpm.nodesource.com/setup_20.x | sudo bash -
-sudo yum install -y nodejs
-
-# 验证
-node --version
-npm --version
-```
-
-**Arch Linux**
-
-```bash
-sudo pacman -S nodejs npm
-
-# 验证
-node --version
-npm --version
-```
-
-**nvm（通用，推荐开发者）**
-
-```bash
-# 安装 nvm
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-
-# 重新打开终端，或执行
-source ~/.bashrc
-
-# 安装并使用 Node.js LTS
-nvm install --lts
-nvm use --lts
-
-# 验证
-node --version
-npm --version
-```
-
-**Snap（Ubuntu 等）**
-
-```bash
-sudo snap install node --classic
-```
-
-#### 2. 获取项目代码
-
-```bash
-git clone https://gitee.com/James-fake/markcraft.git
-cd markcraft
-```
-
-#### 3. 安装依赖
-
-```bash
-npm install
-```
-
-> 如果下载速度慢，可使用国内镜像：
->
-> ```bash
-> npm config set registry https://registry.npmmirror.com
-> npm install
-> ```
-
-#### 4. 启动桌面端（开发态）
-
-```bash
-npm run electron:dev
-```
-
-编译主进程/preload → 拉起 Vite dev server → 打开 Electron 窗口。单跑 `npm run dev` 只会得到功能残缺的浏览器页面（见「快速开始」）。
-
-#### 5. 生产形态
+**5. 生产形态 / 打包**
 
 ```bash
 npm run electron:start    # 用 dist/ 启动桌面端
-npm run electron:dist     # 打安装包（按当前平台）
+npm run electron:dist:win # Windows x64：NSIS 安装版 + Portable 便携版
+npm run electron:dist     # 按当前平台打包（macOS / Linux 配置见 package.json）
 ```
+
+> ⚠️ 目前**对外发布的只有 Windows x64 安装包**；macOS / Linux 需自行从源码构建。打包时若遇 `app.asar` 被 Defender 锁住导致 `EBUSY`，用**全新的空输出目录**（见下文「关于 asar」）。
 
 ### ❓ 常见问题
 
@@ -1625,7 +1424,7 @@ npm run e2e:report
 
 ### 📊 测试规模
 
-当前仓库共 **194 个测试文件、2258 条用例**（另有 2 条跳过），全量通过；CI 另有 `typecheck` ×3 + `lint` 硬门禁。
+当前仓库共 **212 个测试文件**（`src/**/*.test.ts(x)`），全量通过；用例总数约 2400 条并随版本增长，**精确数量以 `npm run test:run` 输出为准**（避免文档数字漂移）。CI 另有 `typecheck` ×3 + `lint` 硬门禁。
 
 | 层次     | 位置                                                    | 覆盖内容                                     |
 | ------ | ----------------------------------------------------- | ---------------------------------------- |
@@ -1684,17 +1483,21 @@ npm run electron:dist:win        # 构建 Windows x64 安装包
 
 ### 关于 `asar`
 
-构建默认会生成 `resources/app.asar`。在 Windows 上，Defender 实时扫描刚写出的大体积 asar 可能让
-electron-builder 的 `unlink` 报 `EBUSY`（换新输出目录也复现）。此时可用
-`--config.asar=false` 产出 `resources/app/` 目录形态 —— **功能完全等价**（Electron 原生支持），
-只是安装后文件数更多、首次启动与扫描略慢。当前交付的 v1.0.0 安装包即为此形态。
+构建默认生成 `resources/app.asar`（`asar: true`），**当前 v1.0.0 发布包即为此形态**。在 Windows 上，
+Defender 实时扫描刚写出的大体积 asar 可能让 electron-builder 清理输出目录时 `unlink` 报 `EBUSY`。
+规避方式是**每次构建使用全新的空输出目录**（`-c.directories.output=release-vN`），成功后只把成品
+exe / blockmap 拷回 `release/`，不要复用 `win-unpacked`。仅在确实无法规避时，才考虑
+`--config.asar=false` 产出 `resources/app/` 目录形态（功能等价，但文件数更多、首启略慢）。
 
 ### 发布渠道
 
-安装包（Windows 版）托管在**独立的安装包仓库**，不放在本源码仓库中，以保持 `clone` 轻量。
-Gitee 免费版对单文件限制 100MB，故以**分卷（volume）**形式存放，`git clone` 后用脚本合并还原：
+安装包作为 **GitHub Releases 附件**发布在本源码仓库，单附件上限 2 GiB，因此 201MB 的 exe
+**无需分卷**。附件名固定为 `MarkCraft-Setup-x64.exe` / `MarkCraft-Portable-x64.exe`（不含版本号），
+官网与脚本通过 `releases/latest/download/` 固定直链下载；发新版只需替换同名附件内容。
 
-🔗 [James-fake/markcraftxiazaicangdianhua](https://gitee.com/James-fake/markcraftxiazaicangdianhua)
+🔗 [Releases 页面](https://github.com/James-fake/MarkCraft/releases) · [固定直链见「📥 下载」](#-下载)
+
+> 发版流程：本地构建 → 重命名附件 → 生成 `SHA256SUMS.txt` → 建 Release（tag 对应版本、`target: master`、非 pre-release）→ 上传附件 → 校验两条直链返回 200 且 `Content-Disposition: attachment`。
 
 ### 运行时环境变量（可选）
 
@@ -1729,7 +1532,7 @@ Gitee 免费版对单文件限制 100MB，故以**分卷（volume）**形式存�
 
 ### 🛡️ 质量与性能
 
-**2026-11-04 更新** — 本轮完成了一次覆盖全仓的审查与修复闭环，**全量 197 个测试文件 / 2284 条用例（2282 通过 + 2 跳过）通过**，`tsc` ×3 与 `lint --max-warnings 0` 全绿。测试框架已升级至 vitest 2.1.x（兼容 Node 22+ 与 Vite 5）。
+**质量记录（历史快照）** — 2026-11-04 完成了一次覆盖全仓的审查与修复闭环，当时为 **197 个测试文件 / 2284 条用例（2282 通过 + 2 跳过）**，`tsc` ×3 与 `lint --max-warnings 0` 全绿；测试框架已升级至 **vitest 2.1.x**（兼容 Node 22+ 与 Vite 5）。此后又经过 v1.0.0 上线前审查（Critical/High/Medium/Low 全层级修复）与多轮运行时回归修复，用例规模持续增长 —— **当前数量以「🧪 测试 → 测试规模」为准**。
 
 | 方面 | 内容 |
 | --- | --- |
@@ -1794,7 +1597,7 @@ Gitee 免费版对单文件限制 100MB，故以**分卷（volume）**形式存�
 - [x] 🛡️ **桌面端安全加固（2026-11）** — fs 路径白名单与原子写、SSRF/DNS-rebinding/重定向逐跳防护、导航与 webview 防线、iframe 沙箱收紧、导出链接协议白名单、mermaid strict；GitHub / Gitee 部署去掉无条件 force
 - [x] 💾 **数据一致性修复（2026-11）** — Vault 标签页与备份恢复、reload 保留未落盘编辑、迁移/版本升级不弃数据、备份写入顺序与并发串行化、导入保留目录结构、全局替换遵守过滤器
 - [x] ⚡ **WYSIWYG 输入性能（2026-11）** — 序列化 150ms 防抖 + 8 个 flush 点、lint 一次计算两处应用、公式块提取 O(k²·n)→O(n)；实测序列化占输入延迟 87-95%，连续输入 N 次现只做 1 次（方案见 `docs/TiptapEditor-Perf-Plan.md`）
-- [x] 🧪 **回归锁与质量门禁** — 194 个测试文件 / 2258 条用例；`tsc` ×3 + `vitest run` + `lint --max-warnings 0` 为 CI 硬门禁
+- [x] 🧪 **回归锁与质量门禁** — 全量单测 + 安全/会话/调度/性能回归锁；`tsc` ×3 + `vitest run` + `lint --max-warnings 0` 为 CI 硬门禁（当前规模见「🧪 测试 → 测试规模」）
 
 ---
 
