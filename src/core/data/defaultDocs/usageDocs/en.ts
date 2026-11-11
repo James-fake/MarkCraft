@@ -81,6 +81,28 @@ The MarkCraft interface is designed for distraction-free writing while keeping p
 
 > 💡 Toggle the sidebar with \`Ctrl+\\\` and the outline with \`Ctrl+Shift+O\`.
 
+## 1.1 Showing / Hiding Each Area
+
+| Area | Toggle | Common Actions |
+|------|--------|----------------|
+| File Tree (left) | Toolbar sidebar button or Ctrl+\\ | Drag to sort, right-click menu, new folder, import |
+| Editor (center) | Toolbar editor button | Source / WYSIWYG switch, formatting |
+| Preview (right) | Toolbar preview button | Scroll sync, jump to top / bottom |
+| Outline (right) | Ctrl+Shift+O | Click to jump, collapse, scroll-linked highlight |
+| Backlinks | Sidebar backlinks section | Click an entry to jump to the reference |
+| Footnotes | Sidebar footnotes section | Click to jump, hover to preview |
+
+## 1.2 Layout Recipes
+
+- **Deep writing**: hide the sidebar and preview, keep only the editor; add Focus Mode (F8).
+- **Proofreading**: editor + preview side by side, change and check in one place.
+- **Navigating many notes**: file tree + editor.
+- **Long documents**: editor + outline for quick section jumps.
+
+## 1.3 Reading the Status Bar
+
+The status bar shows word count (plain-text / standard), character count, line count, estimated reading time (Chinese ~500 chars/min, English ~200 words/min), and the lint warning count. Click the lint count to jump to the issue.
+
 ---`,
   },
   {
@@ -127,6 +149,26 @@ The editor supports independent control of source and preview visibility:
 - 50ms sync lock prevents bounce-back effects
 
 > ⚠️ The old split mode has been deprecated. Use the dual-column layout instead.
+
+## 2.5 Choosing a Mode
+
+| You want to... | Recommended |
+|----------------|-------------|
+| Control raw Markdown precisely, bulk-edit formatting | Source mode |
+| Write visually like Word, insert tables / math | WYSIWYG |
+| Write and see the rendered result side by side | Source + preview |
+
+- Both modes share the **same Markdown source**, so switching never loses content.
+- Turn on Live Preview in Source mode to see inline styles while editing plain text.
+
+## 2.6 Slash Commands in WYSIWYG
+
+Type / at the start of a line to open the insert menu: mermaid, mindmap, math, footnote, table, hr, code. Use arrow keys and Enter to choose, Esc to cancel.
+
+## 2.7 Common Questions
+
+- **Layout looks different after switching?** Rendering differs slightly (tables, deep nesting); trust the source, and preview before exporting.
+- **Preview briefly out of sync?** A 50ms lock prevents bounce; it realigns once scrolling stops.
 
 ---`,
   },
@@ -182,6 +224,29 @@ Click the daily note button to instantly create today's note in the format \`YYY
 - Organize bookmarks into groups
 - Quick access from the sidebar
 
+## 3.9 File Tree Operations
+
+| Action | How |
+|--------|-----|
+| New note / folder | Toolbar button, right-click menu, or Ctrl+N |
+| Rename | Right-click → Rename |
+| Delete | Right-click → Delete (removes from disk — be careful) |
+| Move | Drag onto the target folder |
+| Reorder | Drag to adjust order within a folder |
+| Quick locate | Ctrl+P fuzzy search by name |
+
+## 3.10 Import Notes
+
+- **Markdown (.md)**: imported as-is, syntax preserved.
+- **Word (.docx)**: converted via mammoth; complex layout (columns, text boxes, WordArt) may be lost — proofread after import.
+- **HTML**: converted by structure, inline styles kept where possible.
+- Duplicate names get an automatic suffix; existing notes are never overwritten.
+
+## 3.11 Daily Notes & Bookmarks
+
+- **Daily note**: the command palette "Open Daily Note" creates today's YYYY-MM-DD.md; set a daily template to fill in the date automatically.
+- **Bookmarks**: bookmark whole files or individual headings; groups help separate "to read", "important", and "project" items.
+
 ---`,
   },
   {
@@ -213,6 +278,22 @@ Press \`Ctrl+Shift+F\` to search across **all files** in your workspace.
 ## 4.4 Scroll Buttons
 
 One-click buttons to jump to the **top** or **bottom** of both the editor and preview areas.
+
+## 4.5 Find & Replace Details
+
+- **Find (Ctrl+F)**: highlights every match instantly; toggle case-sensitive and whole-word.
+- **Replace (Ctrl+H)**: replace one or all; a bulk replace is merged into a single undo step.
+- **Go to line (Ctrl+G)**: jump by line number in long documents.
+
+## 4.6 Global Search
+
+Ctrl+Shift+F searches across all files, groups results by file, and jumps to the match on click. It covers both titles and body text.
+
+## 4.7 Undo History
+
+- Up to 100 steps are kept; older entries are dropped.
+- Continuous typing and bulk edits merge into one step.
+- History is kept per file, so switching back still lets you undo.
 
 ---`,
   },
@@ -471,6 +552,20 @@ mindmap
 - **Media embed**: video and iframe support
 - **TOC node**: auto-generated table of contents with \`[toc]\`
 
+## 5.16 Nesting & Combinations
+
+- **List inside list**: indent the child by 2 spaces or 1 tab.
+- **Code block inside list**: indent the whole block one more level, aligning the fence with the list.
+- **List inside quote**: start the line with a quote marker followed by a dash.
+- **Line break in a table cell**: use the HTML br tag inside the cell.
+
+## 5.17 Formatting Pitfalls
+
+- **Bold vs italic clash**: three asterisks mean bold + italic; mind the count for just one.
+- **No parsing inside code**: asterisks and hashes inside code blocks stay literal.
+- **Blank lines matter**: separate paragraphs with a blank line or they may merge.
+- **Full-width punctuation** is fine, but add a space next to markers to be safe.
+
 ---`,
   },
   {
@@ -508,6 +603,22 @@ Type \`/\` in WYSIWYG mode for quick insertion:
 | \`/hr\` | Horizontal rule |
 | \`/code\` | Code block |
 
+## 6.3 How Auto-Pairing Behaves
+
+- Typing an opening bracket or quote inserts the closing half and places the cursor inside.
+- Typing a paired marker (bold, strikethrough, highlight) auto-closes it; typing it over a selection wraps the selection.
+- Typing double brackets opens WikiLink autocomplete (see chapter 11); typing / in WYSIWYG opens Slash commands.
+
+## 6.4 Turning Helpers Off
+
+In Settings → Editor you can independently disable autocomplete, auto-pair brackets, auto-pair quotes, and auto-pair Markdown. Turning one off does not affect the others.
+
+## 6.5 Smart Indent & Backspace
+
+- Enter continues list and quote markers; Enter on an empty item exits the list.
+- Tab / Shift+Tab change indentation in lists and code blocks; Tab moves between table cells.
+- Backspace at the start of an indented line reduces indentation first.
+
 ---
 
 # 7. Focus Mode & Typewriter Mode
@@ -530,6 +641,16 @@ Toggle with \`F9\` or the toolbar button:
 - Current line highlighted with a blue bar
 - Simulates typewriter scrolling
 - Can be combined with Focus Mode
+
+## 7.3 Combining the Modes
+
+| Goal | Suggested combo |
+|------|-----------------|
+| Draft with maximum focus | Focus + Typewriter + Fullscreen |
+| Proofread and polish | Normal layout + preview |
+| Present / large screen | Fullscreen + Focus |
+
+> 💡 Focus and Typewriter are session-only toggles; they are not persisted to settings. For a lasting default, enable them in Settings.
 
 ---`,
   },
@@ -639,6 +760,28 @@ Right-click in the editor for a context menu with common formatting actions and 
 
 The editor includes error boundaries to prevent crashes from propagating — if something goes wrong, you'll see a friendly error message instead of a blank screen.
 
+## 8.10 Live Preview Trade-offs
+
+- Inline styles for headings, quotes and lists appear right in the source.
+- Very large documents may render a bit slower; turn it off temporarily if it stutters.
+- Unlike WYSIWYG, you stay in the source editor with full control over the cursor and syntax.
+
+## 8.11 Outline & Footnotes in Sync
+
+- The outline highlights the current heading as you scroll; clicking it jumps back.
+- Footnote numbers in the text map one-to-one to the footnotes panel; deleting a reference leaves an orphan footnote flagged in the panel.
+
+## 8.12 Lint Quick Fix
+
+Issues are underlined; click for an explanation and a Fix button. Auto-fixable: unclosed fences, mismatched backticks, mixed dividers. Heading skips and malformed links are flagged but fixed manually.
+
+## 8.13 Image Optimization & Hosting
+
+- **Optimize images**: convert inline Base64 images to local files + placeholders to shrink the document.
+- **Placeholders**: the document references image:ID, resolved to the real image at render time.
+- **Image host**: choose PicGo or a custom host in Settings; uploads replace links automatically.
+- **Relative paths**: store images relative to the Vault for easy migration.
+
 ---`,
   },
   {
@@ -675,6 +818,30 @@ MarkCraft supports exporting to 12 different formats:
 - Export style presets
 - Custom CSS styles
 - File System Access API preferred, Blob download fallback
+
+## 9.1 Which Format to Pick
+
+| Purpose | Format |
+|---------|--------|
+| Archive / re-edit | Markdown |
+| Web page / email | HTML |
+| Print / formal doc | PDF (TOC, page numbers, header/footer) |
+| Hand to a colleague | Word (.docx) |
+| Academic typesetting | LaTeX (.tex) |
+| E-book | EPUB |
+| Share a long image | PNG / JPEG (1x / 2x / 3x) |
+
+## 9.2 Export Options
+
+- **HTML / PDF**: built-in style presets or custom CSS; PDF supports header, footer, page numbers and TOC.
+- **Images**: 1x / 2x / 3x resolution.
+- **Save location**: desktop uses a native file dialog; falls back to a browser download.
+
+## 9.3 Pre-Export Checklist
+
+- Confirm tables, math, Mermaid diagrams and images render in preview.
+- Check for broken links (red dashed underline) and unclosed code blocks (lint flags them).
+- For PDF, set page size and margins first so tables and code are not split.
 
 ---
 
@@ -797,6 +964,26 @@ Home, post, archive (by year), tags, full-text search, RSS, sitemap, 404, about,
 - **Single-file HTML**: SPA with hash routing — one file, easy to share
 - **Multi-file ZIP**: folder structure, ready for deployment
 
+## 10.9 Recommended Workflow
+
+1. Open Blog Studio from the command palette.
+2. Pick a theme, color, font and layout on the left; preview in the center (desktop / tablet / mobile).
+3. Select the posts to publish and fill in site info (title, author, language, posts per page).
+4. Optionally enable view counts, applause, PWA, comments, rewards, friend links and series.
+5. Export on the right: single-file HTML (one-click deploy) or multi-file ZIP (customizable).
+
+## 10.10 Deploying
+
+- **GitHub / Gitee Pages**: push the exported files and enable Pages.
+- **Vercel / Netlify / Cloudflare Pages**: connect the repo or drag-and-drop the folder.
+- Single-file HTML is simplest: drop it on any static host.
+
+## 10.11 Troubleshooting
+
+- **Preview not refreshing?** It debounces 500ms; wait a moment after a change.
+- **Want finer styling?** Use Custom CSS; write a separate set for dark mode.
+- **Reuse config?** Export / import the JSON config to move settings between machines.
+
 ---`,
   },
   {
@@ -853,6 +1040,25 @@ Full-screen canvas visualization of your knowledge network:
 - **Edge types**: wikilink (blue), embed (purple with arrow)
 
 > 📖 For a complete guide, open the **Knowledge Linking Guide** from the help menu.
+
+## 11.6 Three Ways to Link
+
+| Syntax | Effect |
+|--------|--------|
+| Double brackets + target | Link to the target note |
+| Double brackets + target + pipe + label | Link with custom display text |
+| Exclamation + double brackets + target | Embed the target note's content |
+
+## 11.7 Backlinks & Unlinked Mentions
+
+- **Backlinks**: every note that links to the current one; click to jump.
+- **Unlinked mentions**: text mentioning the note without double brackets; convert to a real link in one click.
+- Clean up broken links (red dashed) regularly to keep the network healthy.
+
+## 11.8 Tags & Graph
+
+- **Tags**: a leading hash makes a tag; nesting with a slash is supported and shown as a tree.
+- **Graph**: global view of the whole vault, local view of N hops around a note; bigger nodes have more links, colors distinguish normal / Hub / center / isolated.
 
 ---`,
   },
@@ -923,6 +1129,19 @@ MarkCraft has 28 shortcuts across 5 categories. Most are customizable in Setting
 - **Reset**: reset individual shortcuts or all to defaults
 - **Mac**: shows ⌘ symbol instead of Ctrl
 
+## 12.7 Customizing Shortcuts
+
+1. Open Settings → Shortcuts.
+2. Find the command and click its record box.
+3. Press the new combo; conflicts are detected automatically.
+4. Save. Reset individually or reset all to defaults.
+
+## 12.8 Key Conventions
+
+- Mac shows ⌘ / ⌥ / ⇧; Windows / Linux show Ctrl / Alt / Shift.
+- Format shortcuts (bold, italic, etc.) are handled internally and usually not customizable.
+- File, view and edit shortcuts are mostly customizable.
+
 ---`,
   },
   {
@@ -942,6 +1161,24 @@ Open the command palette with \`Ctrl+P\` (Quick Open) or use the dedicated short
 | **Navigation** | Quick Open, go to line, global search |
 | **Tools** | Blog Studio, outline, table editor, emoji picker |
 | **Settings** | Open settings, theme switch, preferences |
+
+## 13.1 Using the Palette
+
+- Open with Ctrl+P or the toolbar button.
+- Type a command name (export, outline, theme) for fuzzy matching.
+- Arrow keys to select, Enter to run, Esc to close.
+- Recent files are also listed; type a filename to jump.
+
+## 13.2 Quick Command Reference
+
+| To... | Search for |
+|-------|-----------|
+| Switch editor mode | mode / source / wysiwyg |
+| Insert a template | template |
+| Open canvas / knowledge base / graph | canvas / knowledge / graph |
+| Export / Save as | export / save as |
+| Open Blog Studio | blog |
+| Switch theme | theme / dark / light |
 
 ---
 
@@ -1007,6 +1244,20 @@ Open the command palette with \`Ctrl+P\` (Quick Open) or use the dedicated short
 | Default export format | Markdown, HTML, PDF, etc. |
 | Default export style | Preset styles for HTML/PDF |
 
+## 14.6 When Settings Take Effect
+
+- Appearance items (theme, font size, line height, font) apply instantly, no restart.
+- Behavior items (auto-save interval, autocomplete) follow the new rule immediately.
+- Settings are stored locally and are not synced across machines; screenshot or note important configs.
+
+## 14.7 Recommended Presets
+
+| Scenario | Settings |
+|----------|----------|
+| Long writing sessions | Sepia theme + 16–18px + 1.8 line height |
+| Code / technical notes | Monospace code font + dark theme |
+| Large screen / presenting | Wider editor + fullscreen |
+
 ---`,
   },
   {
@@ -1057,6 +1308,28 @@ Yes! There are 5 built-in editor themes including dark default and Nord. You can
 ## Q: How do I add a custom theme?
 
 Go to Settings → Appearance → Theme, and select "Import Theme" to upload a CSS file. The editor parses CSS variables to apply the custom theme.
+
+## Q: How do I migrate my existing notes?
+
+Use the command palette "Migrate Notes (Obsidian / Notion)" to import a zip or folder; it parses and preserves folder structure and links. Check images and wikilinks after migrating.
+
+## Q: Does MarkCraft sync across devices?
+
+MarkCraft is local-first: notes are real .md files in the Vault you choose. Put the Vault in OneDrive / iCloud / Dropbox to sync across devices. App state (file tree, canvas, version history) is stored locally, so copy it too if you need full parity.
+
+## Q: Why does some syntax preview fine but export wrong?
+
+Source, WYSIWYG and the export pipeline handle a few complex cases (nested tables, custom HTML) slightly differently. Trust the preview and spot-check key sections after export.
+
+## Q: How do I stay focused?
+
+Combine: hide the sidebar and preview → Focus Mode (F8) → Typewriter Mode (F9) → Fullscreen (F11). This minimizes distractions.
+
+## Q: Data safety and backup tips?
+
+- Export Markdown backups regularly, or keep the Vault in a synced folder.
+- Enable version history for important documents to roll back to any save point.
+- Use "Delete" carefully — it removes files from disk.
 
 ---
 

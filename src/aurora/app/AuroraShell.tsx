@@ -54,9 +54,11 @@ import {
   trackAppLaunch,
   trackAppClose,
   trackFeatureDwell,
+  trackFeatureUse,
   startHeartbeat,
   installErrorHandlers,
   TELEMETRY_ENDPOINT,
+  TELEMETRY_KEY,
   APP_VERSION,
   detectPlatform,
 } from '@features/telemetry'
@@ -171,6 +173,7 @@ function ShellInner() {
     configureTelemetry({
       getConsent: () => settingsRef.current.telemetryConsent === 'granted',
       endpoint: TELEMETRY_ENDPOINT,
+      key: TELEMETRY_KEY,
       appVersion: APP_VERSION,
       platform: detectPlatform(),
       // 传 getter 而非快照：用户切换语言后无需重建 telemetry 配置即可上报最新 locale
@@ -194,6 +197,9 @@ function ShellInner() {
   const telemetryFeature =
     auxView === 'settings' ? 'settings' : auxView === 'welcome' ? 'welcome' : view
   useEffect(() => {
+    // 功能使用计数：进入某个功能面板即 +1（事件名 `view.<面板>`），
+    // 覆盖侧边栏等「非命令入口」的导航，与 `cmd.<命令id>` 互补。
+    trackFeatureUse('view.' + telemetryFeature)
     // 停留时长：本 effect 覆盖「当前功能」这一段，cleanup 上报的就是这一段。
     // 原实现用 ref 存「上一段」并在 cleanup 里上报，导致切换时重复上报前一段、最后一段丢失。
     const startedAt = Date.now()
@@ -237,10 +243,10 @@ function ShellInner() {
     if (!hydrated) return
     if (seededRootIdRef.current === rootFolder.id) return
     logger.info('[kbSeed] 播种/自愈 effect 触发（hydrated 已就位，树根变更）')
-    void ensureUsageDocsKb({ rootFolder, lang: language, createFolder, createFile, moveNode })
+    void ensureUsageDocsKb({ rootFolder, lang: language, createFolder, createFile, moveNode, updateFileContent })
       .then(() => { seededRootIdRef.current = rootFolder.id })   // 有 id 或 null（不复活）都算终态
       .catch((err) => { console.warn('[KB] 内置使用文档播种失败，将在下次树变更时重试：', err) })
-  }, [hydrated, rootFolder, language, createFolder, createFile, moveNode])
+  }, [hydrated, rootFolder, language, createFolder, createFile, moveNode, updateFileContent])
 
   // 兜底自愈：进入「知识库」视图时再幂等跑一次。
   // 直接覆盖「点开使用文档知识库却是空的」这条路径 —— 即便本次会话内文件树未被替换、
@@ -253,9 +259,9 @@ function ShellInner() {
     const key = `${view}:${rootFolder.id}`
     if (healedKbViewRef.current === key) return
     healedKbViewRef.current = key
-    void ensureUsageDocsKb({ rootFolder, lang: language, createFolder, createFile, moveNode })
+    void ensureUsageDocsKb({ rootFolder, lang: language, createFolder, createFile, moveNode, updateFileContent })
       .catch(() => { /* 自愈失败不打断浏览 */ })
-  }, [hydrated, view, rootFolder, language, createFolder, createFile, moveNode])
+  }, [hydrated, view, rootFolder, language, createFolder, createFile, moveNode, updateFileContent])
 
   // —— 弹层开关（Phase 3d · 方案 B：单一数据源在 AuroraShell，面板就近渲染）——
   const [modals, setModals] = useState<Partial<Record<AuroraModalId, boolean>>>({})
@@ -349,7 +355,7 @@ function ShellInner() {
     }
   }, [createFile, rootFolder, toast])
 
-  const auroraActions = buildAuroraActions({
+  const rawAuroraActions = buildAuroraActions({
     rootFolder,
     getRootFolder: () => rootFolderRef.current,
     createFile,
@@ -375,6 +381,19 @@ function ShellInner() {
       openNoteFirst: t.editorPanel.openNoteFirst,
     },
   })
+
+  // —— 功能使用计数（feature_use）：给每个命令动作包一层 trackFeatureUse ——
+  // 覆盖注册表（菜单 / 命令面板 / 引导页 / 窗口按钮）与键盘直调（⌘N/⌘W/⌘F/撤销/重做）等全部调用方。
+  // 未授权时 trackFeatureUse 是 no-op，不产生任何网络请求。事件名形如 `cmd.file.save`。
+  const auroraActions: Record<string, (() => void) | undefined> = {}
+  for (const key of Object.keys(rawAuroraActions)) {
+    const fn = rawAuroraActions[key]
+    if (!fn) continue
+    auroraActions[key] = () => {
+      trackFeatureUse('cmd.' + key)
+      fn()
+    }
+  }
 
   // —— P0 · 1.5 全局键盘快捷键（真实 useKeyboardShortcuts hook，对齐 LegacyApp 键位）——
   useKeyboardShortcuts({

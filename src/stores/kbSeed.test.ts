@@ -113,6 +113,10 @@ function harness(root: FileNode, lang: 'zh' | 'en' = 'zh'): Harness {
       target.children.push(node)
       return true
     },
+    updateFileContent: (fileId, content) => {
+      const { node } = locate(root, fileId)
+      if (node) node.content = content
+    },
   }
   return h
 }

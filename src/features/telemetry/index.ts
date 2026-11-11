@@ -17,4 +17,4 @@ export {
   installErrorHandlers,
 } from './events'
 export { getInstallId } from './installId'
-export { APP_VERSION, TELEMETRY_ENDPOINT, detectPlatform } from './config'
+export { APP_VERSION, TELEMETRY_ENDPOINT, TELEMETRY_KEY, detectPlatform } from './config'

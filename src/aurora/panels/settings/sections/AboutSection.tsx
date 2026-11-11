@@ -46,7 +46,7 @@ export function AboutSection({
   onOpenBrowser?: (url: string) => void
 }) {
   const { q, match } = useSettingsQuery(query)
-  const { rootFolder, createFolder, createFile, moveNode } = useFileManager()
+  const { rootFolder, createFolder, createFile, moveNode, updateFileContent } = useFileManager()
   const { t, language } = useLanguage()
   const A = t.settingsAbout
   const [opening, setOpening] = useState(false)
@@ -58,7 +58,7 @@ export function AboutSection({
     if (opening) return
     setOpening(true)
     try {
-      const kbId = await ensureUsageDocsKb({ rootFolder, lang: language, createFolder, createFile, moveNode })
+      const kbId = await ensureUsageDocsKb({ rootFolder, lang: language, createFolder, createFile, moveNode, updateFileContent })
       if (kbId) {
         nav?.('kb', kbId)
       } else {
@@ -71,7 +71,7 @@ export function AboutSection({
     } finally {
       setOpening(false)
     }
-  }, [opening, rootFolder, language, createFolder, createFile, moveNode, nav, toast, A.docDeleted, A.openDocsFailed])
+  }, [opening, rootFolder, language, createFolder, createFile, moveNode, updateFileContent, nav, toast, A.docDeleted, A.openDocsFailed])
 
   const hasAny = !q || match(A.matchTitle, A.matchKeywords)
   if (!hasAny) return null

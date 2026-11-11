@@ -6,6 +6,8 @@ export interface PostEventsOptions {
   events: TelemetryEvent[]
   /** 关闭应用时用 sendBeacon 尽力送达 */
   beacon?: boolean
+  /** 防滥用共享密钥（可选）；非空时随请求发送 `X-MarkCraft-Key` 头。 */
+  key?: string
 }
 
 /**
@@ -17,18 +19,22 @@ export interface PostEventsOptions {
  * 载荷形态（与 Umami / Plausible / PostHog 等隐私友好服务的自定义事件接口兼容）：
  *   { "events": TelemetryEvent[] }
  */
-export function postEvents({ endpoint, events, beacon }: PostEventsOptions): boolean {
+export function postEvents({ endpoint, events, beacon, key }: PostEventsOptions): boolean {
   if (!endpoint) return false
   if (events.length === 0) return false
   const body = JSON.stringify({ events })
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (key) headers['X-MarkCraft-Key'] = key
   try {
-    if (beacon && typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+    // 无密钥时保留 sendBeacon（关闭时最可靠）；有密钥时必须走 fetch —— sendBeacon 无法
+    // 自定义请求头，用 keepalive 达到同样的「关闭时尽力送达」效果。
+    if (beacon && !key && typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
       const blob = new Blob([body], { type: 'application/json' })
       return navigator.sendBeacon(endpoint, blob)
     }
     void fetch(endpoint, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body,
       keepalive: true,
       credentials: 'omit',

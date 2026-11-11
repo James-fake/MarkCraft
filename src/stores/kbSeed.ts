@@ -49,6 +49,8 @@ export interface UsageDocsSeedDeps {
   /** 注意：最后一个参数必须显式传 false，否则播种会把 16 篇文档全开成标签页 */
   createFile: (parentId: string, name: string, content?: string, openAfterCreate?: boolean) => string
   moveNode: (nodeId: string, targetParentId: string, targetIndex?: number) => boolean
+  /** 覆盖某篇内置文档的正文（智能刷新用；仅在判定「用户未改动该篇」时才调用） */
+  updateFileContent: (fileId: string, content: string) => void
 }
 
 /**
@@ -81,6 +83,109 @@ function config(lang: 'zh' | 'en'): SeedConfig {
   return lang === 'en'
     ? { folder: USAGE_DOC_FOLDER_EN, description: USAGE_DOC_DESCRIPTION_EN, pages: USAGE_DOC_ALL_EN }
     : { folder: USAGE_DOC_FOLDER_ZH, description: USAGE_DOC_DESCRIPTION_ZH, pages: USAGE_DOC_ALL_ZH }
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// 智能刷新（内置文档升级时只更新「用户没改过」的篇章）
+// ─────────────────────────────────────────────────────────────────────────
+
+/** 记录「上次写入文件的内置内容哈希」——刷新时据此判断用户是否改过 */
+const DOCS_WRITTEN_KEY = 'markcraft-usage-docs-written-v1'
+/** 内置文档整体内容签名：变化时才触发刷新 */
+const DOCS_SIG_KEY = 'markcraft-usage-docs-sig-v1'
+
+/** 轻量字符串哈希（djb2），仅用于变更检测，非安全用途 */
+function hashStr(s: string): string {
+  let h = 5381
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0
+  return (h >>> 0).toString(36)
+}
+
+function computeSig(cfg: SeedConfig): string {
+  return hashStr(cfg.folder + '|' + cfg.pages.map((p) => p.fileName + ':' + hashStr(p.content)).join('|'))
+}
+
+function readWritten(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(DOCS_WRITTEN_KEY)
+    return raw ? (JSON.parse(raw) as Record<string, string>) : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeWritten(map: Record<string, string>): void {
+  try {
+    localStorage.setItem(DOCS_WRITTEN_KEY, JSON.stringify(map))
+  } catch {
+    /* 写不进去不影响主流程 */
+  }
+}
+
+function readSig(): string {
+  try {
+    return localStorage.getItem(DOCS_SIG_KEY) || ''
+  } catch {
+    return ''
+  }
+}
+
+function writeSig(sig: string): void {
+  try {
+    localStorage.setItem(DOCS_SIG_KEY, sig)
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 首次播种 / 首次记录：写入当前内置内容哈希与整体签名 */
+function recordBaseline(cfg: SeedConfig): void {
+  const written = readWritten()
+  for (const page of cfg.pages) written[page.fileName] = hashStr(page.content)
+  writeWritten(written)
+  writeSig(computeSig(cfg))
+}
+
+/**
+ * 智能刷新：内置文档内容升级时，只更新「用户没改过」的篇章。
+ *   判据：文件当前内容哈希 == 上次写入的内置内容哈希 → 未改 → 安全覆盖；
+ *        不等 → 用户改过 → 跳过（永不覆盖）。
+ *   旧版安装（无 written 记录）：一次性视为未改并覆盖；此后 written 生效，用户改动即受保护。
+ * 只在内容签名变化时执行（readSig !== 当前 sig），日常启动零开销。
+ */
+function refreshDocs(deps: UsageDocsSeedDeps, cfg: SeedConfig, folder: FileNode): void {
+  const sig = computeSig(cfg)
+  if (readSig() === sig) return // 内置内容未变 → 无需刷新
+
+  const written = readWritten()
+  const filesByName = new Map<string, FileNode>()
+  for (const child of folder.children ?? []) {
+    if (child.type === 'file') filesByName.set(child.name, child)
+  }
+
+  let updated = 0
+  for (const page of cfg.pages) {
+    const newHash = hashStr(page.content)
+    const node = filesByName.get(page.fileName)
+    if (!node) continue // 缺失交由 materialize 补建
+    const fileHash = hashStr(node.content ?? '')
+    if (fileHash === newHash) {
+      if (written[page.fileName] !== newHash) written[page.fileName] = newHash
+      continue
+    }
+    const lastWritten = written[page.fileName]
+    if (lastWritten === undefined || lastWritten === fileHash) {
+      // 旧版安装（无记录）或「上次写入后未改动」→ 安全覆盖
+      deps.updateFileContent(node.id, page.content)
+      written[page.fileName] = newHash
+      updated++
+    }
+    // 否则：用户改过 → 跳过（保留用户内容）
+  }
+
+  writeWritten(written)
+  writeSig(sig)
+  if (updated > 0) logger.info('[kbSeed] 内置使用文档智能刷新：更新', updated, '篇')
 }
 
 /** 在树里按名字找文件夹（任意层级） */
@@ -120,8 +225,10 @@ async function run(deps: UsageDocsSeedDeps): Promise<string | null> {
   const list = await getKbList()
   const existing = list.find((k) => k.name === cfg.folder)
   if (existing) {
-    // 1a. 健康：folderId 能在树上解析到 → 直接复用（幂等路径）
-    if (findNode(deps.rootFolder, existing.folderId)) {
+    // 1a. 健康：folderId 能在树上解析到 → 复用（幂等路径），并尝试智能刷新内置文档内容
+    const folderNode = findFolderByName(deps.rootFolder, cfg.folder)
+    if (folderNode && findNode(deps.rootFolder, existing.folderId)) {
+      refreshDocs(deps, cfg, folderNode)
       logger.info('[kbSeed] 已存在健康的内置知识库，直接复用：', existing.id)
       return existing.id
     }
@@ -155,6 +262,7 @@ async function run(deps: UsageDocsSeedDeps): Promise<string | null> {
   logger.info('[kbSeed] 首次播种内置使用文档：', { folder: cfg.folder, pages: cfg.pages.length })
   const folderId = materialize(deps, cfg)
   const kb = await createKbInFolder(cfg.folder, cfg.description, folderId)
+  recordBaseline(cfg)
   logger.info('[kbSeed] 播种完成：', { kbId: kb.id, folderId })
 
   // ④ 落标记

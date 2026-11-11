@@ -7,6 +7,8 @@ export interface TelemetryConfig {
   getConsent: () => boolean
   /** 上报端点；空字符串时即使已授权也不发送。 */
   endpoint: string
+  /** 防滥用共享密钥（可选）；非空时随请求发送 `X-MarkCraft-Key` 头。 */
+  key?: string
   appVersion: string
   platform: TelemetryPlatform
   /** 静态 locale，或返回最新 locale 的 getter（用户切换语言后无需重建配置）。 */
@@ -25,12 +27,14 @@ let flushTimer: ReturnType<typeof setTimeout> | null = null
 let baseAppVersion = ''
 let basePlatform: TelemetryPlatform = 'unknown'
 let baseLocale: () => string = () => ''
+let baseKey = ''
 
 /** 在应用启动早期调用一次，注入授权判定、端点与基础字段。 */
 export function configureTelemetry(cfg: TelemetryConfig): void {
   config = cfg
   baseAppVersion = cfg.appVersion
   basePlatform = cfg.platform
+  baseKey = cfg.key ?? ''
   const loc = cfg.locale
   baseLocale = typeof loc === 'function' ? loc : () => loc
 }
@@ -82,7 +86,7 @@ export function flushNow(beacon = false): void {
   }
   if (buffer.length === 0) return
   const batch = buffer.splice(0, config.maxBatchSize ?? 50)
-  postEvents({ endpoint: config.endpoint, events: batch, beacon })
+  postEvents({ endpoint: config.endpoint, events: batch, beacon, key: baseKey })
   // 缓冲仍有剩余（事件数 > 单批上限）：立即排程下一轮 flush，
   // 否则残留事件要等下次 track() 才会再排程；而关闭时的 flushNow(beacon)
   // 不会再有 track() 触发 → 残留事件被丢弃。
