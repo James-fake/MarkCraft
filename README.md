@@ -831,9 +831,9 @@ npm run electron:dist     # 按当前平台打包（macOS / Linux 配置见 pack
 MarkCraft/
 ├── index.html
 ├── package.json
-├── vite.config.ts / vite.smoke.config.ts / vite.shots.config.ts
+├── vite.config.ts / vite.smoke.config.ts
 ├── vitest.config.ts
-├── tsconfig.json / tsconfig.node.json / tsconfig.test.json
+├── tsconfig.json / tsconfig.node.json
 ├── tailwind.config.js / postcss.config.js
 ├── .gitattributes / .gitignore
 ├── scripts/                        # 构建与治理脚本 + 本地 ESLint 插件
